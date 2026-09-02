@@ -61,7 +61,7 @@ async function copy() {
         :class="
           active === manager
             ? 'bg-background text-foreground shadow-sm'
-            : 'text-muted-foreground hover:bg-background/60 hover:text-foreground'
+            : 'text-muted-foreground hover:bg-accent hover:text-foreground'
         "
         @click="active = manager"
       >
