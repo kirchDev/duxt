@@ -40,10 +40,32 @@ export default defineNuxtConfig({
   },
 
   icon: {
-    mode: 'svg'
+    // Inline the icons actually used into the client bundle instead of fetching
+    // them per collection after hydration — no roundtrip, no icon flash.
+    clientBundle: {
+      scan: true,
+      sizeLimitKb: 512
+    }
   },
 
   vite: {
-    plugins: [tailwindcss()]
+    plugins: [tailwindcss()],
+
+    ssr: {
+      // reka-ui is a dependency of the LAYER, so Nitro externalises it for SSR
+      // and the server imports a different copy than the client bundle uses.
+      // Its provide/inject then never matches and SSR dies with a null
+      // instance. Inlining it keeps one copy on both sides.
+      noExternal: ['reka-ui']
+    },
+
+    resolve: {
+      // Force singleton resolution. The layer and the project extending it can
+      // each resolve their own copy of these, and reka-ui's provide/inject then
+      // stops matching across the two — which only fails in a production build,
+      // where dev's shared module graph is gone. gildstone carries the same
+      // dedupe for the same class of bug.
+      dedupe: ['vue', 'reka-ui']
+    }
   }
 });
