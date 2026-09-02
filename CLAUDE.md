@@ -42,11 +42,15 @@ What that leaves as candidate value: the **ergonomics** (a compact `sources` lis
 
 **Decided so far:**
 
-- **The theme is shadcn-vue, wired through `shadcn-nuxt`** — a clean base with owned components, not Docus or Nuxt UI. No UI-Pro dependency, and the components are copied into the repo rather than imported, so overriding them is editing them.
+- **The theme is shadcn-vue, wired through `shadcn-nuxt`** — a clean Tailwind 4 base with owned components in `app/components/ui/`, not Docus or Nuxt UI. Add one with `pnpm dlx shadcn-vue@latest add <name>`; `components.json` already points the CLI at the layer's own alias. The palette is the neutral shadcn set as CSS variables in `app/assets/css/duxt.css`, `dark` class toggled by `@nuxtjs/color-mode`; a consumer redefines a token in its own stylesheet rather than forking the file.
+- **Markdown components are MDC, not MDX.** Content ships MDC, so `::callout{type="tip"}` works with no extra module. Components live in `app/components/content/`.
 - **Numbered section prefixes are a non-issue.** Content strips them itself: `1.guides/` renders at `/guides`, `99.adr/` at `/adr`. Verified in `www/`. Reordering does not move a URL; only renaming the name part does.
 - **No SQLite driver is installed.** Content's default is `better-sqlite3`, a native addon needing a node-gyp toolchain. `content.experimental.nativeSqlite` uses Node 24's built-in `node:sqlite` instead, which needs no package at all — `www/` builds and renders with neither `better-sqlite3` nor `@libsql/client` present. It is flagged experimental in Content; if that changes, `@libsql/client` is the prebuilt fallback, not `better-sqlite3`.
 
 **Repo shape — the root IS the layer.** `nuxt.config.ts`, `content.config.ts` and `app/` sit at the repo root, and `package.json` points at them with `main: "./nuxt.config.ts"` plus a `files` allowlist, so `extends: ['@kirchdev/duxt']` resolves. `www/` is the consuming site beside it — the only workspace package, and the development target, exactly as `www/` is in `ZTL-UwU/shadcn-docs-nuxt`. `nuxt` is a peerDependency of the layer and a real dependency only of `www/`.
+
+> [!IMPORTANT]
+> **Nothing layer-relative resolves the way it reads.** Three places have hit this already, and a fourth will: the Content collection `cwd`, the `css` entry and `componentDir` in `nuxt.config.ts` (both go through the `layer()` helper resolving against `import.meta.url`), and the `@` alias — which belongs to whoever extends the layer, so the layer's own imports use `@duxt` instead. Assume any path written here is read from the consumer's directory until proven otherwise.
 
 > [!IMPORTANT]
 > **A layer's collections resolve against the LAYER, not the consumer.** Content sets `collection.__rootDir = curr.cwd` per layer, so a relative `source.cwd` in this repo's `content.config.ts` points into this repo — never into the site that extends it. The layer therefore computes an absolute path at load time (`join(process.cwd(), 'docs')`), which works because c12 executes the config. This is the seam the whole `sources` shorthand sits on.
