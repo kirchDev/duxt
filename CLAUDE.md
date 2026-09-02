@@ -61,7 +61,8 @@ What that leaves as candidate value: the **ergonomics** (a compact `sources` lis
 | `pnpm lint`         | `oxlint . --deny-warnings`                                 |
 | `pnpm format`       | `oxfmt --check .` (note: `format` is the check, not fix)   |
 | `pnpm typecheck`    | `tsc --noEmit` over the meta scripts                       |
-| `pnpm check`        | Runs `lint` + `format` + `typecheck` + `check:policy` — the CI gate |
+| `pnpm typecheck:app`| `nuxt typecheck` over the layer, run through `www/`        |
+| `pnpm check`        | Runs `lint` + `format` + `typecheck` + `typecheck:app` + `check:policy` — the CI gate |
 | `pnpm check:policy` | Proves the two agent policy files ban the same commands    |
 | `pnpm lint:fix`     | Auto-fix lint                                              |
 | `pnpm format:fix`   | Auto-fix format                                            |
@@ -70,13 +71,13 @@ What that leaves as candidate value: the **ergonomics** (a compact `sources` lis
 | `pnpm taze`         | Interactive dependency upgrade check                       |
 | `pnpm taze:w`       | Write upgrade results                                      |
 
-There is no test suite yet — the repo currently carries only the meta layer. CI runs `pnpm lint`, `pnpm format`, `pnpm typecheck` and `pnpm check:policy` on PR; adding a check to the `check` script is enough, no workflow change needed.
+There is no test suite yet — the repo currently carries only the meta layer. CI runs whatever `check` chains on PR; adding a check to the `check` script is enough, no workflow change needed.
 
 ## Architecture / conventions
 
-- **Node 24, pnpm 12.** Pinned via `.nvmrc`, `engines`, and `packageManager`. `pnpm-workspace.yaml` enforces `minimumReleaseAge=4320` (3-day cooldown), isolated node-linker. Don't loosen these without reason. Package-manager enforcement carries no key on purpose: pnpm 11 replaced `packageManagerStrict`/`packageManagerStrictVersion` with `pmOnFail`, whose default `download` already errors on a foreign package manager and fetches the pinned pnpm version — every other value only weakens it, so leave it unset (the rationale sits as a comment in the file).
+- **Node 24, pnpm 12, TypeScript 6.** Pinned via `.nvmrc`, `engines`, and `packageManager`. `pnpm-workspace.yaml` enforces `minimumReleaseAge=4320` (3-day cooldown), isolated node-linker. Don't loosen these without reason. **TypeScript stays on 6 deliberately**: 7 is the native port, whose `exports` map no longer exposes the compiler internals Volar builds on, so `vue-tsc` cannot run on it — and without `vue-tsc` the layer has no typecheck at all. Move to 7 when Volar does, not before. Package-manager enforcement carries no key on purpose: pnpm 11 replaced `packageManagerStrict`/`packageManagerStrictVersion` with `pmOnFail`, whose default `download` already errors on a foreign package manager and fetches the pinned pnpm version — every other value only weakens it, so leave it unset (the rationale sits as a comment in the file).
 - **oxc, not eslint/prettier.** Linting via `oxlint`, formatting via `oxfmt`. Configs live in `.oxlintrc.json` / `.oxfmtrc.json`. `oxlint` uses `unicorn` + `oxc` plugins; rules deliberately minimal.
-- **TypeScript, no build step.** The meta scripts and the three tool configs are `.ts` — Node 24 strips types natively, so `scripts/check-policy-parity.ts`, `commitlint.config.ts`, `lint-staged.config.ts` and `taze.config.ts` stay directly executable and each tool loads its own `.ts` config unaided. `tsconfig.json` is `noEmit` + `strict` + `erasableSyntaxOnly`, so only strippable syntax (no enums, no parameter properties) can be written; `pnpm typecheck` is the gate. Once `.vue` files land, `typecheck` moves to `vue-tsc`; `oxlint` + `oxfmt` cover `.vue` on their own, so no ESLint is coming.
+- **TypeScript, no build step.** The meta scripts and the three tool configs are `.ts` — Node 24 strips types natively, so `scripts/check-policy-parity.ts`, `commitlint.config.ts`, `lint-staged.config.ts` and `taze.config.ts` stay directly executable and each tool loads its own `.ts` config unaided. `tsconfig.json` is `noEmit` + `strict` + `erasableSyntaxOnly`, so only strippable syntax (no enums, no parameter properties) can be written; `pnpm typecheck` is the gate for those. The layer itself is checked separately by `pnpm typecheck:app` (`nuxt typecheck` in `www/`), because `tsc` cannot see a Nuxt config's module options — those exist only in generated types. `oxlint` + `oxfmt` cover `.vue`, so no ESLint is coming.
 - **Husky hooks** (`.husky/pre-commit`, `.husky/commit-msg`) run `lint-staged` and `commitlint`. `lint-staged.config.ts` excludes `README.md`, `CLAUDE.md`, and `AGENTS.md` (free-form prose) and `pnpm-lock.yaml`. `oxlint --fix --deny-warnings` then `oxfmt` on JS/TS; `oxfmt` only on JSON/YAML/MD.
 - **Conventional Commits enforced** via `@commitlint/config-conventional`. Don't `--no-verify` unless explicitly asked.
 - **release-please** drives the versioning. Files: `release-please-config.json`, `.release-please-manifest.json`, `.github/workflows/release-please.yml`. `release-type: node` (this is a published package, so `package.json` gets bumped too), `include-v-in-tag: true`, starting from `0.0.0`. Publishing to npm is a job added to `release-please.yml`, gated on `needs.release-please.outputs.release-created`.

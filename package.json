@@ -41,13 +41,14 @@
     "format": "oxfmt --check .",
     "format:fix": "oxfmt .",
     "typecheck": "tsc --noEmit",
-    "check": "pnpm lint && pnpm format && pnpm typecheck && pnpm check:policy",
+    "check": "pnpm lint && pnpm format && pnpm typecheck && pnpm typecheck:app && pnpm check:policy",
     "check:fix": "pnpm lint:fix && pnpm format:fix",
     "check:policy": "node scripts/check-policy-parity.ts",
     "skills:update": "pnpm dlx skills@latest update -p -y",
     "taze": "taze",
     "taze:w": "taze -w",
-    "prepare": "husky"
+    "prepare": "husky",
+    "typecheck:app": "pnpm --filter www typecheck"
   },
   "dependencies": {
     "@nuxt/content": "^3.16.0"
@@ -63,7 +64,7 @@
     "oxfmt": "0.65.0",
     "oxlint": "1.80.0",
     "taze": "^21.1.0",
-    "typescript": "^7.0.2"
+    "typescript": "^6.0.3"
   },
   "peerDependencies": {
     "nuxt": "^4.0.0"

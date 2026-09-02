@@ -7,9 +7,14 @@
   "type": "module",
   "scripts": {
     "dev": "nuxt dev",
-    "build": "nuxt build"
+    "build": "nuxt build",
+    "typecheck": "nuxt typecheck"
   },
   "dependencies": {
     "nuxt": "^4.5.2"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3",
+    "vue-tsc": "^3.3.11"
   }
 }
