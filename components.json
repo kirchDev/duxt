@@ -1,0 +1,19 @@
+{
+  "$schema": "https://shadcn-vue.com/schema.json",
+  "style": "new-york",
+  "typescript": true,
+  "tailwind": {
+    "config": "",
+    "css": "app/assets/css/duxt.css",
+    "baseColor": "neutral",
+    "cssVariables": true
+  },
+  "aliases": {
+    "components": "@duxt/components",
+    "composables": "@duxt/composables",
+    "utils": "@duxt/lib/utils",
+    "ui": "@duxt/components/ui",
+    "lib": "@duxt/lib"
+  },
+  "iconLibrary": "lucide"
+}

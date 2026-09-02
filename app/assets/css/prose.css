@@ -1,0 +1,73 @@
+/* Prose styling as plain CSS rather than a typography plugin: a consumer
+   overriding one element should not have to learn a plugin's option shape. */
+.duxt-prose {
+  @apply text-[15px] leading-7;
+}
+
+.duxt-prose h1 {
+  @apply mt-0 mb-4 scroll-m-20 text-3xl font-semibold tracking-tight;
+}
+
+.duxt-prose h2 {
+  @apply mt-10 mb-4 scroll-m-20 border-b pb-2 text-2xl font-semibold tracking-tight;
+}
+
+.duxt-prose h3 {
+  @apply mt-8 mb-3 scroll-m-20 text-xl font-semibold tracking-tight;
+}
+
+.duxt-prose h4 {
+  @apply mt-6 mb-2 scroll-m-20 text-lg font-semibold tracking-tight;
+}
+
+.duxt-prose p {
+  @apply my-4;
+}
+
+.duxt-prose a {
+  @apply font-medium underline underline-offset-4 hover:text-primary;
+}
+
+.duxt-prose ul {
+  @apply my-4 ml-6 list-disc space-y-2;
+}
+
+.duxt-prose ol {
+  @apply my-4 ml-6 list-decimal space-y-2;
+}
+
+.duxt-prose blockquote {
+  @apply my-4 border-l-2 pl-4 text-muted-foreground italic;
+}
+
+.duxt-prose :not(pre) > code {
+  @apply rounded bg-muted px-1.5 py-0.5 font-mono text-sm;
+}
+
+.duxt-prose pre {
+  @apply my-4 overflow-x-auto rounded-lg border bg-muted p-4 text-sm;
+}
+
+.duxt-prose pre code {
+  @apply bg-transparent p-0;
+}
+
+.duxt-prose table {
+  @apply my-4 w-full text-sm;
+}
+
+.duxt-prose th {
+  @apply border-b px-3 py-2 text-left font-medium;
+}
+
+.duxt-prose td {
+  @apply border-b px-3 py-2;
+}
+
+.duxt-prose hr {
+  @apply my-8;
+}
+
+.duxt-prose img {
+  @apply my-4 rounded-lg border;
+}

@@ -11,7 +11,10 @@
     "erasableSyntaxOnly": true,
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "paths": {
+      "@duxt/*": ["./app/*"]
+    }
   },
   "include": [
     "scripts/**/*.ts",

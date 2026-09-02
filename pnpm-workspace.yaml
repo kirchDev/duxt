@@ -50,3 +50,6 @@ overrides:
 allowBuilds:
   better-sqlite3: false
   esbuild: true
+  # reka-ui pulls vue-demi, whose postinstall picks the Vue 2/3 shim. gildstone
+  # allows it for the same reason.
+  vue-demi: true
