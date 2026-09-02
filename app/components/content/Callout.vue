@@ -1,56 +1,45 @@
 <script setup lang="ts">
-// An MDC component: Markdown calls it as `::callout{type="warning"}`. Content
-// v3 ships MDC, so this needs no extra module — only a component in
-// components/content/.
+// MDC: `::callout{type="warning"}`. Built on shadcn's Alert so a consumer that
+// restyles Alert restyles callouts with it.
 const props = withDefaults(
   defineProps<{
     type?: 'info' | 'tip' | 'warning' | 'danger';
     title?: string;
+    icon?: string;
   }>(),
   { type: 'info' }
 );
 
-const styles = {
+const variants = {
   info: {
-    border: 'border-l-sky-500',
     icon: 'lucide:info',
-    text: 'text-sky-600 dark:text-sky-400'
+    class: 'border-sky-500/40 text-sky-700 dark:text-sky-300'
   },
   tip: {
-    border: 'border-l-emerald-500',
     icon: 'lucide:lightbulb',
-    text: 'text-emerald-600 dark:text-emerald-400'
+    class: 'border-emerald-500/40 text-emerald-700 dark:text-emerald-300'
   },
   warning: {
-    border: 'border-l-amber-500',
     icon: 'lucide:triangle-alert',
-    text: 'text-amber-600 dark:text-amber-400'
+    class: 'border-amber-500/40 text-amber-700 dark:text-amber-300'
   },
   danger: {
-    border: 'border-l-red-500',
     icon: 'lucide:octagon-alert',
-    text: 'text-red-600 dark:text-red-400'
+    class: 'border-red-500/40 text-red-700 dark:text-red-300'
   }
 };
 
-const style = computed(() => styles[props.type]);
+const variant = computed(() => variants[props.type]);
 </script>
 
 <template>
-  <div
-    class="my-4 rounded-r-md border border-l-4 bg-muted/40 px-4 py-3"
-    :class="style.border"
-  >
-    <p
-      v-if="title"
-      class="mb-1 flex items-center gap-2 font-medium"
-      :class="style.text"
+  <Alert class="my-6 bg-muted/40" :class="variant.class">
+    <Icon :name="icon ?? variant.icon" class="size-4" />
+    <AlertTitle v-if="title">{{ title }}</AlertTitle>
+    <AlertDescription
+      class="text-foreground [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p]:my-2"
     >
-      <Icon :name="style.icon" class="size-4" />
-      {{ title }}
-    </p>
-    <div class="[&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
       <slot />
-    </div>
-  </div>
+    </AlertDescription>
+  </Alert>
 </template>
