@@ -27,3 +27,14 @@ nodeLinker: isolated
 # additionally fetches the pnpm version pinned in package.json's packageManager
 # field, which is the closest match to the old packageManagerStrict: true plus
 # packageManagerStrictVersion: false. Setting pmOnFail here would only weaken that.
+
+# The layer is developed against playground/ — see CLAUDE.md.
+packages:
+  - playground
+
+# Build scripts are blocked by default. esbuild places a platform binary in its
+# postinstall and better-sqlite3 compiles a native addon in its; Nuxt Content
+# refuses to start without the latter.
+allowBuilds:
+  esbuild: true
+  better-sqlite3: true
