@@ -13,26 +13,31 @@ const isDirectory = (entry: Entry) =>
 </script>
 
 <template>
-  <!-- list-none explicitly: this renders inside .duxt-prose, whose ul rules
-       would otherwise put a bullet in front of every file. -->
-  <ul class="m-0 list-none space-y-0.5 p-0">
-    <li v-for="entry in entries" :key="entry.name">
-      <span class="flex items-center gap-2 py-0.5">
+  <ul class="m-0 list-none space-y-0 p-0">
+    <li v-for="entry in entries" :key="entry.name" class="relative">
+      <span class="flex items-center gap-1.5 py-[3px]">
         <Icon
           v-if="isDirectory(entry)"
           name="lucide:folder"
-          class="size-4 shrink-0 text-muted-foreground"
+          class="size-3.5 shrink-0 text-muted-foreground/70"
         />
-        <Icon v-else :name="fileIcon(entry.name)" class="size-4 shrink-0" />
+        <Icon v-else :name="fileIcon(entry.name)" class="size-3.5 shrink-0" />
 
         <span
-          :class="isDirectory(entry) ? 'font-medium' : 'text-muted-foreground'"
+          :class="
+            isDirectory(entry) ? 'text-foreground' : 'text-muted-foreground'
+          "
         >
           {{ entry.name.replace(/\/$/, '') }}
         </span>
       </span>
 
-      <div v-if="entry.children?.length" class="ml-2 border-l pl-3.5">
+      <!-- The rule lines up under the folder icon, so the indent reads as
+           containment rather than as an arbitrary offset. -->
+      <div
+        v-if="entry.children?.length"
+        class="ml-[7px] border-l border-border/60 pl-[13px]"
+      >
         <DuxtFileTreeNodes :entries="entry.children" />
       </div>
     </li>
