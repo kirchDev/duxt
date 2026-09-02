@@ -16,9 +16,33 @@ Retyping a change is exactly how the two drift; one reflowed line or reworded cl
 
 ## What this repo is
 
-`scaffold` is a **GitHub template repository**, not an application. It ships the meta layer (lint, format, commit hooks, CI, CodeQL, Dependabot, release-please, issue/PR templates, standard meta docs) that every new kirchDev repo should start with. There is no application code — the project code can be anything (PHP, Go, Rust, Vue, shell). Only the meta layer lives here.
+> [!IMPORTANT]
+> **Nothing here is decided.** `duxt` is at the idea stage — the repo currently carries the meta layer and nothing else. What follows is the working sketch plus the questions still open. Treat every "is" below as "is currently assumed"; do not harden any of it into code without asking.
 
-Implication: when changing files, ask "does this default make sense for _every_ future repo created from this template?" — not just for one project type.
+The sketch: `duxt` as a **Nuxt documentation layer on Nuxt Content v3**, published as `@kirchdev/duxt` and consumed with one line:
+
+```ts
+export default defineNuxtConfig({
+  extends: ['@kirchdev/duxt'],
+})
+```
+
+Assumed shape is a **layer that carries a module** — theme, pages, components, `app.config` defaults and collections as layer material the consumer overrides selectively, while generating collections, emitting `llms.txt` and mounting an MCP route are build-time and server work the layer's own config declares.
+
+**One thing that _is_ settled, because it was verified by reading `@nuxt/content@3.16.0`: Content v3 already does git-native sourcing — do not rebuild it.** A `CollectionSource` takes `repository` (url, branch, tag, auth) and Content downloads and hash-caches it under `.data/content/`. Multi-repo, reading from a branch or tag, private-repo auth and caching all exist. Two consequences:
+
+- `loadContentConfig` reads `content.config.ts` from **every Nuxt layer** and merges them, later layers winning. A layer ships its own collections for free.
+- It loads them through **c12**, so `content.config.ts` is **executed code, not a data file** — it may compute its collections at load time. There is no hook for injecting collections, and none is needed.
+
+What that leaves as candidate value: the **ergonomics** (a compact `sources` list generating one collection per version × repo, with the single unversioned source needing no config at all), the **version switcher, URL scheme and fallback**, and the **theme**.
+
+**Open — ask, do not decide:**
+
+- **Does the idea carry a public project at all?** Positioning on ergonomics plus version UX may be too thin. If it is, `duxt` is a private layer and needs neither a brand, a starter, nor a public repo.
+- **Layer vs. standalone theme** — build on Docus / Nuxt UI, or a clean base? On top avoids re-doing the theme; a clean base avoids the UI-Pro dependency.
+- **Numbered section prefixes** (`1.concepts/`, `99.adr/`) in the estate's `write-docs` convention are rename-hostile and break URLs, which costs more once docs are versioned — but changing that convention is greenhouse's call, not this repo's.
+
+If the layer is built, `playground/` is where it is developed and wants edge cases, ugly frontmatter, several sources and a tag to read from. [`kirchDev/duxt-starter`](https://github.com/kirchDev/duxt-starter) would be a **different artifact** — minimal and exemplary, what a stranger clones with `npx nuxi@latest init -t github:kirchDev/duxt-starter`. Do not conflate the two; a playground makes a bad starter.
 
 ## Commands
 
@@ -37,16 +61,16 @@ Implication: when changing files, ask "does this default make sense for _every_ 
 | `pnpm taze`         | Interactive dependency upgrade check                       |
 | `pnpm taze:w`       | Write upgrade results                                      |
 
-There is no test suite — this is config-only. CI runs `pnpm lint`, `pnpm format`, `pnpm typecheck` and `pnpm check:policy` on PR.
+There is no test suite yet — the repo currently carries only the meta layer. CI runs `pnpm lint`, `pnpm format`, `pnpm typecheck` and `pnpm check:policy` on PR; adding a check to the `check` script is enough, no workflow change needed.
 
 ## Architecture / conventions
 
-- **Node 24, pnpm 11.** Pinned via `.nvmrc`, `engines`, and `packageManager`. `pnpm-workspace.yaml` enforces `minimumReleaseAge=4320` (3-day cooldown), isolated node-linker. Don't loosen these without reason. Package-manager enforcement carries no key on purpose: pnpm 11 replaced `packageManagerStrict`/`packageManagerStrictVersion` with `pmOnFail`, whose default `download` already errors on a foreign package manager and fetches the pinned pnpm version — every other value only weakens it, so leave it unset (the rationale sits as a comment in the file).
+- **Node 24, pnpm 12.** Pinned via `.nvmrc`, `engines`, and `packageManager`. `pnpm-workspace.yaml` enforces `minimumReleaseAge=4320` (3-day cooldown), isolated node-linker. Don't loosen these without reason. Package-manager enforcement carries no key on purpose: pnpm 11 replaced `packageManagerStrict`/`packageManagerStrictVersion` with `pmOnFail`, whose default `download` already errors on a foreign package manager and fetches the pinned pnpm version — every other value only weakens it, so leave it unset (the rationale sits as a comment in the file).
 - **oxc, not eslint/prettier.** Linting via `oxlint`, formatting via `oxfmt`. Configs live in `.oxlintrc.json` / `.oxfmtrc.json`. `oxlint` uses `unicorn` + `oxc` plugins; rules deliberately minimal.
-- **TypeScript, no build step.** The meta scripts and the three tool configs are `.ts` — Node 24 strips types natively, so `scripts/check-policy-parity.ts`, `commitlint.config.ts`, `lint-staged.config.ts` and `taze.config.ts` stay directly executable and each tool loads its own `.ts` config unaided. `tsconfig.json` is `noEmit` + `strict` + `erasableSyntaxOnly`, so only strippable syntax (no enums, no parameter properties) can be written; `pnpm typecheck` is the gate. TypeScript is a devDependency of the template's meta layer only — a downstream PHP, Go or Rust repo inherits it for that and nothing else, and drops it by deleting `tsconfig.json`, the `typecheck` script and the four `.ts` files' types.
+- **TypeScript, no build step.** The meta scripts and the three tool configs are `.ts` — Node 24 strips types natively, so `scripts/check-policy-parity.ts`, `commitlint.config.ts`, `lint-staged.config.ts` and `taze.config.ts` stay directly executable and each tool loads its own `.ts` config unaided. `tsconfig.json` is `noEmit` + `strict` + `erasableSyntaxOnly`, so only strippable syntax (no enums, no parameter properties) can be written; `pnpm typecheck` is the gate. Once `.vue` files land, `typecheck` moves to `vue-tsc`; `oxlint` + `oxfmt` cover `.vue` on their own, so no ESLint is coming.
 - **Husky hooks** (`.husky/pre-commit`, `.husky/commit-msg`) run `lint-staged` and `commitlint`. `lint-staged.config.ts` excludes `README.md`, `CLAUDE.md`, and `AGENTS.md` (free-form prose) and `pnpm-lock.yaml`. `oxlint --fix --deny-warnings` then `oxfmt` on JS/TS; `oxfmt` only on JSON/YAML/MD.
 - **Conventional Commits enforced** via `@commitlint/config-conventional`. Don't `--no-verify` unless explicitly asked.
-- **release-please is included** (unlike many templates that omit it). Files: `release-please-config.json`, `.release-please-manifest.json`, `.github/workflows/release-please.yml`. Config uses `release-type: simple` (language-agnostic), `include-v-in-tag: true`. Downstream repos start at `0.0.0` and reset via the steps in README → _Resetting release-please_.
+- **release-please** drives the versioning. Files: `release-please-config.json`, `.release-please-manifest.json`, `.github/workflows/release-please.yml`. `release-type: node` (this is a published package, so `package.json` gets bumped too), `include-v-in-tag: true`, starting from `0.0.0`. Publishing to npm is a job added to `release-please.yml`, gated on `needs.release-please.outputs.release-created`.
 - **Workflows** use `actions/checkout@v6`, `actions/setup-node@v6`, `pnpm/action-setup@v6`, `github/codeql-action/{init,analyze}@v4`. Keep these pinned to major versions; Dependabot bumps them monthly.
 - **CodeQL** scans `actions` + `javascript-typescript` with `security-extended,security-and-quality` queries, gated by path filters so non-code changes don't trigger it.
 - **Dependabot** groups all minor/patch updates per ecosystem into a single PR (`npm-minor-patch`, `actions-minor-patch`). Majors come as separate PRs.
@@ -89,55 +113,38 @@ codex execpolicy check --pretty --rules .codex/rules/default.rules -- git push -
 
 ## Workflows are calls, not copies
 
-Every file in `.github/workflows/` is a **stub**: a trigger and a `uses:` pointing at a body in [`kirchDev/workflows`](https://github.com/kirchDev/workflows). A repo created from this template inherits the calls, not 727 lines of workflow — and a fix made centrally reaches it on its next Dependabot bump instead of never.
+Every file in `.github/workflows/` is a **stub**: a trigger and a `uses:` pointing at a body in [`kirchDev/workflows`](https://github.com/kirchDev/workflows). This repo carries the calls, not 727 lines of workflow — and a fix made centrally reaches it on its next Dependabot bump instead of never.
 
-What follows for a new repo:
+What follows:
 
 - **Do not paste a workflow body back in.** If a stub almost fits, the answer is an input on the body or an own job beside the call — see that repository's `docs/1.guides/2.add-a-body.md`.
 - **The pins are commit SHAs with the version as a trailing comment.** Dependabot raises the bumps; the `github-actions` ecosystem is already configured in `.github/dependabot.yml`.
-- **A repo that publishes something** adds its own job to `release-please.yml`, gated on `needs.release-please.outputs.release-created`.
-- **A repo with a compiled language** names it in `codeql.yml`'s `languages` input rather than forking the workflow.
+- **Publishing** is an own job in `release-please.yml`, gated on `needs.release-please.outputs.release-created` — not a forked workflow.
 - **Checks come from `package.json`.** `ci.yml` runs whatever the `check` script chains, so adding a check needs no workflow change at all.
 
 ## Branching model
 
-The default here is a **`dev` integration branch**: branch off `dev`, PR into `dev`, roll `dev` up into `main`, and release-please releases from `main`. That is what most kirchDev repos run, so the template runs it too — a variant that ships switched off is a variant nobody notices is broken.
+A **`dev` integration branch**: branch off `dev`, PR into `dev`, roll `dev` up into `main`, and release-please releases from `main`. `.tituskirch-skills.json` (`pr.base`) and `.github/dependabot.yml` (`target-branch`) both encode this.
 
 > [!IMPORTANT]
-> A repo created from this template has the `dev` config but **no `dev` branch**. Create it before the first Dependabot run: with `target-branch: 'dev'` pointing at a branch that doesn't exist, Dependabot opens nothing at all. Going main-only (below) is a deliberate step too — leaving the config untouched is the one option that silently does nothing.
+> With `target-branch: 'dev'` pointing at a branch that does not exist, Dependabot opens nothing at all. The `dev` branch has to exist before the first Dependabot run.
 
 `.github/workflows/promotion-pr.yml` opens and updates the rolling draft promotion PR. Mark that PR ready and **merge it with a merge commit, never a squash**: squashing collapses the individual `feat:`/`fix:` commits into the PR's own `chore:` title, and release-please then cuts nothing.
 
-It calls a central body that picks its own target: with a `stage` branch it promotes `dev` into `stage`, without one straight into `main`. The stub is therefore the same file whichever flow a repo is on.
+It calls a central body that picks its own target: with a `stage` branch it promotes `dev` into `stage`, without one straight into `main`.
 
-Going **main-only** is three edits, all of them removals:
+`ci.yml` and `codeql.yml` list both `main` and `dev` in their `on: branches:` filters — without `dev` in `ci.yml`, PRs into `dev` (Dependabot's included) would run no CI at all.
 
-```bash
-rm .github/workflows/promotion-pr.yml
-# .github/dependabot.yml    — drop both `target-branch: 'dev'` lines
-# .tituskirch-skills.json   — set `pr.base` to "main"
-```
+## Visibility
 
-Nothing is vendored for this. A variant worth shipping as files is one that *adds* something — content that would otherwise be lost. A variant that only deletes has nothing to preserve, so it stays documented, exactly like _Public vs private repos_ below.
-
-`ci.yml` and `codeql.yml` list both `main` and `dev` in their `on: branches:` filters and neither edit touches them. A filter naming a branch that doesn't exist is a no-op, so it costs a main-only repo nothing — and without `dev` in `ci.yml`, PRs into `dev` (Dependabot's included) would run no CI at all.
-
-Variants that are *purely* deletions — see _Public vs private repos_ below — stay documented rather than vendored; only this one earns the folder.
-
-## Public vs private repos
-
-Some meta defaults only make sense for one visibility. When spinning up a repo from this template, adjust for its visibility:
-
-- **CodeQL / code scanning** (`.github/workflows/codeql.yml`) depends on GitHub Advanced Security. It's free on **public** repos; on a **private** repo without a GHAS license it won't run — delete `codeql.yml` (and the CodeQL note above) rather than leave a dead workflow. The same goes for other GHAS-gated features (secret scanning, etc.). Dependabot version updates work on both.
-- **License.** A **public** repo ships MIT: keep `LICENSE` and the `[MIT](LICENSE) © …` README footer. A **private** repo is proprietary: remove/replace `LICENSE`, drop the MIT footer, and set `package.json` to `"license": "UNLICENSED"` (keep `"private": true`).
-- **Discord forum links.** `.github/ISSUE_TEMPLATE/config.yml` points questions, ideas and possible bugs at the repo's Discord forum (each open-source repo gets one, provisioned from the `infrastructure` repo's OpenTofu). Confirmed bugs and features stay as the GitHub issue forms. A **private** repo has no forum — drop the `contact_links` block; if you still want an in-repo Q&A path, restore a simple `question.yml`.
+`duxt` is a **public, MIT-licensed** repo, and three defaults depend on that: CodeQL (`.github/workflows/codeql.yml`) needs GitHub Advanced Security, free only on public repos; the MIT `LICENSE` plus the README footer; and the Discord forum links in `.github/ISSUE_TEMPLATE/config.yml` (each open-source repo gets a forum, provisioned from the `infrastructure` repo's OpenTofu). If the repo ever goes private, all three come out together.
 
 ## House style for READMEs and meta files
 
 `/write-readme` skill encodes the canonical structure. Key rules: hero block wrapped in `<div align="center">`, prescribed section emojis (✨ Features, 🚀 Setup, 🤝 Contributing, 🛣️ Versioning, 📄 License), license footer always reads `[MIT](LICENSE) © [Titus Kirch](https://github.com/TitusKirch/) / [IT-Dienstleistungen Titus Kirch](https://kirch.dev)`. Use GitHub callouts (`> [!TIP]`, `> [!IMPORTANT]`), never plain blockquotes.
 
-## When editing this template
+## When working here
 
-- Every file referencing `TitusKirch/scaffold` is a placeholder that downstream users will replace. Keep the references consistent so a single `grep -rn "TitusKirch/scaffold"` catches them all.
-- `forgemap` (sibling repo at `../forgemap`) is the de-facto reference implementation of these conventions. When unsure about a config choice, check what forgemap does.
-- The template's own `package.json` is `"private": true` and `"name": "scaffold"` — not published anywhere.
+- `forgemap` (sibling repo at `../forgemap`) is the de-facto reference implementation of the kirchDev meta conventions. When unsure about a config choice, check what forgemap does.
+- The package is published as `@kirchdev/duxt` with `publishConfig.access: public`. It is **not** `"private": true` — do not add that back.
+- Once the layer exists, its public surface is what a consumer can override: component, page and `app.config` names would need to stay stable, and a rename becomes a breaking change (`feat!:`). Until then there is no surface to protect.
