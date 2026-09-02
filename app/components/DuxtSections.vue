@@ -11,7 +11,7 @@ function isActive(to?: string) {
 </script>
 
 <template>
-  <div class="border-t">
+  <div class="sticky top-14 z-40 border-b bg-background/80 backdrop-blur-sm">
     <nav
       class="mx-auto flex max-w-[90rem] items-center gap-1 overflow-x-auto px-4 lg:px-8"
     >

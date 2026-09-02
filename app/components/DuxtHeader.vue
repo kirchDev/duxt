@@ -7,6 +7,9 @@ const { data: navigation } = await useAsyncData('duxt-navigation', () =>
   queryCollectionNavigation('docs')
 );
 
+// The mobile sheet shows the same branch the sidebar does.
+const { items } = useDuxtSection(navigation);
+
 function toggleTheme() {
   colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark';
 }
@@ -41,7 +44,7 @@ function isActive(to?: string) {
             <SheetTitle>{{ duxt.title }}</SheetTitle>
           </SheetHeader>
           <div class="px-2 pb-6">
-            <DuxtNavigation :items="navigation ?? []" />
+            <DuxtNavigation :items="items" />
           </div>
         </SheetContent>
       </Sheet>
@@ -151,7 +154,5 @@ function isActive(to?: string) {
         </Button>
       </div>
     </div>
-
-    <DuxtSections v-if="duxt.sections?.length" />
   </header>
 </template>

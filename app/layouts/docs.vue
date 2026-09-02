@@ -2,11 +2,17 @@
 const { data: navigation } = await useAsyncData('duxt-navigation', () =>
   queryCollectionNavigation('docs')
 );
+
+const { items } = useDuxtSection(navigation);
 </script>
 
 <template>
   <div class="min-h-screen bg-background text-foreground">
     <DuxtHeader />
+
+    <!-- The section row sits with the docs, not in the global header: the
+         landing page has no sections to show. -->
+    <DuxtSections />
 
     <!-- Three columns inside one centred container, not a sidebar pinned to the
          window edge: on a wide screen the docs stay a readable block instead of
@@ -16,7 +22,7 @@ const { data: navigation } = await useAsyncData('duxt-navigation', () =>
         <div
           class="sticky top-[6.5rem] max-h-[calc(100vh-8rem)] overflow-y-auto py-8 pr-2"
         >
-          <DuxtNavigation :items="navigation ?? []" />
+          <DuxtNavigation :items="items" />
         </div>
       </aside>
 
