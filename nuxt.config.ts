@@ -19,6 +19,36 @@ export default defineNuxtConfig({
   },
 
   content: {
+    build: {
+      markdown: {
+        // Without an explicit theme Content ships no highlighter at all, and
+        // every fence renders as flat text. Two themes so the switch follows
+        // the site's own light/dark class rather than a media query.
+        highlight: {
+          theme: {
+            default: 'github-light',
+            dark: 'github-dark'
+          },
+          langs: [
+            'bash',
+            'css',
+            'diff',
+            'html',
+            'json',
+            'js',
+            'jsonc',
+            'md',
+            'mdc',
+            'php',
+            'sh',
+            'ts',
+            'vue',
+            'yaml'
+          ]
+        }
+      }
+    },
+
     // Content's default driver, better-sqlite3, is a native addon compiled
     // through node-gyp. Node 24 ships node:sqlite, so no driver package is
     // needed — see CLAUDE.md for the fallback if this flag ever goes away.
