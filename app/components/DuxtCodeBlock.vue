@@ -1,9 +1,17 @@
 <script setup lang="ts">
 const props = defineProps<{
+  /** Raw source, used for the copy button and as the body when no slot is given. */
   code?: string;
   language?: string;
   filename?: string;
 }>();
+
+const slots = useSlots();
+
+// Content hands ProsePre the highlighted markup in the slot and the raw source
+// in `code`. Rendering `code` when a slot exists throws the highlighting away —
+// which is exactly what happened, and looked like Shiki being switched off.
+const hasBody = computed(() => Boolean(slots.default));
 
 // The filename wins over the language: `nuxt.config.ts` gets Nuxt's icon, a
 // bare ```ts fence gets TypeScript's.
@@ -45,7 +53,7 @@ async function copy() {
       <Button
         variant="ghost"
         size="icon"
-        class="ml-auto size-7"
+        class="ml-auto size-7 hover:bg-accent hover:text-foreground"
         :aria-label="copied ? 'Copied' : 'Copy code'"
         @click="copy"
       >
@@ -60,7 +68,7 @@ async function copy() {
       v-else
       variant="ghost"
       size="icon"
-      class="absolute top-2 right-2 size-7 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+      class="absolute top-2 right-2 size-7 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-accent focus-visible:opacity-100"
       :class="{ 'opacity-100': copied }"
       :aria-label="copied ? 'Copied' : 'Copy code'"
       @click="copy"
@@ -69,11 +77,11 @@ async function copy() {
     </Button>
 
     <div ref="root">
+      <slot v-if="hasBody" />
       <pre
-        v-if="code"
+        v-else
         class="overflow-x-auto p-4 text-sm"
       ><code>{{ code }}</code></pre>
-      <slot v-else />
     </div>
   </div>
 </template>

@@ -96,22 +96,9 @@
   @apply mt-1 ml-2 border-l pl-4;
 }
 
-/* Shiki with two themes emits both colours as custom properties per token and
-   leaves the choice to CSS — without these rules every fence renders in one
-   flat colour, which is exactly what "highlighting is off" looks like. */
-.shiki,
-.shiki span {
-  color: var(--shiki-default);
-  background-color: var(--shiki-default-bg);
-}
-
-.dark .shiki,
-.dark .shiki span {
-  color: var(--shiki-dark);
-  background-color: var(--shiki-dark-bg);
-}
-
-/* The block draws its own surface; the theme's background would fight it. */
+/* Shiki's own colour rules are injected by Content, keyed on `pre.shiki code`.
+   Only the background is ours: the block already draws a surface, and the
+   theme's own would fight it. */
 .duxt-prose .shiki,
 .duxt-prose .shiki span {
   background-color: transparent;
