@@ -24,3 +24,16 @@ repository itself uses: `docs/` here, `www/` beside it.
 
 In both cases the layer resolves `docs/` against the **repository** root, not
 against the directory the site happens to run in.
+
+## Components in Markdown
+
+Content ships MDC, so a Markdown page can call a Vue component with block
+syntax — no MDX, no extra module:
+
+::callout{type="tip" title="This is a callout"}
+It is a Vue component, called from Markdown, rendering Markdown inside itself.
+::
+
+The block above is written as `::callout{type="tip" title="…"}`, the body, then
+a closing `::`. Any component in `components/content/` is available this way,
+including your own.
