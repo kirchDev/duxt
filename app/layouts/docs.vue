@@ -8,21 +8,20 @@ const { data: navigation } = await useAsyncData('duxt-navigation', () =>
   <div class="min-h-screen bg-background text-foreground">
     <DuxtHeader />
 
-    <!-- shadcn's Sidebar primitives read their state from SidebarProvider; used
-         without it, inject() returns null and SSR dies. collapsible="none"
-         because the header already owns the mobile trigger. -->
-    <SidebarProvider class="min-h-0">
-      <Sidebar
-        collapsible="none"
-        class="sticky top-14 hidden h-[calc(100svh-3.5rem)] w-60 border-r bg-transparent lg:flex"
-      >
-        <DuxtNavigation :items="navigation ?? []" />
-      </Sidebar>
+    <!-- Three columns inside one centred container, not a sidebar pinned to the
+         window edge: on a wide screen the docs stay a readable block instead of
+         drifting apart. -->
+    <div class="mx-auto flex max-w-[90rem] gap-8 px-4 lg:px-8">
+      <aside class="hidden w-56 shrink-0 lg:block">
+        <div
+          class="sticky top-[6.5rem] max-h-[calc(100vh-8rem)] overflow-y-auto py-8 pr-2"
+        >
+          <DuxtNavigation :items="navigation ?? []" />
+        </div>
+      </aside>
 
-      <SidebarInset class="min-w-0 bg-transparent">
-        <slot />
-      </SidebarInset>
-    </SidebarProvider>
+      <slot />
+    </div>
 
     <DuxtFooter />
   </div>

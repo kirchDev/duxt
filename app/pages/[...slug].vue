@@ -1,6 +1,4 @@
 <script setup lang="ts">
-// Static layout: setPageLayout() after an await loses the component context and
-// takes SSR down in a production build, while dev quietly survives it.
 definePageMeta({ layout: 'docs' });
 
 const route = useRoute();
@@ -17,6 +15,16 @@ if (!page.value) {
   });
 }
 
+const { duxt } = useAppConfig();
+
+// The section this page belongs to, shown above the title the way nuxt.com
+// labels a page with its part of the tree.
+const section = computed(() =>
+  duxt.sections?.find(
+    (candidate) => candidate.to && route.path.startsWith(candidate.to)
+  )
+);
+
 useSeoMeta({
   title: page.value.title,
   description: page.value.description
@@ -24,12 +32,13 @@ useSeoMeta({
 </script>
 
 <template>
-  <div class="mx-auto flex w-full min-w-0 max-w-5xl gap-10 px-6">
-    <article class="min-w-0 flex-1 py-10">
-      <header class="mb-10">
-        <h1
-          class="scroll-m-20 text-4xl font-semibold tracking-tight text-balance"
-        >
+  <div class="flex min-w-0 flex-1 justify-center gap-10">
+    <article class="min-w-0 max-w-3xl flex-1 py-8">
+      <header class="mb-8 border-b pb-8">
+        <p v-if="section" class="mb-2 text-sm font-medium text-primary">
+          {{ section.label }}
+        </p>
+        <h1 class="text-4xl font-semibold tracking-tight text-balance">
           {{ page?.title }}
         </h1>
         <p
@@ -45,9 +54,9 @@ useSeoMeta({
       </div>
     </article>
 
-    <aside class="hidden w-56 shrink-0 py-10 xl:block">
+    <aside class="hidden w-56 shrink-0 xl:block">
       <div
-        class="sticky top-14 max-h-[calc(100vh-3.5rem)] overflow-y-auto py-4"
+        class="sticky top-[6.5rem] max-h-[calc(100vh-8rem)] overflow-y-auto py-8"
       >
         <DuxtToc :links="page?.body?.toc?.links ?? []" />
       </div>

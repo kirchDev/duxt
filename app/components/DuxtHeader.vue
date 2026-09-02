@@ -12,15 +12,19 @@ function toggleTheme() {
 }
 
 function isActive(to?: string) {
-  return to && to !== '/' && route.path.startsWith(to);
+  return Boolean(to && to !== '/' && route.path.startsWith(to));
 }
 </script>
 
 <template>
   <header
-    class="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+    class="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-sm"
   >
-    <div class="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4">
+    <!-- Row one: identity and global links. Row two carries the sections, the
+         way nuxt.com splits them — the docs tree never reaches this far up. -->
+    <div
+      class="mx-auto flex h-14 max-w-[90rem] items-center gap-4 px-4 lg:px-8"
+    >
       <Sheet>
         <SheetTrigger as-child>
           <Button
@@ -32,34 +36,45 @@ function isActive(to?: string) {
             <Icon name="lucide:menu" class="size-5" />
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" class="w-72 overflow-y-auto p-6">
-          <SheetHeader class="p-0">
+        <SheetContent side="left" class="w-72 overflow-y-auto p-0">
+          <SheetHeader>
             <SheetTitle>{{ duxt.title }}</SheetTitle>
           </SheetHeader>
-          <DuxtNavigation :items="navigation ?? []" class="mt-6" />
+          <div class="px-2 pb-6">
+            <DuxtNavigation :items="navigation ?? []" />
+          </div>
         </SheetContent>
       </Sheet>
 
       <NuxtLink
         to="/"
-        class="flex items-center gap-2 font-semibold tracking-tight"
+        class="flex items-center gap-2 text-[15px] font-semibold tracking-tight"
       >
-        <Icon name="lucide:book-open-text" class="size-5" />
+        <Icon name="lucide:book-open-text" class="size-5 text-primary" />
         {{ duxt.title }}
+        <Badge
+          v-if="duxt.version"
+          variant="secondary"
+          class="ml-1 font-mono text-[10px]"
+        >
+          {{ duxt.version }}
+        </Badge>
       </NuxtLink>
 
-      <nav class="hidden items-center gap-1 text-sm md:flex">
+      <nav class="mx-auto hidden items-center gap-0.5 text-sm md:flex">
         <template v-for="link in duxt.navigation" :key="link.label">
-          <!-- An entry with children becomes a dropdown; without, a plain link. -->
           <DropdownMenu v-if="link.children?.length">
             <DropdownMenuTrigger as-child>
-              <Button variant="ghost" size="sm" class="gap-1.5 font-normal">
-                <Icon v-if="link.icon" :name="link.icon" class="size-4" />
+              <Button
+                variant="ghost"
+                size="sm"
+                class="gap-1.5 font-medium text-muted-foreground"
+              >
                 {{ link.label }}
                 <Icon name="lucide:chevron-down" class="size-3.5 opacity-60" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" class="w-64">
+            <DropdownMenuContent align="center" class="w-64">
               <DropdownMenuItem
                 v-for="child in link.children"
                 :key="child.label"
@@ -68,15 +83,15 @@ function isActive(to?: string) {
                 <NuxtLink
                   :to="child.to"
                   :target="child.external ? '_blank' : undefined"
-                  class="flex items-start gap-2"
+                  class="flex items-start gap-2.5"
                 >
                   <Icon
                     v-if="child.icon"
                     :name="child.icon"
                     class="mt-0.5 size-4 shrink-0"
                   />
-                  <span>
-                    <span class="block">{{ child.label }}</span>
+                  <span class="min-w-0">
+                    <span class="block font-medium">{{ child.label }}</span>
                     <span
                       v-if="child.description"
                       class="block text-xs text-muted-foreground"
@@ -94,26 +109,25 @@ function isActive(to?: string) {
             as-child
             variant="ghost"
             size="sm"
-            class="gap-1.5 font-normal"
+            class="font-medium"
+            :class="
+              isActive(link.to) ? 'text-foreground' : 'text-muted-foreground'
+            "
           >
             <NuxtLink
               :to="link.to"
               :target="link.external ? '_blank' : undefined"
-              :class="
-                isActive(link.to) ? 'text-foreground' : 'text-muted-foreground'
-              "
             >
-              <Icon v-if="link.icon" :name="link.icon" class="size-4" />
               {{ link.label }}
             </NuxtLink>
           </Button>
         </template>
       </nav>
 
-      <div class="ml-auto flex items-center gap-1">
+      <div class="ml-auto flex items-center gap-0.5 md:ml-0">
         <Button
           v-for="link in duxt.links ?? []"
-          :key="link.to"
+          :key="link.label"
           as-child
           variant="ghost"
           size="icon"
@@ -137,5 +151,7 @@ function isActive(to?: string) {
         </Button>
       </div>
     </div>
+
+    <DuxtSections v-if="duxt.sections?.length" />
   </header>
 </template>

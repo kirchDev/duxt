@@ -4,6 +4,32 @@ export default defineAppConfig({
   duxt: {
     /** Shown in the navbar and used as the SEO title. */
     title: 'duxt',
+    version: 'v0.0.0',
+
+    /** The second navbar row. Each entry owns a part of the docs tree. */
+    sections: [
+      { label: 'Get started', to: '/getting-started', icon: 'lucide:rocket' },
+      { label: 'Structure', to: '/structure', icon: 'lucide:folder-tree' }
+    ],
+
+    /** Fixed links beside the table of contents. */
+    aside: {
+      title: 'Community',
+      links: [
+        {
+          label: 'Report an issue',
+          to: 'https://github.com/kirchDev/duxt/issues',
+          icon: 'lucide:circle-alert',
+          external: true
+        },
+        {
+          label: 'Nuxt Content',
+          to: 'https://content.nuxt.com',
+          icon: 'lucide:file-text',
+          external: true
+        }
+      ]
+    },
 
     /** Navbar links. An entry with `children` becomes a dropdown. */
     navigation: [

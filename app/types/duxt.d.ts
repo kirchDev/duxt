@@ -34,7 +34,16 @@ interface DuxtLanding {
 
 interface DuxtConfig {
   title: string;
+  /** Shown as a badge beside the title. */
+  version?: string;
   navigation?: DuxtLink[];
+  /** The second navbar row: top-level parts of the documentation. */
+  sections?: DuxtLink[];
+  /** Fixed links under the table of contents. */
+  aside?: {
+    title?: string;
+    links?: DuxtLink[];
+  };
   links?: DuxtLink[];
   landing?: DuxtLanding;
   footer?: {
