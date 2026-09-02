@@ -4,7 +4,7 @@ description: The two ways a project can carry a documentation site.
 icon: lucide:folder-tree
 ---
 
-Your Markdown stays in `docs/` at the root of your repository. Where the _site_
+Your Markdown stays in `docs/` at the root of your repository. Where the *site*
 lives is a separate question, and there are two answers.
 
 ## The site lives elsewhere
@@ -22,14 +22,18 @@ anyway and the docs deploy together with the code. That is the arrangement this
 repository itself uses: `docs/` here, `www/` beside it.
 
 ::file-tree{title="your-project/"}
-
-- docs/
-  - index.md
-  - guides/
-    - deploying.md
-- nuxt.config.ts
-- package.json
-  ::
+---
+tree:
+  - name: docs/
+    children:
+      - name: index.md
+      - name: guides/
+        children:
+          - name: deploying.md
+  - name: nuxt.config.ts
+  - name: package.json
+---
+::
 
 In both cases the layer resolves `docs/` against the **repository** root, not
 against the directory the site happens to run in.

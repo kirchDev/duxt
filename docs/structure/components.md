@@ -35,24 +35,42 @@ One command, every manager:
 
 ### File tree
 
-::file-tree
+Icons follow the extension, so a `.ts` file looks like a `.ts` file:
 
-- app/
-  - components/
-  - pages/
-- nuxt.config.ts
-  ::
+::file-tree
+---
+tree:
+  - name: app/
+    children:
+      - name: components/
+        children:
+          - name: DuxtHeader.vue
+      - name: pages/
+        children:
+          - name: index.vue
+  - name: docs/
+    children:
+      - name: index.md
+  - name: nuxt.config.ts
+  - name: package.json
+---
+::
 
 ### Steps
 
 ::steps
-
 1. Write the list.
 2. Wrap it in `::steps`.
 3. It numbers itself.
-   ::
+::
 
 ## Your own components
 
 Anything in `components/content/` is available the same way, including
 components your project adds on top of the layer.
+
+::callout{type="warning" title="Keep oxfmt away from docs/"}
+A Markdown formatter rewrites a component block's YAML props into a list and
+indents its closing `::`, which turns the component back into literal text.
+This repo excludes `docs/` in `.oxfmtrc.json` and in `lint-staged.config.ts`.
+::

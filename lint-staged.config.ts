@@ -2,8 +2,13 @@ import type { Configuration } from 'lint-staged';
 
 const config: Configuration = {
   '*.md': (filenames) => {
+    // docs/ is MDC, not plain Markdown: oxfmt rewrites a component block's
+    // YAML props into a list and indents its closing `::`, which silently
+    // turns a rendered component back into literal text.
     const files = filenames.filter(
-      (f) => !/(?:^|\/)(README|CLAUDE|AGENTS)\.md$/.test(f)
+      (f) =>
+        !/(?:^|\/)(README|CLAUDE|AGENTS)\.md$/.test(f) &&
+        !/(?:^|\/)docs\//.test(f)
     );
     return files.length > 0 ? `pnpm exec oxfmt ${files.join(' ')}` : [];
   },
