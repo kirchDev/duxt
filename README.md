@@ -1,111 +1,73 @@
 <div align="center">
 
-# 🏗️ scaffold
+# 📚 duxt
 
-**The kirchDev baseline — everything a new repo should ship with on day one, nothing more**
+**An idea: versioned, multi-repo documentation for Nuxt — one line to extend, no collection boilerplate**
 
 </div>
 
 ---
 
-```bash
-gh repo create my-new-repo --template TitusKirch/scaffold
+```ts
+export default defineNuxtConfig({
+  extends: ['@kirchdev/duxt'],
+})
 ```
 
-That's it. Click **Use this template** (or use `gh`), edit a handful of placeholders, and the meta layer — lint, format, commit hooks, CI, CodeQL, Dependabot, release-please — is already wired up.
-
-## ✨ What's in the box
-
-- **🟢 Node + pnpm pinned** — `.nvmrc` (Node 24), `pnpm-workspace.yaml` (pnpm 11 with sane defaults), `package.json` with `packageManager`.
-- **🧹 Lint & format via oxc** — `.oxlintrc.json`, `.oxfmtrc.json`, single `pnpm check` gate.
-- **🔷 TypeScript, no build step** — meta scripts and tool configs are `.ts`, run straight off Node 24's native type stripping; `tsconfig.json` + `pnpm typecheck`.
-- **🪝 Commit hooks** — Husky + `lint-staged` + `commitlint` enforcing Conventional Commits.
-- **🤖 Dependency PRs** — Dependabot (npm weekly, actions monthly) + `taze.config.ts` for interactive upgrades.
-- **🔁 release-please** — full workflow + config + manifest so the new repo can publish from its first commit.
-- **🛡️ GitHub workflows as calls** — six stubs pointing at central bodies in [`kirchDev/workflows`](https://github.com/kirchDev/workflows): CI, CodeQL, release-please, the promotion PR and the two queue workflows. 151 lines of trigger instead of 727 of copied pipeline, and a central fix arrives by Dependabot bump.
-- **📋 Issue / PR templates** — bug report, feature request, question (`.yml` forms) + PR checklist.
-- **📄 Standard meta** — `LICENSE`, `CODE_OF_CONDUCT.md`, `CONTRIBUTING.md`, `SECURITY.md`.
-- **🤖 Agent-ready** — `CLAUDE.md` + `AGENTS.md` (kept in sync), `.tituskirch-skills.json`, baseline `.claude/settings.json` permissions, `pnpm skills:update` wiring.
-
-The actual project code can be anything — PHP, Go, Rust, Vue, plain shell. `scaffold` only owns the meta layer that sits on top.
-
-## 🚀 Setup
-
-After clicking **Use this template**:
-
-1. Clone your new repo.
-2. Replace the placeholders listed in [Customising the template](#-customising-the-template).
-3. Reset release-please as described in [Resetting release-please](#-resetting-release-please) (only if you want to start at `v0.0.0`).
-4. `pnpm install` — Husky activates the hooks via the `prepare` script.
-5. Add your project code and ship the first commit:
-
-   ```bash
-   git commit -m "chore: initial commit from scaffold"
-   ```
-
-## 🤖 AI & skills
-
-Every repo from this template is agent-ready on day one:
-
-- **`CLAUDE.md` + `AGENTS.md`** — one set of guidance for Claude Code and vendor-neutral agent tools (Codex, OpenCode, Cursor, Copilot). Kept **byte-identical** — edit one, edit the other.
-- **`.claude/settings.json`** — baseline permissions: read-only git and the `pnpm` scripts are allowed; destructive git (`push`, `reset --hard`, `clean -f`, …) is denied.
-- **`.tituskirch-skills.json`** — configures the [TitusKirch skills](https://github.com/TitusKirch/skills) (commit, PR, issue, release, docs) per repo.
-
-Install the skill bundle, then keep project-scoped skills fresh:
-
-```bash
-pnpm dlx skills add TitusKirch/skills   # add the bundle — npx / yarn dlx / bunx work too
-pnpm skills:update                       # refresh project-scoped skills
-```
-
-## 🧰 Customising the template
-
-Every file below references `TitusKirch/scaffold`, the maintainer's name, or the maintainer's email. Search-and-replace these to your repo's identity before the first push.
-
-| File                                  | Replace                                                                          |
-| :------------------------------------ | :------------------------------------------------------------------------------- |
-| `package.json`                        | `name`, `description`, `homepage`, `bugs.url`, `repository.url`, `author`        |
-| `README.md`                           | Project title, tagline, hook snippet, every `TitusKirch/scaffold` link           |
-| `LICENSE`                             | Copyright year + holder                                                          |
-| `CODE_OF_CONDUCT.md`                  | Enforcement contact email                                                        |
-| `CONTRIBUTING.md`                     | Every `TitusKirch/scaffold` link, the development setup section                  |
-| `SECURITY.md`                         | Advisory URL, contact email, scope wording                                       |
-| `.github/ISSUE_TEMPLATE/*.yml`        | Generic as shipped. `config.yml` links questions/ideas/possible-bugs to the Discord forum — private repos without a forum drop that block; optionally add stack-specific version fields to `bug_report.yml` |
-| `.github/pull_request_template.md`    | Example commit message in the title hint                                         |
-| `release-please-config.json`          | `packages["."]["package-name"]`                                                  |
-| `CLAUDE.md` + `AGENTS.md`             | **Delete both** and regenerate with `/init` in Claude Code — scaffold-specific, keep byte-identical |
-
-> [!TIP]
-> A quick `grep -rn "TitusKirch/scaffold" .` catches every reference in one sweep.
+The idea is that this line is the whole setup: Nuxt Content v3 underneath, a theme on top, and — when you need them — several source repositories and several versions of the docs, declared as a list rather than as one collection per version × repo.
 
 > [!IMPORTANT]
-> **Private repo?** Three defaults are public-only. Delete `.github/workflows/codeql.yml` (CodeQL needs GitHub Advanced Security — free only on public repos), swap the MIT `LICENSE` + README footer for a proprietary notice with `package.json` `"license": "UNLICENSED"`, and note that the workflow bodies live in a **public** repository — a private repo can still call them, but the reverse is not true.
+> **This is a sketch, not a product.** Nothing is built, nothing is published to npm, and none of the design below is decided — including whether the layer gets built on a clean base or on top of Docus / Nuxt UI, and whether it stays public at all. Everything here reads as a proposal to argue with.
 
-## 🔁 Resetting release-please
+## ✨ The idea
 
-`scaffold` ships with an initial manifest pinned at `0.0.0`. For most cases you can leave it alone — release-please will simply propose a first release PR after your first conventional commit on `main`. If you want a truly clean slate:
+- **📦 Extend, don't scaffold** — a Nuxt layer, so the theme, pages, components and `app.config` defaults arrive with `extends` and are overridden file by file where you disagree.
+- **🗂️ Sources as a list** — one compact declaration per source instead of one Content collection per version × repo:
 
-1. **Manifest** — make sure `.release-please-manifest.json` is `{ ".": "0.0.0" }` (the default).
-2. **Changelog** — delete `CHANGELOG.md` if your fresh repo somehow inherited one.
-3. **Config** — update `release-please-config.json` → `packages["."]["package-name"]` to your repo name.
-4. **Workflow permissions** — in **Settings → Actions → General → Workflow permissions**, enable **Read and write permissions** so release-please can open its PR.
-5. **Tags & releases (optional)** — if you copied the repo with history, drop old tags:
+  ```ts
+  sources: [
+    { path: 'docs' },                                 // this repo, current branch
+    { path: 'docs', refs: ['v1.x', 'v2.x', 'main'] }, // versioned
+    { repo: 'kirchDev/app', path: 'docs' },           // another repo
+  ]
+  ```
 
-   ```bash
-   git tag -l | xargs -r git tag -d
-   ```
+  The single-source, unversioned case is the default and needs no config at all.
+- **🔀 Version switcher and URL scheme** — `/[repo]/[version]/[...slug]`, collapsing cleanly when there is one source and no versions, with a defined fallback for a page that a given version does not have.
+- **🌿 Git-native sourcing** — branches, tags, private repositories and hash-based caching come straight from Nuxt Content v3's own `repository` support. `duxt` adds the ergonomics on top, not a second mechanism.
+- **🤖 Machine-readable output** — `llms.txt` and an MCP route over the same content, generated at build time.
 
-   …and clear any stale entries on the GitHub **Releases** tab.
+## 🚀 Setup (intended)
 
-6. **First commit** — push a Conventional Commit on `main` (`feat: …`, `fix: …`). release-please opens the initial release PR; merge it and your first tagged release ships.
+```bash
+pnpm add -D @kirchdev/duxt
+```
 
-## 💡 Why "scaffold" and not "template-\*"
+```ts
+// nuxt.config.ts
+export default defineNuxtConfig({
+  extends: ['@kirchdev/duxt'],
+})
+```
 
-Single word, brandable, language-neutral. Future stack-specific templates can sit next to it as `scaffold-laravel`, `scaffold-nuxt`, etc.
+Put your Markdown in `docs/` and start the app. Everything beyond that — more sources, versions, theme overrides — would be opt-in.
+
+Neither the package nor `kirchDev/duxt-starter` exists yet; the starter, if it happens, would be cloned with `npx nuxi@latest init -t github:kirchDev/duxt-starter`.
+
+## 🧪 Development
+
+```bash
+git clone https://github.com/kirchDev/duxt.git
+cd duxt
+pnpm install   # wires the husky hooks
+pnpm check     # lint + format + typecheck + policy parity
+```
+
+`playground/` does not exist yet. It is meant to be where the layer is developed — it deliberately carries edge cases, ugly frontmatter, several sources and a tag to read from. It is not a template; the exemplary starting point lives in [`kirchDev/duxt-starter`](https://github.com/kirchDev/duxt-starter).
 
 ## 🤝 Contributing
 
-PRs welcome. Conventional Commits required (enforced via commitlint). Husky runs the project's linters/formatters on `git commit`.
+PRs welcome. Conventional Commits are enforced via commitlint, and husky runs the linters on `git commit`. Branch off `dev`.
 
 > [!TIP]
 > Run `pnpm check:fix` before pushing — CI will catch what husky missed.
@@ -114,7 +76,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the full workflow.
 
 ## 🛣️ Versioning
 
-[Semantic Versioning](https://semver.org/) via [release-please](https://github.com/googleapis/release-please) — see [CHANGELOG.md](CHANGELOG.md).
+[Semantic Versioning](https://semver.org/) via [release-please](https://github.com/googleapis/release-please) — see the [releases](https://github.com/kirchDev/duxt/releases).
 
 ## 📄 License
 

@@ -1,4 +1,4 @@
-# Contributing to scaffold
+# Contributing to duxt
 
 Thanks for taking the time to contribute! 🛠️ This document covers what you need to get a PR landed.
 
@@ -9,22 +9,22 @@ This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.
 ## Reporting issues
 
 - **Questions & ideas, or something that might be a bug**: start in the [Discord forum](https://discord.kirch.dev/) — that's where the low-friction, unconfirmed stuff lives.
-- **Confirmed bugs**: open a [Bug report](https://github.com/TitusKirch/scaffold/issues/new?template=bug_report.yml) with a minimal reproduction if at all possible.
-- **Feature requests**: open a [Feature request](https://github.com/TitusKirch/scaffold/issues/new?template=feature_request.yml).
+- **Confirmed bugs**: open a [Bug report](https://github.com/kirchDev/duxt/issues/new?template=bug_report.yml) with a minimal reproduction if at all possible.
+- **Feature requests**: open a [Feature request](https://github.com/kirchDev/duxt/issues/new?template=feature_request.yml).
 - **Security vulnerabilities**: **do not** open a public issue. Follow [SECURITY.md](SECURITY.md).
 
 ## Development setup
 
 Requirements:
 
-- Node **24+** and **pnpm 11**
+- Node **24+** and **pnpm 12**
 - `git`
 
 Clone and install:
 
 ```bash
-git clone https://github.com/TitusKirch/scaffold.git
-cd scaffold
+git clone https://github.com/kirchDev/duxt.git
+cd duxt
 pnpm install   # wires husky hooks
 ```
 
@@ -42,11 +42,11 @@ The same commands run in CI — keep them green before you push.
 
 ## Branching & PRs
 
-1. **Don't push directly to `main`.** Branch off `main` for every change.
+1. **Don't push directly to `main` or `dev`.** Branch off `dev`; PRs target `dev`, which is rolled up into `main` for releases.
 2. **Conventional Commits required.** Commitlint enforces this on every commit. Examples:
-   - `feat: add new GitHub workflow`
+   - `feat: add a version switcher`
    - `fix(ci): correct pnpm cache key`
-   - `docs(readme): clarify template usage steps`
+   - `docs(readme): clarify the sources shorthand`
    - `chore(deps): bump oxlint to 1.67`
    - Breaking changes: `feat!: ...` or include `BREAKING CHANGE:` in the body.
 3. **One concern per PR.** Smaller PRs land faster.
