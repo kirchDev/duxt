@@ -9,7 +9,8 @@ export default defineAppConfig({
     /** The second navbar row. Each entry owns a part of the docs tree. */
     sections: [
       { label: 'Get started', to: '/getting-started', icon: 'lucide:rocket' },
-      { label: 'Structure', to: '/structure', icon: 'lucide:folder-tree' }
+      { label: 'Structure', to: '/structure', icon: 'lucide:folder-tree' },
+      { label: 'Guide', to: '/guide', icon: 'lucide:book-open' }
     ],
 
     /** Fixed links beside the table of contents. */
