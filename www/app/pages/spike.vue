@@ -9,7 +9,7 @@ const { data: tagged } = await useAsyncData('tagged', () =>
 
 <template>
   <main>
-    <h1>duxt spike</h1>
+    <h1 class="mb-6 text-2xl font-semibold">duxt spike</h1>
     <section>
       <h2>docsMain — {{ main?.length ?? 0 }} pages</h2>
       <ul>
