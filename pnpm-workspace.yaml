@@ -32,6 +32,15 @@ nodeLinker: isolated
 packages:
   - www
 
+# Vue declares `typescript` as an optional peer with range `*`, and with
+# autoInstallPeers any package that does not pin it can pull in TypeScript 7 —
+# which vue-tsc cannot run on (it resolves typescript/lib/tsc, a subpath 7 no
+# longer exports), taking down `pnpm typecheck:app`. Pin the whole graph to the
+# 6 line the repo targets; gildstone carries the same override for the same
+# reason. Revisit when vue-tsc supports 7.
+overrides:
+  typescript: ^6.0.3
+
 # Build scripts are blocked by default; each one is answered explicitly here.
 # esbuild places a platform binary in its postinstall and does not run without
 # it. better-sqlite3 arrives transitively through @nuxt/content and db0 and
