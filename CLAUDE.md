@@ -43,10 +43,15 @@ What that leaves as candidate value: the **ergonomics** (a compact `sources` lis
 **Decided so far:**
 
 - **The theme is shadcn-vue, wired through `shadcn-nuxt`** — a clean base with owned components, not Docus or Nuxt UI. No UI-Pro dependency, and the components are copied into the repo rather than imported, so overriding them is editing them.
-- **Numbered section prefixes are a non-issue.** Content strips them itself: `1.guides/` renders at `/guides`, `99.adr/` at `/adr`. Verified in the playground. Reordering does not move a URL; only renaming the name part does.
-- **No SQLite driver is installed.** Content's default is `better-sqlite3`, a native addon needing a node-gyp toolchain. `content.experimental.nativeSqlite` uses Node 24's built-in `node:sqlite` instead, which needs no package at all — the playground builds and renders with neither `better-sqlite3` nor `@libsql/client` present. It is flagged experimental in Content; if that changes, `@libsql/client` is the prebuilt fallback, not `better-sqlite3`.
+- **Numbered section prefixes are a non-issue.** Content strips them itself: `1.guides/` renders at `/guides`, `99.adr/` at `/adr`. Verified in `www/`. Reordering does not move a URL; only renaming the name part does.
+- **No SQLite driver is installed.** Content's default is `better-sqlite3`, a native addon needing a node-gyp toolchain. `content.experimental.nativeSqlite` uses Node 24's built-in `node:sqlite` instead, which needs no package at all — `www/` builds and renders with neither `better-sqlite3` nor `@libsql/client` present. It is flagged experimental in Content; if that changes, `@libsql/client` is the prebuilt fallback, not `better-sqlite3`.
 
-If the layer is built, `playground/` is where it is developed and wants edge cases, ugly frontmatter, several sources and a tag to read from. [`kirchDev/duxt-starter`](https://github.com/kirchDev/duxt-starter) would be a **different artifact** — minimal and exemplary, what a stranger clones with `npx nuxi@latest init -t github:kirchDev/duxt-starter`. Do not conflate the two; a playground makes a bad starter.
+**Repo shape — the root IS the layer.** `nuxt.config.ts`, `content.config.ts` and `app/` sit at the repo root, and `package.json` points at them with `main: "./nuxt.config.ts"` plus a `files` allowlist, so `extends: ['@kirchdev/duxt']` resolves. `www/` is the consuming site beside it — the only workspace package, and the development target, exactly as `www/` is in `ZTL-UwU/shadcn-docs-nuxt`. `nuxt` is a peerDependency of the layer and a real dependency only of `www/`.
+
+> [!IMPORTANT]
+> **A layer's collections resolve against the LAYER, not the consumer.** Content sets `collection.__rootDir = curr.cwd` per layer, so a relative `source.cwd` in this repo's `content.config.ts` points into this repo — never into the site that extends it. The layer therefore computes an absolute path at load time (`join(process.cwd(), 'docs')`), which works because c12 executes the config. This is the seam the whole `sources` shorthand sits on.
+
+`www/` wants edge cases, ugly frontmatter, several sources and a tag to read from. [`kirchDev/duxt-starter`](https://github.com/kirchDev/duxt-starter) would be a **different artifact** — minimal and exemplary, what a stranger clones with `npx nuxi@latest init -t github:kirchDev/duxt-starter`. Do not conflate the two; a development site makes a bad starter.
 
 ## Commands
 

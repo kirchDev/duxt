@@ -1,0 +1,15 @@
+{
+  "$schema": "https://www.schemastore.org/package.json",
+  "name": "www",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The duxt documentation site — consumes the layer exactly as a downstream repo does.",
+  "type": "module",
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build"
+  },
+  "dependencies": {
+    "nuxt": "^4.5.2"
+  }
+}

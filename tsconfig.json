@@ -13,5 +13,10 @@
     "isolatedModules": true,
     "skipLibCheck": true
   },
-  "include": ["scripts/**/*.ts", "*.config.ts"]
+  "include": [
+    "scripts/**/*.ts",
+    "commitlint.config.ts",
+    "lint-staged.config.ts",
+    "taze.config.ts"
+  ]
 }

@@ -63,7 +63,7 @@ pnpm install   # wires the husky hooks
 pnpm check     # lint + format + typecheck + policy parity
 ```
 
-`playground/` does not exist yet. It is meant to be where the layer is developed — it deliberately carries edge cases, ugly frontmatter, several sources and a tag to read from. It is not a template; the exemplary starting point lives in [`kirchDev/duxt-starter`](https://github.com/kirchDev/duxt-starter).
+The repo root **is** the layer — `nuxt.config.ts`, `content.config.ts` and `app/` live there, and `package.json` points at them. `www/` beside it is the site that consumes the layer, and the development target: it deliberately carries the ugly cases — edge-case frontmatter, several sources, a tag to read from. It is not a template; the exemplary starting point lives in [`kirchDev/duxt-starter`](https://github.com/kirchDev/duxt-starter).
 
 ## 🤝 Contributing
 

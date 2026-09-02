@@ -28,9 +28,9 @@ nodeLinker: isolated
 # field, which is the closest match to the old packageManagerStrict: true plus
 # packageManagerStrictVersion: false. Setting pmOnFail here would only weaken that.
 
-# The layer is developed against playground/ — see CLAUDE.md.
+# The layer is developed against www/ — see CLAUDE.md.
 packages:
-  - playground
+  - www
 
 # Build scripts are blocked by default; each one is answered explicitly here.
 # esbuild places a platform binary in its postinstall and does not run without
