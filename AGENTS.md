@@ -39,8 +39,12 @@ What that leaves as candidate value: the **ergonomics** (a compact `sources` lis
 **Open — ask, do not decide:**
 
 - **Does the idea carry a public project at all?** Positioning on ergonomics plus version UX may be too thin. If it is, `duxt` is a private layer and needs neither a brand, a starter, nor a public repo.
-- **Layer vs. standalone theme** — build on Docus / Nuxt UI, or a clean base? On top avoids re-doing the theme; a clean base avoids the UI-Pro dependency.
-- **Numbered section prefixes** (`1.concepts/`, `99.adr/`) in the estate's `write-docs` convention are rename-hostile and break URLs, which costs more once docs are versioned — but changing that convention is greenhouse's call, not this repo's.
+
+**Decided so far:**
+
+- **The theme is shadcn-vue, wired through `shadcn-nuxt`** — a clean base with owned components, not Docus or Nuxt UI. No UI-Pro dependency, and the components are copied into the repo rather than imported, so overriding them is editing them.
+- **Numbered section prefixes are a non-issue.** Content strips them itself: `1.guides/` renders at `/guides`, `99.adr/` at `/adr`. Verified in the playground. Reordering does not move a URL; only renaming the name part does.
+- **No SQLite driver is installed.** Content's default is `better-sqlite3`, a native addon needing a node-gyp toolchain. `content.experimental.nativeSqlite` uses Node 24's built-in `node:sqlite` instead, which needs no package at all — the playground builds and renders with neither `better-sqlite3` nor `@libsql/client` present. It is flagged experimental in Content; if that changes, `@libsql/client` is the prebuilt fallback, not `better-sqlite3`.
 
 If the layer is built, `playground/` is where it is developed and wants edge cases, ugly frontmatter, several sources and a tag to read from. [`kirchDev/duxt-starter`](https://github.com/kirchDev/duxt-starter) would be a **different artifact** — minimal and exemplary, what a stranger clones with `npx nuxi@latest init -t github:kirchDev/duxt-starter`. Do not conflate the two; a playground makes a bad starter.
 

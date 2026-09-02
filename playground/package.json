@@ -13,8 +13,5 @@
   "dependencies": {
     "@nuxt/content": "^3.16.0",
     "nuxt": "^4.5.2"
-  },
-  "devDependencies": {
-    "@libsql/client": "^0.17.4"
   }
 }

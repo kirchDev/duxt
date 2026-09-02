@@ -32,9 +32,12 @@ nodeLinker: isolated
 packages:
   - playground
 
-# Build scripts are blocked by default. esbuild places a platform binary in its
-# postinstall and better-sqlite3 compiles a native addon in its; Nuxt Content
-# refuses to start without the latter.
+# Build scripts are blocked by default; each one is answered explicitly here.
+# esbuild places a platform binary in its postinstall and does not run without
+# it. better-sqlite3 arrives transitively through @nuxt/content and db0 and
+# would compile a native addon via node-gyp — refused, not merely unapproved:
+# Content runs on Node 24's built-in node:sqlite (content.experimental
+# .nativeSqlite), so nothing here needs the addon.
 allowBuilds:
+  better-sqlite3: false
   esbuild: true
-  better-sqlite3: true

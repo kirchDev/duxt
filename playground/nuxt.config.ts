@@ -3,11 +3,11 @@ export default defineNuxtConfig({
   compatibilityDate: '2026-09-02',
 
   content: {
-    // better-sqlite3 is Content's default and needs node-gyp, which this box
-    // does not have. libsql ships prebuilt and is a supported driver.
-    database: {
-      type: 'libsql',
-      url: 'file:./.data/content/contents.sqlite'
+    // Content's default driver is better-sqlite3, a native addon that needs a
+    // node-gyp toolchain. Node 24 ships node:sqlite, so the driver can be
+    // dropped entirely instead of swapped for another package.
+    experimental: {
+      nativeSqlite: true
     }
   }
 });
