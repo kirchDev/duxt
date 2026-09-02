@@ -19,7 +19,7 @@ const { duxt } = useAppConfig();
         <li v-for="link in links" :key="link.id">
           <a
             :href="`#${link.id}`"
-            class="-ml-px block border-l border-transparent py-1 pl-4 text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
+            class="-ml-px block border-l border-transparent py-1 pl-4 text-muted-foreground transition-colors hover:border-primary/60 hover:text-foreground"
           >
             {{ link.text }}
           </a>
@@ -27,7 +27,7 @@ const { duxt } = useAppConfig();
             <li v-for="child in link.children" :key="child.id">
               <a
                 :href="`#${child.id}`"
-                class="-ml-px block border-l border-transparent py-1 pl-7 text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
+                class="-ml-px block border-l border-transparent py-1 pl-7 text-muted-foreground transition-colors hover:border-primary/60 hover:text-foreground"
               >
                 {{ child.text }}
               </a>

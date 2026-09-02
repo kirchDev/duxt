@@ -19,11 +19,11 @@ function isActive(to?: string) {
         v-for="section in duxt.sections"
         :key="section.label"
         :to="section.to"
-        class="flex shrink-0 items-center gap-2 border-b-2 px-3 py-2.5 text-sm transition-colors"
+        class="flex shrink-0 items-center gap-2 rounded-t-md border-b-2 px-3 py-2.5 text-sm transition-colors"
         :class="
           isActive(section.to)
             ? 'border-primary font-medium text-foreground'
-            : 'border-transparent text-muted-foreground hover:text-foreground'
+            : 'border-transparent text-muted-foreground hover:border-border hover:bg-accent/50 hover:text-foreground'
         "
       >
         <Icon v-if="section.icon" :name="section.icon" class="size-4" />

@@ -34,8 +34,8 @@ const route = useRoute();
               class="block rounded-md px-2 py-1.5 transition-colors"
               :class="
                 route.path === child.path
-                  ? 'font-medium text-primary'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'bg-primary/10 font-medium text-primary'
+                  : 'text-muted-foreground hover:bg-accent hover:text-foreground'
               "
             >
               {{ child.title }}
@@ -50,8 +50,8 @@ const route = useRoute();
         class="mb-px flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors"
         :class="
           route.path === item.path
-            ? 'font-medium text-primary'
-            : 'text-muted-foreground hover:text-foreground'
+            ? 'bg-primary/10 font-medium text-primary'
+            : 'text-muted-foreground hover:bg-accent hover:text-foreground'
         "
       >
         <Icon v-if="iconOf(item)" :name="iconOf(item)!" class="size-4" />
