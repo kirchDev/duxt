@@ -1,62 +1,58 @@
 <script setup lang="ts">
 import type { ContentNavigationItem } from '@nuxt/content';
 
-// The docs tree. Groups carry their icon and title as a heading; leaves are
-// plain links — no boxes, no borders, so the active item is the only thing
-// with weight on the page.
+// The docs tree. A group is collapsible — open when it holds the current page,
+// so arriving somewhere never hides where you are, and closed otherwise so a
+// long tree stays scannable.
 defineProps<{ items: ContentNavigationItem[] }>();
+
+const route = useRoute();
 
 /** `icon` comes from a page's frontmatter, which Content types as unknown. */
 const iconOf = (item: ContentNavigationItem) =>
   typeof item.icon === 'string' ? item.icon : undefined;
 
-const route = useRoute();
+const contains = (item: ContentNavigationItem): boolean =>
+  route.path === item.path ||
+  Boolean(item.children?.some((child) => contains(child)));
 </script>
 
 <template>
-  <nav class="text-sm">
-    <template v-for="item in items" :key="item.path">
-      <div v-if="item.children?.length" class="mb-6">
-        <p
-          class="mb-2 flex items-center gap-2 px-2 text-[13px] font-medium text-foreground"
+  <nav class="text-[13px]">
+    <ul class="space-y-0.5">
+      <li v-for="item in items" :key="item.path">
+        <Collapsible
+          v-if="item.children?.length"
+          :default-open="contains(item)"
         >
-          <Icon
-            v-if="iconOf(item)"
-            :name="iconOf(item)!"
-            class="size-4 text-muted-foreground"
-          />
-          {{ item.title }}
-        </p>
-        <ul class="space-y-px">
-          <li v-for="child in item.children" :key="child.path">
-            <NuxtLink
-              :to="child.path"
-              class="block rounded-md px-2 py-1.5 transition-colors"
-              :class="
-                route.path === child.path
-                  ? 'bg-primary/10 font-medium text-primary'
-                  : 'text-muted-foreground hover:bg-accent hover:text-foreground'
-              "
-            >
-              {{ child.title }}
-            </NuxtLink>
-          </li>
-        </ul>
-      </div>
+          <CollapsibleTrigger
+            class="group flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 font-medium text-foreground transition-colors hover:bg-accent"
+          >
+            <Icon
+              v-if="iconOf(item)"
+              :name="iconOf(item)!"
+              class="size-4 text-muted-foreground"
+            />
+            <span class="truncate">{{ item.title }}</span>
+            <Icon
+              name="lucide:chevron-right"
+              class="ml-auto size-3.5 text-muted-foreground transition-transform group-data-[state=open]:rotate-90"
+            />
+          </CollapsibleTrigger>
 
-      <NuxtLink
-        v-else
-        :to="item.path"
-        class="mb-px flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors"
-        :class="
-          route.path === item.path
-            ? 'bg-primary/10 font-medium text-primary'
-            : 'text-muted-foreground hover:bg-accent hover:text-foreground'
-        "
-      >
-        <Icon v-if="iconOf(item)" :name="iconOf(item)!" class="size-4" />
-        {{ item.title }}
-      </NuxtLink>
-    </template>
+          <CollapsibleContent>
+            <!-- One rule down the left marks the nesting; the links themselves
+                 stay flat so the active one is the only thing with weight. -->
+            <ul class="mt-0.5 ml-3.5 space-y-0.5 border-l pl-2.5">
+              <li v-for="child in item.children" :key="child.path">
+                <DuxtNavigationLink :item="child" />
+              </li>
+            </ul>
+          </CollapsibleContent>
+        </Collapsible>
+
+        <DuxtNavigationLink v-else :item="item" />
+      </li>
+    </ul>
   </nav>
 </template>
