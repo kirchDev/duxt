@@ -1,73 +1,97 @@
 /* Prose styling as plain CSS rather than a typography plugin: a consumer
    overriding one element should not have to learn a plugin's option shape. */
 .duxt-prose {
-  @apply text-[15px] leading-7;
+  @apply text-[15px] leading-7 text-foreground/90;
 }
 
-.duxt-prose h1 {
-  @apply mt-0 mb-4 scroll-m-20 text-3xl font-semibold tracking-tight;
-}
-
+/* Headings carry the hierarchy through size and weight, not through rules and
+   underlines — a page of underlined headings reads as one flat list. */
 .duxt-prose h2 {
-  @apply mt-10 mb-4 scroll-m-20 border-b pb-2 text-2xl font-semibold tracking-tight;
+  @apply relative mt-14 mb-4 scroll-mt-20 text-2xl font-semibold tracking-tight text-foreground;
 }
 
 .duxt-prose h3 {
-  @apply mt-8 mb-3 scroll-m-20 text-xl font-semibold tracking-tight;
+  @apply relative mt-10 mb-3 scroll-mt-20 text-lg font-semibold tracking-tight text-foreground;
 }
 
 .duxt-prose h4 {
-  @apply mt-6 mb-2 scroll-m-20 text-lg font-semibold tracking-tight;
+  @apply relative mt-8 mb-2 scroll-mt-20 text-base font-semibold tracking-tight text-foreground;
+}
+
+/* The anchor sits in the margin and only appears on hover, so it never
+   competes with the heading itself. */
+.duxt-prose .duxt-anchor {
+  @apply absolute -left-5 font-normal text-muted-foreground no-underline opacity-0 transition-opacity;
+}
+
+.duxt-prose h2:hover .duxt-anchor,
+.duxt-prose h3:hover .duxt-anchor,
+.duxt-prose h4:hover .duxt-anchor,
+.duxt-prose .duxt-anchor:focus-visible {
+  @apply opacity-100;
 }
 
 .duxt-prose p {
   @apply my-4;
 }
 
-.duxt-prose a {
-  @apply font-medium underline underline-offset-4 hover:text-primary;
+.duxt-prose a:not(.duxt-anchor) {
+  @apply font-medium text-foreground underline decoration-muted-foreground/40 underline-offset-4 transition-colors hover:decoration-foreground;
 }
 
 .duxt-prose ul {
-  @apply my-4 ml-6 list-disc space-y-2;
+  @apply my-4 ml-5 list-disc space-y-2 marker:text-muted-foreground/60;
 }
 
 .duxt-prose ol {
-  @apply my-4 ml-6 list-decimal space-y-2;
+  @apply my-4 ml-5 list-decimal space-y-2 marker:text-muted-foreground/60;
+}
+
+.duxt-prose li::marker {
+  @apply text-sm;
 }
 
 .duxt-prose blockquote {
-  @apply my-4 border-l-2 pl-4 text-muted-foreground italic;
+  @apply my-6 border-l-2 pl-4 text-muted-foreground;
 }
 
 .duxt-prose :not(pre) > code {
-  @apply rounded bg-muted px-1.5 py-0.5 font-mono text-sm;
-}
-
-.duxt-prose pre {
-  @apply my-4 overflow-x-auto rounded-lg border bg-muted p-4 text-sm;
+  @apply rounded border bg-muted px-1.5 py-0.5 font-mono text-[0.85em] text-foreground;
 }
 
 .duxt-prose pre code {
-  @apply bg-transparent p-0;
+  @apply border-0 bg-transparent p-0 text-[0.9em];
 }
 
 .duxt-prose table {
-  @apply my-4 w-full text-sm;
+  @apply my-6 w-full overflow-hidden rounded-lg border text-sm;
 }
 
 .duxt-prose th {
-  @apply border-b px-3 py-2 text-left font-medium;
+  @apply border-b bg-muted/50 px-3 py-2 text-left font-medium;
 }
 
 .duxt-prose td {
-  @apply border-b px-3 py-2;
+  @apply border-b px-3 py-2 align-top;
+}
+
+.duxt-prose tr:last-child td {
+  @apply border-b-0;
 }
 
 .duxt-prose hr {
-  @apply my-8;
+  @apply my-10;
 }
 
 .duxt-prose img {
-  @apply my-4 rounded-lg border;
+  @apply my-6 rounded-lg border;
+}
+
+/* A nested Markdown list inside ::file-tree reads as a tree, not as bullets. */
+.duxt-file-tree ul {
+  @apply my-0 ml-0 list-none space-y-1;
+}
+
+.duxt-file-tree ul ul {
+  @apply mt-1 ml-2 border-l pl-4;
 }

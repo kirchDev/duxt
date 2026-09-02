@@ -2,6 +2,12 @@
 @import 'tw-animate-css';
 @import './prose.css';
 
+/* Tailwind auto-detects sources from the build root, which is the CONSUMER's
+   directory — the layer sits outside it and would be scanned by nobody, so
+   every utility used in these components would be missing from the output.
+   Relative to this file, so it holds wherever the layer is installed. */
+@source '../../../app';
+
 /* shadcn switches themes on a class, not a media query — @nuxtjs/color-mode
    sets it with classSuffix: '' so the two agree. */
 @custom-variant dark (&:is(.dark *));
