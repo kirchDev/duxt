@@ -103,7 +103,7 @@ const entries = computed<Entry[]>(() => {
       <span class="font-mono">{{ title }}</span>
     </div>
 
-    <div class="p-4 font-mono text-sm">
+    <div class="p-3 font-mono text-[13px] leading-6">
       <DuxtFileTreeNodes v-if="entries.length" :entries="entries" />
       <!-- Parsing failed: show the author's list rather than nothing. -->
       <div v-else class="duxt-file-tree">
