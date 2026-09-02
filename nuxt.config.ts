@@ -40,6 +40,10 @@ export default defineNuxtConfig({
   },
 
   icon: {
+    // SVG mode, not the default span: shadcn's Alert, Button and Sidebar all
+    // style their icon slot with `>svg` selectors, which never match a span.
+    mode: 'svg',
+
     // Inline the icons actually used into the client bundle instead of fetching
     // them per collection after hydration — no roundtrip, no icon flash.
     clientBundle: {
