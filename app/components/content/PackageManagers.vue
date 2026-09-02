@@ -9,11 +9,13 @@ const props = withDefaults(
   }
 );
 
-const icons: Record<string, string> = {
-  npm: 'simple-icons:npm',
-  pnpm: 'simple-icons:pnpm',
-  yarn: 'simple-icons:yarn',
-  bun: 'simple-icons:bun'
+// Each manager's own icon and brand colour — a monochrome row of logos reads as
+// decoration; the colour makes the active tab obvious at a glance.
+const managerBrands: Record<string, { icon: string; color: string }> = {
+  npm: { icon: 'simple-icons:npm', color: '#CB3837' },
+  pnpm: { icon: 'simple-icons:pnpm', color: '#F69220' },
+  yarn: { icon: 'simple-icons:yarn', color: '#2C8EBB' },
+  bun: { icon: 'simple-icons:bun', color: '#FBF0DF' }
 };
 
 // npm spells it `install` where the others take `add`; `dlx` differs too.
@@ -59,7 +61,11 @@ async function copy() {
         "
         @click="active = manager"
       >
-        <Icon :name="icons[manager] ?? 'lucide:terminal'" class="size-3.5" />
+        <Icon
+          :name="managerBrands[manager]?.icon ?? 'lucide:terminal'"
+          class="size-3.5"
+          :style="{ color: managerBrands[manager]?.color }"
+        />
         {{ manager }}
       </button>
 
