@@ -9,13 +9,17 @@ const props = withDefaults(
   }
 );
 
-// Each manager's own icon and brand colour — a monochrome row of logos reads as
-// decoration; the colour makes the active tab obvious at a glance.
-const managerBrands: Record<string, { icon: string; color: string }> = {
-  npm: { icon: 'simple-icons:npm', color: '#CB3837' },
-  pnpm: { icon: 'simple-icons:pnpm', color: '#F69220' },
-  yarn: { icon: 'simple-icons:yarn', color: '#2C8EBB' },
-  bun: { icon: 'simple-icons:bun', color: '#FBF0DF' }
+// Brand colours per theme. A single value does not work: bun's cream is
+// invisible on a light background and npm's red is muddy on a dark one, so
+// each manager carries both and CSS picks by theme class.
+const managerBrands: Record<
+  string,
+  { icon: string; light: string; dark: string }
+> = {
+  npm: { icon: 'simple-icons:npm', light: '#CB3837', dark: '#F1554C' },
+  pnpm: { icon: 'simple-icons:pnpm', light: '#F69220', dark: '#F9AD00' },
+  yarn: { icon: 'simple-icons:yarn', light: '#2C8EBB', dark: '#4FA8D8' },
+  bun: { icon: 'simple-icons:bun', light: '#14151A', dark: '#FBF0DF' }
 };
 
 // npm spells it `install` where the others take `add`; `dlx` differs too.
@@ -57,14 +61,17 @@ async function copy() {
         :class="
           active === manager
             ? 'bg-background text-foreground shadow-sm'
-            : 'text-muted-foreground hover:text-foreground'
+            : 'text-muted-foreground hover:bg-background/60 hover:text-foreground'
         "
         @click="active = manager"
       >
         <Icon
           :name="managerBrands[manager]?.icon ?? 'lucide:terminal'"
-          class="size-3.5"
-          :style="{ color: managerBrands[manager]?.color }"
+          class="duxt-brand size-3.5"
+          :style="{
+            '--brand': managerBrands[manager]?.light,
+            '--brand-dark': managerBrands[manager]?.dark
+          }"
         />
         {{ manager }}
       </button>

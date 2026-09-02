@@ -94,3 +94,14 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* A brand colour that follows the theme. Set --brand and --brand-dark on the
+   element; the class picks the one the current theme needs. */
+.duxt-brand {
+  color: var(--brand);
+}
+
+:root:is(.dark) .duxt-brand,
+.dark .duxt-brand {
+  color: var(--brand-dark);
+}
