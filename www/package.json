@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@iconify-json/vscode-icons": "^1.2.76",
+    "@kirchdev/duxt": "workspace:*",
     "nuxt": "^4.5.2"
   },
   "devDependencies": {

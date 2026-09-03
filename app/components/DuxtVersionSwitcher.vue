@@ -15,21 +15,33 @@ const route = useRoute();
  * `versions` in the config still wins where a label needs to read differently
  * from the URL segment.
  */
+/**
+ * Versions come from the resolved source manifest, so the switcher can only
+ * offer what actually has a collection behind it.
+ *
+ * Scoped to the repository being read: on a site serving two projects, the
+ * versions of one say nothing about the other, and offering them would send
+ * the reader somewhere that does not exist. A source with no versions shows no
+ * switcher at all.
+ *
+ * `versions` in the config still wins where a label needs to read differently
+ * from the URL segment.
+ */
 const versions = computed(() => {
   if (duxt.versions?.length) return duxt.versions;
 
-  const fromSources = (duxt.sources ?? [])
-    .filter((source) => source.version)
+  const sources = duxt.sources ?? [];
+  const currentSource = [...sources]
+    .sort((a, b) => b.prefix.length - a.prefix.length)
+    .find((source) => !source.prefix || route.path.startsWith(source.prefix));
+
+  return sources
+    .filter((source) => source.version && source.repo === currentSource?.repo)
     .map((source) => ({
       label: source.version!,
       to: source.prefix || '/',
       description: source.isDefault ? 'default' : undefined
     }));
-
-  // Same version across several repositories appears once.
-  return [
-    ...new Map(fromSources.map((entry) => [entry.label, entry])).values()
-  ];
 });
 
 /** The version whose prefix the current path starts with, else the default. */

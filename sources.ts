@@ -1,7 +1,12 @@
 import { join } from 'node:path';
 import { defineCollection, z } from '@nuxt/content';
 import type { DuxtSource, DuxtSourcesOptions } from './sources-resolve';
-import { repositoryRoot, repoUrl, resolveSources } from './sources-resolve';
+import {
+  refName,
+  repositoryRoot,
+  repoUrl,
+  resolveSources
+} from './sources-resolve';
 
 export type {
   DuxtResolvedSource,
@@ -54,8 +59,12 @@ export function duxtSources(
       schema: pageSchema,
       source: source.repo
         ? {
+            // A tag lives outside refs/heads, so it has to be passed as a tag —
+            // asking git for a branch by that name fails the build outright.
             repository: ref
-              ? { url: repoUrl(source.repo), branch: ref }
+              ? typeof ref === 'object' && 'tag' in ref
+                ? { url: repoUrl(source.repo), tag: ref.tag }
+                : { url: repoUrl(source.repo), branch: refName(ref) }
               : repoUrl(source.repo),
             include: `${source.path ?? 'docs'}/**/*.md`,
             prefix: entry.prefix

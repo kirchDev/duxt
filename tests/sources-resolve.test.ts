@@ -30,10 +30,11 @@ describe('resolveSources', () => {
       '/v1-x',
       '/v2-x'
     ]);
+    // Prefixes take dashes; collection names cannot — see the identifier test.
     expect(resolved.map((source) => source.collection)).toEqual([
       'docs',
-      'docs_v1-x',
-      'docs_v2-x'
+      'docs_v1_x',
+      'docs_v2_x'
     ]);
   });
 
@@ -117,7 +118,31 @@ describe('resolveSources', () => {
     ]);
 
     expect(resolved[1]!.prefix).toBe('/release-2024-1');
-    expect(resolved[1]!.collection).toBe('docs_release-2024-1');
+    expect(resolved[1]!.collection).toBe('docs_release_2024_1');
+  });
+
+  it('names collections as valid JavaScript identifiers', () => {
+    // Content DROPS a collection whose name is not one, with a warning in the
+    // build log and nothing else — a version silently missing from the site.
+    // That is how `docs_workflows_v0-7-0` disappeared, so the rule is pinned
+    // here rather than left to whoever next touches the slugger.
+    const resolved = resolveSources([
+      { repo: 'kirchDev/workflows', path: 'docs', refs: ['main', 'v0.7.0'] },
+      { path: 'docs', slug: 'my-docs' }
+    ]);
+
+    for (const source of resolved) {
+      expect(source.collection).toMatch(/^[A-Za-z_$][A-Za-z0-9_$]*$/);
+    }
+  });
+
+  it('keeps dashes in the URL prefix, where they belong', () => {
+    const resolved = resolveSources([
+      { path: 'docs', refs: ['main', 'v1.0.0'] }
+    ]);
+
+    expect(resolved[1]!.prefix).toBe('/v1-0-0');
+    expect(resolved[1]!.collection).toBe('docs_v1_0_0');
   });
 
   it('marks exactly one source as the default', () => {
@@ -126,5 +151,37 @@ describe('resolveSources', () => {
     ]);
 
     expect(resolved.filter((source) => source.isDefault)).toHaveLength(1);
+  });
+});
+
+describe('refs', () => {
+  it('takes a bare string as a branch', () => {
+    const resolved = resolveSources([{ path: 'docs', refs: ['main', 'next'] }]);
+
+    expect(resolved.map((source) => source.version)).toEqual(['main', 'next']);
+  });
+
+  it('takes a tag stated as one, and names the version after it', () => {
+    // git keeps branches and tags in separate namespaces: asking for a tag
+    // under refs/heads fails the build with "Could not find refs/heads/…".
+    const resolved = resolveSources([
+      { path: 'docs', refs: ['main', { tag: 'v0.7.0' }] }
+    ]);
+
+    expect(resolved[1]).toMatchObject({
+      version: 'v0-7-0',
+      prefix: '/v0-7-0',
+      collection: 'docs_v0_7_0'
+    });
+  });
+
+  it('matches defaultRef against the ref name, whichever kind it is', () => {
+    const resolved = resolveSources(
+      [{ path: 'docs', refs: [{ tag: 'v1.0.0' }, 'main'] }],
+      { defaultRef: 'v1.0.0' }
+    );
+
+    expect(resolved[0]!.prefix).toBe('');
+    expect(resolved[1]!.prefix).toBe('/main');
   });
 });

@@ -68,9 +68,6 @@ declare global {
     /** Overrides the versions derived from `sources`, when they need labels. */
     versions?: { label: string; to?: string; description?: string }[];
     footer?: {
-      note?: string;
-      /** One flat row of links — a docs footer has no site map to draw. */
-      links?: DuxtLink[];
       /** The consumer's own legal links — imprint, privacy policy. */
       legal?: DuxtLink[];
       copyright?: string;

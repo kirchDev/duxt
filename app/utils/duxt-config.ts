@@ -166,28 +166,6 @@ export const duxtDefaults: DuxtConfig = {
         icon: 'lucide:book-open-text'
       }
     ]
-  },
-
-  footer: {
-    note: 'A documentation layer for Nuxt, built on Nuxt Content v3. Extend it in one line and your docs/ folder becomes a site.',
-    // A flat row, not columns: three headed lists is a site map, and a docs
-    // footer with six links in it does not have a site to map.
-    links: [
-      { label: 'Get started', to: '/getting-started' },
-      { label: 'Guide', to: '/guide' },
-      { label: 'Reference', to: '/reference' },
-      {
-        label: 'Source',
-        to: 'https://github.com/kirchDev/duxt',
-        external: true
-      },
-      {
-        label: 'Issues',
-        to: 'https://github.com/kirchDev/duxt/issues/new/choose',
-        external: true
-      },
-      { label: 'Discord', to: 'https://discord.kirch.dev/', external: true }
-    ]
   }
 };
 

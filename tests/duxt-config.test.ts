@@ -17,13 +17,13 @@ describe('mergeDuxtConfig', () => {
 
   it('merges objects key by key', () => {
     const merged = mergeDuxtConfig(
-      { footer: { note: 'Mine' } },
-      { footer: { note: 'Theirs', columns: [{ title: 'Kept' }] } }
+      { footer: { copyright: 'Mine' } },
+      { footer: { copyright: 'Theirs', legal: [{ label: 'Kept' }] } }
     );
 
     expect(merged.footer).toEqual({
-      note: 'Mine',
-      columns: [{ title: 'Kept' }]
+      copyright: 'Mine',
+      legal: [{ label: 'Kept' }]
     });
   });
 

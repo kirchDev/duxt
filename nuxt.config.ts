@@ -16,6 +16,28 @@ export default defineNuxtConfig({
     '@nuxtjs/mcp-toolkit'
   ],
 
+  /**
+   * Register the layer's own server routes.
+   *
+   * `serverDir` is not layer-aware: Nuxt takes the consumer's, so setting it
+   * here either did nothing or replaced the consumer's `server/`. The symptom
+   * was llms.txt answering with the site's 404 page, because no handler was
+   * registered and the catch-all route took it.
+   *
+   * A nitro hook is layer-safe and composes — the consumer keeps its own
+   * `server/` untouched — and needs no @nuxt/kit dependency to do it.
+   */
+  hooks: {
+    'nitro:config': (nitro) => {
+      nitro.handlers ||= [];
+      nitro.handlers.push({
+        route: '/llms.txt',
+        method: 'get',
+        handler: layer('./server/routes/llms.txt.get.ts')
+      });
+    }
+  },
+
   // A real MCP server at /mcp, through the official SDK, instead of a JSON
   // endpoint someone else has to wrap. Tools live in server/mcp/tools.
   mcp: {
@@ -27,10 +49,6 @@ export default defineNuxtConfig({
   },
 
   css: [layer('./app/assets/css/duxt.css')],
-
-  // Layer-relative again: without this the consumer's own server/ is used and
-  // the layer's routes never register.
-  serverDir: layer('./server'),
 
   // '@' belongs to whoever extends the layer. Imports inside the layer use
   // '@duxt' so they resolve here regardless of the consumer's own aliases.

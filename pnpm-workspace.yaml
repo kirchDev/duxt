@@ -30,6 +30,9 @@ nodeLinker: isolated
 
 # The layer is developed against www/ — see CLAUDE.md.
 packages:
+  # The layer itself, so www can depend on it by name rather than by path —
+  # the same way a consumer installs it, exports map included.
+  - .
   - www
 
 # Vue declares `typescript` as an optional peer with range `*`, and with

@@ -10,20 +10,33 @@ export interface DuxtSource {
   path?: string;
   /** `owner/name` or a full git URL. Omitted means this repository. */
   repo?: string;
-  /** Branches or tags to publish as versions. Omitted means the checkout. */
-  refs?: string[];
+  /**
+   * Refs to publish as versions. Omitted means the current checkout.
+   *
+   * A bare string is a branch. A tag has to say so — git keeps the two in
+   * separate namespaces, and asking for a tag under refs/heads fails the
+   * build with "Could not find refs/heads/…".
+   */
+  refs?: DuxtRef[];
   /** Shown in the version switcher and used in the URL; defaults to the ref. */
   label?: string;
   /** Segment used in the URL for this repository; defaults to the repo name. */
   slug?: string;
 }
 
+/** A branch by name, or a tag stated as one. */
+export type DuxtRef = string | { branch: string } | { tag: string };
+
+/** The name of a ref, whichever kind it is. */
+export const refName = (ref: DuxtRef): string =>
+  typeof ref === 'string' ? ref : 'tag' in ref ? ref.tag : ref.branch;
+
 export interface DuxtSourcesOptions {
   /** Force a repository segment even with a single repository. */
   showRepo?: boolean;
   /** Force a version segment even with a single version. */
   showVersion?: boolean;
-  /** The ref served without a version prefix. Defaults to the first. */
+  /** The ref served without a version prefix, by name. Defaults to the first. */
   defaultRef?: string;
 }
 
@@ -54,8 +67,20 @@ export function repositoryRoot(): string {
   }
 }
 
+/** URL segment: lowercase-ish, dashes, no leading or trailing separator. */
 export const slugify = (value: string) =>
   value.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '');
+
+/**
+ * Collection names are not URL segments.
+ *
+ * Content requires a valid JavaScript identifier and silently DROPS a
+ * collection whose name is not one — a warning in the build log, a version
+ * missing from the site, and nothing connecting the two. So the name is
+ * derived separately from the prefix: dashes and dots become underscores.
+ */
+const identifier = (value: string) =>
+  value.replace(/[^a-z0-9]+/gi, '_').replace(/^_|_$/g, '');
 
 export const repoSlug = (source: DuxtSource) =>
   source.slug ??
@@ -96,7 +121,10 @@ export function resolveSources(
 
   const repos = new Set(sources.map((source) => source.repo ?? ''));
   const refs = new Set(
-    expanded.map((entry) => entry.ref).filter(Boolean) as string[]
+    expanded
+      .map((entry) => entry.ref)
+      .filter(Boolean)
+      .map((ref) => refName(ref!))
   );
 
   const withRepo = options.showRepo ?? repos.size > 1;
@@ -107,15 +135,17 @@ export function resolveSources(
   const taken = new Map<string, string>();
 
   for (const { source, ref } of expanded) {
-    const version = ref ? slugify(source.label ?? ref) : undefined;
-    const isDefault = !ref || ref === defaultRef;
+    const name = ref ? refName(ref) : undefined;
+    const version = name ? slugify(source.label ?? name) : undefined;
+    const isDefault = !name || name === defaultRef;
 
     const segments: string[] = [];
     if (withRepo) segments.push(repoSlug(source));
     if (withVersion && version && !isDefault) segments.push(version);
 
     const prefix = segments.length ? `/${segments.join('/')}` : '';
-    const collection = ['docs', ...segments].map(slugify).join('_') || 'docs';
+    const collection =
+      ['docs', ...segments].map(identifier).join('_') || 'docs';
 
     const previous = taken.get(prefix);
     if (previous) {
@@ -129,7 +159,7 @@ export function resolveSources(
     }
     taken.set(
       prefix,
-      `${source.repo ?? 'this repository'}${ref ? `@${ref}` : ''}`
+      `${source.repo ?? 'this repository'}${name ? `@${name}` : ''}`
     );
 
     resolved.push({
