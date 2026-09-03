@@ -170,9 +170,22 @@
 }
 
 pre.shiki,
-pre.shiki span,
 .typeset :where(pre) {
   background-color: transparent;
+}
+
+/* Content injects `html.dark .shiki span { background: var(--shiki-dark-bg) }`
+   inline in the document head — specificity (0,2,2), which outranks anything
+   sensible we could write against it. The tokens inherit that variable from
+   the <pre>, where Shiki sets it to the theme's own page colour, so in dark
+   mode every token drew a #24292e rectangle over the card.
+   
+   Redefining the variable is the way out: the rule still applies, it just has
+   nothing to paint. Set on the tokens rather than the <pre>, because there the
+   value is inline and would win. */
+.shiki span {
+  --shiki-light-bg: transparent;
+  --shiki-dark-bg: transparent;
 }
 
 /* A code block draws its own card with a filename header, so the `<pre>` inside
