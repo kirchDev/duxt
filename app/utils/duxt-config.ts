@@ -62,7 +62,8 @@ export const duxtDefaults: DuxtConfig = {
   sections: [
     { label: 'Get started', to: '/getting-started', icon: 'lucide:rocket' },
     { label: 'Structure', to: '/structure', icon: 'lucide:folder-tree' },
-    { label: 'Guide', to: '/guide', icon: 'lucide:book-open' }
+    { label: 'Guide', to: '/guide', icon: 'lucide:book-open' },
+    { label: 'Reference', to: '/reference', icon: 'lucide:list' }
   ],
 
   links: [
@@ -175,7 +176,8 @@ export const duxtDefaults: DuxtConfig = {
         links: [
           { label: 'Get started', to: '/getting-started' },
           { label: 'Structure', to: '/structure' },
-          { label: 'Guide', to: '/guide' }
+          { label: 'Guide', to: '/guide' },
+          { label: 'Reference', to: '/reference' }
         ]
       },
       {

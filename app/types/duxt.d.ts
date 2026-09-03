@@ -51,6 +51,8 @@ declare global {
     packageManagers?: string[];
     /** Chrome a consumer can switch off. */
     breadcrumb?: boolean;
+    /** Versions offered by the switcher. `to` is the URL prefix, '/' the default. */
+    versions?: { label: string; to?: string; description?: string }[];
     footer?: {
       note?: string;
       /** Legacy flat list, kept working for consumers already using it. */

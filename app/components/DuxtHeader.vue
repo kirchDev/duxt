@@ -199,6 +199,7 @@ function isActive(to?: string) {
 
       <div class="ml-auto flex items-center gap-2 md:ml-0">
         <DuxtSearch class="hidden sm:block" />
+        <DuxtVersionSwitcher />
 
         <Button
           v-for="link in duxt.links ?? []"
