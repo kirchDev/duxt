@@ -15,7 +15,7 @@ if (!page.value) {
   });
 }
 
-const { duxt } = useAppConfig();
+const duxt = useDuxtConfig();
 
 // The section this page belongs to, shown above the title the way nuxt.com
 // labels a page with its part of the tree.

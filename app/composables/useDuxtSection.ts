@@ -11,7 +11,7 @@ export function useDuxtSection(
   navigation: Ref<ContentNavigationItem[] | null | undefined>
 ) {
   const route = useRoute();
-  const { duxt } = useAppConfig();
+  const duxt = useDuxtConfig();
 
   const section = computed(() =>
     duxt.sections?.find(

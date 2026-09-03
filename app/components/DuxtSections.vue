@@ -2,7 +2,7 @@
 // The second navbar row: top-level sections of the documentation, each an
 // entry point into a part of the tree. nuxt.com's docs read this way, and it
 // keeps the sidebar showing one section instead of everything at once.
-const { duxt } = useAppConfig();
+const duxt = useDuxtConfig();
 const route = useRoute();
 
 function isActive(to?: string) {

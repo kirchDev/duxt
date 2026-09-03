@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const { duxt } = useAppConfig();
+const duxt = useDuxtConfig();
 const colorMode = useColorMode();
 const route = useRoute();
 

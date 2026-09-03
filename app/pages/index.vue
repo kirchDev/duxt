@@ -2,7 +2,7 @@
 // The landing page is its own route, full width, no sidebar. A consumer that
 // wants a different one drops an index.vue of its own — Nuxt's own layer
 // override, no configuration.
-const { duxt } = useAppConfig();
+const duxt = useDuxtConfig();
 
 useSeoMeta({
   title: duxt.title,

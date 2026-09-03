@@ -8,7 +8,7 @@ interface TocLink {
 
 defineProps<{ links: TocLink[] }>();
 
-const { duxt } = useAppConfig();
+const duxt = useDuxtConfig();
 </script>
 
 <template>
