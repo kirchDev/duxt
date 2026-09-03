@@ -153,7 +153,13 @@
 }
 
 /* Kept from the hand-written prose: a heading anchor in the margin, and code
-   blocks drawing their own surface rather than the highlighter's. */
+   blocks drawing their own surface rather than the highlighter's.
+
+   The surface matters: typeset gives every `pre` a muted background (its line
+   293), which lands on top of the card DuxtCodeBlock already draws — two
+   surfaces, and in dark mode the inner one reads as a highlighted row. Not
+   scoped to .typeset, because the package-manager block renders the same
+   markup outside a rendered page. */
 .typeset :where(.duxt-anchor) {
   @apply absolute -left-5 font-normal text-muted-foreground no-underline opacity-0 transition-opacity;
 }
@@ -163,7 +169,9 @@
   @apply opacity-100;
 }
 
-.typeset :where(.shiki, .shiki span) {
+pre.shiki,
+pre.shiki span,
+.typeset :where(pre) {
   background-color: transparent;
 }
 

@@ -1,23 +1,41 @@
 <script setup lang="ts">
 import type { ContentNavigationItem } from '@nuxt/content';
 
-// Previous and next page, in the order the navigation lists them — so it
-// follows the docs tree rather than the filesystem.
+// Previous and next within the current section only. Content's own
+// surroundings query walks the whole collection in one flat order, so the last
+// page of one section would offer a "next" that lands in another — crossing a
+// section is the section row's job, not a link reading "the next page".
 const props = defineProps<{ path: string }>();
 
-const { data: surroundings } = await useAsyncData(
-  `surroundings-${props.path}`,
-  () =>
-    queryCollectionItemSurroundings('docs', props.path, {
-      fields: ['title', 'description']
-    })
+const { data: navigation } = await useAsyncData('duxt-navigation', () =>
+  queryCollectionNavigation('docs')
 );
 
-const previous = computed(
-  () => surroundings.value?.[0] as ContentNavigationItem | undefined
+const { items } = useDuxtSection(navigation);
+
+/** The section's pages in reading order, groups flattened into their children. */
+const pages = computed(() => {
+  const flat: ContentNavigationItem[] = [];
+
+  const walk = (entries: ContentNavigationItem[]) => {
+    for (const entry of entries) {
+      if (entry.page !== false) flat.push(entry);
+      if (entry.children?.length) walk(entry.children);
+    }
+  };
+
+  walk(items.value);
+  return flat;
+});
+
+const index = computed(() =>
+  pages.value.findIndex((page) => page.path === props.path)
 );
-const next = computed(
-  () => surroundings.value?.[1] as ContentNavigationItem | undefined
+const previous = computed(() =>
+  index.value > 0 ? pages.value[index.value - 1] : undefined
+);
+const next = computed(() =>
+  index.value >= 0 ? pages.value[index.value + 1] : undefined
 );
 </script>
 
@@ -29,7 +47,7 @@ const next = computed(
     <NuxtLink
       v-if="previous"
       :to="previous.path"
-      class="group flex flex-col gap-1 rounded-lg border p-4 transition-colors hover:bg-accent"
+      class="flex flex-col gap-1 rounded-lg border p-4 transition-colors hover:bg-accent"
     >
       <span class="flex items-center gap-1 text-xs text-muted-foreground">
         <Icon name="lucide:arrow-left" class="size-3.5" />
@@ -42,7 +60,7 @@ const next = computed(
     <NuxtLink
       v-if="next"
       :to="next.path"
-      class="group flex flex-col gap-1 rounded-lg border p-4 text-right transition-colors hover:bg-accent"
+      class="flex flex-col gap-1 rounded-lg border p-4 text-right transition-colors hover:bg-accent"
     >
       <span
         class="flex items-center justify-end gap-1 text-xs text-muted-foreground"

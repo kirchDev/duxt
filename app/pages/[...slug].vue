@@ -2,6 +2,7 @@
 definePageMeta({ layout: 'docs' });
 
 const route = useRoute();
+const duxt = useDuxtConfig();
 
 const { data: page } = await useAsyncData(`docs-${route.path}`, () =>
   queryCollection('docs').path(route.path).first()
@@ -25,7 +26,11 @@ useSeoMeta({
   <div class="flex min-w-0 flex-1 justify-center gap-10">
     <article class="min-w-0 max-w-3xl flex-1 py-8">
       <header class="mb-8 border-b pb-8">
-        <DuxtBreadcrumb :path="route.path" class="mb-3" />
+        <DuxtBreadcrumb
+          v-if="duxt.breadcrumb !== false"
+          :path="route.path"
+          class="mb-3"
+        />
         <h1 class="text-4xl font-semibold tracking-tight text-balance">
           {{ page?.title }}
         </h1>

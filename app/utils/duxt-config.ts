@@ -76,6 +76,9 @@ export const duxtDefaults: DuxtConfig = {
   /** Which package managers a command block offers, in the order it shows them. */
   packageManagers: ['pnpm', 'npm', 'yarn', 'bun'],
 
+  /** A flat docs tree gets a trail that only repeats its own section name. */
+  breadcrumb: true,
+
   landing: {
     badge: 'Early days — nothing is decided',
     headline: 'Documentation for Nuxt, versioned and multi-repo',
