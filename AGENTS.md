@@ -68,7 +68,9 @@ What that leaves as candidate value: the **ergonomics** (a compact `sources` lis
 | `pnpm format`       | `oxfmt --check .` (note: `format` is the check, not fix)   |
 | `pnpm typecheck`    | `tsc --noEmit` over the meta scripts                       |
 | `pnpm typecheck:app`| `nuxt typecheck` over the layer, run through `www/`        |
-| `pnpm check`        | Runs `lint` + `format` + `typecheck` + `typecheck:app` + `check:policy` — the CI gate |
+| `pnpm test`         | `vitest run` over the layer's pure logic                   |
+| `pnpm build:app`    | `nuxt build` in `www/` — the gate's SSR check              |
+| `pnpm check`        | Runs `lint` + `format` + both typechecks + `test` + `check:policy` + `build:app` — the CI gate |
 | `pnpm check:policy` | Proves the two agent policy files ban the same commands    |
 | `pnpm lint:fix`     | Auto-fix lint                                              |
 | `pnpm format:fix`   | Auto-fix format                                            |
@@ -77,7 +79,7 @@ What that leaves as candidate value: the **ergonomics** (a compact `sources` lis
 | `pnpm taze`         | Interactive dependency upgrade check                       |
 | `pnpm taze:w`       | Write upgrade results                                      |
 
-There is no test suite yet — the repo currently carries only the meta layer. CI runs whatever `check` chains on PR; adding a check to the `check` script is enough, no workflow change needed.
+Tests cover the layer's pure logic — the source resolver, the config merge, the icon lookup — in `tests/`, run by vitest. Component rendering is not covered: it needs a Nuxt environment, and the failures this repo actually had were SSR failures, which is why `check` builds the site instead. CI runs whatever `check` chains on PR; adding a check to the `check` script is enough, no workflow change needed.
 
 ## Architecture / conventions
 

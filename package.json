@@ -51,14 +51,17 @@
     "format": "oxfmt --check .",
     "format:fix": "oxfmt .",
     "typecheck": "tsc --noEmit",
-    "check": "pnpm lint && pnpm format && pnpm typecheck && pnpm typecheck:app && pnpm check:policy",
+    "check": "pnpm lint && pnpm format && pnpm typecheck && pnpm typecheck:app && pnpm test && pnpm check:policy && pnpm build:app",
     "check:fix": "pnpm lint:fix && pnpm format:fix",
     "check:policy": "node scripts/check-policy-parity.ts",
     "skills:update": "pnpm dlx skills@latest update -p -y",
     "taze": "taze",
     "taze:w": "taze -w",
     "prepare": "husky",
-    "typecheck:app": "pnpm --filter www typecheck"
+    "typecheck:app": "pnpm --filter www typecheck",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "build:app": "pnpm --filter www build"
   },
   "dependencies": {
     "@iconify-json/lucide": "^1.2.127",
@@ -93,7 +96,8 @@
     "oxfmt": "0.65.0",
     "oxlint": "1.80.0",
     "taze": "^21.1.0",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.11"
   },
   "peerDependencies": {
     "nuxt": "^4.0.0"

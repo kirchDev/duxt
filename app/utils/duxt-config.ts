@@ -169,48 +169,24 @@ export const duxtDefaults: DuxtConfig = {
   },
 
   footer: {
-    note: 'A documentation layer for Nuxt, built on Nuxt Content v3. Extend it in one line and your docs/ folder becomes a site — versioned across tags, sourced across repositories, and yours to override file by file.',
-    columns: [
+    note: 'A documentation layer for Nuxt, built on Nuxt Content v3. Extend it in one line and your docs/ folder becomes a site.',
+    // A flat row, not columns: three headed lists is a site map, and a docs
+    // footer with six links in it does not have a site to map.
+    links: [
+      { label: 'Get started', to: '/getting-started' },
+      { label: 'Guide', to: '/guide' },
+      { label: 'Reference', to: '/reference' },
       {
-        title: 'Documentation',
-        links: [
-          { label: 'Get started', to: '/getting-started' },
-          { label: 'Structure', to: '/structure' },
-          { label: 'Guide', to: '/guide' },
-          { label: 'Reference', to: '/reference' }
-        ]
+        label: 'Source',
+        to: 'https://github.com/kirchDev/duxt',
+        external: true
       },
       {
-        title: 'Project',
-        links: [
-          {
-            label: 'Source',
-            to: 'https://github.com/kirchDev/duxt',
-            external: true
-          },
-          {
-            label: 'Report an issue',
-            to: 'https://github.com/kirchDev/duxt/issues/new/choose',
-            external: true
-          },
-          {
-            label: 'Releases',
-            to: 'https://github.com/kirchDev/duxt/releases',
-            external: true
-          }
-        ]
+        label: 'Issues',
+        to: 'https://github.com/kirchDev/duxt/issues/new/choose',
+        external: true
       },
-      {
-        title: 'Community',
-        links: [
-          {
-            label: 'Discord',
-            to: 'https://discord.kirch.dev/',
-            external: true
-          },
-          { label: 'kirch.dev', to: 'https://kirch.dev', external: true }
-        ]
-      }
+      { label: 'Discord', to: 'https://discord.kirch.dev/', external: true }
     ]
   }
 };

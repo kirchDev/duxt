@@ -69,9 +69,8 @@ declare global {
     versions?: { label: string; to?: string; description?: string }[];
     footer?: {
       note?: string;
-      /** Legacy flat list, kept working for consumers already using it. */
+      /** One flat row of links — a docs footer has no site map to draw. */
       links?: DuxtLink[];
-      columns?: { title: string; links?: DuxtLink[] }[];
       /** The consumer's own legal links — imprint, privacy policy. */
       legal?: DuxtLink[];
       copyright?: string;
