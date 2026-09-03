@@ -93,7 +93,7 @@ async function copy() {
 </script>
 
 <template>
-  <div class="my-6 overflow-hidden rounded-lg border bg-card">
+  <div class="duxt-code my-6 overflow-hidden rounded-lg border bg-card">
     <div class="flex items-center gap-1 border-b bg-muted/40 px-2 py-1.5">
       <button
         v-for="manager in managers"

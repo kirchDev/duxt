@@ -166,3 +166,11 @@
 .typeset :where(.shiki, .shiki span) {
   background-color: transparent;
 }
+
+/* A code block draws its own card with a filename header, so the `<pre>` inside
+   is that card's body rather than a block in the flow. typeset's block spacing
+   on `pre` therefore lands *inside* the border and opens a gap between the
+   header and the first line. */
+.typeset :where(.duxt-code pre) {
+  margin: 0;
+}

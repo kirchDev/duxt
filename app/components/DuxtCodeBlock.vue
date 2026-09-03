@@ -48,7 +48,9 @@ async function copy() {
 </script>
 
 <template>
-  <div class="group relative my-6 overflow-hidden rounded-lg border bg-card">
+  <div
+    class="duxt-code group relative my-6 overflow-hidden rounded-lg border bg-card"
+  >
     <div
       v-if="label"
       class="flex items-center gap-2 border-b bg-muted/40 px-3 py-2 text-xs text-muted-foreground"

@@ -12,6 +12,10 @@ export default defineNuxtConfig({
 
   css: [layer('./app/assets/css/duxt.css')],
 
+  // Layer-relative again: without this the consumer's own server/ is used and
+  // the layer's routes never register.
+  serverDir: layer('./server'),
+
   // '@' belongs to whoever extends the layer. Imports inside the layer use
   // '@duxt' so they resolve here regardless of the consumer's own aliases.
   alias: {
