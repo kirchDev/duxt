@@ -2,11 +2,13 @@
 // `::package-managers{command="add -D @kirchdev/duxt"}` — one command, every
 // manager, in a single box: tabs and copy button sit in the code block's own
 // header rather than floating above a separate card.
-const props = withDefaults(
-  defineProps<{ command: string; managers?: string[] }>(),
-  {
-    managers: () => ['pnpm', 'npm', 'yarn', 'bun']
-  }
+const props = defineProps<{ command: string; managers?: string[] }>();
+
+const duxt = useDuxtConfig();
+
+// Per block, then the site's configured order, then the built-in list.
+const managers = computed(
+  () => props.managers ?? duxt.packageManagers ?? ['pnpm', 'npm', 'yarn', 'bun']
 );
 
 // Brand colours per theme. A single value does not work: bun's cream is
@@ -38,7 +40,7 @@ function render(manager: string) {
 
 const commands = computed(() =>
   Object.fromEntries(
-    props.managers.map((manager) => [manager, render(manager)])
+    managers.value.map((manager) => [manager, render(manager)])
   )
 );
 
@@ -57,25 +59,33 @@ const { data: highlighted } = await useAsyncData(
 
 // Shared across every block on the page and remembered between pages, so a
 // reader picks their manager once for the whole site.
-const stored = usePackageManager(props.managers[0] ?? 'pnpm');
+const stored = usePackageManager();
 
 // A block can list fewer managers than the reader's choice covers; fall back to
 // its first rather than showing nothing.
 const active = computed({
   get: () =>
-    props.managers.includes(stored.value) ? stored.value : props.managers[0]!,
+    managers.value.includes(stored.value ?? '')
+      ? stored.value!
+      : managers.value[0]!,
   set: (value: string) => {
     stored.value = value;
   }
 });
 const copied = ref(false);
+const notify = useDuxtToast();
 
 async function copy() {
   try {
     await navigator.clipboard.writeText(render(active.value));
     copied.value = true;
+    notify.success('Copied to clipboard');
     setTimeout(() => (copied.value = false), 2000);
   } catch {
+    notify.error(
+      'Could not copy',
+      'The clipboard is unavailable in this context.'
+    );
     // Clipboard is unavailable over plain HTTP; a failed copy stays silent.
   }
 }

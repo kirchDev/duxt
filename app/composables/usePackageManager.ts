@@ -9,30 +9,26 @@ const STORAGE_KEY = 'duxt:package-manager';
  * reader asked for by clicking it, so it needs no consent banner. Nothing else
  * is stored, and clearing site data forgets it.
  *
- * The state starts at the server-rendered default and only adopts the stored
- * value after mount, because reading storage during hydration would make the
- * markup disagree with what the server sent.
+ * The stored value is read by a `pre` plugin before the app mounts rather than
+ * here, so the first painted frame already shows the right tab. State is
+ * `undefined` until something sets it, which lets a block fall back to its own
+ * first entry without pretending the reader chose it.
  */
-export function usePackageManager(fallback = 'pnpm') {
-  const manager = useState('duxt-package-manager', () => fallback);
+export function usePackageManager() {
+  const stored = useState<string | undefined>(
+    'duxt-package-manager',
+    () => undefined
+  );
 
-  onMounted(() => {
-    try {
-      const stored = window.localStorage.getItem(STORAGE_KEY);
-      if (stored) manager.value = stored;
-    } catch {
-      // Storage can be unavailable — private mode, or blocked entirely. The
-      // component keeps working, it just forgets between pages.
-    }
-  });
+  watch(stored, (value) => {
+    if (!value) return;
 
-  watch(manager, (value) => {
     try {
       window.localStorage.setItem(STORAGE_KEY, value);
     } catch {
-      // Same again: a preference not worth an error.
+      // A preference not worth an error.
     }
   });
 
-  return manager;
+  return stored;
 }
