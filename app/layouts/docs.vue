@@ -7,7 +7,7 @@ const { items } = useDuxtSection(navigation);
 </script>
 
 <template>
-  <div class="min-h-screen bg-background text-foreground">
+  <div class="flex min-h-[100dvh] flex-col bg-background text-foreground">
     <DuxtHeader />
 
     <!-- The section row sits with the docs, not in the global header: the
@@ -17,7 +17,7 @@ const { items } = useDuxtSection(navigation);
     <!-- Three columns inside one centred container, not a sidebar pinned to the
          window edge: on a wide screen the docs stay a readable block instead of
          drifting apart. -->
-    <div class="mx-auto flex max-w-[90rem] gap-8 px-4 lg:px-8">
+    <div class="mx-auto flex w-full max-w-[90rem] flex-1 gap-8 px-4 lg:px-8">
       <aside class="hidden w-56 shrink-0 lg:block">
         <div
           class="sticky top-[6.5rem] max-h-[calc(100vh-8rem)] overflow-y-auto py-8 pr-2"
@@ -30,5 +30,8 @@ const { items } = useDuxtSection(navigation);
     </div>
 
     <DuxtFooter />
+
+    <!-- One toaster per layout: toast() needs a mounted target to draw into. -->
+    <Toaster position="bottom-right" />
   </div>
 </template>

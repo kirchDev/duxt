@@ -3,11 +3,14 @@
 </script>
 
 <template>
-  <div class="min-h-screen bg-background text-foreground">
+  <div class="flex min-h-[100dvh] flex-col bg-background text-foreground">
     <DuxtHeader />
-    <main>
+    <main class="flex-1">
       <slot />
     </main>
     <DuxtFooter />
+
+    <!-- One toaster per layout: toast() needs a mounted target to draw into. -->
+    <Toaster position="bottom-right" />
   </div>
 </template>
