@@ -90,7 +90,7 @@ export default defineNuxtConfig({
       // and the server imports a different copy than the client bundle uses.
       // Its provide/inject then never matches and SSR dies with a null
       // instance. Inlining it keeps one copy on both sides.
-      noExternal: ['reka-ui']
+      noExternal: ['reka-ui', 'vue-sonner']
     },
 
     resolve: {
@@ -99,7 +99,7 @@ export default defineNuxtConfig({
       // stops matching across the two — which only fails in a production build,
       // where dev's shared module graph is gone. gildstone carries the same
       // dedupe for the same class of bug.
-      dedupe: ['vue', 'reka-ui']
+      dedupe: ['vue', 'reka-ui', 'vue-sonner']
     }
   }
 });

@@ -1,5 +1,8 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
+/* vue-sonner ships its own stylesheet; without it the toasts render as bare
+   text on the page background. */
+@import 'vue-sonner/style.css';
 @import './prose.css';
 
 /* Tailwind auto-detects sources from the build root, which is the CONSUMER's
