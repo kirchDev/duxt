@@ -28,7 +28,9 @@ For the things that lose data.
 
 ### Package managers
 
-One command, every manager:
+One command, every manager — and the reader's choice is remembered across
+pages, in localStorage rather than a cookie: it never leaves the browser and
+identifies nobody.
 
 ::package-managers{command="dlx nuxi@latest init my-docs"}
 ::
