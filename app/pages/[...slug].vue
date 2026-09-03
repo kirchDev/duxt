@@ -16,6 +16,12 @@ if (!page.value) {
   });
 }
 
+// Feeds the search dialog's empty state.
+const { remember } = useRecentPages();
+onMounted(() =>
+  remember({ path: route.path, title: page.value?.title ?? route.path })
+);
+
 useSeoMeta({
   title: page.value.title,
   description: page.value.description
