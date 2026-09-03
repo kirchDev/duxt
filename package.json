@@ -29,15 +29,18 @@
     "app",
     "components.json",
     "content.config.ts",
+    "duxt.sources.ts",
     "nuxt.config.ts",
     "server",
-    "sources.ts"
+    "sources.ts",
+    "sources-resolve.ts"
   ],
   "type": "module",
   "main": "./nuxt.config.ts",
   "exports": {
     ".": "./nuxt.config.ts",
-    "./sources": "./sources.ts"
+    "./sources": "./sources.ts",
+    "./sources-resolve": "./sources-resolve.ts"
   },
   "publishConfig": {
     "access": "public"
@@ -69,6 +72,7 @@
     "@vueuse/core": "^14.4.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "fuse.js": "^7.5.0",
     "reka-ui": "^2.10.4",
     "shadcn-nuxt": "^2.8.2",
     "shiki": "^4.4.3",

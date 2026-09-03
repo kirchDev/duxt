@@ -1,10 +1,12 @@
 <script setup lang="ts">
+const { collection } = useDuxtCollection();
+
 const duxt = useDuxtConfig();
 const colorMode = useColorMode();
 const route = useRoute();
 
 const { data: navigation } = await useAsyncData('duxt-navigation', () =>
-  queryCollectionNavigation('docs', ['icon', 'description'])
+  queryCollectionNavigation(collection.value, ['icon', 'description'])
 );
 
 // The mobile sheet shows the same branch the sidebar does.

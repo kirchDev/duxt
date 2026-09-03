@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import type { ContentNavigationItem } from '@nuxt/content';
+const { collection } = useDuxtCollection();
 
 // The path from the section down to this page, so a deep page says where it
 // sits without the reader consulting the sidebar.
 const props = defineProps<{ path: string }>();
 
 const { data: navigation } = await useAsyncData('duxt-navigation', () =>
-  queryCollectionNavigation('docs', ['icon', 'description'])
+  queryCollectionNavigation(collection.value, ['icon', 'description'])
 );
 
 const trail = computed(() => {

@@ -5,6 +5,15 @@ import { z } from 'zod';
  * One page's prose. Returns the stored content rather than rendered HTML — a
  * model reading documentation wants the text, not the theme around it.
  */
+/** Every collection the manifest names — a versioned site has none called `docs`. */
+function duxtCollections(): 'docs'[] {
+  const { duxt } = useAppConfig() as { duxt?: Partial<DuxtConfig> };
+  const names = duxt?.sources?.length
+    ? duxt.sources.map((source) => source.collection)
+    : ['docs'];
+  return names as 'docs'[];
+}
+
 export default defineMcpTool({
   name: 'read_page',
   title: 'Read a documentation page',
@@ -16,7 +25,13 @@ export default defineMcpTool({
   },
 
   async handler({ path }, extra) {
-    const page = await queryCollection(extra.event, 'docs').path(path).first();
+    // Try each collection: a path carries its own prefix, so at most one has it.
+    const found = await Promise.all(
+      duxtCollections().map((name) =>
+        queryCollection(extra.event, name).path(path).first()
+      )
+    );
+    const page = found.find(Boolean);
 
     if (!page) {
       return {

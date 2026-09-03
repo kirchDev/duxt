@@ -1,11 +1,13 @@
 <script setup lang="ts">
+const { collection } = useDuxtCollection();
+
 definePageMeta({ layout: 'docs' });
 
 const route = useRoute();
 const duxt = useDuxtConfig();
 
 const { data: page } = await useAsyncData(`docs-${route.path}`, () =>
-  queryCollection('docs').path(route.path).first()
+  queryCollection(collection.value).path(route.path).first()
 );
 
 if (!page.value) {

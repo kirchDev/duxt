@@ -6,7 +6,31 @@
 const duxt = useDuxtConfig();
 const route = useRoute();
 
-const versions = computed(() => duxt.versions ?? []);
+/**
+ * Versions come from the resolved source manifest, so the switcher can only
+ * offer what actually has a collection behind it. Declaring them by hand meant
+ * the two halves could disagree — a version in the menu with nothing to serve
+ * it, or a collection nobody could reach.
+ *
+ * `versions` in the config still wins where a label needs to read differently
+ * from the URL segment.
+ */
+const versions = computed(() => {
+  if (duxt.versions?.length) return duxt.versions;
+
+  const fromSources = (duxt.sources ?? [])
+    .filter((source) => source.version)
+    .map((source) => ({
+      label: source.version!,
+      to: source.prefix || '/',
+      description: source.isDefault ? 'default' : undefined
+    }));
+
+  // Same version across several repositories appears once.
+  return [
+    ...new Map(fromSources.map((entry) => [entry.label, entry])).values()
+  ];
+});
 
 /** The version whose prefix the current path starts with, else the default. */
 const current = computed(

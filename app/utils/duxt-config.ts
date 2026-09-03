@@ -169,7 +169,7 @@ export const duxtDefaults: DuxtConfig = {
   },
 
   footer: {
-    note: 'Built with duxt.',
+    note: 'A documentation layer for Nuxt, built on Nuxt Content v3. Extend it in one line and your docs/ folder becomes a site — versioned across tags, sourced across repositories, and yours to override file by file.',
     columns: [
       {
         title: 'Documentation',

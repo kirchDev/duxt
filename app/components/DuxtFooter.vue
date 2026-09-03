@@ -5,43 +5,65 @@ const duxt = useDuxtConfig();
 <template>
   <footer class="mt-16 border-t">
     <div class="mx-auto max-w-[90rem] px-4 py-10 lg:px-8">
-      <div class="flex flex-col gap-10 lg:flex-row lg:justify-between">
-        <div class="max-w-sm">
+      <div class="flex flex-col gap-12 lg:flex-row lg:gap-20">
+        <div class="lg:max-w-sm">
           <NuxtLink
             to="/"
-            class="flex items-center gap-2 font-semibold tracking-tight"
+            class="inline-flex items-center gap-2 font-semibold tracking-tight"
           >
             <Icon name="lucide:book-open-text" class="size-5 text-primary" />
             {{ duxt.title }}
           </NuxtLink>
           <p
             v-if="duxt.footer?.note"
-            class="mt-3 text-sm text-muted-foreground"
+            class="mt-4 text-sm/6 text-balance text-muted-foreground"
           >
             {{ duxt.footer.note }}
           </p>
+
+          <div v-if="duxt.links?.length" class="mt-6 flex items-center gap-1">
+            <Button
+              v-for="link in duxt.links"
+              :key="link.label"
+              as-child
+              variant="ghost"
+              size="icon"
+              class="text-muted-foreground"
+            >
+              <NuxtLink
+                :to="link.to"
+                :aria-label="link.label"
+                :title="link.label"
+                target="_blank"
+                rel="noopener"
+              >
+                <Icon v-if="link.icon" :name="link.icon" class="size-4" />
+              </NuxtLink>
+            </Button>
+          </div>
         </div>
 
+        <!-- The link columns carry no icons and no external marker: a footer is
+             read as a list of words, and a glyph per row turns it into noise. -->
         <div
           v-if="duxt.footer?.columns?.length"
-          class="grid gap-8 sm:grid-cols-2 lg:grid-cols-3"
+          class="grid flex-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 lg:gap-12"
         >
           <nav v-for="column in duxt.footer.columns" :key="column.title">
-            <p class="mb-3 text-sm font-medium">{{ column.title }}</p>
-            <ul class="space-y-2 text-sm">
+            <p
+              class="text-xs font-medium tracking-widest text-muted-foreground uppercase"
+            >
+              {{ column.title }}
+            </p>
+            <ul class="mt-4 space-y-3 text-sm">
               <li v-for="link in column.links ?? []" :key="link.label">
                 <NuxtLink
                   :to="link.to"
                   :target="link.external ? '_blank' : undefined"
-                  class="inline-flex items-center gap-1 text-muted-foreground transition-colors hover:text-foreground"
+                  :rel="link.external ? 'noopener' : undefined"
+                  class="text-muted-foreground transition-colors hover:text-foreground"
                 >
-                  <Icon v-if="link.icon" :name="link.icon" class="size-3.5" />
                   {{ link.label }}
-                  <Icon
-                    v-if="link.external"
-                    name="lucide:arrow-up-right"
-                    class="size-3 opacity-50"
-                  />
                 </NuxtLink>
               </li>
             </ul>

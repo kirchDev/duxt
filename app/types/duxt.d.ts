@@ -1,5 +1,14 @@
 declare global {
   /** A navbar, footer or landing link. `children` turns a navbar entry into a dropdown. */
+  /** One entry of the resolved source manifest — see `duxtSourceManifest()`. */
+  interface DuxtResolvedSource {
+    collection: string;
+    prefix: string;
+    repo?: string;
+    version?: string;
+    isDefault: boolean;
+  }
+
   interface DuxtLink {
     label: string;
     to?: string;
@@ -51,7 +60,12 @@ declare global {
     packageManagers?: string[];
     /** Chrome a consumer can switch off. */
     breadcrumb?: boolean;
-    /** Versions offered by the switcher. `to` is the URL prefix, '/' the default. */
+    /**
+     * The resolved source list, from `duxtSourceManifest()`. Tells the theme
+     * which collection serves which prefix, and feeds the version switcher.
+     */
+    sources?: DuxtResolvedSource[];
+    /** Overrides the versions derived from `sources`, when they need labels. */
     versions?: { label: string; to?: string; description?: string }[];
     footer?: {
       note?: string;

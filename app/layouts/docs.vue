@@ -1,6 +1,8 @@
 <script setup lang="ts">
+const { collection } = useDuxtCollection();
+
 const { data: navigation } = await useAsyncData('duxt-navigation', () =>
-  queryCollectionNavigation('docs', ['icon', 'description'])
+  queryCollectionNavigation(collection.value, ['icon', 'description'])
 );
 
 const { items } = useDuxtSection(navigation);

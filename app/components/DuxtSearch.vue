@@ -1,12 +1,5 @@
 <script setup lang="ts">
-/** What Content's search returns, declared here: the type is not exported. */
-interface SearchResult {
-  id: string;
-  title: string;
-  titles: string[];
-  level: number;
-  content: string;
-}
+import type { DuxtSearchSection } from '@duxt/composables/useFuzzySearch';
 
 // Full-text search over the collection. Content builds the index at build time
 // and queries it with SQLite's FTS, so the ranking is the database's rather
@@ -14,11 +7,13 @@ interface SearchResult {
 //
 // The index is fetched on first open, not shipped with every page: a docs site
 // should not pay for search on a page nobody searches from.
+const { collection } = useDuxtCollection();
+
 const open = ref(false);
 const query = ref('');
 const router = useRouter();
 
-const { search, status, init } = useSearchCollection('docs', {
+const { search, status, init } = useSearchCollection(collection, {
   // A table is flattened into one string, so its cells run together —
   // `KeyWhat it controlstitleThe name in the navbar…`. Its content is still
   // reachable through the page that holds it.
@@ -26,16 +21,46 @@ const { search, status, init } = useSearchCollection('docs', {
   immediate: false
 });
 
-const results = ref<SearchResult[]>([]);
+// The second pass, for what the database cannot match. Lazy inside, so this
+// costs nothing until a query comes back empty.
+const { search: searchApproximately } = useFuzzySearch(collection, {
+  ignoredTags: ['table']
+});
+
+const results = ref<DuxtSearchSection[]>([]);
+
+/** True while the list shows near-misses rather than actual matches. */
+const approximate = ref(false);
 
 let pending: ReturnType<typeof setTimeout> | undefined;
+
+// Two awaits per keystroke, so a slow answer could land after a newer one and
+// overwrite it. Each run takes a number and drops its result if the term moved
+// on in the meantime.
+let run = 0;
 
 // Debounced by hand rather than through VueUse: one timer is not worth another
 // dependency in a layer a consumer installs.
 watch(query, (term) => {
   clearTimeout(pending);
   pending = setTimeout(async () => {
-    results.value = term.trim() ? await search(term, { limit: 20 }) : [];
+    const current = ++run;
+
+    const settle = (hits: DuxtSearchSection[], fuzzy: boolean) => {
+      if (current !== run) return;
+      results.value = hits;
+      approximate.value = fuzzy;
+    };
+
+    if (!term.trim()) return settle([], false);
+
+    const hits = await search(term, { limit: 20 });
+    if (hits.length || current !== run) return settle(hits, false);
+
+    // FTS matches terms and prefixes, not near-misses, so one wrong letter
+    // leaves the reader with an empty box. Fuse gets a second look before we
+    // tell them there is nothing.
+    settle(await searchApproximately(term, 20), true);
   }, 120);
 });
 
@@ -56,7 +81,7 @@ function sectionOf(path: string) {
  * and the reader already thinks in sections, because the navbar shows them.
  */
 const grouped = computed(() => {
-  const bySection = new Map<string, SearchResult[]>();
+  const bySection = new Map<string, DuxtSearchSection[]>();
 
   for (const hit of results.value) {
     const label = sectionOf(hit.id);
@@ -76,11 +101,12 @@ function go(id: string) {
   open.value = false;
   query.value = '';
   results.value = [];
+  approximate.value = false;
   router.push(id);
 }
 
 /** Where a hit sits: the page, and the headings above it inside that page. */
-function context(result: SearchResult) {
+function context(result: DuxtSearchSection) {
   const page = result.titles[0];
   const between = result.titles.slice(1);
 
@@ -191,6 +217,17 @@ onMounted(() => {
       >
         <Icon name="lucide:search-x" class="size-5 opacity-60" />
         Nothing found for “{{ query }}”.
+      </div>
+
+      <!-- Say so when the exact search came up empty, otherwise a near-miss
+           reads as a match and the reader wonders why their term is missing
+           from the result. -->
+      <div
+        v-if="approximate"
+        class="flex items-center gap-2 px-3 pt-3 pb-1 text-xs text-muted-foreground"
+      >
+        <Icon name="lucide:sparkles" class="size-3.5 shrink-0" />
+        No exact match for “{{ query }}” — showing the closest.
       </div>
 
       <!-- One line per hit, grouped by section: the page is context on the

@@ -7,6 +7,15 @@ import { queryCollection } from '@nuxt/content/nitro';
  * speaks the actual protocol through the official SDK, so a client connects to
  * `/mcp` instead of someone writing a server around our shape.
  */
+/** Every collection the manifest names — a versioned site has none called `docs`. */
+function duxtCollections(): 'docs'[] {
+  const { duxt } = useAppConfig() as { duxt?: Partial<DuxtConfig> };
+  const names = duxt?.sources?.length
+    ? duxt.sources.map((source) => source.collection)
+    : ['docs'];
+  return names as 'docs'[];
+}
+
 export default defineMcpTool({
   name: 'list_pages',
   title: 'List documentation pages',
@@ -15,10 +24,19 @@ export default defineMcpTool({
     'Start here, then read a page with `read_page`.',
   annotations: { readOnlyHint: true },
 
-  async handler(_args, extra) {
-    const pages = await queryCollection(extra.event, 'docs')
-      .select('path', 'title', 'description')
-      .all();
+  // A tool without an `inputSchema` is called with ONE argument: the SDK hands
+  // the handler `extra` directly rather than `(args, extra)`. Written the other
+  // way round, `extra` was undefined and every call failed on `extra.event`.
+  async handler(extra) {
+    const pages = (
+      await Promise.all(
+        duxtCollections().map((name) =>
+          queryCollection(extra.event, name)
+            .select('path', 'title', 'description')
+            .all()
+        )
+      )
+    ).flat();
 
     const listing = pages
       .filter((page) => page.path)
