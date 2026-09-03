@@ -1,34 +1,23 @@
-/** Where the choice is kept. Namespaced so a consumer's own keys cannot collide. */
-const STORAGE_KEY = 'duxt:package-manager';
-
 /**
  * The package manager the reader picked, remembered across pages.
  *
- * localStorage rather than a cookie: the value never leaves the browser, is
- * not sent with any request, and identifies nobody — a UI preference the
- * reader asked for by clicking it, so it needs no consent banner. Nothing else
- * is stored, and clearing site data forgets it.
+ * A cookie rather than localStorage, and the reason is the jump: storage is
+ * readable only in the browser, so the server always renders the default and
+ * the tab visibly switches after hydration. Reading it earlier does not help —
+ * the server has already sent the wrong markup. A cookie travels with the
+ * request, so the first byte is already correct.
  *
- * The stored value is read by a `pre` plugin before the app mounts rather than
- * here, so the first painted frame already shows the right tab. State is
- * `undefined` until something sets it, which lets a block fall back to its own
- * first entry without pretending the reader chose it.
+ * Still privacy-clean: first-party, no identifier, no analytics, a value the
+ * reader set by clicking a tab. Under GDPR/ePrivacy that is a functional
+ * preference the reader asked for, not something needing consent — the same
+ * category as a language or theme choice. SameSite=Lax keeps it off
+ * cross-site requests, and it expires after a year.
  */
 export function usePackageManager() {
-  const stored = useState<string | undefined>(
-    'duxt-package-manager',
-    () => undefined
-  );
-
-  watch(stored, (value) => {
-    if (!value) return;
-
-    try {
-      window.localStorage.setItem(STORAGE_KEY, value);
-    } catch {
-      // A preference not worth an error.
-    }
+  return useCookie<string | undefined>('duxt-package-manager', {
+    sameSite: 'lax',
+    maxAge: 60 * 60 * 24 * 365,
+    // No `secure: true`: it would drop the cookie on a plain-HTTP preview.
+    default: () => undefined
   });
-
-  return stored;
 }

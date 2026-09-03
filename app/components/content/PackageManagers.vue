@@ -58,7 +58,8 @@ const { data: highlighted } = await useAsyncData(
 );
 
 // Shared across every block on the page and remembered between pages, so a
-// reader picks their manager once for the whole site.
+// reader picks their manager once for the whole site. The value arrives with
+// the request, so the server renders the right tab and nothing jumps.
 const stored = usePackageManager();
 
 // A block can list fewer managers than the reader's choice covers; fall back to
