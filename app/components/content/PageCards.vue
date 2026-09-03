@@ -1,16 +1,12 @@
 <script setup lang="ts">
 import type { ContentNavigationItem } from '@nuxt/content';
-const { collection } = useDuxtCollection();
-
 // `::page-cards` on a section's index page: one card per child, taken from the
 // navigation, so a new page appears here without the index being edited.
 const props = defineProps<{ path?: string }>();
 
 const route = useRoute();
 
-const { data: navigation } = await useAsyncData('duxt-navigation', () =>
-  queryCollectionNavigation(collection.value, ['icon', 'description'])
-);
+const { data: navigation } = await useDuxtNavigation();
 
 const base = computed(() => props.path ?? route.path);
 

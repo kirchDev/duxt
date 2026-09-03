@@ -1,16 +1,12 @@
 <script setup lang="ts">
 import type { ContentNavigationItem } from '@nuxt/content';
-const { collection } = useDuxtCollection();
-
 // Previous and next within the current section only. Content's own
 // surroundings query walks the whole collection in one flat order, so the last
 // page of one section would offer a "next" that lands in another — crossing a
 // section is the section row's job, not a link reading "the next page".
 const props = defineProps<{ path: string }>();
 
-const { data: navigation } = await useAsyncData('duxt-navigation', () =>
-  queryCollectionNavigation(collection.value, ['icon', 'description'])
-);
+const { data: navigation } = await useDuxtNavigation();
 
 const { items } = useDuxtSection(navigation);
 
