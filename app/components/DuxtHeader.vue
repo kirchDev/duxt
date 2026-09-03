@@ -197,7 +197,9 @@ function isActive(to?: string) {
         </template>
       </nav>
 
-      <div class="ml-auto flex items-center gap-0.5 md:ml-0">
+      <div class="ml-auto flex items-center gap-2 md:ml-0">
+        <DuxtSearch class="hidden sm:block" />
+
         <Button
           v-for="link in duxt.links ?? []"
           :key="link.label"
