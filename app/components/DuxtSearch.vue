@@ -39,29 +39,6 @@ watch(query, (term) => {
   }, 120);
 });
 
-/**
- * One entry per heading comes back, so a page appears many times over. Group
- * them under their page: the page is the heading of a group, the section is
- * the entry, and a hit on the page itself has no section line at all.
- */
-const groups = computed(() => {
-  const byPage = new Map<
-    string,
-    { title: string; path: string; hits: SearchResult[] }
-  >();
-
-  for (const result of results.value) {
-    const path = result.id.split('#')[0]!;
-    const title = result.titles[0] ?? result.title;
-
-    const group = byPage.get(path) ?? { title, path, hits: [] };
-    group.hits.push(result);
-    byPage.set(path, group);
-  }
-
-  return [...byPage.values()];
-});
-
 async function show() {
   open.value = true;
   if (status.value === 'idle') await init();
@@ -74,9 +51,12 @@ function go(id: string) {
   router.push(id);
 }
 
-/** The trail below a hit: the headings between the page and this section. */
-function trail(result: SearchResult) {
-  return result.titles.slice(1).concat(result.title).join(' › ');
+/** Where a hit sits: the page, and the headings above it inside that page. */
+function context(result: SearchResult) {
+  const page = result.titles[0];
+  const between = result.titles.slice(1);
+
+  return [page, ...between].filter(Boolean).join(' › ');
 }
 
 onMounted(() => {
@@ -119,7 +99,10 @@ onMounted(() => {
          against rendered text — dropping entries that mounted after the term
          changed. Leaving its state empty keeps one filter in charge, the
          database's. It also means CommandEmpty never renders, so the empty
-         state is ours too. -->
+         state is ours too.
+
+         No clear button: DialogContent already draws a close X, and two of
+         them in the same corner is one too many. -->
     <div class="flex items-center gap-2 border-b px-3">
       <Icon
         name="lucide:search"
@@ -131,21 +114,11 @@ onMounted(() => {
         placeholder="Search the documentation…"
         autofocus
       />
-      <Button
-        v-if="query"
-        variant="ghost"
-        size="icon"
-        class="size-7"
-        aria-label="Clear"
-        @click="query = ''"
-      >
-        <Icon name="lucide:x" class="size-3.5" />
-      </Button>
     </div>
 
     <CommandList class="max-h-[60vh]">
       <div
-        v-if="!groups.length"
+        v-if="!results.length"
         class="flex flex-col items-center gap-2 py-12 text-sm text-muted-foreground"
       >
         <Icon
@@ -157,29 +130,24 @@ onMounted(() => {
         }}
       </div>
 
-      <CommandGroup
-        v-for="group in groups"
-        :key="group.path"
-        :heading="group.title"
-      >
+      <!-- One line per hit. Grouping by page put the page title in a heading
+           and again in the entry below it, so every result took four lines to
+           say one thing. The page is context now, not a headline. -->
+      <CommandGroup v-if="results.length">
         <CommandItem
-          v-for="hit in group.hits"
+          v-for="hit in results"
           :key="hit.id"
           :value="hit.id"
-          class="flex flex-col items-start gap-0.5"
+          class="gap-2"
           @select="go(hit.id)"
         >
-          <span class="font-medium">{{
-            hit.level > 1 ? hit.title : group.title
-          }}</span>
-          <span v-if="hit.level > 1" class="text-xs text-muted-foreground">
-            {{ trail(hit) }}
-          </span>
-          <span
-            v-else-if="hit.content"
-            class="line-clamp-1 text-xs text-muted-foreground"
-          >
-            {{ hit.content }}
+          <Icon
+            :name="hit.level > 1 ? 'lucide:hash' : 'lucide:file-text'"
+            class="size-3.5 shrink-0 text-muted-foreground"
+          />
+          <span class="truncate">{{ hit.title }}</span>
+          <span class="ml-auto truncate pl-3 text-xs text-muted-foreground">
+            {{ context(hit) }}
           </span>
         </CommandItem>
       </CommandGroup>
