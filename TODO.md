@@ -14,7 +14,7 @@ belongs in `CLAUDE.md` under _Open — ask, do not decide_, not here.
 - [ ] **Active heading in the table of contents** while scrolling.
 - [ ] **Section landing pages** — `/guide` is a page like any other; nuxt.com
       gives each section an overview with a card per subsection.
-- [ ] **Adopt `typeset`.** shadcn-vue's typeset is built for exactly this —
+- [x] **Adopt `typeset`.** shadcn-vue's typeset is built for exactly this —
       its own documentation wraps `<ContentRenderer>` in
       `<div class="typeset typeset-docs">`. It gives what `prose.css` does by
       hand, plus things it does not: `--typeset-size` / `-leading` / `-flow` as
@@ -31,8 +31,14 @@ belongs in `CLAUDE.md` under _Open — ask, do not decide_, not here.
 - [ ] **Breadcrumb.** The component is added but not used anywhere.
 - [ ] **Mobile: hide the section row properly.** It is reachable from the sheet
       now, but the row itself still scrolls horizontally on a narrow screen.
-- [ ] **A `not-prose` escape hatch** for content that should keep its own
-      styling inside a page — subsumed by `typeset` above if that lands.
+- [ ] **Build the tree on Reka UI's `Tree`.** `FileTree` / `DuxtFileTreeNodes`
+      is hand-rolled recursion over `<ul>`/`<li>` — no keyboard navigation, no
+      expand/collapse state, no ARIA roles. Reka UI ships all of it as
+      [`Tree`](https://reka-ui.com/docs/components/tree), and `reka-ui` is
+      already a dependency of every shadcn-vue component here. No registry item
+      needed; use the primitives directly.
+- [x] **An escape hatch** for content keeping its own styling inside a page —
+      `not-typeset`, which came with typeset.
 
 ## Layer
 
