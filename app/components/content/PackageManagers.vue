@@ -36,7 +36,38 @@ function render(manager: string) {
   return `${manager} ${command}`;
 }
 
-const active = ref(props.managers[0] ?? 'pnpm');
+const commands = computed(() =>
+  Object.fromEntries(
+    props.managers.map((manager) => [manager, render(manager)])
+  )
+);
+
+const { data: highlighted } = await useAsyncData(
+  `package-managers-${props.command}`,
+  async () => {
+    const entries = await Promise.all(
+      Object.entries(commands.value).map(
+        async ([manager, command]) =>
+          [manager, await highlightShell(command)] as const
+      )
+    );
+    return Object.fromEntries(entries);
+  }
+);
+
+// Shared across every block on the page and remembered between pages, so a
+// reader picks their manager once for the whole site.
+const stored = usePackageManager(props.managers[0] ?? 'pnpm');
+
+// A block can list fewer managers than the reader's choice covers; fall back to
+// its first rather than showing nothing.
+const active = computed({
+  get: () =>
+    props.managers.includes(stored.value) ? stored.value : props.managers[0]!,
+  set: (value: string) => {
+    stored.value = value;
+  }
+});
 const copied = ref(false);
 
 async function copy() {
@@ -90,7 +121,15 @@ async function copy() {
       </Button>
     </div>
 
+    <!-- eslint-disable-next-line vue/no-v-html -- Shiki output, built on the
+         server from this component's own prop, never from page content. -->
+    <div
+      v-if="highlighted?.[active]"
+      class="duxt-shell overflow-x-auto px-4 py-3 font-mono text-sm"
+      v-html="highlighted[active]"
+    />
     <pre
+      v-else
       class="overflow-x-auto px-4 py-3 font-mono text-sm"
     ><code>{{ render(active) }}</code></pre>
   </div>

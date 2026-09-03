@@ -105,3 +105,19 @@
 .dark .duxt-brand {
   color: var(--brand-dark);
 }
+
+/* Shiki with `defaultColor: false` writes both themes as custom properties per
+   token and leaves the choice to CSS — the same arrangement Content uses for
+   Markdown fences, applied to the command block. */
+.duxt-shell span {
+  color: var(--shiki-light);
+}
+
+.dark .duxt-shell span {
+  color: var(--shiki-dark);
+}
+
+.duxt-shell pre {
+  margin: 0;
+  background: transparent !important;
+}
