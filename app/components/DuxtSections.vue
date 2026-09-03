@@ -11,7 +11,11 @@ function isActive(to?: string) {
 </script>
 
 <template>
-  <div class="sticky top-14 z-40 border-b bg-background/80 backdrop-blur-sm">
+  <!-- Hidden below lg: the mobile sheet lists the same sections, and a row
+       that scrolls sideways under the header is worse than no row. -->
+  <div
+    class="sticky top-14 z-40 hidden border-b bg-background/80 backdrop-blur-sm lg:block"
+  >
     <nav
       class="mx-auto flex max-w-[90rem] items-center gap-1 overflow-x-auto px-4 lg:px-8"
     >

@@ -12,6 +12,9 @@ Where it differs from a template is what happens next: the same layer reads
 serve many projects at several versions without a collection declared by hand
 for each.
 
+::page-cards
+::
+
 ::callout{type="warning" title="Early days"}
 Nothing here is decided. The layer works, the theme is being built, and whether
 this carries a public project is still an open question.

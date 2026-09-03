@@ -37,3 +37,8 @@ tree:
 
 In both cases the layer resolves `docs/` against the **repository** root, not
 against the directory the site happens to run in.
+
+## In this section
+
+::page-cards
+::
