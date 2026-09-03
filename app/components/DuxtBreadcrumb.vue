@@ -6,7 +6,7 @@ import type { ContentNavigationItem } from '@nuxt/content';
 const props = defineProps<{ path: string }>();
 
 const { data: navigation } = await useAsyncData('duxt-navigation', () =>
-  queryCollectionNavigation('docs')
+  queryCollectionNavigation('docs', ['icon', 'description'])
 );
 
 const trail = computed(() => {

@@ -4,7 +4,7 @@ const colorMode = useColorMode();
 const route = useRoute();
 
 const { data: navigation } = await useAsyncData('duxt-navigation', () =>
-  queryCollectionNavigation('docs')
+  queryCollectionNavigation('docs', ['icon', 'description'])
 );
 
 // The mobile sheet shows the same branch the sidebar does.

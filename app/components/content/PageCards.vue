@@ -7,7 +7,7 @@ const props = defineProps<{ path?: string }>();
 const route = useRoute();
 
 const { data: navigation } = await useAsyncData('duxt-navigation', () =>
-  queryCollectionNavigation('docs')
+  queryCollectionNavigation('docs', ['icon', 'description'])
 );
 
 const base = computed(() => props.path ?? route.path);

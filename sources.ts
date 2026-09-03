@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { defineCollection } from '@nuxt/content';
+import { defineCollection, z } from '@nuxt/content';
 
 /**
  * A documentation source: a folder, in this repository or another, at the
@@ -77,10 +77,46 @@ const repoUrl = (repo: string) =>
  * request, only one ambiguity is left — a docs folder named like a repository
  * or a version — and that is rejected here rather than resolved silently.
  */
-export function duxtSources(
+/**
+ * Frontmatter the theme reads beyond Content's own fields.
+ *
+ * Without a schema Content neither stores these nor types them, so `icon:` in
+ * a page's frontmatter was silently dropped before the sidebar ever saw it.
+ */
+const pageSchema = z.object({
+  /** Shown beside the entry in the sidebar, the section row and page cards. */
+  icon: z.string().optional(),
+  /** `landing` renders the page without the docs chrome. */
+  layout: z.string().optional(),
+  /** false hides the page from the navigation. */
+  navigation: z.boolean().optional()
+});
+
+/** One resolved source: which collection serves which URL prefix. */
+export interface DuxtResolvedSource {
+  /** Collection name Content will register. */
+  collection: string;
+  /** URL prefix it serves; '' for the root. */
+  prefix: string;
+  /** Repository segment, when the list has more than one repository. */
+  repo?: string;
+  /** Version label, when the list has more than one version. */
+  version?: string;
+  /** True for the version served without a prefix. */
+  isDefault: boolean;
+}
+
+/**
+ * Resolve the list once: names, prefixes and labels.
+ *
+ * Both halves of the layer read this — `duxtSources` to declare the
+ * collections, `duxtSourceManifest` to tell the app which collection serves
+ * the route it is on. Computing it twice is how the two would drift.
+ */
+function resolve(
   sources: DuxtSource[],
   options: DuxtSourcesOptions = {}
-) {
+): DuxtResolvedSource[] {
   const expanded = sources.flatMap((source) =>
     (source.refs?.length ? source.refs : [undefined]).map((ref) => ({
       source,
@@ -97,17 +133,19 @@ export function duxtSources(
   const withVersion = options.showVersion ?? refs.size > 1;
   const defaultRef = options.defaultRef ?? [...refs][0];
 
-  const collections: Record<string, ReturnType<typeof defineCollection>> = {};
+  const resolved: DuxtResolvedSource[] = [];
   const taken = new Map<string, string>();
 
   for (const { source, ref } of expanded) {
+    const version = ref ? slugify(source.label ?? ref) : undefined;
+    const isDefault = !ref || ref === defaultRef;
+
     const segments: string[] = [];
     if (withRepo) segments.push(repoSlug(source));
-    if (withVersion && ref && ref !== defaultRef)
-      segments.push(slugify(source.label ?? ref));
+    if (withVersion && version && !isDefault) segments.push(version);
 
     const prefix = segments.length ? `/${segments.join('/')}` : '';
-    const name = ['docs', ...segments].map(slugify).join('_') || 'docs';
+    const collection = ['docs', ...segments].map(slugify).join('_') || 'docs';
 
     const previous = taken.get(prefix);
     if (previous) {
@@ -122,23 +160,88 @@ export function duxtSources(
       `${source.repo ?? 'this repository'}${ref ? `@${ref}` : ''}`
     );
 
-    collections[name] = defineCollection({
+    resolved.push({
+      collection,
+      prefix,
+      repo: withRepo ? repoSlug(source) : undefined,
+      version,
+      isDefault
+    });
+  }
+
+  return resolved;
+}
+
+/**
+ * Turn a compact source list into Content collections.
+ *
+ * Three versions across fourteen repositories is 42 collections written by
+ * hand; this is the whole reason the shorthand exists. The URL each collection
+ * serves follows the scheme
+ *
+ *     domain.tld/<repo?>/<version?>/<folder?>/…/<file>
+ *
+ * where each prefix is switched on by the SHAPE OF THE LIST, not per request:
+ * a repository segment once there is more than one repository, a version
+ * segment once there is more than one version. A single unversioned source
+ * therefore serves `/guide/deploying`, and nothing in the URL betrays that
+ * repositories or versions exist at all.
+ *
+ * Deciding at build time is also what keeps the scheme routable. If both
+ * prefixes were optional per request, `/guide/…` could be a folder, a
+ * repository or a version. Because the shape is fixed before the first
+ * request, only one ambiguity is left — a docs folder named like a repository
+ * or a version — and that is rejected here rather than resolved silently.
+ */
+export function duxtSources(
+  sources: DuxtSource[],
+  options: DuxtSourcesOptions = {}
+) {
+  const resolved = resolve(sources, options);
+  const collections: Record<string, ReturnType<typeof defineCollection>> = {};
+
+  const expanded = sources.flatMap((source) =>
+    (source.refs?.length ? source.refs : [undefined]).map((ref) => ({
+      source,
+      ref
+    }))
+  );
+
+  resolved.forEach((entry, index) => {
+    const { source, ref } = expanded[index]!;
+
+    collections[entry.collection] = defineCollection({
       type: 'page',
+      schema: pageSchema,
       source: source.repo
         ? {
             repository: ref
               ? { url: repoUrl(source.repo), branch: ref }
               : repoUrl(source.repo),
             include: `${source.path ?? 'docs'}/**/*.md`,
-            prefix
+            prefix: entry.prefix
           }
         : {
             include: '**/*.md',
             cwd: join(repositoryRoot(), source.path ?? 'docs'),
-            prefix
+            prefix: entry.prefix
           }
     });
-  }
+  });
 
   return collections;
+}
+
+/**
+ * The same list, as data the app can read.
+ *
+ * Content loads `content.config.ts` in its own pass and the app never sees the
+ * result, so the manifest is passed through `app.config.ts`. Both come from
+ * one call site — see the Sources reference.
+ */
+export function duxtSourceManifest(
+  sources: DuxtSource[],
+  options: DuxtSourcesOptions = {}
+): DuxtResolvedSource[] {
+  return resolve(sources, options);
 }
