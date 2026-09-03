@@ -3,7 +3,7 @@
 /* vue-sonner ships its own stylesheet; without it the toasts render as bare
    text on the page background. */
 @import 'vue-sonner/style.css';
-@import './prose.css';
+@import './typeset.css';
 
 /* Tailwind auto-detects sources from the build root, which is the CONSUMER's
    directory — the layer sits outside it and would be scanned by nobody, so
@@ -38,6 +38,12 @@
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
+  --success: oklch(0.63 0.17 149);
+  --success-foreground: oklch(0.985 0 0);
+  --warning: oklch(0.75 0.16 70);
+  --warning-foreground: oklch(0.145 0 0);
+  --info: oklch(0.62 0.16 244);
+  --info-foreground: oklch(0.985 0 0);
 }
 
 .dark {
@@ -60,6 +66,12 @@
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
+  --success: oklch(0.7 0.16 149);
+  --success-foreground: oklch(0.145 0 0);
+  --warning: oklch(0.8 0.15 70);
+  --warning-foreground: oklch(0.145 0 0);
+  --info: oklch(0.7 0.14 244);
+  --info-foreground: oklch(0.145 0 0);
 }
 
 @theme inline {
@@ -83,6 +95,12 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -123,4 +141,28 @@
 .duxt-shell pre {
   margin: 0;
   background: transparent !important;
+}
+
+/* The layer's typeset preset. Three controls — size, leading, flow — and
+   everything else derives from them; see the typeset docs. A consumer
+   redefines these in its own stylesheet rather than restyling elements. */
+.typeset-docs {
+  --typeset-size: 15px;
+  --typeset-leading: 1.7;
+  --typeset-flow: 1.25em;
+}
+
+/* Kept from the hand-written prose: a heading anchor in the margin, and code
+   blocks drawing their own surface rather than the highlighter's. */
+.typeset :where(.duxt-anchor) {
+  @apply absolute -left-5 font-normal text-muted-foreground no-underline opacity-0 transition-opacity;
+}
+
+.typeset :where(h2:hover, h3:hover, h4:hover) .duxt-anchor,
+.typeset :where(.duxt-anchor:focus-visible) {
+  @apply opacity-100;
+}
+
+.typeset :where(.shiki, .shiki span) {
+  background-color: transparent;
 }

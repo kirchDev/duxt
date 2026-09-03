@@ -49,7 +49,7 @@ useSeoMeta({
         </p>
       </header>
 
-      <div class="duxt-prose">
+      <div class="typeset typeset-docs">
         <ContentRenderer v-if="page" :value="page" />
       </div>
     </article>
