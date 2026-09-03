@@ -12,7 +12,7 @@ import { duxtDefaults, mergeDuxtConfig } from '../../app/utils/duxt-config';
  * collection the pages render from, so it cannot drift from what is published.
  */
 export default defineEventHandler(async (event) => {
-  const appConfig = useAppConfig(event) as { duxt?: Partial<DuxtConfig> };
+  const appConfig = useAppConfig() as { duxt?: Partial<DuxtConfig> };
   const duxt = mergeDuxtConfig(appConfig.duxt, duxtDefaults);
 
   const pages = await queryCollection(event, 'docs')

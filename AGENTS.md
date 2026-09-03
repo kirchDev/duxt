@@ -19,6 +19,8 @@ Retyping a change is exactly how the two drift; one reflowed line or reworded cl
 > [!IMPORTANT]
 > **Nothing here is decided.** `duxt` is at the idea stage — the repo currently carries the meta layer and nothing else. What follows is the working sketch plus the questions still open. Treat every "is" below as "is currently assumed"; do not harden any of it into code without asking.
 
+The idea started in `kirchDev/greenhouse` as `ideas/nuxt-ai-docs.md`, where it is filed under that working title; `duxt` is the name it got here.
+
 The sketch: `duxt` as a **Nuxt documentation layer on Nuxt Content v3**, published as `@kirchdev/duxt` and consumed with one line:
 
 ```ts
