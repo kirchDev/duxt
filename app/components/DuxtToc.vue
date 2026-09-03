@@ -6,9 +6,19 @@ interface TocLink {
   children?: TocLink[];
 }
 
-defineProps<{ links: TocLink[] }>();
+const props = defineProps<{ links: TocLink[] }>();
 
 const duxt = useDuxtConfig();
+
+// Flat list of every id, in document order, for the observer to watch.
+const ids = computed(() =>
+  props.links.flatMap((link) => [
+    link.id,
+    ...(link.children ?? []).map((child) => child.id)
+  ])
+);
+
+const active = useActiveHeading(ids);
 </script>
 
 <template>
@@ -19,7 +29,12 @@ const duxt = useDuxtConfig();
         <li v-for="link in links" :key="link.id">
           <a
             :href="`#${link.id}`"
-            class="-ml-px block border-l border-transparent py-1 pl-4 text-muted-foreground transition-colors hover:border-primary/60 hover:text-foreground"
+            class="-ml-px block border-l py-1 pl-4 transition-colors"
+            :class="
+              active === link.id
+                ? 'border-primary font-medium text-foreground'
+                : 'border-transparent text-muted-foreground hover:border-primary/60 hover:text-foreground'
+            "
           >
             {{ link.text }}
           </a>
@@ -27,7 +42,12 @@ const duxt = useDuxtConfig();
             <li v-for="child in link.children" :key="child.id">
               <a
                 :href="`#${child.id}`"
-                class="-ml-px block border-l border-transparent py-1 pl-7 text-muted-foreground transition-colors hover:border-primary/60 hover:text-foreground"
+                class="-ml-px block border-l py-1 pl-7 transition-colors"
+                :class="
+                  active === child.id
+                    ? 'border-primary font-medium text-foreground'
+                    : 'border-transparent text-muted-foreground hover:border-primary/60 hover:text-foreground'
+                "
               >
                 {{ child.text }}
               </a>
@@ -37,8 +57,7 @@ const duxt = useDuxtConfig();
       </ul>
     </nav>
 
-    <!-- The community block nuxt.com carries beside the TOC: fixed links that
-         belong on every page, configured once. -->
+    <!-- The fixed link block that belongs on every page, configured once. -->
     <nav v-if="duxt.aside?.links?.length">
       <p class="mb-3 font-medium">{{ duxt.aside.title ?? 'Community' }}</p>
       <ul class="space-y-2">

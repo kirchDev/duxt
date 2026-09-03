@@ -15,16 +15,6 @@ if (!page.value) {
   });
 }
 
-const duxt = useDuxtConfig();
-
-// The section this page belongs to, shown above the title the way nuxt.com
-// labels a page with its part of the tree.
-const section = computed(() =>
-  duxt.sections?.find(
-    (candidate) => candidate.to && route.path.startsWith(candidate.to)
-  )
-);
-
 useSeoMeta({
   title: page.value.title,
   description: page.value.description
@@ -35,9 +25,7 @@ useSeoMeta({
   <div class="flex min-w-0 flex-1 justify-center gap-10">
     <article class="min-w-0 max-w-3xl flex-1 py-8">
       <header class="mb-8 border-b pb-8">
-        <p v-if="section" class="mb-2 text-sm font-medium text-primary">
-          {{ section.label }}
-        </p>
+        <DuxtBreadcrumb :path="route.path" class="mb-3" />
         <h1 class="text-4xl font-semibold tracking-tight text-balance">
           {{ page?.title }}
         </h1>
@@ -52,6 +40,8 @@ useSeoMeta({
       <div class="typeset typeset-docs">
         <ContentRenderer v-if="page" :value="page" />
       </div>
+
+      <DuxtPageNav :path="route.path" />
     </article>
 
     <aside class="hidden w-56 shrink-0 xl:block">
