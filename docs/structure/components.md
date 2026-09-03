@@ -66,6 +66,13 @@ tree:
 3. It numbers itself.
 ::
 
+### Toasts
+
+Copying a code block raises one. Four levels, each with its own icon and
+status colour: `success`, `info`, `warning`, `error`. Components call
+`useDuxtToast()` rather than importing the toast library, so replacing the
+notification system means replacing one composable.
+
 ## Your own components
 
 Anything in `components/content/` is available the same way, including
