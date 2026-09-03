@@ -114,15 +114,48 @@ onMounted(() => {
   </Button>
 
   <CommandDialog v-model:open="open">
-    <!-- The list is already ranked by the database, so Command must not filter
-         it a second time: its own scorer reads rendered text and drops entries
-         that mounted after the term changed. Feeding the term straight to the
-         index and leaving Command's search empty keeps one filter in charge. -->
-    <CommandInput v-model="query" placeholder="Search the documentation…" />
-    <CommandList>
-      <CommandEmpty>
-        {{ query.trim() ? 'Nothing found.' : 'Type to search.' }}
-      </CommandEmpty>
+    <!-- The input is ours, not CommandInput: that one writes into Command's own
+         filterState, and Command would then score the list a second time
+         against rendered text — dropping entries that mounted after the term
+         changed. Leaving its state empty keeps one filter in charge, the
+         database's. It also means CommandEmpty never renders, so the empty
+         state is ours too. -->
+    <div class="flex items-center gap-2 border-b px-3">
+      <Icon
+        name="lucide:search"
+        class="size-4 shrink-0 text-muted-foreground"
+      />
+      <input
+        v-model="query"
+        class="flex h-11 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+        placeholder="Search the documentation…"
+        autofocus
+      />
+      <Button
+        v-if="query"
+        variant="ghost"
+        size="icon"
+        class="size-7"
+        aria-label="Clear"
+        @click="query = ''"
+      >
+        <Icon name="lucide:x" class="size-3.5" />
+      </Button>
+    </div>
+
+    <CommandList class="max-h-[60vh]">
+      <div
+        v-if="!groups.length"
+        class="flex flex-col items-center gap-2 py-12 text-sm text-muted-foreground"
+      >
+        <Icon
+          :name="query.trim() ? 'lucide:search-x' : 'lucide:search'"
+          class="size-5 opacity-60"
+        />
+        {{
+          query.trim() ? 'Nothing found.' : 'Type to search the documentation.'
+        }}
+      </div>
 
       <CommandGroup
         v-for="group in groups"

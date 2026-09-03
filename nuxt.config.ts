@@ -8,7 +8,23 @@ const layer = (path: string) => fileURLToPath(new URL(path, import.meta.url));
 // The layer itself. A consumer gets all of this by extending '@kirchdev/duxt',
 // which resolves through package.json's `main` to this file.
 export default defineNuxtConfig({
-  modules: ['@nuxt/content', '@nuxt/icon', '@nuxtjs/color-mode', 'shadcn-nuxt'],
+  modules: [
+    '@nuxt/content',
+    '@nuxt/icon',
+    '@nuxtjs/color-mode',
+    'shadcn-nuxt',
+    '@nuxtjs/mcp-toolkit'
+  ],
+
+  // A real MCP server at /mcp, through the official SDK, instead of a JSON
+  // endpoint someone else has to wrap. Tools live in server/mcp/tools.
+  mcp: {
+    name: 'duxt documentation',
+    description: 'The documentation this site publishes, readable by an agent.',
+    instructions:
+      'Call list_pages for the table of contents, search_docs to find a page by ' +
+      'term, and read_page for the full text of one page.'
+  },
 
   css: [layer('./app/assets/css/duxt.css')],
 

@@ -31,3 +31,13 @@ request — a private repository behind an auth check, for instance.
 - **Node 24.** The layer uses `node:sqlite` rather than a native driver.
 - **Network access to your sources**, if any of them are remote repositories.
 - **A token**, for private ones. Content reads it from the collection's `auth`.
+
+## What the site serves besides pages
+
+| Path        | What it is                                                        |
+| :---------- | :---------------------------------------------------------------- |
+| `/llms.txt` | The documentation as a Markdown index, per llmstxt.org             |
+| `/mcp`      | An MCP server over the same content — `list_pages`, `search_docs`, `read_page` |
+
+Both are generated from the collection the pages render from, so neither can
+drift from what is published.
