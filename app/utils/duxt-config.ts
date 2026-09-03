@@ -15,7 +15,48 @@ export const duxtDefaults: DuxtConfig = {
   version: 'v0.0.0',
 
   navigation: [
-    { label: 'Docs', to: '/getting-started', icon: 'lucide:book-open-text' }
+    { label: 'Docs', to: '/getting-started', icon: 'lucide:book-open-text' },
+    {
+      label: 'Resources',
+      icon: 'lucide:library',
+      children: [
+        {
+          label: 'Nuxt',
+          to: 'https://nuxt.com',
+          icon: 'lucide:box',
+          description: 'The framework underneath',
+          external: true
+        },
+        {
+          label: 'Nuxt Content',
+          to: 'https://content.nuxt.com',
+          icon: 'lucide:file-text',
+          description: 'Sourcing, parsing and querying',
+          external: true
+        },
+        {
+          label: 'shadcn-vue',
+          to: 'https://www.shadcn-vue.com',
+          icon: 'lucide:palette',
+          description: 'The component base',
+          external: true
+        },
+        {
+          label: 'Tailwind CSS',
+          to: 'https://tailwindcss.com',
+          icon: 'lucide:paintbrush',
+          description: 'The styling system',
+          external: true
+        },
+        {
+          label: 'MDC syntax',
+          to: 'https://content.nuxt.com/docs/files/markdown',
+          icon: 'lucide:code',
+          description: 'Components inside Markdown',
+          external: true
+        }
+      ]
+    }
   ],
 
   sections: [
@@ -104,7 +145,7 @@ export const duxtDefaults: DuxtConfig = {
       },
       {
         label: 'Report an issue',
-        to: 'https://github.com/kirchDev/duxt/issues/new',
+        to: 'https://github.com/kirchDev/duxt/issues/new/choose',
         icon: 'lucide:circle-alert',
         external: true
       },
@@ -127,19 +168,42 @@ export const duxtDefaults: DuxtConfig = {
     note: 'Built with duxt.',
     columns: [
       {
+        title: 'Documentation',
+        links: [
+          { label: 'Get started', to: '/getting-started' },
+          { label: 'Structure', to: '/structure' },
+          { label: 'Guide', to: '/guide' }
+        ]
+      },
+      {
         title: 'Project',
         links: [
-          { label: 'Documentation', to: '/getting-started' },
           {
             label: 'Source',
             to: 'https://github.com/kirchDev/duxt',
             external: true
           },
           {
-            label: 'Issues',
-            to: 'https://github.com/kirchDev/duxt/issues',
+            label: 'Report an issue',
+            to: 'https://github.com/kirchDev/duxt/issues/new/choose',
+            external: true
+          },
+          {
+            label: 'Releases',
+            to: 'https://github.com/kirchDev/duxt/releases',
             external: true
           }
+        ]
+      },
+      {
+        title: 'Community',
+        links: [
+          {
+            label: 'Discord',
+            to: 'https://discord.kirch.dev/',
+            external: true
+          },
+          { label: 'kirch.dev', to: 'https://kirch.dev', external: true }
         ]
       }
     ]
