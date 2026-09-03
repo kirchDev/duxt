@@ -1,100 +1,49 @@
 <script setup lang="ts">
-import type { VNode } from 'vue';
+import { TreeItem, TreeRoot } from 'reka-ui';
 
 interface Entry {
   name: string;
   children?: Entry[];
 }
 
-// `::file-tree` wraps a nested Markdown list. Rendering that list as-is gives
-// bullets, not a tree — and no way to pick an icon per file. So the slot's
-// vnodes are read back into a structure, which the node component renders with
-// the right icon for each extension. A `tree` prop skips the parsing.
+// `::file-tree` with a `tree` prop. Built on Reka UI's Tree rather than
+// hand-rolled `<ul>` recursion, so it comes with roving focus, arrow-key
+// navigation, expand and collapse, and the ARIA roles a tree needs — all of
+// which the hand-rolled version had none of.
 const props = defineProps<{ tree?: Entry[]; title?: string }>();
 
-const slots = useSlots();
+const items = computed(() => props.tree ?? []);
 
-/** Text of a vnode subtree, ignoring any nested list. */
-function textOf(node: VNode): string {
-  if (typeof node.children === 'string') return node.children;
-  if (!Array.isArray(node.children)) return '';
+const isDirectory = (entry: Entry) =>
+  Boolean(entry.children?.length) || entry.name.endsWith('/');
 
-  return node.children
-    .filter((child) => !isList(child as VNode))
-    .map((child) =>
-      typeof child === 'string'
-        ? child
-        : child && typeof child === 'object'
-          ? textOf(child as VNode)
-          : ''
-    )
-    .join('');
+const label = (entry: Entry) => entry.name.replace(/\/$/, '');
+
+/** Unique per node: names repeat across branches, paths do not. */
+function key(entry: Entry) {
+  return entry.name;
 }
 
-function nameOf(node: VNode): string | undefined {
-  const type = node.type as { name?: string; __name?: string } | string;
-  if (typeof type === 'string') return type;
-  return type?.name ?? type?.__name;
-}
+/** Everything open on first render — a docs tree is there to be read, not explored. */
+const expanded = computed(() => {
+  const keys: string[] = [];
 
-function isList(node?: VNode): boolean {
-  const name = node && nameOf(node);
-  return (
-    name === 'ul' || name === 'ol' || name === 'ProseUl' || name === 'ProseOl'
-  );
-}
-
-function isItem(node?: VNode): boolean {
-  const name = node && nameOf(node);
-  return name === 'li' || name === 'ProseLi';
-}
-
-function childrenOf(node: VNode): VNode[] {
-  if (Array.isArray(node.children)) return node.children.flat() as VNode[];
-
-  const slot = (node.children as { default?: () => VNode[] } | null)?.default;
-  return typeof slot === 'function' ? (slot().flat() as VNode[]) : [];
-}
-
-/** Walk a rendered list into entries; anything unexpected is skipped. */
-function parse(nodes: VNode[]): Entry[] {
-  const entries: Entry[] = [];
-
-  for (const node of nodes) {
-    if (!node || typeof node !== 'object') continue;
-
-    if (isList(node) || node.type === Symbol.for('v-fgt')) {
-      entries.push(...parse(childrenOf(node)));
-      continue;
+  const walk = (entries: Entry[]) => {
+    for (const entry of entries) {
+      if (entry.children?.length) {
+        keys.push(key(entry));
+        walk(entry.children);
+      }
     }
+  };
 
-    if (!isItem(node)) continue;
-
-    const nested = childrenOf(node).find((child) => isList(child));
-    const name = textOf(node).trim();
-    if (!name) continue;
-
-    entries.push(
-      nested ? { name, children: parse(childrenOf(nested)) } : { name }
-    );
-  }
-
-  return entries;
-}
-
-const entries = computed<Entry[]>(() => {
-  if (props.tree?.length) return props.tree;
-
-  try {
-    return parse((slots.default?.() ?? []) as VNode[]);
-  } catch {
-    return [];
-  }
+  walk(items.value);
+  return keys;
 });
 </script>
 
 <template>
-  <div class="my-6 overflow-hidden rounded-lg border bg-card">
+  <div class="not-typeset my-6 overflow-hidden rounded-lg border bg-card">
     <div
       v-if="title"
       class="flex items-center gap-2 border-b bg-muted/40 px-3 py-2 text-xs text-muted-foreground"
@@ -103,12 +52,41 @@ const entries = computed<Entry[]>(() => {
       <span class="font-mono">{{ title }}</span>
     </div>
 
-    <div class="p-3 font-mono text-[13px] leading-6">
-      <DuxtFileTreeNodes v-if="entries.length" :entries="entries" />
-      <!-- Parsing failed: show the author's list rather than nothing. -->
-      <div v-else class="duxt-file-tree">
-        <slot />
-      </div>
-    </div>
+    <TreeRoot
+      v-slot="{ flattenItems }"
+      :items="items"
+      :get-key="key"
+      :get-children="(entry: Entry) => entry.children"
+      :default-expanded="expanded"
+      class="p-3 font-mono text-[13px] leading-6 select-none"
+    >
+      <TreeItem
+        v-for="item in flattenItems"
+        v-slot="{ isExpanded }"
+        :key="item._id"
+        v-bind="item.bind"
+        :style="{ paddingLeft: `${item.level - 1}rem` }"
+        class="flex items-center gap-1.5 rounded px-1 py-[3px] outline-none focus:bg-accent data-[selected]:bg-accent/60"
+      >
+        <template v-if="isDirectory(item.value)">
+          <Icon
+            name="lucide:chevron-right"
+            class="size-3 shrink-0 text-muted-foreground transition-transform"
+            :class="{ 'rotate-90': isExpanded }"
+          />
+          <Icon
+            :name="isExpanded ? 'lucide:folder-open' : 'lucide:folder'"
+            class="size-4 shrink-0 text-muted-foreground/70"
+          />
+          <span class="text-foreground">{{ label(item.value) }}</span>
+        </template>
+
+        <template v-else>
+          <span class="w-3 shrink-0" />
+          <Icon :name="fileIcon(item.value.name)" class="size-4 shrink-0" />
+          <span class="text-muted-foreground">{{ label(item.value) }}</span>
+        </template>
+      </TreeItem>
+    </TreeRoot>
   </div>
 </template>
