@@ -14,11 +14,25 @@ belongs in `CLAUDE.md` under _Open — ask, do not decide_, not here.
 - [ ] **Active heading in the table of contents** while scrolling.
 - [ ] **Section landing pages** — `/guide` is a page like any other; nuxt.com
       gives each section an overview with a card per subsection.
-- [ ] **Decide on `typeset`.** shadcn-vue ships a prose preset
-      (`--typeset-*` variables, a `not-typeset` escape hatch) that covers what
-      `app/assets/css/prose.css` does by hand. It is not installable through the
-      CLI — the registry has no `typeset` item — so adopting it means porting
-      the CSS. Worth revisiting once the theme settles.
+- [ ] **Adopt `typeset`.** shadcn-vue's typeset is built for exactly this —
+      its own documentation wraps `<ContentRenderer>` in
+      `<div class="typeset typeset-docs">`. It gives what `prose.css` does by
+      hand, plus things it does not: `--typeset-size` / `-leading` / `-flow` as
+      the only knobs, several presets per context (docs, chat, article), a
+      `not-typeset` escape hatch, and flow spacing that does not make an
+      earlier block change when a new one arrives. It is not installable
+      through the CLI — the registry has no `typeset` item, the site generates
+      the CSS from a builder — so adopting it means porting that CSS by hand
+      and retiring `prose.css`. Recommended, once the current design pass
+      settles.
+
+- [ ] **Section landing pages with cards**, the way nuxt.com gives each part of
+      its documentation an overview.
+- [ ] **Breadcrumb.** The component is added but not used anywhere.
+- [ ] **Mobile: hide the section row properly.** It is reachable from the sheet
+      now, but the row itself still scrolls horizontally on a narrow screen.
+- [ ] **A `not-prose` escape hatch** for content that should keep its own
+      styling inside a page — subsumed by `typeset` above if that lands.
 
 ## Layer
 
