@@ -39,12 +39,82 @@ function isActive(to?: string) {
             <Icon name="lucide:menu" class="size-5" />
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" class="w-72 overflow-y-auto p-0">
-          <SheetHeader>
-            <SheetTitle>{{ duxt.title }}</SheetTitle>
+        <SheetContent
+          side="left"
+          class="flex w-80 flex-col gap-0 overflow-y-auto p-0"
+        >
+          <SheetHeader class="border-b">
+            <SheetTitle class="flex items-center gap-2">
+              <Icon name="lucide:book-open-text" class="size-5 text-primary" />
+              {{ duxt.title }}
+            </SheetTitle>
           </SheetHeader>
-          <div class="px-2 pb-6">
+
+          <!-- Everything the desktop header holds, in one scrollable column:
+               the sections, the navbar links, then the docs tree. On a phone
+               the second navbar row is hidden, so without this the sections
+               are unreachable. -->
+          <div class="flex-1 overflow-y-auto p-4">
+            <p
+              v-if="duxt.sections?.length"
+              class="mb-2 text-xs font-medium text-muted-foreground"
+            >
+              Sections
+            </p>
+            <ul v-if="duxt.sections?.length" class="mb-6 space-y-0.5 text-sm">
+              <li v-for="section in duxt.sections" :key="section.label">
+                <NuxtLink
+                  :to="section.to"
+                  class="flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors"
+                  :class="
+                    isActive(section.to)
+                      ? 'bg-accent font-medium text-foreground'
+                      : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+                  "
+                >
+                  <Icon
+                    v-if="section.icon"
+                    :name="section.icon"
+                    class="size-4"
+                  />
+                  {{ section.label }}
+                </NuxtLink>
+              </li>
+            </ul>
+
             <DuxtNavigation :items="items" />
+
+            <div class="mt-6 border-t pt-4">
+              <ul class="space-y-0.5 text-sm">
+                <template
+                  v-for="link in duxt.navigation ?? []"
+                  :key="link.label"
+                >
+                  <li
+                    v-for="entry in link.children ?? [link]"
+                    :key="entry.label"
+                  >
+                    <NuxtLink
+                      :to="entry.to"
+                      :target="entry.external ? '_blank' : undefined"
+                      class="flex items-center gap-2 rounded-md px-2 py-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                    >
+                      <Icon
+                        v-if="entry.icon"
+                        :name="entry.icon"
+                        class="size-4"
+                      />
+                      {{ entry.label }}
+                      <Icon
+                        v-if="entry.external"
+                        name="lucide:arrow-up-right"
+                        class="size-3 opacity-50"
+                      />
+                    </NuxtLink>
+                  </li>
+                </template>
+              </ul>
+            </div>
           </div>
         </SheetContent>
       </Sheet>
