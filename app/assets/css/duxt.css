@@ -195,3 +195,10 @@ pre.shiki,
 .typeset :where(.duxt-code pre) {
   margin: 0;
 }
+
+/* A long unbroken token — a URL, a package name, a path — is the other way a
+   page grows wider than the phone holding it. Inline code may break; the
+   scrollable blocks (code fences, tables) keep their own overflow. */
+.typeset :where(:not(pre) > code) {
+  overflow-wrap: anywhere;
+}

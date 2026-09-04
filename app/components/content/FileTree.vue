@@ -58,7 +58,7 @@ const expanded = computed(() => {
       :get-key="key"
       :get-children="(entry: Entry) => entry.children"
       :default-expanded="expanded"
-      class="p-3 font-mono text-[13px] leading-6 select-none"
+      class="overflow-x-auto p-3 font-mono text-[13px] leading-6 select-none"
     >
       <TreeItem
         v-for="item in flattenItems"
