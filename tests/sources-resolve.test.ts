@@ -27,8 +27,8 @@ describe('resolveSources', () => {
 
     expect(resolved.map((source) => source.prefix)).toEqual([
       '',
-      '/v1-x',
-      '/v2-x'
+      '/v1.x',
+      '/v2.x'
     ]);
     // Prefixes take dashes; collection names cannot — see the identifier test.
     expect(resolved.map((source) => source.collection)).toEqual([
@@ -46,7 +46,7 @@ describe('resolveSources', () => {
       }
     );
 
-    expect(resolved.find((source) => source.version === 'v1-x')!.prefix).toBe(
+    expect(resolved.find((source) => source.version === 'v1.x')!.prefix).toBe(
       ''
     );
     expect(resolved.find((source) => source.version === 'main')!.prefix).toBe(
@@ -79,7 +79,7 @@ describe('resolveSources', () => {
 
     expect(resolved.map((source) => source.prefix)).toEqual([
       '/app',
-      '/app/v1-x',
+      '/app/v1.x',
       '/other'
     ]);
   });
@@ -117,7 +117,7 @@ describe('resolveSources', () => {
       { path: 'docs', refs: ['main', 'release/2024.1'] }
     ]);
 
-    expect(resolved[1]!.prefix).toBe('/release-2024-1');
+    expect(resolved[1]!.prefix).toBe('/release-2024.1');
     expect(resolved[1]!.collection).toBe('docs_release_2024_1');
   });
 
@@ -141,7 +141,7 @@ describe('resolveSources', () => {
       { path: 'docs', refs: ['main', 'v1.0.0'] }
     ]);
 
-    expect(resolved[1]!.prefix).toBe('/v1-0-0');
+    expect(resolved[1]!.prefix).toBe('/v1.0.0');
     expect(resolved[1]!.collection).toBe('docs_v1_0_0');
   });
 
@@ -169,8 +169,8 @@ describe('refs', () => {
     ]);
 
     expect(resolved[1]).toMatchObject({
-      version: 'v0-7-0',
-      prefix: '/v0-7-0',
+      version: 'v0.7.0',
+      prefix: '/v0.7.0',
       collection: 'docs_v0_7_0'
     });
   });

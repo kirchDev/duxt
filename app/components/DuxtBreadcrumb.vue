@@ -5,6 +5,8 @@ import type { ContentNavigationItem } from '@nuxt/content';
 const props = defineProps<{ path: string }>();
 
 const { data: navigation } = await useDuxtNavigation();
+const { source } = useDuxtCollection();
+const { section } = useDuxtSection(navigation);
 
 const trail = computed(() => {
   const found: ContentNavigationItem[] = [];
@@ -28,7 +30,27 @@ const trail = computed(() => {
   };
 
   walk(navigation.value ?? [], []);
-  return found;
+
+  // The trail starts at the section, which is the entry the reader clicked in
+  // the row above, and continues with what lies below the source's own prefix.
+  // Everything at or above that prefix is a wrapper Content creates for a
+  // multi-segment path — on a versioned URL it showed up as an extra crumb
+  // that the unversioned one did not have.
+  const prefix = source.value?.prefix ?? '';
+  const below = found.filter(
+    (item) => (item.path?.length ?? 0) > prefix.length
+  );
+
+  const head: ContentNavigationItem[] = section.value?.to
+    ? [
+        {
+          title: section.value.label,
+          path: section.value.to
+        } as ContentNavigationItem
+      ]
+    : [];
+
+  return [...head, ...below];
 });
 </script>
 

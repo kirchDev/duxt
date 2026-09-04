@@ -52,7 +52,7 @@ export interface DuxtResolvedSource {
 }
 
 export const slugify = (value: string) =>
-  value.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '');
+  value.replace(/[^a-z0-9.]+/gi, '-').replace(/^[-.]+|[-.]+$/g, '');
 
 /**
  * Collection names are not URL segments.

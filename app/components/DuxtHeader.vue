@@ -17,6 +17,15 @@ function linkTarget(link: DuxtLink) {
   return link.to ?? duxt.sections?.[0]?.to ?? '/';
 }
 
+// Two version displays in one bar read as two systems. Where the docs have
+// versions of their own, the switcher is the one that means something and the
+// project badge steps aside.
+const hasVersions = computed(
+  () =>
+    (duxt.versions?.length ?? 0) > 1 ||
+    (duxt.sources ?? []).some((s) => s.version)
+);
+
 function isActive(to?: string) {
   return Boolean(to && to !== '/' && route.path.startsWith(to));
 }
