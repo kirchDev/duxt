@@ -1,28 +1,23 @@
 <script setup lang="ts">
-// The version switcher. Versions come from the config rather than from the
-// collections, because content.config.ts runs in its own load pass and the app
-// never sees its result — a consumer declares the list once and both halves
-// read it.
+/**
+ * The one place a version is shown.
+ *
+ * Before, the project's version sat as a badge beside the title while the
+ * documentation's versions lived in a separate dropdown on the far right —
+ * two controls saying different things, and the right-hand one appeared only
+ * on sources that have versions, so the icons beside it shifted as you moved
+ * between repositories.
+ *
+ * Now it is one element next to the title: a badge when there is nothing to
+ * choose, the same badge as a trigger when there is.
+ */
 const duxt = useDuxtConfig();
 const route = useRoute();
 
 /**
- * Versions come from the resolved source manifest, so the switcher can only
- * offer what actually has a collection behind it. Declaring them by hand meant
- * the two halves could disagree — a version in the menu with nothing to serve
- * it, or a collection nobody could reach.
- *
- * `versions` in the config still wins where a label needs to read differently
- * from the URL segment.
- */
-/**
- * Versions come from the resolved source manifest, so the switcher can only
- * offer what actually has a collection behind it.
- *
- * Scoped to the repository being read: on a site serving two projects, the
- * versions of one say nothing about the other, and offering them would send
- * the reader somewhere that does not exist. A source with no versions shows no
- * switcher at all.
+ * Versions come from the resolved source manifest, so the control can only
+ * offer what has a collection behind it, and only for the repository being
+ * read — one project's versions say nothing about another's.
  *
  * `versions` in the config still wins where a label needs to read differently
  * from the URL segment.
@@ -31,9 +26,7 @@ const versions = computed(() => {
   if (duxt.versions?.length) return duxt.versions;
 
   const sources = duxt.sources ?? [];
-  const currentSource = [...sources]
-    .sort((a, b) => b.prefix.length - a.prefix.length)
-    .find((source) => !source.prefix || route.path.startsWith(source.prefix));
+  const currentSource = sourceForPath(route.path, sources);
 
   return sources
     .filter((source) => source.version && source.repo === currentSource?.repo)
@@ -44,7 +37,6 @@ const versions = computed(() => {
     }));
 });
 
-/** The version whose prefix the current path starts with, else the default. */
 const current = computed(() =>
   sourceForPath(
     route.path,
@@ -61,12 +53,16 @@ function pathIn(version: { to?: string }) {
 <template>
   <DropdownMenu v-if="versions.length > 1">
     <DropdownMenuTrigger as-child>
-      <Button variant="outline" size="sm" class="gap-1.5 font-mono text-xs">
-        {{ current?.label ?? 'version' }}
-        <Icon name="lucide:chevron-down" class="size-3.5 opacity-60" />
-      </Button>
+      <Badge
+        variant="secondary"
+        class="cursor-pointer gap-1 font-mono text-[10px] hover:bg-accent"
+      >
+        {{ current?.label ?? duxt.version }}
+        <Icon name="lucide:chevron-down" class="size-3 opacity-60" />
+      </Badge>
     </DropdownMenuTrigger>
-    <DropdownMenuContent align="end" class="w-44">
+
+    <DropdownMenuContent align="start" class="w-44">
       <DropdownMenuItem
         v-for="version in versions"
         :key="version.label"
@@ -89,4 +85,13 @@ function pathIn(version: { to?: string }) {
       </DropdownMenuItem>
     </DropdownMenuContent>
   </DropdownMenu>
+
+  <!-- Nothing to choose: the project's own version, stated rather than offered. -->
+  <Badge
+    v-else-if="duxt.version"
+    variant="secondary"
+    class="font-mono text-[10px]"
+  >
+    {{ duxt.version }}
+  </Badge>
 </template>

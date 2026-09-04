@@ -17,15 +17,6 @@ function linkTarget(link: DuxtLink) {
   return link.to ?? duxt.sections?.[0]?.to ?? '/';
 }
 
-// Two version displays in one bar read as two systems. Where the docs have
-// versions of their own, the switcher is the one that means something and the
-// project badge steps aside.
-const hasVersions = computed(
-  () =>
-    (duxt.versions?.length ?? 0) > 1 ||
-    (duxt.sources ?? []).some((s) => s.version)
-);
-
 function isActive(to?: string) {
   return Boolean(to && to !== '/' && route.path.startsWith(to));
 }
@@ -38,115 +29,113 @@ function isActive(to?: string) {
     <!-- Row one: identity and global links. Row two carries the sections, the
          way nuxt.com splits them — the docs tree never reaches this far up. -->
     <div
-      class="mx-auto flex h-14 max-w-[90rem] items-center gap-4 px-4 lg:px-8"
+      class="mx-auto grid h-14 max-w-[90rem] grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 lg:px-8"
     >
-      <Sheet>
-        <SheetTrigger as-child>
-          <Button
-            variant="ghost"
-            size="icon"
-            class="lg:hidden"
-            aria-label="Open navigation"
+      <div class="flex items-center gap-2">
+        <Sheet>
+          <SheetTrigger as-child>
+            <Button
+              variant="ghost"
+              size="icon"
+              class="lg:hidden"
+              aria-label="Open navigation"
+            >
+              <Icon name="lucide:menu" class="size-5" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent
+            side="left"
+            class="flex w-80 flex-col gap-0 overflow-y-auto p-0"
           >
-            <Icon name="lucide:menu" class="size-5" />
-          </Button>
-        </SheetTrigger>
-        <SheetContent
-          side="left"
-          class="flex w-80 flex-col gap-0 overflow-y-auto p-0"
-        >
-          <SheetHeader class="border-b">
-            <SheetTitle class="flex items-center gap-2">
-              <Icon name="lucide:book-open-text" class="size-5 text-primary" />
-              {{ duxt.title }}
-            </SheetTitle>
-          </SheetHeader>
+            <SheetHeader class="border-b">
+              <SheetTitle class="flex items-center gap-2">
+                <Icon
+                  name="lucide:book-open-text"
+                  class="size-5 text-primary"
+                />
+                {{ duxt.title }}
+              </SheetTitle>
+            </SheetHeader>
 
-          <!-- Everything the desktop header holds, in one scrollable column:
+            <!-- Everything the desktop header holds, in one scrollable column:
                the sections, the navbar links, then the docs tree. On a phone
                the second navbar row is hidden, so without this the sections
                are unreachable. -->
-          <div class="flex-1 overflow-y-auto p-4">
-            <p
-              v-if="duxt.sections?.length"
-              class="mb-2 text-xs font-medium text-muted-foreground"
-            >
-              Sections
-            </p>
-            <ul v-if="duxt.sections?.length" class="mb-6 space-y-0.5 text-sm">
-              <li v-for="section in duxt.sections" :key="section.label">
-                <NuxtLink
-                  :to="section.to"
-                  class="flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors"
-                  :class="
-                    isActive(section.to)
-                      ? 'bg-accent font-medium text-foreground'
-                      : 'text-muted-foreground hover:bg-accent hover:text-foreground'
-                  "
-                >
-                  <Icon
-                    v-if="section.icon"
-                    :name="section.icon"
-                    class="size-4"
-                  />
-                  {{ section.label }}
-                </NuxtLink>
-              </li>
-            </ul>
-
-            <DuxtNavigation :items="items" />
-
-            <div class="mt-6 border-t pt-4">
-              <ul class="space-y-0.5 text-sm">
-                <template
-                  v-for="link in duxt.navigation ?? []"
-                  :key="link.label"
-                >
-                  <li
-                    v-for="entry in link.children ?? [link]"
-                    :key="entry.label"
+            <div class="flex-1 overflow-y-auto p-4">
+              <p
+                v-if="duxt.sections?.length"
+                class="mb-2 text-xs font-medium text-muted-foreground"
+              >
+                Sections
+              </p>
+              <ul v-if="duxt.sections?.length" class="mb-6 space-y-0.5 text-sm">
+                <li v-for="section in duxt.sections" :key="section.label">
+                  <NuxtLink
+                    :to="section.to"
+                    class="flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors"
+                    :class="
+                      isActive(section.to)
+                        ? 'bg-accent font-medium text-foreground'
+                        : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+                    "
                   >
-                    <NuxtLink
-                      :to="entry.to"
-                      :target="entry.external ? '_blank' : undefined"
-                      class="flex items-center gap-2 rounded-md px-2 py-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                    >
-                      <Icon
-                        v-if="entry.icon"
-                        :name="entry.icon"
-                        class="size-4"
-                      />
-                      {{ entry.label }}
-                      <Icon
-                        v-if="entry.external"
-                        name="lucide:arrow-up-right"
-                        class="size-3 opacity-50"
-                      />
-                    </NuxtLink>
-                  </li>
-                </template>
+                    <Icon
+                      v-if="section.icon"
+                      :name="section.icon"
+                      class="size-4"
+                    />
+                    {{ section.label }}
+                  </NuxtLink>
+                </li>
               </ul>
+
+              <DuxtNavigation :items="items" />
+
+              <div class="mt-6 border-t pt-4">
+                <ul class="space-y-0.5 text-sm">
+                  <template
+                    v-for="link in duxt.navigation ?? []"
+                    :key="link.label"
+                  >
+                    <li
+                      v-for="entry in link.children ?? [link]"
+                      :key="entry.label"
+                    >
+                      <NuxtLink
+                        :to="entry.to"
+                        :target="entry.external ? '_blank' : undefined"
+                        class="flex items-center gap-2 rounded-md px-2 py-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                      >
+                        <Icon
+                          v-if="entry.icon"
+                          :name="entry.icon"
+                          class="size-4"
+                        />
+                        {{ entry.label }}
+                        <Icon
+                          v-if="entry.external"
+                          name="lucide:arrow-up-right"
+                          class="size-3 opacity-50"
+                        />
+                      </NuxtLink>
+                    </li>
+                  </template>
+                </ul>
+              </div>
             </div>
-          </div>
-        </SheetContent>
-      </Sheet>
+          </SheetContent>
+        </Sheet>
 
-      <NuxtLink
-        to="/"
-        class="flex items-center gap-2 text-[15px] font-semibold tracking-tight"
-      >
-        <Icon name="lucide:book-open-text" class="size-5 text-primary" />
-        {{ duxt.title }}
-        <Badge
-          v-if="duxt.version"
-          variant="secondary"
-          class="ml-1 font-mono text-[10px]"
+        <NuxtLink
+          to="/"
+          class="flex items-center gap-2 text-[15px] font-semibold tracking-tight"
         >
-          {{ duxt.version }}
-        </Badge>
-      </NuxtLink>
+          <Icon name="lucide:book-open-text" class="size-5 text-primary" />
+          {{ duxt.title }}
+        </NuxtLink>
+      </div>
 
-      <nav class="mx-auto hidden items-center gap-0.5 text-sm md:flex">
+      <nav class="hidden items-center gap-0.5 text-sm md:flex">
         <template v-for="link in duxt.navigation" :key="link.label">
           <DropdownMenu v-if="link.children?.length">
             <DropdownMenuTrigger as-child>
@@ -209,11 +198,14 @@ function isActive(to?: string) {
         </template>
       </nav>
 
-      <div class="ml-auto flex items-center gap-2 md:ml-0">
+      <div class="flex items-center justify-end gap-2">
+        <!-- Beside the search rather than the title: one version control, and
+             the icons to its right keep their place because it is always
+             rendered — as a badge where there is nothing to choose. -->
+        <DuxtVersion />
         <div class="hidden sm:block">
           <DuxtSearch />
         </div>
-        <DuxtVersionSwitcher />
 
         <Button
           v-for="link in duxt.links ?? []"
