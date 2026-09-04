@@ -15,7 +15,6 @@ export const duxtDefaults: DuxtConfig = {
   version: 'v0.0.0',
 
   navigation: [
-    { label: 'Docs', to: '/getting-started', icon: 'lucide:book-open-text' },
     {
       label: 'Resources',
       icon: 'lucide:library',

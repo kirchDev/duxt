@@ -26,14 +26,6 @@ export default defineAppConfig({
       { label: 'Workflows', to: '/workflows', icon: 'lucide:workflow' }
     ],
 
-    navigation: [
-      {
-        label: 'Docs',
-        to: '/duxt/getting-started',
-        icon: 'lucide:book-open-text'
-      }
-    ],
-
     landing: {
       actions: [
         {

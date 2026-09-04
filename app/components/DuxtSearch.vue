@@ -1,4 +1,9 @@
 <script setup lang="ts">
+// Two roots — the trigger and the dialog — so Vue cannot decide which one
+// inherits a class from the parent and drops it with a warning. The trigger
+// takes them explicitly.
+defineOptions({ inheritAttrs: false });
+
 import type { DuxtSearchSection } from '@duxt/composables/useFuzzySearch';
 
 // Full-text search over the collection. Content builds the index at build time
@@ -133,6 +138,7 @@ onMounted(() => {
 
 <template>
   <Button
+    v-bind="$attrs"
     variant="outline"
     size="sm"
     class="w-full justify-start gap-2 text-muted-foreground sm:w-56"
