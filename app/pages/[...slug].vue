@@ -35,7 +35,7 @@ useSeoMeta({
     <article class="min-w-0 max-w-3xl flex-1 py-8">
       <header class="mb-8 border-b pb-8">
         <DuxtBreadcrumb
-          v-if="duxt.breadcrumb !== false"
+          v-if="duxt?.breadcrumb !== false"
           :path="route.path"
           class="mb-3"
         />

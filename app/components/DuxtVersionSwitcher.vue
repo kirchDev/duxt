@@ -47,9 +47,9 @@ const versions = computed(() => {
 /** The version whose prefix the current path starts with, else the default. */
 const current = computed(
   () =>
-    versions.value.find(
-      (v) => v.to && v.to !== '/' && route.path.startsWith(v.to)
-    ) ??
+    [...versions.value]
+      .sort((a, b) => (b.to?.length ?? 0) - (a.to?.length ?? 0))
+      .find((v) => v.to && v.to !== '/' && route.path.startsWith(v.to)) ??
     versions.value.find((v) => v.to === '/') ??
     versions.value[0]
 );
