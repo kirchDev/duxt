@@ -45,11 +45,28 @@ export function useDuxtSection(
     };
 
     const branch = find(tree);
-    return branch?.children?.length
+
+    // Start from the section's own children where it exists, the tree
+    // otherwise, then walk down while there is exactly one node the route is
+    // still inside. A version prefix nests the tree an extra level — Content
+    // creates `/workflows` as an intermediate node for `/workflows/v0-7-0` —
+    // and stopping early left the sidebar drawing a group whose only child was
+    // itself.
+    let items = branch?.children?.length
       ? branch.children
       : branch
         ? [branch]
         : tree;
+
+    while (items.length === 1) {
+      const [only] = items;
+      if (!only?.children?.length || !route.path.startsWith(only.path ?? ''))
+        break;
+
+      items = only.children;
+    }
+
+    return items;
   });
 
   return { section, items };
