@@ -64,12 +64,14 @@
     "build:app": "pnpm --filter www build"
   },
   "dependencies": {
+    "@iconify-json/flag": "^1.2.12",
     "@iconify-json/lucide": "^1.2.127",
     "@iconify-json/simple-icons": "^1.2.94",
     "@lucide/vue": "^1.37.0",
     "@nuxt/content": "^3.16.0",
     "@nuxt/icon": "^2.5.1",
     "@nuxtjs/color-mode": "^4.0.1",
+    "@nuxtjs/i18n": "^10.6.0",
     "@nuxtjs/mcp-toolkit": "^0.19.0",
     "@tailwindcss/vite": "^4.3.3",
     "@vueuse/core": "^14.4.0",
