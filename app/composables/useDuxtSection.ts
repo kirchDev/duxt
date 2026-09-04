@@ -19,55 +19,9 @@ export function useDuxtSection(
     )
   );
 
-  const items = computed<ContentNavigationItem[]>(() => {
-    const tree = navigation.value ?? [];
-    const path = section.value?.to;
-
-    if (!path) return tree;
-
-    // Search the whole tree, not just its top level. With a URL prefix the
-    // section sits one level down — a site serving `/duxt/structure` has
-    // `/duxt` at the root and the section inside it — and looking only at the
-    // top left the sidebar empty on every prefixed site.
-    const find = (
-      entries: ContentNavigationItem[]
-    ): ContentNavigationItem | undefined => {
-      for (const entry of entries) {
-        if (entry.path === path) return entry;
-
-        const inside = entry.children?.length
-          ? find(entry.children)
-          : undefined;
-        if (inside) return inside;
-      }
-
-      return undefined;
-    };
-
-    const branch = find(tree);
-
-    // Start from the section's own children where it exists, the tree
-    // otherwise, then walk down while there is exactly one node the route is
-    // still inside. A version prefix nests the tree an extra level — Content
-    // creates `/workflows` as an intermediate node for `/workflows/v0-7-0` —
-    // and stopping early left the sidebar drawing a group whose only child was
-    // itself.
-    let items = branch?.children?.length
-      ? branch.children
-      : branch
-        ? [branch]
-        : tree;
-
-    while (items.length === 1) {
-      const [only] = items;
-      if (!only?.children?.length || !route.path.startsWith(only.path ?? ''))
-        break;
-
-      items = only.children;
-    }
-
-    return items;
-  });
+  const items = computed(() =>
+    sectionItems(navigation.value ?? [], section.value?.to, route.path)
+  );
 
   return { section, items };
 }

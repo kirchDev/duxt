@@ -45,25 +45,16 @@ const versions = computed(() => {
 });
 
 /** The version whose prefix the current path starts with, else the default. */
-const current = computed(
-  () =>
-    [...versions.value]
-      .sort((a, b) => (b.to?.length ?? 0) - (a.to?.length ?? 0))
-      .find((v) => v.to && v.to !== '/' && route.path.startsWith(v.to)) ??
-    versions.value.find((v) => v.to === '/') ??
-    versions.value[0]
+const current = computed(() =>
+  sourceForPath(
+    route.path,
+    versions.value.map((version) => ({ ...version, prefix: version.to ?? '' }))
+  )
 );
 
 /** Same page, other version: swap the prefix rather than jumping to its root. */
 function pathIn(version: { to?: string }) {
-  const from = current.value?.to;
-  const rest =
-    from && from !== '/' && route.path.startsWith(from)
-      ? route.path.slice(from.length)
-      : route.path;
-
-  const target = version.to ?? '/';
-  return target === '/' ? rest || '/' : `${target}${rest}`;
+  return versionPath(route.path, current.value?.to, version.to ?? '/');
 }
 </script>
 
