@@ -12,6 +12,11 @@ function toggleTheme() {
   colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark';
 }
 
+/** An entry with neither `to` nor children means "the documentation". */
+function linkTarget(link: DuxtLink) {
+  return link.to ?? duxt.sections?.[0]?.to ?? '/';
+}
+
 function isActive(to?: string) {
   return Boolean(to && to !== '/' && route.path.startsWith(to));
 }
@@ -196,7 +201,9 @@ function isActive(to?: string) {
       </nav>
 
       <div class="ml-auto flex items-center gap-2 md:ml-0">
-        <DuxtSearch class="hidden sm:block" />
+        <div class="hidden sm:block">
+          <DuxtSearch />
+        </div>
         <DuxtVersionSwitcher />
 
         <Button

@@ -15,6 +15,9 @@ export const duxtDefaults: DuxtConfig = {
   version: 'v0.0.0',
 
   navigation: [
+    // No `to`: the header resolves it to the first section, so the entry works
+    // whether or not the consumer's URLs carry a prefix.
+    { label: 'Docs', icon: 'lucide:book-open-text' },
     {
       label: 'Resources',
       icon: 'lucide:library',
