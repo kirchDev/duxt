@@ -25,11 +25,31 @@ export function useDuxtSection(
 
     if (!path) return tree;
 
-    // The section's own node is the branch; its children become the sidebar.
-    const branch = tree.find((item) => item.path === path);
+    // Search the whole tree, not just its top level. With a URL prefix the
+    // section sits one level down — a site serving `/duxt/structure` has
+    // `/duxt` at the root and the section inside it — and looking only at the
+    // top left the sidebar empty on every prefixed site.
+    const find = (
+      entries: ContentNavigationItem[]
+    ): ContentNavigationItem | undefined => {
+      for (const entry of entries) {
+        if (entry.path === path) return entry;
+
+        const inside = entry.children?.length
+          ? find(entry.children)
+          : undefined;
+        if (inside) return inside;
+      }
+
+      return undefined;
+    };
+
+    const branch = find(tree);
     return branch?.children?.length
       ? branch.children
-      : tree.filter((item) => item.path === path);
+      : branch
+        ? [branch]
+        : tree;
   });
 
   return { section, items };

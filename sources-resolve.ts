@@ -1,6 +1,3 @@
-import { existsSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-
 /**
  * A documentation source: a folder, in this repository or another, at the
  * current checkout or at named refs.
@@ -54,20 +51,6 @@ export interface DuxtResolvedSource {
   isDefault: boolean;
 }
 
-/** Walk up to the repository root, so `docs/` resolves there and not in a subfolder. */
-export function repositoryRoot(): string {
-  let dir = process.cwd();
-
-  for (;;) {
-    if (existsSync(join(dir, '.git'))) return dir;
-
-    const parent = dirname(dir);
-    if (parent === dir) return process.cwd();
-    dir = parent;
-  }
-}
-
-/** URL segment: lowercase-ish, dashes, no leading or trailing separator. */
 export const slugify = (value: string) =>
   value.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '');
 

@@ -1,12 +1,8 @@
-import { join } from 'node:path';
+import { existsSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { defineCollection, z } from '@nuxt/content';
 import type { DuxtSource, DuxtSourcesOptions } from './sources-resolve';
-import {
-  refName,
-  repositoryRoot,
-  repoUrl,
-  resolveSources
-} from './sources-resolve';
+import { refName, repoUrl, resolveSources } from './sources-resolve';
 
 export type {
   DuxtResolvedSource,
@@ -14,6 +10,23 @@ export type {
   DuxtSourcesOptions
 } from './sources-resolve';
 export { duxtSourceManifest } from './sources-resolve';
+
+/**
+ * Walk up to the repository root, so `docs/` resolves there and not in a
+ * subfolder. Node-only, and kept here rather than beside the resolver: that
+ * file is read by app.config.ts and therefore bundled for the browser.
+ */
+function repositoryRoot(): string {
+  let dir = process.cwd();
+
+  for (;;) {
+    if (existsSync(join(dir, '.git'))) return dir;
+
+    const parent = dirname(dir);
+    if (parent === dir) return process.cwd();
+    dir = parent;
+  }
+}
 
 /**
  * Frontmatter the theme reads beyond Content's own fields.
