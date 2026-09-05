@@ -1,7 +1,7 @@
 {
   "$schema": "https://www.schemastore.org/package.json",
   "name": "@kirchdev/duxt",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Nuxt documentation layer on Content v3 — multi-repo, versioned docs from one compact source list.",
   "keywords": [
     "content-v3",
