@@ -55,7 +55,16 @@ useSeoMeta({
     <section
       v-if="duxt.landing?.features?.length"
       class="mx-auto max-w-7xl px-4 py-20"
+      :aria-labelledby="'duxt-features'"
     >
+      <!-- The cards are h3s, and the hero above them is the h1: without a
+           heading here the document skips a level, which is what a screen
+           reader's heading list reads as a missing section. Visually hidden
+           because the cards say what they are. -->
+      <h2 id="duxt-features" class="sr-only">
+        {{ $t('duxt.defaults.landing.featuresTitle') }}
+      </h2>
+
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Card
           v-for="feature in duxt.landing.features"

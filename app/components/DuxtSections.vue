@@ -9,6 +9,16 @@ const localeLink = useDuxtLink();
 function isActive(to?: string) {
   return Boolean(to && path.value.startsWith(to));
 }
+
+/**
+ * A section is rarely the page itself — it is the branch the page sits in. So
+ * the exact match announces `page` and an ancestor announces `true`, which is
+ * the distinction `aria-current` exists to make.
+ */
+function current(to?: string) {
+  if (path.value === to) return 'page';
+  return isActive(to) ? 'true' : undefined;
+}
 </script>
 
 <template>
@@ -19,11 +29,13 @@ function isActive(to?: string) {
   >
     <nav
       class="mx-auto flex max-w-[90rem] items-center gap-1 overflow-x-auto px-4 lg:px-8"
+      :aria-label="$t('duxt.nav.sections')"
     >
       <NuxtLink
         v-for="section in duxt.sections"
         :key="section.to"
         :to="localeLink(section.to)"
+        :aria-current="current(section.to)"
         class="my-1.5 flex shrink-0 items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors"
         :class="
           isActive(section.to)

@@ -18,6 +18,7 @@ const iconOf = (item: ContentNavigationItem) =>
   <NuxtLink
     v-else
     :to="localeLink(item.path)"
+    :aria-current="path === item.path ? 'page' : undefined"
     class="flex items-center gap-2 rounded-md px-2 py-1.5 leading-5 transition-colors"
     :class="
       path === item.path

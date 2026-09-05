@@ -24,7 +24,7 @@ const active = useActiveHeading(ids);
 
 <template>
   <div class="space-y-8 text-sm">
-    <nav v-if="links?.length">
+    <nav v-if="links?.length" :aria-label="$t('duxt.toc.title')">
       <p class="mb-3 font-medium">{{ $t('duxt.toc.title') }}</p>
       <ul class="space-y-1 border-l">
         <li v-for="link in links" :key="link.id">
@@ -59,10 +59,13 @@ const active = useActiveHeading(ids);
     </nav>
 
     <!-- The fixed link block that belongs on every page, configured once. -->
-    <nav v-if="duxt.aside?.links?.length">
+    <nav
+      v-if="duxt.aside?.links?.length"
+      :aria-label="duxt.aside.title ?? 'Community'"
+    >
       <p class="mb-3 font-medium">{{ duxt.aside.title ?? 'Community' }}</p>
       <ul class="space-y-2">
-        <li v-for="link in duxt.aside.links" :key="link.label">
+        <li v-for="link in duxt.aside.links" :key="link.to">
           <NuxtLink
             :to="localeLink(link.to)"
             :target="link.external ? '_blank' : undefined"

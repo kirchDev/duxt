@@ -5,7 +5,12 @@
       "sections": "Sections",
       "previous": "Précédent",
       "next": "Suivant",
-      "anchor": "Lien vers cette section"
+      "anchor": "Lien vers cette section",
+      "skip": "Aller au contenu",
+      "main": "Navigation principale",
+      "docs": "Documentation",
+      "pagination": "Navigation entre les pages",
+      "breadcrumb": "Fil d’Ariane"
     }
   }
 }

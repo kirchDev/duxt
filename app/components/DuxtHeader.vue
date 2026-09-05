@@ -21,6 +21,12 @@ function linkTarget(link: DuxtLink) {
 function isActive(to?: string) {
   return Boolean(to && to !== '/' && path.value.startsWith(to));
 }
+
+/** `page` for the page itself, `true` for the branch holding it. */
+function current(to?: string) {
+  if (path.value === to) return 'page';
+  return isActive(to) ? 'true' : undefined;
+}
 </script>
 
 <template>
@@ -73,6 +79,7 @@ function isActive(to?: string) {
                 <li v-for="section in duxt.sections" :key="section.label">
                   <NuxtLink
                     :to="localeLink(section.to)"
+                    :aria-current="current(section.to)"
                     class="flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors"
                     :class="
                       isActive(section.to)
@@ -136,7 +143,10 @@ function isActive(to?: string) {
         </NuxtLink>
       </div>
 
-      <nav class="hidden items-center gap-0.5 text-sm md:flex">
+      <nav
+        class="hidden items-center gap-0.5 text-sm md:flex"
+        :aria-label="$t('duxt.nav.main')"
+      >
         <template v-for="link in duxt.navigation" :key="link.label">
           <DropdownMenu v-if="link.children?.length">
             <DropdownMenuTrigger as-child>

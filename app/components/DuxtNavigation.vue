@@ -37,7 +37,7 @@ function setOpen(item: ContentNavigationItem, value: boolean) {
 </script>
 
 <template>
-  <nav class="text-[13px]">
+  <nav class="text-[13px]" :aria-label="$t('duxt.nav.docs')">
     <ul class="space-y-0.5">
       <li v-for="item in items" :key="item.path">
         <Collapsible

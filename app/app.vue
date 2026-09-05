@@ -62,6 +62,10 @@ if (baseUrl) {
 </script>
 
 <template>
+  <!-- Reads the new page's title into a live region after a client-side
+       navigation; the focus half of the same problem is useDuxtPageFocus. -->
+  <NuxtRouteAnnouncer />
+
   <NuxtLayout>
     <NuxtPage />
   </NuxtLayout>

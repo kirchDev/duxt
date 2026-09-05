@@ -5,6 +5,20 @@ const props = defineProps<{ error: NuxtError }>();
 
 const localeLink = useDuxtLink();
 const path = useDuxtPath();
+const duxt = useDuxtConfig();
+const { locale } = useI18n();
+
+/**
+ * The error page replaces `app.vue`, so it inherits nothing from it — not the
+ * `lang` attribute and not the title template. Both have to be set again here,
+ * or the one page a reader reaches by accident is the one page with an
+ * untitled, language-less document.
+ */
+useHead(() => ({
+  htmlAttrs: { lang: locale.value },
+  title: `${props.error.statusCode} · ${duxt.title}`
+}));
+
 /**
  * The nearest real pages, from the navigation the layout already fetched.
  *
@@ -35,17 +49,6 @@ const suggestions = computed(() => {
 
   return nearestPages(path.value, pages);
 });
-
-// A page missing from one version but present in another is the interesting
-// case: the reader asked for something real, just not here.
-const elsewhere = computed(
-  () =>
-    (
-      props.error.data as {
-        elsewhere?: { version: { label: string }; path: string }[];
-      }
-    )?.elsewhere ?? []
-);
 
 // A page missing from one version but present in another is the interesting
 // case: the reader asked for something real, just not here.

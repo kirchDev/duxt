@@ -6,6 +6,8 @@ const { items } = useDuxtSection(navigation);
 
 <template>
   <div class="flex min-h-[100dvh] flex-col bg-background text-foreground">
+    <DuxtSkipLink />
+
     <!-- How far down the page the reader is, and the `?` sheet listing every
          key the theme binds. -->
     <DuxtProgress />
@@ -21,15 +23,24 @@ const { items } = useDuxtSection(navigation);
          window edge: on a wide screen the docs stay a readable block instead of
          drifting apart. -->
     <div class="mx-auto flex w-full max-w-[90rem] flex-1 gap-8 px-4 lg:px-8">
-      <aside class="hidden w-56 shrink-0 lg:block">
+      <!-- A div, not an aside. The <nav> inside is the landmark and carries
+           the label; a second, unnamed `complementary` around it only makes a
+           screen reader's landmark list longer. -->
+      <div class="hidden w-56 shrink-0 lg:block">
         <div
           class="sticky top-[6.5rem] max-h-[calc(100vh-8rem)] overflow-y-auto py-8 pr-2"
         >
           <DuxtNavigation :items="items" />
         </div>
-      </aside>
+      </div>
 
-      <slot />
+      <main
+        id="duxt-main"
+        tabindex="-1"
+        class="flex min-w-0 flex-1 outline-none"
+      >
+        <slot />
+      </main>
     </div>
 
     <DuxtFooter />

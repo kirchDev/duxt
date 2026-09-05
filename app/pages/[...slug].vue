@@ -119,6 +119,8 @@ useHead(() => ({
 <template>
   <div class="flex min-w-0 flex-1 justify-center gap-10">
     <article class="min-w-0 max-w-3xl flex-1 py-8">
+      <DuxtVersionBanner />
+
       <header class="mb-8 border-b pb-8">
         <DuxtBreadcrumb
           v-if="duxt?.breadcrumb !== false"
@@ -129,7 +131,11 @@ useHead(() => ({
              what a reader does with the page BEFORE reading it, and a control
              for that at the bottom is a control nobody finds. -->
         <div class="flex items-start justify-between gap-4">
-          <h1 class="text-4xl font-semibold tracking-tight text-balance">
+          <h1
+            ref="heading"
+            tabindex="-1"
+            class="text-4xl font-semibold tracking-tight text-balance outline-none"
+          >
             {{ page?.title }}
           </h1>
 
@@ -157,17 +163,13 @@ useHead(() => ({
       <DuxtPageFeedback />
     </article>
 
-    <aside class="hidden w-56 shrink-0 xl:block">
+    <!-- A div for the same reason as the sidebar's: DuxtToc's two <nav>s are
+         the landmarks, and both are labelled. -->
+    <div class="hidden w-56 shrink-0 xl:block">
       <div
         class="sticky top-[6.5rem] max-h-[calc(100vh-8rem)] overflow-y-auto py-8"
       >
         <DuxtToc :links="page?.body?.toc?.links ?? []" />
-      </div>
-    </aside>
-  </div>
-</template>
-      <DuxtVersionBanner />
-
 
         <!-- Provenance under the contents: where this page came from, when it
              last changed and who wrote it. On the right rather than under the
@@ -175,3 +177,7 @@ useHead(() => ({
              links — this column is already the one answering what a page IS
              rather than what it says. -->
         <DuxtPageInfo :page="page" />
+      </div>
+    </div>
+  </div>
+</template>

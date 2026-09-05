@@ -30,7 +30,13 @@
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
+  /* shadcn's own value is oklch(0.556 0 0). Measured, that is 4.73:1 on the
+     page background — and 4.34:1 on --muted / --accent, which is where this
+     token actually lands: a hovered sidebar link, a badge, the sheet. So the
+     default fails AA on exactly the surfaces it is used on. 0.52 gives 5.51:1
+     and 5.05:1, and this token carries the page descriptions, the table of
+     contents and the breadcrumb — too much text to leave borderline. */
+  --muted-foreground: oklch(0.52 0 0);
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
@@ -58,7 +64,9 @@
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
+  /* Same measurement in the dark: 7.63:1 on the background but 5.83:1 on
+     --muted. Lifted for the same reason, by less, because it starts higher. */
+  --muted-foreground: oklch(0.72 0 0);
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
@@ -201,6 +209,26 @@ pre.shiki,
    scrollable blocks (code fences, tables) keep their own overflow. */
 .typeset :where(:not(pre) > code) {
   overflow-wrap: anywhere;
+}
+
+/* Honour a reader who has asked the system for less motion.
+ 
+   Blunt on purpose. The moving parts are the collapsible in the sidebar, the
+   mobile sheet and the toasts, but each of the three animates through a
+   different mechanism — tw-animate-css keyframes on a data-state, reka-ui's
+   presence, vue-sonner's own stylesheet — and naming them one by one leaves the
+   next component to be added moving again. A near-zero duration rather than
+   `none`: reka-ui waits for `animationend` before it unmounts a panel, and an
+   animation that never runs never ends. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Shiki's line annotations, which have classes and no styling of their own.

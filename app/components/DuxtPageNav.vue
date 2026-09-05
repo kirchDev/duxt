@@ -35,6 +35,7 @@ const previous = computed(() =>
 const next = computed(() =>
   index.value >= 0 ? pages.value[index.value + 1] : undefined
 );
+
 /**
  * `[` and `]` move through the section the same way the two links do.
  *
@@ -60,6 +61,7 @@ onDuxtShortcut(
   <nav
     v-if="previous || next"
     class="mt-16 grid gap-4 border-t pt-8 sm:grid-cols-2"
+    :aria-label="$t('duxt.nav.pagination')"
   >
     <NuxtLink
       v-if="previous"
