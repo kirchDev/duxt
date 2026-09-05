@@ -1,7 +1,10 @@
 {
   "duxt": {
     "defaults": {
-      "navigation": { "docs": "Docs", "resources": "Resources" },
+      "navigation": {
+        "docs": "Docs",
+        "resources": "Resources"
+      },
       "resources": {
         "nuxt": "The framework underneath",
         "content": "Sourcing, parsing and querying",
@@ -15,12 +18,13 @@
         "guide": "Guide",
         "reference": "Reference"
       },
-      "links": { "repository": "Repository" },
       "landing": {
         "badge": "Early days — nothing is decided",
         "headline": "Documentation for Nuxt, versioned and multi-repo",
         "description": "Extend one layer and your docs/ folder becomes a site. Point it at other repositories, or at tags of the same one, and those become versions.",
-        "actions": { "docs": "Read the docs" },
+        "actions": {
+          "docs": "Read the docs"
+        },
         "features": {
           "extend": {
             "title": "Extend, don't scaffold",
@@ -46,14 +50,11 @@
             "title": "Machine-readable",
             "description": "llms.txt and an MCP route over the same content, planned as build output."
           }
-        }
+        },
+        "featuresTitle": "Features"
       },
       "aside": {
-        "title": "Community",
-        "star": "Star on GitHub",
-        "issue": "Report an issue",
-        "discord": "Discord community",
-        "docs": "Documentation"
+        "title": "Community"
       }
     }
   }

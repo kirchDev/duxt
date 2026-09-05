@@ -69,6 +69,98 @@ export default defineAppConfig({
       }
     ],
 
+    /**
+     * kirchDev's own links, here rather than in the layer.
+     *
+     * The layer ships `links` and `aside.links` EMPTY, on the same principle
+     * the footer's legal row settled: a link naming a repository, an issue
+     * tracker or a community belongs to whoever runs the site. Shipped as a
+     * default, a stranger extending duxt got a "Star on GitHub" that stars
+     * duxt and a Discord that is not theirs.
+     *
+     * The labels reuse the layer's OWN i18n keys, translated in every language
+     * duxt ships — that is what those keys are for, and why they stayed behind
+     * when the links left.
+     */
+    // The layer ships this row empty — a repository link belongs to whoever
+    // runs the site. Labels written out for the same reason as the sections
+    // above: `duxt.defaults.*` is the layer's private namespace, and a
+    // consumer reaching into it turns an internal rename into a silent break.
+    links: [
+      {
+        icon: 'lucide:github',
+        to: 'https://github.com/kirchDev/duxt',
+        label: {
+          'en-GB': 'Repository',
+          'de-DE': 'Repository',
+          'es-ES': 'Repositorio',
+          'fr-FR': 'Dépôt',
+          'pt-PT': 'Repositório'
+        }
+      }
+    ],
+
+    // Also empty in the layer. Its title ("Community") is generic chrome and
+    // stays there; the links are kirchDev's own and belong here.
+    aside: {
+      links: [
+        {
+          label: {
+            'en-GB': 'Star on GitHub',
+            'de-DE': 'Auf GitHub mit Stern markieren',
+            'es-ES': 'Dar una estrella en GitHub',
+            'fr-FR': 'Mettre une étoile sur GitHub',
+            'pt-PT': 'Dar uma estrela no GitHub'
+          },
+          to: 'https://github.com/kirchDev/duxt',
+          icon: 'lucide:star',
+          external: true
+        },
+        {
+          label: {
+            'en-GB': 'Report an issue',
+            'de-DE': 'Ein Issue melden',
+            'es-ES': 'Informar de un problema',
+            'fr-FR': 'Signaler un problème',
+            'pt-PT': 'Reportar um problema'
+          },
+          to: 'https://github.com/kirchDev/duxt/issues/new/choose',
+          icon: 'lucide:circle-alert',
+          external: true
+        },
+        {
+          label: {
+            'en-GB': 'Discord community',
+            'de-DE': 'Discord-Community',
+            'es-ES': 'Comunidad de Discord',
+            'fr-FR': 'Communauté Discord',
+            'pt-PT': 'Comunidade no Discord'
+          },
+          to: 'https://discord.kirch.dev/',
+          icon: 'lucide:message-circle',
+          external: true
+        },
+        // An internal link, deliberately beside three external ones: `to` is
+        // run through `useDuxtLink`, so it picks up the locale prefix while
+        // the absolute URLs above pass through untouched. `external` only
+        // decides the new tab and the arrow, never the routing.
+        //
+        // TODO: point at duxt's own published documentation once it is
+        // deployed. It links to this same site today, which is circular.
+        {
+          label: {
+            'en-GB': 'Documentation',
+            'de-DE': 'Dokumentation',
+            'es-ES': 'Documentación',
+            'fr-FR': 'Documentation',
+            'pt-PT': 'Documentação'
+          },
+          to: '/duxt/getting-started',
+          icon: 'lucide:book-open-text'
+        }
+      ]
+    },
+
     landing: {
       actions: [
         {

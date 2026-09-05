@@ -84,13 +84,24 @@ export const duxtDefaults: DuxtConfig = {
     }
   ],
 
-  links: [
-    {
-      icon: 'lucide:github',
-      to: 'https://github.com/kirchDev/duxt',
-      label: 'duxt.defaults.links.repository'
-    }
-  ],
+  /**
+   * Empty, like `footer.legal`.
+   *
+   * These are the icon links on the right of the navbar, and they belong to
+   * whoever runs the site. Shipping duxt's own repository here gave a stranger
+   * extending the layer a GitHub icon pointing at somebody else's project —
+   * the same mistake the legal row already settled. kirchDev's own links live
+   * in `www/app/app.config.ts`, where they are an example rather than a
+   * default.
+   *
+   * Their i18n keys went with them. `duxt.defaults.*` translates the defaults
+   * the layer itself ships and nothing else — it is not a vocabulary for
+   * consumers to reach into. A consumer that did would depend on a key it
+   * cannot see being renamed, and i18n answers a missing key by printing the
+   * key, so the break would be silent. Consumers write a literal, their own
+   * key, or the record form; `www` is the worked example of the third.
+   */
+  links: [],
 
   /** Which package managers a command block offers, in the order it shows them. */
   packageManagers: ['pnpm', 'npm', 'yarn', 'bun'],
@@ -102,17 +113,14 @@ export const duxtDefaults: DuxtConfig = {
     badge: 'duxt.defaults.landing.badge',
     headline: 'duxt.defaults.landing.headline',
     description: 'duxt.defaults.landing.description',
+    // One action, and a generic one: "read the docs" is true of every site
+    // built on this layer. A second button pointing at duxt's own repository
+    // was not — see `links` above.
     actions: [
       {
         label: 'duxt.defaults.landing.actions.docs',
         to: '/getting-started',
         icon: 'lucide:arrow-right'
-      },
-      {
-        label: 'GitHub',
-        to: 'https://github.com/kirchDev/duxt',
-        variant: 'outline',
-        external: true
       }
     ],
     features: [
@@ -149,34 +157,18 @@ export const duxtDefaults: DuxtConfig = {
     ]
   },
 
+  /**
+   * Title only, no links — same reasoning as `links` above.
+   *
+   * "Star on GitHub" that stars duxt, an issue tracker that is not yours and a
+   * Discord that is somebody else's community are worse than an empty column.
+   * The block draws nothing until a consumer fills it.
+   *
+   * The title is the exception that stays: "Community" is chrome the layer
+   * draws itself, in every language it ships, and it is not anybody's link.
+   */
   aside: {
-    title: 'duxt.defaults.aside.title',
-    links: [
-      {
-        label: 'duxt.defaults.aside.star',
-        to: 'https://github.com/kirchDev/duxt',
-        icon: 'lucide:star',
-        external: true
-      },
-      {
-        label: 'duxt.defaults.aside.issue',
-        to: 'https://github.com/kirchDev/duxt/issues/new/choose',
-        icon: 'lucide:circle-alert',
-        external: true
-      },
-      {
-        label: 'duxt.defaults.aside.discord',
-        to: 'https://discord.kirch.dev/',
-        icon: 'lucide:message-circle',
-        external: true
-      },
-      // TODO: point at duxt's own published documentation once it is deployed.
-      {
-        label: 'duxt.defaults.aside.docs',
-        to: '/getting-started',
-        icon: 'lucide:book-open-text'
-      }
-    ]
+    title: 'duxt.defaults.aside.title'
   }
 };
 

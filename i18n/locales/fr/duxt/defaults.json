@@ -1,7 +1,10 @@
 {
   "duxt": {
     "defaults": {
-      "navigation": { "docs": "Docs", "resources": "Ressources" },
+      "navigation": {
+        "docs": "Docs",
+        "resources": "Ressources"
+      },
       "resources": {
         "nuxt": "Le framework sous-jacent",
         "content": "Récupération, analyse et requêtes",
@@ -15,12 +18,13 @@
         "guide": "Guide",
         "reference": "Référence"
       },
-      "links": { "repository": "Dépôt" },
       "landing": {
         "badge": "Tout début — rien n'est décidé",
         "headline": "Documentation pour Nuxt, versionnée et multidépôt",
         "description": "Étendez une couche et votre dossier docs/ devient un site. Pointez-la vers d'autres dépôts, ou vers des tags du même, et ceux-ci deviennent des versions.",
-        "actions": { "docs": "Lire la documentation" },
+        "actions": {
+          "docs": "Lire la documentation"
+        },
         "features": {
           "extend": {
             "title": "Étendre, pas générer",
@@ -46,14 +50,11 @@
             "title": "Lisible par une machine",
             "description": "llms.txt et une route MCP sur le même contenu, prévues comme sortie de build."
           }
-        }
+        },
+        "featuresTitle": "Fonctionnalités"
       },
       "aside": {
-        "title": "Communauté",
-        "star": "Mettre une étoile sur GitHub",
-        "issue": "Signaler un problème",
-        "discord": "Communauté Discord",
-        "docs": "Documentation"
+        "title": "Communauté"
       }
     }
   }

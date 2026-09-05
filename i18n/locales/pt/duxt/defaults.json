@@ -1,7 +1,10 @@
 {
   "duxt": {
     "defaults": {
-      "navigation": { "docs": "Docs", "resources": "Recursos" },
+      "navigation": {
+        "docs": "Docs",
+        "resources": "Recursos"
+      },
       "resources": {
         "nuxt": "A framework subjacente",
         "content": "Obtenção, análise e consulta",
@@ -15,12 +18,13 @@
         "guide": "Guia",
         "reference": "Referência"
       },
-      "links": { "repository": "Repositório" },
       "landing": {
         "badge": "Fase inicial — nada está decidido",
         "headline": "Documentação para Nuxt, com versões e vários repositórios",
         "description": "Estenda uma camada e a sua pasta docs/ torna-se um site. Aponte-a para outros repositórios, ou para tags do mesmo, e estes tornam-se versões.",
-        "actions": { "docs": "Ler a documentação" },
+        "actions": {
+          "docs": "Ler a documentação"
+        },
         "features": {
           "extend": {
             "title": "Estender, não gerar",
@@ -46,14 +50,11 @@
             "title": "Legível por máquinas",
             "description": "llms.txt e uma rota MCP sobre o mesmo conteúdo, previstos como saída da build."
           }
-        }
+        },
+        "featuresTitle": "Funcionalidades"
       },
       "aside": {
-        "title": "Comunidade",
-        "star": "Dar uma estrela no GitHub",
-        "issue": "Reportar um problema",
-        "discord": "Comunidade no Discord",
-        "docs": "Documentação"
+        "title": "Comunidade"
       }
     }
   }
