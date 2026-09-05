@@ -14,45 +14,102 @@ export default defineAppConfig({
      * unversioned folder declares none of this and gets none of it.
      */
     sources: [
-      // This repository's own documentation.
-      { path: 'docs', slug: 'duxt' },
+      // This repository's own documentation. `origin` names the repository for
+      // the "Edit this page" link WITHOUT making Content download it — that is
+      // what `repo` would do, and it would clone the checkout we stand in.
+      {
+        path: 'docs',
+        slug: 'duxt',
+        origin: { repo: 'kirchDev/duxt', ref: 'main' }
+      },
 
-      // Another repository, at a branch and at a tag. kirchDev/workflows is
-      // used because it has a real docs/ tree and a real tag to read from.
+      /**
+       * Another repository, at a branch and at four tags. kirchDev/workflows is
+       * used because it has a real docs/ tree and real tags to read from.
+       *
+       * Deliberately one of EACH lifecycle, so every branch of the version
+       * banner is exercised by the site the layer is built against:
+       *
+       *  - `v0.8.0` is the default, so it is the current documentation;
+       *  - `v0.7.0` is older by semver, so its reader is told to upgrade;
+       *  - `v0.6.0` says `eol`, so it warns and leaves the sitemap;
+       *  - `main` is a branch, which semver cannot place against a tag — so the
+       *    config says what it is, and `upcoming` is the one state that must
+       *    never be reached by guessing. Its reader is told the documentation
+       *    may still change, and is NOT told to upgrade.
+       */
       {
         repo: 'kirchDev/workflows',
         path: 'docs',
-        refs: ['main', { tag: 'v0.7.0' }]
+        refs: [
+          { branch: 'main', status: 'upcoming' },
+          { tag: 'v0.8.0' },
+          { tag: 'v0.7.0' },
+          { tag: 'v0.6.0', status: 'eol' }
+        ]
       }
     ],
-    sourceOptions: { defaultRef: 'main' },
+    sourceOptions: { defaultRef: 'v0.8.0' },
+
+    // The feed, pointed at a section that has dated entries. Off by default in
+    // the layer; this site turns it on so the route is exercised.
+    feed: { path: '/workflows/adr', title: 'duxt — decisions' },
 
     // Two repositories means every path carries a repository segment, so the
     // navigation the layer ships — which assumes a single unprefixed source —
     // no longer matches. A consumer with prefixes has to name its own.
-    // Both forms a label may take, side by side on purpose — this site is the
-    // example a consumer reads. The first four reuse the layer's OWN keys,
-    // which are translated in every language duxt ships. `Workflows` is this
-    // site's alone, so it carries its translations inline rather than earning
-    // a locale file of its own for one word.
+    //
+    // Written out per language rather than pointed at the layer's own
+    // `duxt.defaults.sections.*` keys. Those keys are the layer's PRIVATE
+    // namespace: they exist to translate the defaults a consumer has not
+    // overridden, and renaming one is an internal change that would silently
+    // leave this site rendering the key itself. A consumer's labels are the
+    // consumer's, and for a handful of strings the record form costs less than
+    // a locale file per language. `pt-BR` and `en-US` resolve through the
+    // base-language fallback in `resolveDuxtText`, so five entries serve seven
+    // locales.
     sections: [
       {
-        label: 'duxt.defaults.sections.gettingStarted',
+        label: {
+          'en-GB': 'Get started',
+          'de-DE': 'Loslegen',
+          'es-ES': 'Primeros pasos',
+          'fr-FR': 'Démarrer',
+          'pt-PT': 'Começar'
+        },
         to: '/duxt/getting-started',
         icon: 'lucide:rocket'
       },
       {
-        label: 'duxt.defaults.sections.structure',
+        label: {
+          'en-GB': 'Structure',
+          'de-DE': 'Struktur',
+          'es-ES': 'Estructura',
+          'fr-FR': 'Structure',
+          'pt-PT': 'Estrutura'
+        },
         to: '/duxt/structure',
         icon: 'lucide:folder-tree'
       },
       {
-        label: 'duxt.defaults.sections.guide',
+        label: {
+          'en-GB': 'Guide',
+          'de-DE': 'Anleitung',
+          'es-ES': 'Guía',
+          'fr-FR': 'Guide',
+          'pt-PT': 'Guia'
+        },
         to: '/duxt/guide',
         icon: 'lucide:book-open'
       },
       {
-        label: 'duxt.defaults.sections.reference',
+        label: {
+          'en-GB': 'Reference',
+          'de-DE': 'Referenz',
+          'es-ES': 'Referencia',
+          'fr-FR': 'Référence',
+          'pt-PT': 'Referência'
+        },
         to: '/duxt/reference',
         icon: 'lucide:list'
       },
@@ -164,7 +221,13 @@ export default defineAppConfig({
     landing: {
       actions: [
         {
-          label: 'duxt.defaults.landing.actions.docs',
+          label: {
+            'en-GB': 'Read the docs',
+            'de-DE': 'Dokumentation lesen',
+            'es-ES': 'Leer la documentación',
+            'fr-FR': 'Lire la documentation',
+            'pt-PT': 'Ler a documentação'
+          },
           to: '/duxt/getting-started',
           icon: 'lucide:arrow-right'
         },
