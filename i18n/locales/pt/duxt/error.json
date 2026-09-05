@@ -3,7 +3,8 @@
     "error": {
       "title": "Algo correu mal",
       "elsewhere": "Existe em:",
-      "back": "Voltar à documentação"
+      "back": "Voltar à documentação",
+      "nearest": "Procurava uma destas páginas?"
     }
   }
 }

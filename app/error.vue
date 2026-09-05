@@ -4,6 +4,48 @@ import type { NuxtError } from '#app';
 const props = defineProps<{ error: NuxtError }>();
 
 const localeLink = useDuxtLink();
+const path = useDuxtPath();
+/**
+ * The nearest real pages, from the navigation the layout already fetched.
+ *
+ * A 404 in versioned documentation is usually a URL that is nearly right, and
+ * an empty "not found" tells that reader nothing. Only for a 404 — a 500 has
+ * no near miss to offer, and suggesting pages after a server error reads as if
+ * the site had decided the reader was mistaken.
+ */
+const { data: navigation } = await useDuxtNavigation();
+
+const suggestions = computed(() => {
+  if (props.error.statusCode !== 404) return [];
+
+  const pages: { path: string; title?: string }[] = [];
+
+  const walk = (
+    items: { path?: string; title?: string; children?: unknown[] }[]
+  ) => {
+    for (const item of items) {
+      if (item.path) pages.push({ path: item.path, title: item.title });
+      if (Array.isArray(item.children)) {
+        walk(item.children as { path?: string; title?: string }[]);
+      }
+    }
+  };
+
+  walk((navigation.value ?? []) as { path?: string; title?: string }[]);
+
+  return nearestPages(path.value, pages);
+});
+
+// A page missing from one version but present in another is the interesting
+// case: the reader asked for something real, just not here.
+const elsewhere = computed(
+  () =>
+    (
+      props.error.data as {
+        elsewhere?: { version: { label: string }; path: string }[];
+      }
+    )?.elsewhere ?? []
+);
 
 // A page missing from one version but present in another is the interesting
 // case: the reader asked for something real, just not here.
@@ -46,6 +88,25 @@ const elsewhere = computed(
             </NuxtLink>
           </Button>
         </div>
+      </div>
+
+      <div v-if="suggestions.length" class="mt-8 w-full">
+        <p class="mb-3 text-sm text-muted-foreground">
+          {{ $t('duxt.error.nearest') }}
+        </p>
+        <ul class="flex flex-col gap-1 text-sm">
+          <li v-for="page in suggestions" :key="page.path">
+            <NuxtLink
+              :to="localeLink(page.path)"
+              class="flex items-center justify-center gap-2 rounded-md px-3 py-1.5 transition-colors hover:bg-accent"
+            >
+              <span class="font-medium">{{ page.title ?? page.path }}</span>
+              <span class="font-mono text-xs text-muted-foreground">{{
+                page.path
+              }}</span>
+            </NuxtLink>
+          </li>
+        </ul>
       </div>
 
       <Button as-child class="mt-10">

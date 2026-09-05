@@ -1,7 +1,8 @@
 {
   "duxt": {
     "error": {
-      "title": "Algo deu errado"
+      "title": "Algo deu errado",
+      "nearest": "Você quis dizer uma destas páginas?"
     }
   }
 }
