@@ -30,6 +30,53 @@ export default defineContentConfig({
 | `refs`  | `string[]` | the checkout     | Branches or tags published as versions             |
 | `label` | `string`   | the ref          | Shown in the switcher and used in the URL          |
 | `slug`  | `string`   | the repo name    | Segment used in the URL for this repository        |
+| `status`| `string`   | `current`        | Lifecycle of every version this entry publishes    |
+| `origin`| `object`   | —                | `{ repo, ref }` for links back to a local source   |
+
+`status` is one of `upcoming`, `current`, `maintained`, `deprecated` or `eol`. It is not the
+same question as "is this the default": a site can publish v2 as the default
+while v1 is merely older and v0 is dead, and the reader has to be told which of
+the three they are in. A `deprecated` or `eol` version draws a banner, carries a
+badge in the switcher, and an `eol` one is dropped from the sitemap.
+
+`upcoming` is the one that is not about age. A version can be off the default
+because it has not happened **yet**, and its reader needs the opposite of an
+upgrade notice — they need telling that what they are reading may still change.
+Where both version names are semver, the layer works this out on its own; a
+branch cannot be placed against a tag, so `status: 'upcoming'` is how you say
+that `main` or `next` documents what is coming.
+
+`origin` is for the source you do **not** download. Writing `repo` is what makes
+Content clone a repository, so naming your own there would have the build clone
+the checkout it is already standing in. `origin` names it for the "Edit this
+page" link and nothing else:
+
+```ts
+{ path: 'docs', origin: { repo: 'kirchDev/duxt', ref: 'main' } }
+```
+
+### Refs
+
+A bare string is a **branch**. A tag has to say so, because git keeps the two in
+separate namespaces:
+
+```ts
+refs: ['main', { tag: 'v1.2.0' }]
+```
+
+A ref object also takes `label` and `status` of its own, which win over the
+source's.
+
+`'latest'` is **reserved**: it resolves at build time to the newest semver tag
+of that repository, so a release no longer edits the consumer's source list. The
+URL keeps saying `latest`, so a bookmark survives the next release. Newest means
+semver order, not tag date — a patch cut for an old line after a newer minor
+must not become the current docs. A branch genuinely called `latest` needs
+`{ branch: 'latest' }`.
+
+```ts
+{ repo: 'kirchDev/app', refs: ['main', 'latest'] }
+```
 
 ## Options
 
@@ -59,6 +106,51 @@ With a prefix active, a docs folder named like a repository or a version would
 be ambiguous. `duxtSources` throws at build rather than picking one silently —
 give the source a `slug` or a `label`.
 ::
+
+## Drafts
+
+A page named `deploying.draft.md` is served in the dev server and absent from
+the build. Content already strips `.draft` out of the URL, so the page is at
+`/deploying` while you write it.
+
+The marker is the file **name**, not `draft: true` in the frontmatter, and that
+is not a preference. A collection's contents are declared before Content has
+read a single file — for a remote source, before it has been downloaded — so
+nothing at declaration time knows what the frontmatter says. A file name is
+known.
+
+## Partials
+
+`_partials/` in any source's docs folder feeds one shared collection, and any
+page of any source can render a block from it:
+
+```md
+:partial{name="install"}
+```
+
+Content ships no include directive, and across several repositories that is a
+gap with no workaround: an install note that must read the same in three
+projects is copied into three projects and drifts. Partials are excluded from
+the page collections themselves, so they never appear in the sidebar, the search
+or `llms.txt`.
+
+## Moved pages
+
+`redirectFrom` in a page's frontmatter becomes a permanent redirect:
+
+```md
+---
+title: Deploying
+redirectFrom:
+  - /guide/deployment
+---
+```
+
+Written the way the page's own links are — relative to its source, without the
+prefix the site happens to serve it under. The layer generates one rule per
+locale plus the unprefixed form, because it is the only thing that knows which
+prefixes exist. The alternative is the same rule written into every consumer's
+web server, by whoever deploys it rather than by whoever moved the page.
 
 ## A missing page
 

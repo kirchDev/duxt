@@ -70,8 +70,9 @@ What that leaves as candidate value: the **ergonomics** (a compact `sources` lis
 | `pnpm typecheck:app`| `nuxt typecheck` over the layer, run through `www/`        |
 | `pnpm test`         | `vitest run` over the layer's pure logic                   |
 | `pnpm build:app`    | `nuxt build` in `www/` — the gate's SSR check              |
-| `pnpm check`        | Runs `lint` + `format` + both typechecks + `test` + `check:policy` + `build:app` — the CI gate |
+| `pnpm check`        | Runs `lint` + `format` + both typechecks + `test` + `check:policy` + `build:app` + `check:a11y` — the CI gate |
 | `pnpm check:policy` | Proves the two agent policy files ban the same commands    |
+| `pnpm check:a11y`   | axe-core over five rendered pages of the built site         |
 | `pnpm lint:fix`     | Auto-fix lint                                              |
 | `pnpm format:fix`   | Auto-fix format                                            |
 | `pnpm check:fix`    | Auto-fix lint + format                                     |
@@ -79,7 +80,7 @@ What that leaves as candidate value: the **ergonomics** (a compact `sources` lis
 | `pnpm taze`         | Interactive dependency upgrade check                       |
 | `pnpm taze:w`       | Write upgrade results                                      |
 
-Tests cover the layer's pure logic — the source resolver, the config merge, the icon lookup — in `tests/`, run by vitest. Component rendering is not covered: it needs a Nuxt environment, and the failures this repo actually had were SSR failures, which is why `check` builds the site instead. CI runs whatever `check` chains on PR; adding a check to the `check` script is enough, no workflow change needed.
+Tests cover the layer's pure logic — the source resolver, the config merge, the icon lookup, the build validator, the redirect map, the 404's nearest-page scoring — in `tests/`, run by vitest. Component rendering is not covered: it needs a Nuxt environment, and the failures this repo actually had were SSR failures, which is why `check` builds the site instead. `check:a11y` then runs axe-core over that build: jsdom has no layout, so `color-contrast` and `target-size` are reported as skipped rather than passed, and the structural rules — landmarks, names, heading order, ARIA — are what it enforces. CI runs whatever `check` chains on PR; adding a check to the `check` script is enough, no workflow change needed.
 
 ## Architecture / conventions
 
