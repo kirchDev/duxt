@@ -153,6 +153,8 @@ useHead(() => ({
       </div>
 
       <DuxtPageNav :path="path" />
+
+      <DuxtPageFeedback />
     </article>
 
     <aside class="hidden w-56 shrink-0 xl:block">
