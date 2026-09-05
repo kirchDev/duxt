@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { ContentNavigationItem } from '@nuxt/content';
 // The path from the section down to this page, so a deep page says where it
 // sits without the reader consulting the sidebar.
 //
@@ -10,48 +9,17 @@ import type { ContentNavigationItem } from '@nuxt/content';
 // Showing it only where it has two entries made the title jump as the reader
 // moved between a section root and a page inside it. nuxt.com makes the same
 // trade, and prints the section above the title even where it matches it.
+//
+// The trail itself is computed in `useDuxtBreadcrumb`, because the page emits
+// the same one as BreadcrumbList JSON-LD.
 const props = defineProps<{ path: string }>();
 
-const { data: navigation } = await useDuxtNavigation();
-const { source } = useDuxtCollection();
 const localeLink = useDuxtLink();
-const { section } = useDuxtSection(navigation);
-
-const trail = computed<ContentNavigationItem[]>(() => {
-  // The trail starts at the section — the entry the reader clicked in the row
-  // above — and continues with what lies below the source's own prefix.
-  const below = trailBelowPrefix(
-    navigation.value ?? [],
-    props.path,
-    source.value?.prefix ?? ''
-  );
-
-  const head = section.value?.to
-    ? [
-        {
-          title: section.value.label,
-          path: section.value.to
-        } as ContentNavigationItem
-      ]
-    : [];
-
-  // A section's index page is the section: both carry `/duxt/getting-started`,
-  // so the trail listed the same destination twice under two names — the
-  // config's label and the page's own title. Keep the first of each path.
-  const seen = new Set<string>();
-
-  return [...head, ...below].filter((item) => {
-    const path = item.path ?? '';
-    if (seen.has(path)) return false;
-
-    seen.add(path);
-    return true;
-  });
-});
+const trail = await useDuxtBreadcrumb(() => props.path);
 </script>
 
 <template>
-  <Breadcrumb v-if="trail.length">
+  <Breadcrumb v-if="trail.length" :aria-label="$t('duxt.nav.breadcrumb')">
     <BreadcrumbList>
       <template v-for="(item, index) in trail" :key="item.path">
         <BreadcrumbItem>

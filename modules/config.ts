@@ -53,6 +53,72 @@ export default function duxtConfig(_options: unknown, nuxt: Nuxt) {
   } as typeof nuxt.options.appConfig.duxt;
 
   restrictLocales(nuxt, config?.locales);
+  shareSiteUrl(nuxt);
+  excludeOldVersionsFromSitemap(nuxt, resolvedSources);
+}
+
+/**
+ * One origin, stated once.
+ *
+ * `i18n.baseUrl` is where a Nuxt site already has to say what domain it is
+ * served from — hreflang is not valid relative — and robots, the sitemap and
+ * the OG images each want the same answer under a different key. Copying it
+ * here means a consumer sets one value; an explicit `site.url` still wins,
+ * because a human wrote it.
+ */
+function shareSiteUrl(nuxt: Nuxt) {
+  const baseUrl = (nuxt.options as { i18n?: { baseUrl?: string } }).i18n
+    ?.baseUrl;
+
+  if (!baseUrl || typeof baseUrl !== 'string') return;
+
+  const site = (nuxt.options as { site?: { url?: string } }).site ?? {};
+  if (site.url) return;
+
+  (nuxt.options as { site?: { url?: string } }).site = {
+    ...site,
+    url: baseUrl
+  };
+}
+
+/**
+ * Keep the versions the page tells a crawler to ignore out of the sitemap.
+ *
+ * A non-default version carries `noindex` and a canonical pointing at the
+ * current one; an `eol` version is gone whether or not it is the default.
+ * Listing either in the sitemap asks a crawler to fetch exactly what the page
+ * then tells it to drop — the two halves have to agree, so both are derived
+ * from the same manifest.
+ *
+ * Four patterns per prefix because the locale segment sits in front of it:
+ * `/workflows/v0.7.0` and `/de-DE/workflows/v0.7.0` are the same page.
+ */
+function excludeOldVersionsFromSitemap(
+  nuxt: Nuxt,
+  sources: ReturnType<typeof duxtSourceManifest>
+) {
+  const hidden = sources.filter(
+    (source) => source.prefix && (!source.isDefault || source.status === 'eol')
+  );
+
+  if (!hidden.length) return;
+
+  const options = nuxt.options as {
+    sitemap?: { exclude?: string[] };
+  };
+
+  const exclude = options.sitemap?.exclude ?? [];
+
+  for (const source of hidden) {
+    exclude.push(
+      source.prefix,
+      `${source.prefix}/**`,
+      `/*${source.prefix}`,
+      `/*${source.prefix}/**`
+    );
+  }
+
+  options.sitemap = { ...options.sitemap, exclude: [...new Set(exclude)] };
 }
 
 function restrictLocales(nuxt: Nuxt, wanted: string[] | undefined) {

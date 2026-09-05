@@ -1,9 +1,39 @@
+import { createRequire } from 'node:module';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineNuxtConfig } from 'nuxt/config';
 import tailwindcss from '@tailwindcss/vite';
 
 /** Resolve against this layer, not the project extending it. */
 const layer = (path: string) => fileURLToPath(new URL(path, import.meta.url));
+
+/**
+ * The one file Nitro's tracer cannot see.
+ *
+ * satori shapes text with harfbuzz, which is a WebAssembly module read at
+ * runtime with `fs.readFile` — not imported. Nothing in the module graph
+ * mentions it, so the build copies `harfbuzzjs`'s JavaScript and leaves
+ * `hb.wasm` behind, and the first request for an OG image dies with ENOENT on a
+ * path inside `.output`. Naming the file explicitly is the whole fix.
+ *
+ * Resolved rather than hard-coded, and optional: a consumer who has replaced
+ * the renderer, or pruned satori, must not have the build fail over a file
+ * nothing reads.
+ */
+const require_ = createRequire(import.meta.url);
+
+function harfbuzzWasm(): string | undefined {
+  try {
+    return join(
+      dirname(require_.resolve('harfbuzzjs/package.json')),
+      'hb.wasm'
+    );
+  } catch {
+    return undefined;
+  }
+}
+
+const wasm = harfbuzzWasm();
 
 /**
  * The locales the layer ships strings for.
@@ -159,6 +189,42 @@ export default defineNuxtConfig({
     // First: it narrows the locale list before @nuxtjs/i18n reads it, and
     // resolves the source manifest before anything queries a collection.
     layer('./modules/config.ts'),
+
+    // Reads what Content parses and reports what the build would otherwise
+    // swallow — an empty collection, a folder shadowed by a prefix, a link
+    // pointing nowhere, a page with no title.
+    layer('./modules/validate.ts'),
+
+    // A devtools tab showing the resolved sources — dev only, and a no-op
+    // outside it.
+    layer('./modules/devtools.ts'),
+
+    // "Last updated" and the contributor list, read off each page's own git
+    // history at parse time.
+    layer('./modules/git-meta.ts'),
+
+    // `redirectFrom:` in a page's frontmatter, under every prefix the site
+    // serves that page at.
+    layer('./modules/redirects.ts'),
+
+    /**
+     * The SEO half, BEFORE Content on purpose.
+     *
+     * @nuxtjs/sitemap wires itself into Content's collections, and it says so
+     * out loud when it is loaded second — "this may cause issues with the
+     * integration". It does: the sitemap then lists the site's routes and not
+     * one documentation page.
+     *
+     * All four read `site.url`, which the duxt module fills in from
+     * `i18n.baseUrl` so a consumer states its origin once rather than four
+     * times; without one they degrade to relative output rather than inventing
+     * a domain.
+     */
+    '@nuxtjs/robots',
+    '@nuxtjs/sitemap',
+    'nuxt-og-image',
+    '@nuxt/image',
+
     '@nuxt/content',
     '@nuxt/icon',
     '@nuxtjs/color-mode',
@@ -198,6 +264,8 @@ export default defineNuxtConfig({
       'Call list_pages for the table of contents, search_docs to find a page by ' +
       'term, and read_page for the full text of one page.'
   },
+
+  nitro: wasm ? { externals: { traceInclude: [wasm] } } : {},
 
   css: [layer('./app/assets/css/duxt.css')],
 
@@ -244,6 +312,26 @@ export default defineNuxtConfig({
     experimental: {
       nativeSqlite: true
     }
+  },
+
+  /**
+   * The sitemap lists pages, not versions of pages.
+   *
+   * `exclude` is filled in by the duxt module from the resolved manifest — a
+   * version that is not the default carries `noindex` and a canonical pointing
+   * elsewhere, so listing it here would ask a crawler to fetch exactly what the
+   * page then tells it to drop. Same for an `eol` version, which is excluded
+   * whether or not it is the default.
+   */
+  sitemap: {
+    // Content pages reach the sitemap through the module's own Content
+    // integration; the duxt module adds what the version rules exclude.
+    //
+    // Partials are the one entry written by hand: they share the pages' schema
+    // (see `definePartials`), so the sitemap module treats them as pages, and
+    // a block of prose meant to be included in three places is not a page a
+    // crawler should be offered.
+    exclude: ['/_partials/**', '/*/_partials/**']
   },
 
   colorMode: {

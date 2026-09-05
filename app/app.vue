@@ -18,6 +18,7 @@
  * consumer's config; duxt cannot guess it.
  */
 const { locale, locales } = useI18n();
+const duxt = useDuxtConfig();
 
 const baseUrl = (useRuntimeConfig().public as { i18n?: { baseUrl?: string } })
   .i18n?.baseUrl;
@@ -31,7 +32,14 @@ const direction = computed(() => {
 });
 
 useHead(() => ({
-  htmlAttrs: { lang: locale.value, dir: direction.value }
+  htmlAttrs: { lang: locale.value, dir: direction.value },
+
+  // Every page said only its own title, so a tab, a bookmark and a search
+  // result all read "Deploying" with nothing saying whose documentation it is.
+  // A page setting no title of its own gets the site name alone rather than a
+  // dangling separator.
+  titleTemplate: (title?: string) =>
+    title ? `${title} · ${duxt.title}` : duxt.title
 }));
 
 if (baseUrl) {

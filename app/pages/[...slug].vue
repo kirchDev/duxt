@@ -5,6 +5,9 @@ definePageMeta({ layout: 'docs' });
 
 const path = useDuxtPath();
 const duxt = useDuxtConfig();
+const localeLink = useDuxtLink();
+const { absolute } = useDuxtSiteUrl();
+const { locale } = useI18n();
 
 const { data: page } = await useAsyncData(`docs-${path.value}`, () =>
   queryCollection(collection.value as DuxtCollectionArg)
@@ -26,10 +29,91 @@ onMounted(() =>
   remember({ path: path.value, title: page.value?.title ?? path.value })
 );
 
-useSeoMeta({
+// After a client-side navigation the focus is still on whatever link was
+// clicked. Move it to the heading of the page that arrived.
+const heading = useDuxtPageFocus();
+
+const { current, shouldIndex, preferredPath } = useDuxtVersion();
+
+// The social card. Rendered from the layer's own template unless the consumer
+// ships a component of the same name — see `OgImage/Duxt.satori.vue`.
+//
+// `defineOgImage`, not `defineOgImageComponent`: the latter is deprecated in
+// nuxt-og-image v6 and warns once per render. Same arguments, same behaviour.
+defineOgImage('Duxt', {
   title: page.value.title,
-  description: page.value.description
+  description: page.value.description,
+  site: duxt.title,
+  version: current.value?.version ?? ''
 });
+const trail = await useDuxtBreadcrumb(() => path.value);
+
+/**
+ * The full head, not the two fields `useSeoMeta` was called with before.
+ *
+ * `canonical` and `robots` are the version half: an older or dead version of a
+ * page points at the current one and asks not to be indexed itself, so a search
+ * engine stops offering v0.7.0 where the reader wanted today's docs. The Open
+ * Graph and Twitter fields are the social half — every one of them is already
+ * on the page object, so leaving them unset was only ever an omission.
+ */
+useSeoMeta({
+  title: () => page.value?.title,
+  description: () => page.value?.description,
+  ogTitle: () => page.value?.title,
+  ogDescription: () => page.value?.description,
+  ogType: 'article',
+  ogUrl: () => absolute(localeLink(path.value) ?? path.value),
+  twitterCard: 'summary_large_image',
+  twitterTitle: () => page.value?.title,
+  twitterDescription: () => page.value?.description,
+  robots: () => (shouldIndex.value ? undefined : 'noindex, follow')
+});
+
+useHead(() => ({
+  link: [
+    {
+      rel: 'canonical',
+      href: absolute(localeLink(preferredPath.value) ?? preferredPath.value)
+    }
+  ],
+
+  /**
+   * TechArticle plus BreadcrumbList. The trail is the one the breadcrumb draws,
+   * taken from the same composable so the two cannot disagree; the article
+   * fields are the ones already in the head above.
+   */
+  script: [
+    {
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@graph': [
+          {
+            '@type': 'TechArticle',
+            headline: page.value?.title,
+            description: page.value?.description,
+            inLanguage: locale.value,
+            url: absolute(localeLink(path.value) ?? path.value),
+            isPartOf: {
+              '@type': 'WebSite',
+              name: duxt.title
+            }
+          },
+          {
+            '@type': 'BreadcrumbList',
+            itemListElement: trail.value.map((item, index) => ({
+              '@type': 'ListItem',
+              position: index + 1,
+              name: item.title,
+              item: absolute(localeLink(item.path ?? '/') ?? '/')
+            }))
+          }
+        ]
+      })
+    }
+  ]
+}));
 </script>
 
 <template>
