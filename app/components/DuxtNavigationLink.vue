@@ -5,7 +5,8 @@ import type { ContentNavigationItem } from '@nuxt/content';
 // a folder inside a folder keeps working without a second component.
 defineProps<{ item: ContentNavigationItem }>();
 
-const route = useRoute();
+const path = useDuxtPath();
+const localeLink = useDuxtLink();
 
 const iconOf = (item: ContentNavigationItem) =>
   typeof item.icon === 'string' ? item.icon : undefined;
@@ -16,10 +17,10 @@ const iconOf = (item: ContentNavigationItem) =>
 
   <NuxtLink
     v-else
-    :to="item.path"
+    :to="localeLink(item.path)"
     class="flex items-center gap-2 rounded-md px-2 py-1.5 leading-5 transition-colors"
     :class="
-      route.path === item.path
+      path === item.path
         ? 'bg-primary/10 font-medium text-primary'
         : 'text-muted-foreground hover:bg-accent hover:text-foreground'
     "

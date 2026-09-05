@@ -5,13 +5,13 @@ import type { ContentNavigationItem } from '@nuxt/content';
 // on every navigation — not only on first render.
 const props = defineProps<{ items: ContentNavigationItem[] }>();
 
-const route = useRoute();
+const path = useDuxtPath();
 
 const iconOf = (item: ContentNavigationItem) =>
   typeof item.icon === 'string' ? item.icon : undefined;
 
 const contains = (item: ContentNavigationItem): boolean =>
-  route.path === item.path ||
+  path.value === item.path ||
   Boolean(item.children?.some((child) => contains(child)));
 
 // `default-open` is the INITIAL state of an uncontrolled collapsible: read once

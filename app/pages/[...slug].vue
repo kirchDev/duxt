@@ -3,11 +3,13 @@ const { collection } = useDuxtCollection();
 
 definePageMeta({ layout: 'docs' });
 
-const route = useRoute();
+const path = useDuxtPath();
 const duxt = useDuxtConfig();
 
-const { data: page } = await useAsyncData(`docs-${route.path}`, () =>
-  queryCollection(collection.value).path(route.path).first()
+const { data: page } = await useAsyncData(`docs-${path.value}`, () =>
+  queryCollection(collection.value as DuxtCollectionArg)
+    .path(path.value)
+    .first()
 );
 
 if (!page.value) {
@@ -21,7 +23,7 @@ if (!page.value) {
 // Feeds the search dialog's empty state.
 const { remember } = useRecentPages();
 onMounted(() =>
-  remember({ path: route.path, title: page.value?.title ?? route.path })
+  remember({ path: path.value, title: page.value?.title ?? path.value })
 );
 
 useSeoMeta({
@@ -36,7 +38,7 @@ useSeoMeta({
       <header class="mb-8 border-b pb-8">
         <DuxtBreadcrumb
           v-if="duxt?.breadcrumb !== false"
-          :path="route.path"
+          :path="path"
           class="mb-3"
         />
         <h1 class="text-4xl font-semibold tracking-tight text-balance">
@@ -54,7 +56,7 @@ useSeoMeta({
         <ContentRenderer v-if="page" :value="page" />
       </div>
 
-      <DuxtPageNav :path="route.path" />
+      <DuxtPageNav :path="path" />
     </article>
 
     <aside class="hidden w-56 shrink-0 xl:block">

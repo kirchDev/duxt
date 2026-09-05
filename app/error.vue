@@ -3,6 +3,8 @@ import type { NuxtError } from '#app';
 
 const props = defineProps<{ error: NuxtError }>();
 
+const localeLink = useDuxtLink();
+
 // A page missing from one version but present in another is the interesting
 // case: the reader asked for something real, just not here.
 const elsewhere = computed(
@@ -24,11 +26,13 @@ const elsewhere = computed(
         {{ error.statusCode }}
       </p>
       <h1 class="mt-3 text-3xl font-semibold tracking-tight text-balance">
-        {{ error.statusMessage ?? 'Something went wrong' }}
+        {{ error.statusMessage ?? $t('duxt.error.title') }}
       </h1>
 
       <div v-if="elsewhere.length" class="mt-8 w-full">
-        <p class="mb-3 text-sm text-muted-foreground">It exists in:</p>
+        <p class="mb-3 text-sm text-muted-foreground">
+          {{ $t('duxt.error.elsewhere') }}
+        </p>
         <div class="flex flex-wrap justify-center gap-2">
           <Button
             v-for="entry in elsewhere"
@@ -37,7 +41,7 @@ const elsewhere = computed(
             variant="outline"
             size="sm"
           >
-            <NuxtLink :to="entry.path" class="font-mono text-xs">
+            <NuxtLink :to="localeLink(entry.path)" class="font-mono text-xs">
               {{ entry.version.label }}
             </NuxtLink>
           </Button>
@@ -45,9 +49,9 @@ const elsewhere = computed(
       </div>
 
       <Button as-child class="mt-10">
-        <NuxtLink to="/">
+        <NuxtLink :to="localeLink('/')">
           <Icon name="lucide:arrow-left" class="size-4" />
-          Back to the documentation
+          {{ $t('duxt.error.back') }}
         </NuxtLink>
       </Button>
     </div>

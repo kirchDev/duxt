@@ -17,14 +17,18 @@ const { collection } = useDuxtCollection();
 const open = ref(false);
 const query = ref('');
 const router = useRouter();
+const localeLink = useDuxtLink();
 
-const { search, status, init } = useSearchCollection(collection, {
-  // A table is flattened into one string, so its cells run together —
-  // `KeyWhat it controlstitleThe name in the navbar…`. Its content is still
-  // reachable through the page that holds it.
-  ignoredTags: ['table'],
-  immediate: false
-});
+const { search, status, init } = useSearchCollection(
+  collection as unknown as Parameters<typeof useSearchCollection>[0],
+  {
+    // A table is flattened into one string, so its cells run together —
+    // `KeyWhat it controlstitleThe name in the navbar…`. Its content is still
+    // reachable through the page that holds it.
+    ignoredTags: ['table'],
+    immediate: false
+  }
+);
 
 // The second pass, for what the database cannot match. Lazy inside, so this
 // costs nothing until a query comes back empty.
@@ -89,7 +93,9 @@ const grouped = computed(() => {
   const bySection = new Map<string, DuxtSearchSection[]>();
 
   for (const hit of results.value) {
-    const label = sectionOf(hit.id);
+    // A section label may be configured per locale; the group key has to be a
+    // plain string, and by this point useDuxtConfig has resolved it.
+    const label = asText(sectionOf(hit.id)) ?? 'Documentation';
     bySection.set(label, [...(bySection.get(label) ?? []), hit]);
   }
 
@@ -107,7 +113,7 @@ function go(id: string) {
   query.value = '';
   results.value = [];
   approximate.value = false;
-  router.push(id);
+  router.push(localeLink(id)!);
 }
 
 /** Where a hit sits: the page, and the headings above it inside that page. */
@@ -145,7 +151,7 @@ onMounted(() => {
     @click="show"
   >
     <Icon name="lucide:search" class="size-4" />
-    <span class="text-sm">Search</span>
+    <span class="text-sm">{{ $t('duxt.search.label') }}</span>
     <kbd
       class="ml-auto hidden rounded border bg-muted px-1.5 font-mono text-[10px] sm:inline-block"
     >
@@ -171,7 +177,7 @@ onMounted(() => {
       <input
         v-model="query"
         class="flex h-11 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-        placeholder="Search the documentation…"
+        :placeholder="$t('duxt.search.placeholder')"
         autofocus
       />
     </div>
@@ -181,7 +187,7 @@ onMounted(() => {
            sections as entry points and, once there is any history, the pages
            this reader came from — which is what they are most likely after. -->
       <template v-if="!query.trim()">
-        <CommandGroup v-if="recent.length" heading="Recently viewed">
+        <CommandGroup v-if="recent.length" :heading="$t('duxt.search.recent')">
           <CommandItem
             v-for="page in recent"
             :key="page.path"
@@ -200,10 +206,10 @@ onMounted(() => {
           </CommandItem>
         </CommandGroup>
 
-        <CommandGroup heading="Sections">
+        <CommandGroup :heading="$t('duxt.search.sections')">
           <CommandItem
             v-for="section in duxt.sections ?? []"
-            :key="section.label"
+            :key="section.to"
             :value="`section ${section.label}`"
             class="gap-2"
             @select="go(section.to ?? '/')"
@@ -222,7 +228,7 @@ onMounted(() => {
         class="flex flex-col items-center gap-2 py-12 text-sm text-muted-foreground"
       >
         <Icon name="lucide:search-x" class="size-5 opacity-60" />
-        Nothing found for “{{ query }}”.
+        {{ $t('duxt.search.empty', { query }) }}
       </div>
 
       <!-- Say so when the exact search came up empty, otherwise a near-miss
@@ -233,7 +239,7 @@ onMounted(() => {
         class="flex items-center gap-2 px-3 pt-3 pb-1 text-xs text-muted-foreground"
       >
         <Icon name="lucide:sparkles" class="size-3.5 shrink-0" />
-        No exact match for “{{ query }}” — showing the closest.
+        {{ $t('duxt.search.approximate', { query }) }}
       </div>
 
       <!-- One line per hit, grouped by section: the page is context on the

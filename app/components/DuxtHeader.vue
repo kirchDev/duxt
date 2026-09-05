@@ -1,7 +1,8 @@
 <script setup lang="ts">
 const duxt = useDuxtConfig();
 const colorMode = useColorMode();
-const route = useRoute();
+const path = useDuxtPath();
+const localeLink = useDuxtLink();
 
 const { data: navigation } = await useDuxtNavigation();
 
@@ -18,7 +19,7 @@ function linkTarget(link: DuxtLink) {
 }
 
 function isActive(to?: string) {
-  return Boolean(to && to !== '/' && route.path.startsWith(to));
+  return Boolean(to && to !== '/' && path.value.startsWith(to));
 }
 </script>
 
@@ -38,7 +39,7 @@ function isActive(to?: string) {
               variant="ghost"
               size="icon"
               class="lg:hidden"
-              aria-label="Open navigation"
+              :aria-label="$t('duxt.nav.open')"
             >
               <Icon name="lucide:menu" class="size-5" />
             </Button>
@@ -66,12 +67,12 @@ function isActive(to?: string) {
                 v-if="duxt.sections?.length"
                 class="mb-2 text-xs font-medium text-muted-foreground"
               >
-                Sections
+                {{ $t('duxt.nav.sections') }}
               </p>
               <ul v-if="duxt.sections?.length" class="mb-6 space-y-0.5 text-sm">
                 <li v-for="section in duxt.sections" :key="section.label">
                   <NuxtLink
-                    :to="section.to"
+                    :to="localeLink(section.to)"
                     class="flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors"
                     :class="
                       isActive(section.to)
@@ -102,7 +103,7 @@ function isActive(to?: string) {
                       :key="entry.label"
                     >
                       <NuxtLink
-                        :to="entry.to"
+                        :to="localeLink(entry.to)"
                         :target="entry.external ? '_blank' : undefined"
                         class="flex items-center gap-2 rounded-md px-2 py-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                       >
@@ -127,7 +128,7 @@ function isActive(to?: string) {
         </Sheet>
 
         <NuxtLink
-          to="/"
+          :to="localeLink('/')"
           class="flex items-center gap-2 text-[15px] font-semibold tracking-tight"
         >
           <Icon name="lucide:book-open-text" class="size-5 text-primary" />
@@ -151,11 +152,11 @@ function isActive(to?: string) {
             <DropdownMenuContent align="center" class="w-64">
               <DropdownMenuItem
                 v-for="child in link.children"
-                :key="child.label"
+                :key="child.to"
                 as-child
               >
                 <NuxtLink
-                  :to="child.to"
+                  :to="localeLink(child.to)"
                   :target="child.external ? '_blank' : undefined"
                   class="flex items-start gap-2.5"
                 >
@@ -189,7 +190,7 @@ function isActive(to?: string) {
             "
           >
             <NuxtLink
-              :to="link.to"
+              :to="localeLink(link.to)"
               :target="link.external ? '_blank' : undefined"
             >
               {{ link.label }}
@@ -209,7 +210,7 @@ function isActive(to?: string) {
 
         <Button
           v-for="link in duxt.links ?? []"
-          :key="link.label"
+          :key="link.to"
           as-child
           variant="ghost"
           size="icon"
@@ -220,10 +221,12 @@ function isActive(to?: string) {
           </a>
         </Button>
 
+        <DuxtLocale />
+
         <Button
           variant="ghost"
           size="icon"
-          aria-label="Toggle theme"
+          :aria-label="$t('duxt.theme.toggle')"
           @click="toggleTheme"
         >
           <Icon

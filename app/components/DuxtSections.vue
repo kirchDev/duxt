@@ -3,10 +3,11 @@
 // entry point into a part of the tree. nuxt.com's docs read this way, and it
 // keeps the sidebar showing one section instead of everything at once.
 const duxt = useDuxtConfig();
-const route = useRoute();
+const path = useDuxtPath();
+const localeLink = useDuxtLink();
 
 function isActive(to?: string) {
-  return Boolean(to && route.path.startsWith(to));
+  return Boolean(to && path.value.startsWith(to));
 }
 </script>
 
@@ -21,8 +22,8 @@ function isActive(to?: string) {
     >
       <NuxtLink
         v-for="section in duxt.sections"
-        :key="section.label"
-        :to="section.to"
+        :key="section.to"
+        :to="localeLink(section.to)"
         class="my-1.5 flex shrink-0 items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors"
         :class="
           isActive(section.to)

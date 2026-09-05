@@ -4,11 +4,12 @@ import type { ContentNavigationItem } from '@nuxt/content';
 // navigation, so a new page appears here without the index being edited.
 const props = defineProps<{ path?: string }>();
 
-const route = useRoute();
+const path = useDuxtPath();
+const localeLink = useDuxtLink();
 
 const { data: navigation } = await useDuxtNavigation();
 
-const base = computed(() => props.path ?? route.path);
+const base = computed(() => props.path ?? path.value);
 
 const items = computed(() => {
   const branch = navigation.value?.find((item) => item.path === base.value);
@@ -22,7 +23,11 @@ const iconOf = (item: ContentNavigationItem) =>
 
 <template>
   <div v-if="items.length" class="not-typeset my-8 grid gap-4 sm:grid-cols-2">
-    <NuxtLink v-for="item in items" :key="item.path" :to="item.path">
+    <NuxtLink
+      v-for="item in items"
+      :key="item.path"
+      :to="localeLink(item.path)"
+    >
       <Card
         class="h-full transition-colors hover:border-foreground/20 hover:bg-accent/30"
       >

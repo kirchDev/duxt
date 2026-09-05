@@ -1,0 +1,60 @@
+{
+  "duxt": {
+    "defaults": {
+      "navigation": { "docs": "Docs", "resources": "Ressourcen" },
+      "resources": {
+        "nuxt": "Das Framework darunter",
+        "content": "Beschaffen, parsen und abfragen",
+        "shadcn": "Die Komponentenbasis",
+        "tailwind": "Das Styling-System",
+        "mdc": "Komponenten in Markdown"
+      },
+      "sections": {
+        "gettingStarted": "Loslegen",
+        "structure": "Struktur",
+        "guide": "Anleitung",
+        "reference": "Referenz"
+      },
+      "links": { "repository": "Repository" },
+      "landing": {
+        "badge": "Frühe Phase — nichts ist entschieden",
+        "headline": "Dokumentation für Nuxt, versioniert und über mehrere Repositories",
+        "description": "Einen Layer erweitern, und dein docs/-Ordner wird zur Website. Zeig damit auf andere Repositories oder auf Tags desselben, und daraus werden Versionen.",
+        "actions": { "docs": "Dokumentation lesen" },
+        "features": {
+          "extend": {
+            "title": "Erweitern statt generieren",
+            "description": "Eine Zeile Konfiguration bringt Theme, Seiten und Komponenten — jede Datei bleibt überschreibbar."
+          },
+          "sources": {
+            "title": "Quellen als Liste",
+            "description": "Eine Deklaration pro Quelle statt einer Collection pro Version und Repository."
+          },
+          "git": {
+            "title": "Git-nativ, nicht nachgebaut",
+            "description": "Branches, Tags, private Repositories und Caching kommen aus Content v3 selbst."
+          },
+          "shadcn": {
+            "title": "shadcn-vue",
+            "description": "Komponenten werden kopiert, nicht importiert. Umgestalten heißt eine Datei bearbeiten."
+          },
+          "mdc": {
+            "title": "Komponenten in Markdown",
+            "description": "MDC kommt mit Content — eine Vue-Komponente per Block-Syntax aufrufen."
+          },
+          "machine": {
+            "title": "Maschinenlesbar",
+            "description": "llms.txt und eine MCP-Route über denselben Inhalt, geplant als Build-Ausgabe."
+          }
+        }
+      },
+      "aside": {
+        "title": "Community",
+        "star": "Auf GitHub mit Stern markieren",
+        "issue": "Ein Issue melden",
+        "discord": "Discord-Community",
+        "docs": "Dokumentation"
+      }
+    }
+  }
+}

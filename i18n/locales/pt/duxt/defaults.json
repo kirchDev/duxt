@@ -1,0 +1,60 @@
+{
+  "duxt": {
+    "defaults": {
+      "navigation": { "docs": "Docs", "resources": "Recursos" },
+      "resources": {
+        "nuxt": "A framework subjacente",
+        "content": "Obtenção, análise e consulta",
+        "shadcn": "A base de componentes",
+        "tailwind": "O sistema de estilos",
+        "mdc": "Componentes dentro do Markdown"
+      },
+      "sections": {
+        "gettingStarted": "Começar",
+        "structure": "Estrutura",
+        "guide": "Guia",
+        "reference": "Referência"
+      },
+      "links": { "repository": "Repositório" },
+      "landing": {
+        "badge": "Fase inicial — nada está decidido",
+        "headline": "Documentação para Nuxt, com versões e vários repositórios",
+        "description": "Estenda uma camada e a sua pasta docs/ torna-se um site. Aponte-a para outros repositórios, ou para tags do mesmo, e estes tornam-se versões.",
+        "actions": { "docs": "Ler a documentação" },
+        "features": {
+          "extend": {
+            "title": "Estender, não gerar",
+            "description": "Uma linha de configuração traz tema, páginas e componentes — qualquer ficheiro pode ser substituído."
+          },
+          "sources": {
+            "title": "Fontes como uma lista",
+            "description": "Uma declaração por fonte em vez de uma coleção por versão e repositório."
+          },
+          "git": {
+            "title": "Nativo de Git, não reinventado",
+            "description": "Ramos, tags, repositórios privados e cache vêm do próprio Content v3."
+          },
+          "shadcn": {
+            "title": "shadcn-vue",
+            "description": "Os componentes são copiados, não importados. Redesenhar um é editar um ficheiro."
+          },
+          "mdc": {
+            "title": "Componentes em Markdown",
+            "description": "O MDC vem com o Content — chame um componente Vue com sintaxe de bloco."
+          },
+          "machine": {
+            "title": "Legível por máquinas",
+            "description": "llms.txt e uma rota MCP sobre o mesmo conteúdo, previstos como saída da build."
+          }
+        }
+      },
+      "aside": {
+        "title": "Comunidade",
+        "star": "Dar uma estrela no GitHub",
+        "issue": "Reportar um problema",
+        "discord": "Comunidade no Discord",
+        "docs": "Documentação"
+      }
+    }
+  }
+}

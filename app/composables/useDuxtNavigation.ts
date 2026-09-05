@@ -10,10 +10,15 @@ import type { ContentNavigationItem } from '@nuxt/content';
  * client-side move from one repository to another refetched under the old
  * collection, and the sidebar kept showing the previous project's pages.
  */
-const active = shallowRef<'docs'>('docs');
+// Cast: this is only the value before the first `watchEffect` below replaces
+// it, which happens before anything fetches.
+const active = shallowRef('docs' as DuxtCollectionName);
 
 const handler = () =>
-  queryCollectionNavigation(active.value, ['icon', 'description']);
+  queryCollectionNavigation(active.value as DuxtCollectionArg, [
+    'icon',
+    'description'
+  ]);
 
 /**
  * The navigation tree for the collection serving this route.

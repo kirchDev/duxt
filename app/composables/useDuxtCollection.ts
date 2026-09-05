@@ -13,27 +13,36 @@
  */
 export function useDuxtCollection() {
   const duxt = useDuxtConfig();
-  const route = useRoute();
+  const path = useDuxtPath();
 
   /** Longest matching prefix wins: `/app/v2` beats `/app` on `/app/v2/guide`. */
   const current = computed(() => {
-    const sources = duxt.sources ?? [];
+    const sources = duxt.resolvedSources ?? [];
 
     return (
       [...sources]
         .sort((a, b) => b.prefix.length - a.prefix.length)
         .find(
-          (source) => !source.prefix || route.path.startsWith(source.prefix)
-        ) ?? sources.find((source) => !source.prefix)
+          (source) => !source.prefix || path.value.startsWith(source.prefix)
+        ) ??
+      sources.find((source) => !source.prefix) ??
+      // The landing page matches NO prefix on a site whose every source has
+      // one, and there is no unprefixed source to fall back to. It still needs
+      // a real collection for the navigation the header draws — falling
+      // through to a literal `docs` names one that such a site does not have,
+      // and the failing query took the whole render down with it.
+      sources[0]
     );
   });
 
   /** Cast because the name is data: Content types collections from the config. */
-  const name = computed(() => (current.value?.collection ?? 'docs') as 'docs');
+  const name = computed(
+    () => (current.value?.collection ?? 'docs') as DuxtCollectionName
+  );
 
   return {
     collection: name,
     source: current,
-    sources: computed(() => duxt.sources ?? [])
+    sources: computed(() => duxt.resolvedSources ?? [])
   };
 }

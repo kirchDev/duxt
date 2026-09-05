@@ -62,7 +62,7 @@ async function copy() {
         variant="ghost"
         size="icon"
         class="ml-auto size-7 hover:bg-accent hover:text-foreground"
-        :aria-label="copied ? 'Copied' : 'Copy code'"
+        :aria-label="copied ? $t('duxt.code.copied') : $t('duxt.code.copy')"
         @click="copy"
       >
         <Icon
@@ -78,7 +78,7 @@ async function copy() {
       size="icon"
       class="absolute top-2 right-2 size-7 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-accent focus-visible:opacity-100"
       :class="{ 'opacity-100': copied }"
-      :aria-label="copied ? 'Copied' : 'Copy code'"
+      :aria-label="copied ? $t('duxt.code.copied') : $t('duxt.code.copy')"
       @click="copy"
     >
       <Icon :name="copied ? 'lucide:check' : 'lucide:copy'" class="size-3.5" />

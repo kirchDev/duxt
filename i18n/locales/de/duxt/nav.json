@@ -1,0 +1,11 @@
+{
+  "duxt": {
+    "nav": {
+      "open": "Navigation öffnen",
+      "sections": "Bereiche",
+      "previous": "Zurück",
+      "next": "Weiter",
+      "anchor": "Link zu diesem Abschnitt"
+    }
+  }
+}

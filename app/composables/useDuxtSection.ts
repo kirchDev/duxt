@@ -10,17 +10,17 @@ import type { Ref } from 'vue';
 export function useDuxtSection(
   navigation: Ref<ContentNavigationItem[] | null | undefined>
 ) {
-  const route = useRoute();
+  const path = useDuxtPath();
   const duxt = useDuxtConfig();
 
   const section = computed(() =>
     duxt.sections?.find(
-      (candidate) => candidate.to && route.path.startsWith(candidate.to)
+      (candidate) => candidate.to && path.value.startsWith(candidate.to)
     )
   );
 
   const items = computed(() =>
-    sectionItems(navigation.value ?? [], section.value?.to, route.path)
+    sectionItems(navigation.value ?? [], section.value?.to, path.value)
   );
 
   return { section, items };

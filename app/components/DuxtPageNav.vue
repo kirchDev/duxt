@@ -9,6 +9,7 @@ const props = defineProps<{ path: string }>();
 const { data: navigation } = await useDuxtNavigation();
 
 const { items } = useDuxtSection(navigation);
+const localeLink = useDuxtLink();
 
 /** The section's pages in reading order, groups flattened into their children. */
 const pages = computed(() => {
@@ -43,12 +44,12 @@ const next = computed(() =>
   >
     <NuxtLink
       v-if="previous"
-      :to="previous.path"
+      :to="localeLink(previous.path)"
       class="flex flex-col gap-1 rounded-lg border p-4 transition-colors hover:bg-accent"
     >
       <span class="flex items-center gap-1 text-xs text-muted-foreground">
         <Icon name="lucide:arrow-left" class="size-3.5" />
-        Previous
+        {{ $t('duxt.nav.previous') }}
       </span>
       <span class="font-medium">{{ previous.title }}</span>
     </NuxtLink>
@@ -56,13 +57,13 @@ const next = computed(() =>
 
     <NuxtLink
       v-if="next"
-      :to="next.path"
+      :to="localeLink(next.path)"
       class="flex flex-col gap-1 rounded-lg border p-4 text-right transition-colors hover:bg-accent"
     >
       <span
         class="flex items-center justify-end gap-1 text-xs text-muted-foreground"
       >
-        Next
+        {{ $t('duxt.nav.next') }}
         <Icon name="lucide:arrow-right" class="size-3.5" />
       </span>
       <span class="font-medium">{{ next.title }}</span>

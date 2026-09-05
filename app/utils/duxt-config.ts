@@ -17,44 +17,44 @@ export const duxtDefaults: DuxtConfig = {
   navigation: [
     // No `to`: the header resolves it to the first section, so the entry works
     // whether or not the consumer's URLs carry a prefix.
-    { label: 'Docs', icon: 'lucide:book-open-text' },
+    { label: 'duxt.defaults.navigation.docs', icon: 'lucide:book-open-text' },
     {
-      label: 'Resources',
+      label: 'duxt.defaults.navigation.resources',
       icon: 'lucide:library',
       children: [
         {
           label: 'Nuxt',
           to: 'https://nuxt.com',
           icon: 'lucide:box',
-          description: 'The framework underneath',
+          description: 'duxt.defaults.resources.nuxt',
           external: true
         },
         {
           label: 'Nuxt Content',
           to: 'https://content.nuxt.com',
           icon: 'lucide:file-text',
-          description: 'Sourcing, parsing and querying',
+          description: 'duxt.defaults.resources.content',
           external: true
         },
         {
           label: 'shadcn-vue',
           to: 'https://www.shadcn-vue.com',
           icon: 'lucide:palette',
-          description: 'The component base',
+          description: 'duxt.defaults.resources.shadcn',
           external: true
         },
         {
           label: 'Tailwind CSS',
           to: 'https://tailwindcss.com',
           icon: 'lucide:paintbrush',
-          description: 'The styling system',
+          description: 'duxt.defaults.resources.tailwind',
           external: true
         },
         {
           label: 'MDC syntax',
           to: 'https://content.nuxt.com/docs/files/markdown',
           icon: 'lucide:code',
-          description: 'Components inside Markdown',
+          description: 'duxt.defaults.resources.mdc',
           external: true
         }
       ]
@@ -62,17 +62,33 @@ export const duxtDefaults: DuxtConfig = {
   ],
 
   sections: [
-    { label: 'Get started', to: '/getting-started', icon: 'lucide:rocket' },
-    { label: 'Structure', to: '/structure', icon: 'lucide:folder-tree' },
-    { label: 'Guide', to: '/guide', icon: 'lucide:book-open' },
-    { label: 'Reference', to: '/reference', icon: 'lucide:list' }
+    {
+      label: 'duxt.defaults.sections.gettingStarted',
+      to: '/getting-started',
+      icon: 'lucide:rocket'
+    },
+    {
+      label: 'duxt.defaults.sections.structure',
+      to: '/structure',
+      icon: 'lucide:folder-tree'
+    },
+    {
+      label: 'duxt.defaults.sections.guide',
+      to: '/guide',
+      icon: 'lucide:book-open'
+    },
+    {
+      label: 'duxt.defaults.sections.reference',
+      to: '/reference',
+      icon: 'lucide:list'
+    }
   ],
 
   links: [
     {
       icon: 'lucide:github',
       to: 'https://github.com/kirchDev/duxt',
-      label: 'Repository'
+      label: 'duxt.defaults.links.repository'
     }
   ],
 
@@ -83,13 +99,12 @@ export const duxtDefaults: DuxtConfig = {
   breadcrumb: true,
 
   landing: {
-    badge: 'Early days — nothing is decided',
-    headline: 'Documentation for Nuxt, versioned and multi-repo',
-    description:
-      'Extend one layer and your docs/ folder becomes a site. Point it at other repositories, or at tags of the same one, and those become versions.',
+    badge: 'duxt.defaults.landing.badge',
+    headline: 'duxt.defaults.landing.headline',
+    description: 'duxt.defaults.landing.description',
     actions: [
       {
-        label: 'Read the docs',
+        label: 'duxt.defaults.landing.actions.docs',
         to: '/getting-started',
         icon: 'lucide:arrow-right'
       },
@@ -102,68 +117,62 @@ export const duxtDefaults: DuxtConfig = {
     ],
     features: [
       {
-        title: "Extend, don't scaffold",
-        description:
-          'One line of config brings theme, pages and components — override any file.',
+        title: 'duxt.defaults.landing.features.extend.title',
+        description: 'duxt.defaults.landing.features.extend.description',
         icon: 'lucide:package'
       },
       {
-        title: 'Sources as a list',
-        description:
-          'One declaration per source instead of one collection per version and repo.',
+        title: 'duxt.defaults.landing.features.sources.title',
+        description: 'duxt.defaults.landing.features.sources.description',
         icon: 'lucide:git-branch'
       },
       {
-        title: 'Git-native, not reinvented',
-        description:
-          'Branches, tags, private repos and caching come from Content v3 itself.',
+        title: 'duxt.defaults.landing.features.git.title',
+        description: 'duxt.defaults.landing.features.git.description',
         icon: 'lucide:git-merge'
       },
       {
-        title: 'shadcn-vue',
-        description:
-          'Components are copied in, not imported. Restyling one is editing a file.',
+        title: 'duxt.defaults.landing.features.shadcn.title',
+        description: 'duxt.defaults.landing.features.shadcn.description',
         icon: 'lucide:palette'
       },
       {
-        title: 'Components in Markdown',
-        description:
-          'MDC ships with Content — call a Vue component with block syntax.',
+        title: 'duxt.defaults.landing.features.mdc.title',
+        description: 'duxt.defaults.landing.features.mdc.description',
         icon: 'lucide:code'
       },
       {
-        title: 'Machine-readable',
-        description:
-          'llms.txt and an MCP route over the same content, planned as build output.',
+        title: 'duxt.defaults.landing.features.machine.title',
+        description: 'duxt.defaults.landing.features.machine.description',
         icon: 'lucide:bot'
       }
     ]
   },
 
   aside: {
-    title: 'Community',
+    title: 'duxt.defaults.aside.title',
     links: [
       {
-        label: 'Star on GitHub',
+        label: 'duxt.defaults.aside.star',
         to: 'https://github.com/kirchDev/duxt',
         icon: 'lucide:star',
         external: true
       },
       {
-        label: 'Report an issue',
+        label: 'duxt.defaults.aside.issue',
         to: 'https://github.com/kirchDev/duxt/issues/new/choose',
         icon: 'lucide:circle-alert',
         external: true
       },
       {
-        label: 'Discord community',
+        label: 'duxt.defaults.aside.discord',
         to: 'https://discord.kirch.dev/',
         icon: 'lucide:message-circle',
         external: true
       },
       // TODO: point at duxt's own published documentation once it is deployed.
       {
-        label: 'Documentation',
+        label: 'duxt.defaults.aside.docs',
         to: '/getting-started',
         icon: 'lucide:book-open-text'
       }

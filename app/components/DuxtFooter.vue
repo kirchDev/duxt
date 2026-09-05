@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const duxt = useDuxtConfig();
+const localeLink = useDuxtLink();
 </script>
 
 <template>
@@ -12,7 +13,7 @@ const duxt = useDuxtConfig();
     >
       <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
         <NuxtLink
-          to="/"
+          :to="localeLink('/')"
           class="inline-flex items-center gap-2 font-medium text-foreground"
         >
           <Icon name="lucide:book-open-text" class="size-4 text-primary" />
@@ -27,8 +28,8 @@ const duxt = useDuxtConfig();
       <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
         <NuxtLink
           v-for="link in duxt.footer?.legal ?? []"
-          :key="link.label"
-          :to="link.to"
+          :key="link.to"
+          :to="localeLink(link.to)"
           :target="link.external ? '_blank' : undefined"
           :rel="link.external ? 'noopener' : undefined"
           class="transition-colors hover:text-foreground"
@@ -39,7 +40,7 @@ const duxt = useDuxtConfig();
         <div v-if="duxt.links?.length" class="-mr-2 flex items-center gap-1">
           <Button
             v-for="link in duxt.links"
-            :key="link.label"
+            :key="link.to"
             as-child
             variant="ghost"
             size="icon"
@@ -47,8 +48,8 @@ const duxt = useDuxtConfig();
           >
             <NuxtLink
               :to="link.to"
-              :aria-label="link.label"
-              :title="link.label"
+              :aria-label="asText(link.label)"
+              :title="asText(link.label)"
               target="_blank"
               rel="noopener"
             >

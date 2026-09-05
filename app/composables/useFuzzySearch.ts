@@ -30,16 +30,16 @@ export function useFuzzySearch(
    * dialog does — it is passed rather than resolved here to keep the exact and
    * the approximate pass reading the same one.
    */
-  collection: MaybeRefOrGetter<'docs'> = 'docs',
+  collection: MaybeRefOrGetter<DuxtCollectionName> = 'docs' as DuxtCollectionName,
   options?: { ignoredTags?: string[] }
 ) {
   let index: Promise<Fuse<DuxtSearchSection>> | undefined;
   let indexedFor: string | undefined;
 
-  async function build(name: 'docs') {
+  async function build(name: DuxtCollectionName) {
     const [{ default: Fuse }, sections] = await Promise.all([
       import('fuse.js'),
-      queryCollectionSearchSections(name, options)
+      queryCollectionSearchSections(name as DuxtCollectionArg, options)
     ]);
 
     return new Fuse(sections as DuxtSearchSection[], {

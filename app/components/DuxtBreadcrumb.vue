@@ -14,6 +14,7 @@ const props = defineProps<{ path: string }>();
 
 const { data: navigation } = await useDuxtNavigation();
 const { source } = useDuxtCollection();
+const localeLink = useDuxtLink();
 const { section } = useDuxtSection(navigation);
 
 const trail = computed<ContentNavigationItem[]>(() => {
@@ -58,7 +59,7 @@ const trail = computed<ContentNavigationItem[]>(() => {
             item.title
           }}</BreadcrumbPage>
           <BreadcrumbLink v-else as-child>
-            <NuxtLink :to="item.path">{{ item.title }}</NuxtLink>
+            <NuxtLink :to="localeLink(item.path)">{{ item.title }}</NuxtLink>
           </BreadcrumbLink>
         </BreadcrumbItem>
         <BreadcrumbSeparator v-if="index < trail.length - 1" />

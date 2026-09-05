@@ -9,6 +9,7 @@ interface TocLink {
 const props = defineProps<{ links: TocLink[] }>();
 
 const duxt = useDuxtConfig();
+const localeLink = useDuxtLink();
 
 // Flat list of every id, in document order, for the observer to watch.
 const ids = computed(() =>
@@ -24,7 +25,7 @@ const active = useActiveHeading(ids);
 <template>
   <div class="space-y-8 text-sm">
     <nav v-if="links?.length">
-      <p class="mb-3 font-medium">On this page</p>
+      <p class="mb-3 font-medium">{{ $t('duxt.toc.title') }}</p>
       <ul class="space-y-1 border-l">
         <li v-for="link in links" :key="link.id">
           <a
@@ -63,7 +64,7 @@ const active = useActiveHeading(ids);
       <ul class="space-y-2">
         <li v-for="link in duxt.aside.links" :key="link.label">
           <NuxtLink
-            :to="link.to"
+            :to="localeLink(link.to)"
             :target="link.external ? '_blank' : undefined"
             class="flex items-center gap-2 text-muted-foreground transition-colors hover:text-foreground"
           >

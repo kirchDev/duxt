@@ -8,7 +8,7 @@ defineProps<{ id?: string }>();
       v-if="id"
       :href="`#${id}`"
       class="duxt-anchor"
-      aria-label="Link to this section"
+      :aria-label="$t('duxt.nav.anchor')"
       >#</a
     >
     <slot />

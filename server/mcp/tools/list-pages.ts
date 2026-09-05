@@ -10,8 +10,8 @@ import { queryCollection } from '@nuxt/content/nitro';
 /** Every collection the manifest names — a versioned site has none called `docs`. */
 function duxtCollections(): 'docs'[] {
   const { duxt } = useAppConfig() as { duxt?: Partial<DuxtConfig> };
-  const names = duxt?.sources?.length
-    ? duxt.sources.map((source) => source.collection)
+  const names = duxt?.resolvedSources?.length
+    ? duxt.resolvedSources.map((source) => source.collection)
     : ['docs'];
   return names as 'docs'[];
 }

@@ -122,7 +122,9 @@ async function copy() {
         variant="ghost"
         size="icon"
         class="ml-auto size-7"
-        :aria-label="copied ? 'Copied' : 'Copy command'"
+        :aria-label="
+          copied ? $t('duxt.code.copied') : $t('duxt.code.copyCommand')
+        "
         @click="copy"
       >
         <Icon

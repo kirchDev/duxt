@@ -17,14 +17,16 @@ export default defineEventHandler(async (event) => {
 
   // Every collection the manifest names, not just `docs`: a versioned site
   // has none by that name, and llms.txt is the whole site's index.
-  const collections = duxt.sources?.length
-    ? duxt.sources.map((source) => source.collection)
+  const collections = duxt.resolvedSources?.length
+    ? duxt.resolvedSources.map((source) => source.collection)
     : ['docs'];
 
   const pages = (
     await Promise.all(
       collections.map((name) =>
-        queryCollection(event, name as 'docs')
+        // Cast from Content's own signature: the collection name is data
+        // from the manifest, and the key union is generated per site.
+        queryCollection(event, name as Parameters<typeof queryCollection>[1])
           .select('path', 'title', 'description')
           .all()
       )

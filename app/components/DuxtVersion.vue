@@ -12,7 +12,8 @@
  * choose, the same badge as a trigger when there is.
  */
 const duxt = useDuxtConfig();
-const route = useRoute();
+const path = useDuxtPath();
+const localeLink = useDuxtLink();
 
 /**
  * Versions come from the resolved source manifest, so the control can only
@@ -25,8 +26,8 @@ const route = useRoute();
 const versions = computed(() => {
   if (duxt.versions?.length) return duxt.versions;
 
-  const sources = duxt.sources ?? [];
-  const currentSource = sourceForPath(route.path, sources);
+  const sources = duxt.resolvedSources ?? [];
+  const currentSource = sourceForPath(path.value, sources);
 
   return sources
     .filter((source) => source.version && source.repo === currentSource?.repo)
@@ -39,14 +40,16 @@ const versions = computed(() => {
 
 const current = computed(() =>
   sourceForPath(
-    route.path,
+    path.value,
     versions.value.map((version) => ({ ...version, prefix: version.to ?? '' }))
   )
 );
 
 /** Same page, other version: swap the prefix rather than jumping to its root. */
 function pathIn(version: { to?: string }) {
-  return versionPath(route.path, current.value?.to, version.to ?? '/');
+  return localeLink(
+    versionPath(path.value, current.value?.to, version.to ?? '/')
+  );
 }
 </script>
 
@@ -63,11 +66,7 @@ function pathIn(version: { to?: string }) {
     </DropdownMenuTrigger>
 
     <DropdownMenuContent align="start" class="w-44">
-      <DropdownMenuItem
-        v-for="version in versions"
-        :key="version.label"
-        as-child
-      >
+      <DropdownMenuItem v-for="version in versions" :key="version.to" as-child>
         <NuxtLink :to="pathIn(version)" class="flex items-center gap-2">
           <Icon
             name="lucide:check"

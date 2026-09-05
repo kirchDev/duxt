@@ -3,6 +3,7 @@
 // wants a different one drops an index.vue of its own — Nuxt's own layer
 // override, no configuration.
 const duxt = useDuxtConfig();
+const localeLink = useDuxtLink();
 
 useSeoMeta({
   title: duxt.title,
@@ -40,7 +41,7 @@ useSeoMeta({
             :variant="action.variant ?? 'default'"
           >
             <NuxtLink
-              :to="action.to"
+              :to="localeLink(action.to)"
               :target="action.external ? '_blank' : undefined"
             >
               <Icon v-if="action.icon" :name="action.icon" class="size-4" />

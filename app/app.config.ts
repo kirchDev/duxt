@@ -1,17 +1,13 @@
-import { sourceOptions, sources } from '../duxt.sources';
-import { duxtSourceManifest } from '../sources-resolve';
-
-// Deliberately empty of lists apart from the manifest. The layer's own defaults
-// live in app/utils/duxt-config.ts, because Nuxt merges app.config with defu and
-// defu concatenates arrays — a consumer overriding `navigation` would get the
-// layer's entries appended to its own. A consumer still writes its overrides
-// here; useDuxtConfig() merges them with arrays replacing rather than adding.
+// The layer ships NO app.config values.
 //
-// The manifest is the exception that has to be here: it is how the resolved
-// source list reaches the app at all, since Content loads content.config.ts in
-// a pass of its own and the app never sees the result.
+// Its defaults live in app/utils/duxt-config.ts, because Nuxt merges app.config
+// with defu and defu concatenates arrays — a consumer overriding `navigation`
+// would get the layer's entries appended to its own. `useDuxtConfig()` merges
+// them itself, replacing arrays rather than adding to them.
+//
+// The resolved source manifest used to be the one exception that had to sit
+// here. It no longer does: the duxt module resolves it from the site's own
+// `app.config.ts` and writes it back as `resolvedSources`.
 export default defineAppConfig({
-  duxt: {
-    sources: duxtSourceManifest(sources, sourceOptions)
-  }
+  duxt: {}
 });

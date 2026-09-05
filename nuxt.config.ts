@@ -5,15 +5,150 @@ import tailwindcss from '@tailwindcss/vite';
 /** Resolve against this layer, not the project extending it. */
 const layer = (path: string) => fileURLToPath(new URL(path, import.meta.url));
 
+/**
+ * The locales the layer ships strings for.
+ *
+ * Kept out of the config object so the icon client bundle below can derive the
+ * country flags from it, exactly as gildstone does. `code` needs `as const`:
+ * outside the literal TypeScript widens it to `string`, which no longer
+ * satisfies i18n's `LocaleObject<…>`.
+ *
+ * THE LANGUAGE CARRIES THE STRINGS, THE REGION ONLY ITS DEVIATIONS. i18n loads
+ * every file in `files` and deep-merges them in order, so `pt-BR` reads the
+ * European Portuguese set and then overwrites the handful of words Brazil
+ * spells differently. That is why there is no `en-GB/` or `en-US/` directory at
+ * all: nothing in this vocabulary differs between them, and a directory that
+ * would only duplicate `en/` is a directory that drifts from it.
+ *
+ * `name` is the endonym — each language written in itself, which is what a
+ * language switcher must show. It lives here rather than in the message files
+ * because it is the same string in every locale.
+ */
+const locales = [
+  {
+    code: 'en-GB' as const,
+    language: 'en-GB',
+    name: 'English (UK)',
+    files: [
+      'en/duxt/code.json',
+      'en/duxt/defaults.json',
+      'en/duxt/error.json',
+      'en/duxt/locale.json',
+      'en/duxt/nav.json',
+      'en/duxt/search.json',
+      'en/duxt/theme.json',
+      'en/duxt/toc.json'
+    ]
+  },
+  {
+    code: 'en-US' as const,
+    language: 'en-US',
+    name: 'English (US)',
+    files: [
+      'en/duxt/code.json',
+      'en/duxt/defaults.json',
+      'en/duxt/error.json',
+      'en/duxt/locale.json',
+      'en/duxt/nav.json',
+      'en/duxt/search.json',
+      'en/duxt/theme.json',
+      'en/duxt/toc.json'
+    ]
+  },
+  {
+    code: 'de-DE' as const,
+    language: 'de-DE',
+    name: 'Deutsch',
+    files: [
+      'de/duxt/code.json',
+      'de/duxt/defaults.json',
+      'de/duxt/error.json',
+      'de/duxt/locale.json',
+      'de/duxt/nav.json',
+      'de/duxt/search.json',
+      'de/duxt/theme.json',
+      'de/duxt/toc.json'
+    ]
+  },
+  {
+    code: 'es-ES' as const,
+    language: 'es-ES',
+    name: 'Español',
+    files: [
+      'es/duxt/code.json',
+      'es/duxt/defaults.json',
+      'es/duxt/error.json',
+      'es/duxt/locale.json',
+      'es/duxt/nav.json',
+      'es/duxt/search.json',
+      'es/duxt/theme.json',
+      'es/duxt/toc.json'
+    ]
+  },
+  {
+    code: 'fr-FR' as const,
+    language: 'fr-FR',
+    name: 'Français',
+    files: [
+      'fr/duxt/code.json',
+      'fr/duxt/defaults.json',
+      'fr/duxt/error.json',
+      'fr/duxt/locale.json',
+      'fr/duxt/nav.json',
+      'fr/duxt/search.json',
+      'fr/duxt/theme.json',
+      'fr/duxt/toc.json'
+    ]
+  },
+  {
+    code: 'pt-PT' as const,
+    language: 'pt-PT',
+    name: 'Português',
+    files: [
+      'pt/duxt/code.json',
+      'pt/duxt/defaults.json',
+      'pt/duxt/error.json',
+      'pt/duxt/locale.json',
+      'pt/duxt/nav.json',
+      'pt/duxt/search.json',
+      'pt/duxt/theme.json',
+      'pt/duxt/toc.json'
+    ]
+  },
+  {
+    code: 'pt-BR' as const,
+    language: 'pt-BR',
+    name: 'Português (Brasil)',
+    files: [
+      'pt/duxt/code.json',
+      'pt/duxt/defaults.json',
+      'pt/duxt/error.json',
+      'pt/duxt/locale.json',
+      'pt/duxt/nav.json',
+      'pt/duxt/search.json',
+      'pt/duxt/theme.json',
+      'pt/duxt/toc.json',
+      'pt-BR/duxt/defaults.json',
+      'pt-BR/duxt/error.json',
+      'pt-BR/duxt/nav.json',
+      'pt-BR/duxt/search.json'
+    ]
+  }
+];
+
 // The layer itself. A consumer gets all of this by extending '@kirchdev/duxt',
 // which resolves through package.json's `main` to this file.
 export default defineNuxtConfig({
   modules: [
+    // First: it narrows the locale list before @nuxtjs/i18n reads it, and
+    // resolves the source manifest before anything queries a collection.
+    layer('./modules/config.ts'),
     '@nuxt/content',
     '@nuxt/icon',
     '@nuxtjs/color-mode',
     'shadcn-nuxt',
-    '@nuxtjs/mcp-toolkit'
+    '@nuxtjs/mcp-toolkit',
+    '@nuxtjs/i18n'
   ],
 
   /**
@@ -116,7 +251,56 @@ export default defineNuxtConfig({
     // them per collection after hydration — no roundtrip, no icon flash.
     clientBundle: {
       scan: true,
-      sizeLimitKb: 512
+      sizeLimitKb: 512,
+
+      // The locale switcher names its flags at runtime (`flag:${code}-4x3`), so
+      // the scanner above cannot see them and they would be fetched over the
+      // network after hydration instead. Derived from `locales` rather than
+      // listed by hand: a new locale brings its flag along by itself.
+      icons: locales.map(
+        (locale) => `flag:${locale.code.split('-')[1]!.toLowerCase()}-4x3`
+      )
+    }
+  },
+
+  /**
+   * The layer's own interface, translated. NOT the Markdown — that is a
+   * separate question and deliberately untouched here.
+   *
+   * `strategy: 'prefix_except_default'` is the load-bearing choice. duxt serves
+   * `/getting-started` today, and `prefix` would move that to
+   * `/en-GB/getting-started` for every consumer that has one — a breaking
+   * change to the URLs docs are reached by, paid by the many single-locale
+   * consumers to benefit the few multilingual ones. It is also what VitePress,
+   * Starlight and Docusaurus all do. A consumer whose site has no leading
+   * language writes `i18n: { strategy: 'prefix' }` and gets the symmetric
+   * scheme in one line.
+   *
+   * The price: `defaultLocale` becomes URL-relevant. Changing it later moves
+   * every page in both directions at once. Set it once, then leave it.
+   *
+   * `langDir` stays RELATIVE on purpose, against this layer's own i18n/
+   * directory. Everything else layer-relative in this file goes through
+   * `layer()`, but i18n resolves langDir per layer itself — that is what its
+   * layers support is — and handing it an absolute path opts out of the
+   * merging that lets a consumer override a single string.
+   */
+  i18n: {
+    locales,
+    defaultLocale: 'en-GB',
+    langDir: 'locales',
+    strategy: 'prefix_except_default',
+    vueI18n: 'i18n.config.ts',
+    detectBrowserLanguage: {
+      fallbackLocale: 'en-GB',
+      useCookie: true,
+      cookieKey: 'duxt_locale',
+      cookieSecure: true,
+      // An explicit URL stays authoritative: /de-DE/guide shared into a chat
+      // must still be German for whoever opens it. Only '/' follows the
+      // browser's preference.
+      redirectOn: 'root',
+      alwaysRedirect: false
     }
   },
 

@@ -1,0 +1,60 @@
+{
+  "duxt": {
+    "defaults": {
+      "navigation": { "docs": "Docs", "resources": "Recursos" },
+      "resources": {
+        "nuxt": "El framework de base",
+        "content": "Obtención, análisis y consulta",
+        "shadcn": "La base de componentes",
+        "tailwind": "El sistema de estilos",
+        "mdc": "Componentes dentro de Markdown"
+      },
+      "sections": {
+        "gettingStarted": "Primeros pasos",
+        "structure": "Estructura",
+        "guide": "Guía",
+        "reference": "Referencia"
+      },
+      "links": { "repository": "Repositorio" },
+      "landing": {
+        "badge": "Primeros días: nada está decidido",
+        "headline": "Documentación para Nuxt, versionada y multirrepositorio",
+        "description": "Extiende una capa y tu carpeta docs/ se convierte en un sitio. Apúntala a otros repositorios, o a etiquetas del mismo, y estos se convierten en versiones.",
+        "actions": { "docs": "Leer la documentación" },
+        "features": {
+          "extend": {
+            "title": "Extender, no generar",
+            "description": "Una línea de configuración aporta tema, páginas y componentes: cualquier archivo se puede sobrescribir."
+          },
+          "sources": {
+            "title": "Fuentes como una lista",
+            "description": "Una declaración por fuente en lugar de una colección por versión y repositorio."
+          },
+          "git": {
+            "title": "Nativo de Git, no reinventado",
+            "description": "Ramas, etiquetas, repositorios privados y caché vienen del propio Content v3."
+          },
+          "shadcn": {
+            "title": "shadcn-vue",
+            "description": "Los componentes se copian, no se importan. Rediseñar uno es editar un archivo."
+          },
+          "mdc": {
+            "title": "Componentes en Markdown",
+            "description": "MDC viene con Content: llama a un componente Vue con sintaxis de bloque."
+          },
+          "machine": {
+            "title": "Legible por máquinas",
+            "description": "llms.txt y una ruta MCP sobre el mismo contenido, previstas como salida de compilación."
+          }
+        }
+      },
+      "aside": {
+        "title": "Comunidad",
+        "star": "Dar una estrella en GitHub",
+        "issue": "Informar de un problema",
+        "discord": "Comunidad de Discord",
+        "docs": "Documentación"
+      }
+    }
+  }
+}
