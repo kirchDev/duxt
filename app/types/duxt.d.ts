@@ -185,6 +185,17 @@ declare global {
     /** Chrome a consumer can switch off. */
     breadcrumb?: boolean;
     /**
+     * The section `/rss.xml` publishes — a changelog, a release log, a blog.
+     *
+     * Off until it is set. A feed is a list of things that happened, and a
+     * reference page being edited is not an event.
+     */
+    feed?: {
+      /** Path prefix whose pages are the feed's items, e.g. `/changelog`. */
+      path?: string;
+      title?: DuxtText;
+    };
+    /**
      * The documentation sources. The only place they are declared: the
      * collections and the manifest below are both generated from this.
      */

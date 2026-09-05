@@ -39,7 +39,20 @@ useHead(() => ({
   // A page setting no title of its own gets the site name alone rather than a
   // dangling separator.
   titleTemplate: (title?: string) =>
-    title ? `${title} · ${duxt.title}` : duxt.title
+    title ? `${title} · ${duxt.title}` : duxt.title,
+
+  // A feed a reader's client can find without being told where it is. Only
+  // when there is one — see `duxt.feed`.
+  link: duxt.feed?.path
+    ? [
+        {
+          rel: 'alternate',
+          type: 'application/rss+xml',
+          title: duxt.feed.title ?? duxt.title,
+          href: '/rss.xml'
+        }
+      ]
+    : []
 }));
 
 if (baseUrl) {
