@@ -1,0 +1,26 @@
+{
+  "duxt": {
+    "page": {
+      "edit": "Diese Seite bearbeiten",
+      "lastUpdated": "Zuletzt aktualisiert am {date}",
+      "contributors": "Geschrieben von",
+      "copyFailed": "Die Seite konnte nicht kopiert werden.",
+      "helpful": {
+        "question": "War diese Seite hilfreich?",
+        "yes": "Ja",
+        "no": "Nein",
+        "thanks": "Vielen Dank."
+      },
+      "tabs": "Varianten",
+      "since": "Neu in {version}",
+      "copy": {
+        "label": "Seite kopieren",
+        "more": "Weitere Wege, diese Seite zu kopieren",
+        "view": "Als Markdown ansehen",
+        "chatgpt": "In ChatGPT öffnen",
+        "claude": "In Claude öffnen",
+        "prompt": "Lies {url}, damit ich dir dazu Fragen stellen kann."
+      }
+    }
+  }
+}

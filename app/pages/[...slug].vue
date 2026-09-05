@@ -70,3 +70,10 @@ useSeoMeta({
 </template>
       <DuxtVersionBanner />
 
+
+        <!-- Provenance under the contents: where this page came from, when it
+             last changed and who wrote it. On the right rather than under the
+             article, where it read as an afterthought below the prev/next
+             links — this column is already the one answering what a page IS
+             rather than what it says. -->
+        <DuxtPageInfo :page="page" />

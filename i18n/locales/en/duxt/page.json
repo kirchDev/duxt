@@ -1,0 +1,26 @@
+{
+  "duxt": {
+    "page": {
+      "edit": "Edit this page",
+      "lastUpdated": "Last updated on {date}",
+      "contributors": "Written by",
+      "copyFailed": "Could not copy the page.",
+      "helpful": {
+        "question": "Was this page helpful?",
+        "yes": "Yes",
+        "no": "No",
+        "thanks": "Thank you."
+      },
+      "tabs": "Options",
+      "since": "New in {version}",
+      "copy": {
+        "label": "Copy page",
+        "more": "More ways to copy this page",
+        "view": "View as Markdown",
+        "chatgpt": "Open in ChatGPT",
+        "claude": "Open in Claude",
+        "prompt": "Read {url} so I can ask you questions about it."
+      }
+    }
+  }
+}
