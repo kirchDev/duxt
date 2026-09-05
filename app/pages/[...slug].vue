@@ -125,9 +125,21 @@ useHead(() => ({
           :path="path"
           class="mb-3"
         />
-        <h1 class="text-4xl font-semibold tracking-tight text-balance">
-          {{ page?.title }}
-        </h1>
+        <!-- The copy action sits with the title, not under the article: it is
+             what a reader does with the page BEFORE reading it, and a control
+             for that at the bottom is a control nobody finds. -->
+        <div class="flex items-start justify-between gap-4">
+          <h1 class="text-4xl font-semibold tracking-tight text-balance">
+            {{ page?.title }}
+          </h1>
+
+          <DuxtCopyPage
+            class="mt-1"
+            :path="path"
+            :title="page?.title"
+            :rawbody="(page as { rawbody?: string })?.rawbody"
+          />
+        </div>
         <p
           v-if="page?.description"
           class="mt-3 text-lg text-muted-foreground text-pretty"

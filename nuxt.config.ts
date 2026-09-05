@@ -247,11 +247,36 @@ export default defineNuxtConfig({
   hooks: {
     'nitro:config': (nitro) => {
       nitro.handlers ||= [];
-      nitro.handlers.push({
-        route: '/llms.txt',
-        method: 'get',
-        handler: layer('./server/routes/llms.txt.get.ts')
-      });
+      nitro.handlers.push(
+        {
+          route: '/llms.txt',
+          method: 'get',
+          handler: layer('./server/routes/llms.txt.get.ts')
+        },
+        // The index's companion: the same pages, whole, in one file.
+        {
+          route: '/llms-full.txt',
+          method: 'get',
+          handler: layer('./server/routes/llms-full.txt.get.ts')
+        },
+        // `…/guide/deploying.md` — the page's own source, which is what the
+        // "View as Markdown" action opens and what the model links hand over.
+        // A middleware because `.md` is a suffix, not a path segment, and
+        // Nitro's router matches segments.
+        {
+          middleware: true,
+          handler: layer('./server/middleware/raw-markdown.ts')
+        },
+        // The changelog feed. Draws nothing until `duxt.feed.path` names a
+        // section, so a site without one serves an empty channel rather than
+        // 404 — a reader's feed client should be told "nothing here", not
+        // "gone".
+        {
+          route: '/rss.xml',
+          method: 'get',
+          handler: layer('./server/routes/rss.xml.get.ts')
+        }
+      );
     }
   },
 

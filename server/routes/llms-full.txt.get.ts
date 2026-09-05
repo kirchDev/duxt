@@ -3,14 +3,21 @@ import { queryCollection } from '@nuxt/content/nitro';
 // does not see its utils. The defaults have to come from the same file the
 // pages use, or the two descriptions drift apart.
 import { duxtDefaults, mergeDuxtConfig } from '../../app/utils/duxt-config';
-import { resolveServerTexts } from '../utils/duxt-server-text';
+import {
+  resolveServerTexts,
+  stripFrontmatter
+} from '../utils/duxt-server-text';
 
 /**
- * llms.txt — the site's own map, for a model reading it.
+ * llms-full.txt — the whole documentation as one Markdown file.
  *
- * The convention (llmstxt.org) is a Markdown index: an H1 with the site name,
- * a blockquote summary, then linked sections. It is generated from the same
- * collection the pages render from, so it cannot drift from what is published.
+ * The companion to `llms.txt`, which is an index: a model that has read the
+ * index still has to fetch sixty pages, and a model given this one has read
+ * them. The convention (llmstxt.org) names both.
+ *
+ * The Markdown as written, not the rendered HTML — which is why the collection
+ * schema asks Content for `rawbody`. An MDC block reaches the reader as the
+ * component call it is, and a code fence is still a fence.
  */
 export default defineEventHandler(async (event) => {
   const appConfig = useAppConfig() as { duxt?: Partial<DuxtConfig> };
@@ -20,8 +27,6 @@ export default defineEventHandler(async (event) => {
     mergeDuxtConfig(appConfig.duxt, duxtDefaults)
   );
 
-  // Every collection the manifest names, not just `docs`: a versioned site
-  // has none by that name, and llms.txt is the whole site's index.
   const collections = duxt.resolvedSources?.length
     ? duxt.resolvedSources.map((source) => source.collection)
     : ['docs'];
@@ -29,10 +34,8 @@ export default defineEventHandler(async (event) => {
   const pages = (
     await Promise.all(
       collections.map((name) =>
-        // Cast from Content's own signature: the collection name is data
-        // from the manifest, and the key union is generated per site.
         queryCollection(event, name as Parameters<typeof queryCollection>[1])
-          .select('path', 'title', 'description')
+          .select('path', 'title', 'description', 'rawbody')
           .all()
       )
     )
@@ -44,19 +47,28 @@ export default defineEventHandler(async (event) => {
     `# ${duxt.title}`,
     '',
     `> ${duxt.landing?.description ?? 'Documentation.'}`,
-    '',
-    '## Pages',
-    '',
-    ...pages
-      .filter((page) => page.path)
-      .sort((a, b) => a.path!.localeCompare(b.path!))
-      .map(
-        (page) =>
-          `- [${page.title ?? page.path}](${origin}${page.path})` +
-          (page.description ? `: ${page.description}` : '')
-      ),
     ''
   ];
+
+  for (const page of pages
+    .filter((page) => page.path)
+    .sort((a, b) => a.path!.localeCompare(b.path!))) {
+    lines.push(
+      `---`,
+      '',
+      `# ${page.title ?? page.path}`,
+      '',
+      `Source: ${origin}${page.path}`,
+      ''
+    );
+
+    if (page.description) lines.push(`> ${page.description}`, '');
+
+    // A page whose collection was declared before `rawbody` was asked for has
+    // none. Its title and URL are still worth listing.
+    const body = (page as { rawbody?: string }).rawbody;
+    if (body) lines.push(stripFrontmatter(body).trim(), '');
+  }
 
   setHeader(event, 'content-type', 'text/plain; charset=utf-8');
   return lines.join('\n');
