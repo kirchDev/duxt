@@ -4,39 +4,25 @@
 // takes them explicitly.
 defineOptions({ inheritAttrs: false });
 
-import type { DuxtSearchSection } from '@duxt/composables/useFuzzySearch';
+import type { DuxtSearchHit } from '@duxt/composables/useDuxtSearch';
 
-// Full-text search over the collection. Content builds the index at build time
-// and queries it with SQLite's FTS, so the ranking is the database's rather
-// than a substring match of ours — and there is no search service to run.
+// Full-text search over EVERY source, not just the one being read. Content
+// builds the index at build time and queries it with SQLite's FTS, so the
+// ranking is the database's rather than a substring match of ours — and there
+// is no search service to run. The merge across sources, and why the results
+// are ranked together rather than grouped per repository, is in
+// `useDuxtSearch`.
 //
 // The index is fetched on first open, not shipped with every page: a docs site
 // should not pay for search on a page nobody searches from.
-const { collection } = useDuxtCollection();
-
 const open = ref(false);
 const query = ref('');
 const router = useRouter();
 const localeLink = useDuxtLink();
 
-const { search, status, init } = useSearchCollection(
-  collection as unknown as Parameters<typeof useSearchCollection>[0],
-  {
-    // A table is flattened into one string, so its cells run together —
-    // `KeyWhat it controlstitleThe name in the navbar…`. Its content is still
-    // reachable through the page that holds it.
-    ignoredTags: ['table'],
-    immediate: false
-  }
-);
+const { search, init, labelled } = useDuxtSearch();
 
-// The second pass, for what the database cannot match. Lazy inside, so this
-// costs nothing until a query comes back empty.
-const { search: searchApproximately } = useFuzzySearch(collection, {
-  ignoredTags: ['table']
-});
-
-const results = ref<DuxtSearchSection[]>([]);
+const results = ref<DuxtSearchHit[]>([]);
 
 /** True while the list shows near-misses rather than actual matches. */
 const approximate = ref(false);
@@ -55,7 +41,7 @@ watch(query, (term) => {
   pending = setTimeout(async () => {
     const current = ++run;
 
-    const settle = (hits: DuxtSearchSection[], fuzzy: boolean) => {
+    const settle = (hits: DuxtSearchHit[], fuzzy: boolean) => {
       if (current !== run) return;
       results.value = hits;
       approximate.value = fuzzy;
@@ -63,13 +49,8 @@ watch(query, (term) => {
 
     if (!term.trim()) return settle([], false);
 
-    const hits = await search(term, { limit: 20 });
-    if (hits.length || current !== run) return settle(hits, false);
-
-    // FTS matches terms and prefixes, not near-misses, so one wrong letter
-    // leaves the reader with an empty box. Fuse gets a second look before we
-    // tell them there is nothing.
-    settle(await searchApproximately(term, 20), true);
+    const found = await search(term, 20);
+    settle(found.hits, found.approximate);
   }, 120);
 });
 
@@ -90,7 +71,14 @@ function sectionOf(path: string) {
  * and the reader already thinks in sections, because the navbar shows them.
  */
 const grouped = computed(() => {
-  const bySection = new Map<string, DuxtSearchSection[]>();
+  // With several sources the list is ONE ranked list with a badge per hit —
+  // grouping it by section would re-sort exactly the ranking the merge just
+  // produced. See `useDuxtSearch` for why ranking beats grouping here.
+  if (labelled.value) {
+    return [{ label: '', hits: results.value }];
+  }
+
+  const bySection = new Map<string, DuxtSearchHit[]>();
 
   for (const hit of results.value) {
     // A section label may be configured per locale; the group key has to be a
@@ -105,7 +93,7 @@ const grouped = computed(() => {
 async function show() {
   load();
   open.value = true;
-  if (status.value === 'idle') await init();
+  await init();
 }
 
 function go(id: string) {
@@ -247,7 +235,7 @@ onMounted(() => {
       <CommandGroup
         v-for="group in grouped"
         :key="group.label"
-        :heading="group.label"
+        :heading="group.label || undefined"
       >
         <CommandItem
           v-for="hit in group.hits"
@@ -264,6 +252,15 @@ onMounted(() => {
           <span class="ml-auto truncate pl-3 text-xs text-muted-foreground">
             {{ context(hit) }}
           </span>
+          <!-- Which repository and version this came out of. Only drawn where
+               there is more than one, so a single-source site sees nothing. -->
+          <Badge
+            v-if="hit.source"
+            variant="secondary"
+            class="shrink-0 font-mono text-[10px]"
+          >
+            {{ hit.source.label }}
+          </Badge>
         </CommandItem>
       </CommandGroup>
     </CommandList>
