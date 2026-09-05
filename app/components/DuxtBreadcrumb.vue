@@ -34,7 +34,18 @@ const trail = computed<ContentNavigationItem[]>(() => {
       ]
     : [];
 
-  return [...head, ...below];
+  // A section's index page is the section: both carry `/duxt/getting-started`,
+  // so the trail listed the same destination twice under two names — the
+  // config's label and the page's own title. Keep the first of each path.
+  const seen = new Set<string>();
+
+  return [...head, ...below].filter((item) => {
+    const path = item.path ?? '';
+    if (seen.has(path)) return false;
+
+    seen.add(path);
+    return true;
+  });
 });
 </script>
 
