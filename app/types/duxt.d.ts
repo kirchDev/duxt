@@ -51,8 +51,27 @@ declare global {
   type DuxtConfigResolved = DuxtResolved<DuxtConfig>;
 
   /** A navbar, footer or landing link. `children` turns a navbar entry into a dropdown. */
-  /** A branch by name, or a tag stated as one. */
-  type DuxtRefInput = string | { branch: string } | { tag: string };
+  /**
+   * Where a version sits in its life — see `DuxtSourceStatus` in
+   * `sources-resolve.ts` for what each one costs the page.
+   */
+  type DuxtSourceStatusInput =
+    | 'upcoming'
+    | 'current'
+    | 'maintained'
+    | 'deprecated'
+    | 'eol';
+
+  /**
+   * A branch by name, or a tag stated as one.
+   *
+   * `'latest'` is reserved: it resolves at build time to the newest semver tag
+   * of that repository. A branch genuinely called latest needs `{ branch }`.
+   */
+  type DuxtRefInput =
+    | string
+    | { branch: string; label?: string; status?: DuxtSourceStatusInput }
+    | { tag: string; label?: string; status?: DuxtSourceStatusInput };
 
   /**
    * A documentation source, as a consumer declares it in `app.config.ts`.
@@ -71,6 +90,13 @@ declare global {
     label?: DuxtText;
     /** Segment used in the URL for this repository; defaults to the repo name. */
     slug?: string;
+    /** Lifecycle of every version this entry publishes, unless a ref says otherwise. */
+    status?: DuxtSourceStatusInput;
+    /**
+     * The repository a source read off disk lives in, for links back to it.
+     * Not `repo`, which is what makes Content download a source.
+     */
+    origin?: { repo: string; ref?: string };
   }
 
   interface DuxtSourceOptionsInput {
@@ -89,6 +115,13 @@ declare global {
     repo?: string;
     version?: string;
     isDefault: boolean;
+    /** Where the pages came from — what "Edit this page" links back to. */
+    repository?: string;
+    repositoryUrl?: string;
+    ref?: string;
+    refKind?: 'branch' | 'tag';
+    path: string;
+    status: DuxtSourceStatusInput;
   }
 
   interface DuxtLink {

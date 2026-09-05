@@ -2,6 +2,7 @@ import { fileURLToPath } from 'node:url';
 import type { Nuxt } from '@nuxt/schema';
 import { readDuxtBuildConfig } from '../duxt-app-config';
 import { duxtSourceManifest } from '../sources-resolve';
+import { resolveLatestRefs } from '../sources-git';
 
 /**
  * The build-time half of duxt's config, read from the site's `app.config.ts`.
@@ -35,6 +36,11 @@ export default function duxtConfig(_options: unknown, nuxt: Nuxt) {
 
   const config = readDuxtBuildConfig(dirs);
 
+  const resolvedSources = duxtSourceManifest(
+    resolveLatestRefs(config?.sources ?? [{ path: 'docs' }]),
+    config?.sourceOptions ?? {}
+  );
+
   // Written into `appConfig`, which the generated template merges LAST — behind
   // every app.config.ts file. That is the right way round: a value the build
   // computes must not overwrite one a human wrote.
@@ -43,10 +49,7 @@ export default function duxtConfig(_options: unknown, nuxt: Nuxt) {
   // a type it is itself the only source of.
   nuxt.options.appConfig.duxt = {
     ...nuxt.options.appConfig.duxt,
-    resolvedSources: duxtSourceManifest(
-      config?.sources ?? [{ path: 'docs' }],
-      config?.sourceOptions ?? {}
-    )
+    resolvedSources
   } as typeof nuxt.options.appConfig.duxt;
 
   restrictLocales(nuxt, config?.locales);

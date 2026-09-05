@@ -3,7 +3,7 @@ import { dirname, join } from 'node:path';
 import { defineCollection, z } from '@nuxt/content';
 import type { DuxtSource, DuxtSourcesOptions } from './sources-resolve';
 import { refName, repoUrl, resolveSources } from './sources-resolve';
-
+import { resolveLatestRefs } from './sources-git';
 export type {
   DuxtResolvedSource,
   DuxtSource,
@@ -51,7 +51,7 @@ const pageSchema = z.object({
  * from `resolveSources`, which the app reads too — see `duxtSourceManifest`.
  */
 export function duxtSources(
-  sources: DuxtSource[],
+  input: DuxtSource[],
   options: DuxtSourcesOptions = {}
 ) {
   const resolved = resolveSources(sources, options);
@@ -92,3 +92,7 @@ export function duxtSources(
 
   return collections;
 }
+// `latest` is a shorthand for a tag git has to be asked about, and both the
+// collections here and the manifest the module resolves must land on the
+// same one — so it is settled before either reads the list.
+const sources = resolveLatestRefs(input);

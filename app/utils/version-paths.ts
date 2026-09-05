@@ -53,3 +53,13 @@ export function versionPath(
 
   return `${target}${rest}` || '/';
 }
+
+/**
+ * Re-exported so the app can auto-import it.
+ *
+ * The function itself lives beside the resolver, because that is where the
+ * semver comparison it uses lives and where its tests are. `app/utils` is what
+ * Nuxt scans for auto-imports, and `sources-resolve.ts` is plain logic with no
+ * Node imports — the same property that lets `app.config.ts` read it.
+ */
+export { versionRelation } from '../../sources-resolve';
