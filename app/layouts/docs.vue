@@ -6,6 +6,11 @@ const { items } = useDuxtSection(navigation);
 
 <template>
   <div class="flex min-h-[100dvh] flex-col bg-background text-foreground">
+    <!-- How far down the page the reader is, and the `?` sheet listing every
+         key the theme binds. -->
+    <DuxtProgress />
+    <DuxtShortcuts />
+
     <DuxtHeader />
 
     <!-- The section row sits with the docs, not in the global header: the

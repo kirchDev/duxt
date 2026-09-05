@@ -35,6 +35,25 @@ const previous = computed(() =>
 const next = computed(() =>
   index.value >= 0 ? pages.value[index.value + 1] : undefined
 );
+/**
+ * `[` and `]` move through the section the same way the two links do.
+ *
+ * Bound here rather than in the layout because this component already knows
+ * which pages are adjacent — a second computation of that would be a second
+ * chance to disagree with what the links say.
+ */
+const router = useRouter();
+
+onDuxtShortcut(
+  (event) =>
+    (event.key === '[' || event.key === ']') &&
+    !event.metaKey &&
+    !event.ctrlKey,
+  (event) => {
+    const target = event.key === '[' ? previous.value : next.value;
+    if (target?.path) void router.push(localeLink(target.path)!);
+  }
+);
 </script>
 
 <template>

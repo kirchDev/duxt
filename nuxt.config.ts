@@ -67,6 +67,7 @@ const locales = [
       'en/duxt/nav.json',
       'en/duxt/page.json',
       'en/duxt/search.json',
+      'en/duxt/shortcuts.json',
       'en/duxt/theme.json',
       'en/duxt/toc.json',
       'en/duxt/version.json'
@@ -84,6 +85,7 @@ const locales = [
       'en/duxt/nav.json',
       'en/duxt/page.json',
       'en/duxt/search.json',
+      'en/duxt/shortcuts.json',
       'en/duxt/theme.json',
       'en/duxt/toc.json',
       'en/duxt/version.json'
@@ -101,6 +103,7 @@ const locales = [
       'de/duxt/nav.json',
       'de/duxt/page.json',
       'de/duxt/search.json',
+      'de/duxt/shortcuts.json',
       'de/duxt/theme.json',
       'de/duxt/toc.json',
       'de/duxt/version.json'
@@ -118,6 +121,7 @@ const locales = [
       'es/duxt/nav.json',
       'es/duxt/page.json',
       'es/duxt/search.json',
+      'es/duxt/shortcuts.json',
       'es/duxt/theme.json',
       'es/duxt/toc.json',
       'es/duxt/version.json'
@@ -135,6 +139,7 @@ const locales = [
       'fr/duxt/nav.json',
       'fr/duxt/page.json',
       'fr/duxt/search.json',
+      'fr/duxt/shortcuts.json',
       'fr/duxt/theme.json',
       'fr/duxt/toc.json',
       'fr/duxt/version.json'
@@ -152,6 +157,7 @@ const locales = [
       'pt/duxt/nav.json',
       'pt/duxt/page.json',
       'pt/duxt/search.json',
+      'pt/duxt/shortcuts.json',
       'pt/duxt/theme.json',
       'pt/duxt/toc.json',
       'pt/duxt/version.json'
@@ -169,6 +175,7 @@ const locales = [
       'pt/duxt/nav.json',
       'pt/duxt/page.json',
       'pt/duxt/search.json',
+      'pt/duxt/shortcuts.json',
       'pt/duxt/theme.json',
       'pt/duxt/toc.json',
       'pt/duxt/version.json',
