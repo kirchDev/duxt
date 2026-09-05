@@ -202,3 +202,92 @@ pre.shiki,
 .typeset :where(:not(pre) > code) {
   overflow-wrap: anywhere;
 }
+
+/* Shiki's line annotations, which have classes and no styling of their own.
+   Four come from the transformers @nuxtjs/mdc enables by default, two more from
+   `mdc.config.ts`. Without these rules `// [!code highlight]` removes the
+   comment and changes nothing visible, which reads as the feature being off. */
+.shiki .line.highlighted {
+  background-color: color-mix(in oklab, var(--color-primary) 12%, transparent);
+  display: inline-block;
+  width: 100%;
+}
+
+.shiki .line.diff.add {
+  background-color: color-mix(in oklab, var(--color-success) 14%, transparent);
+  display: inline-block;
+  width: 100%;
+}
+
+.shiki .line.diff.remove {
+  background-color: color-mix(
+    in oklab,
+    var(--color-destructive) 14%,
+    transparent
+  );
+  display: inline-block;
+  width: 100%;
+  opacity: 0.7;
+}
+
+.shiki .line.diff.add::before {
+  content: '+';
+  color: var(--color-success);
+}
+
+.shiki .line.diff.remove::before {
+  content: '-';
+  color: var(--color-destructive);
+}
+
+.shiki .highlighted-word {
+  background-color: color-mix(in oklab, var(--color-primary) 16%, transparent);
+  border-radius: 3px;
+  padding: 1px 2px;
+}
+
+/* `focus` dims everything that is not the point. Not a filter on the code
+   itself: blur on text is unreadable for anyone who needs the contrast, so the
+   unfocused rows lose opacity and come back on hover. */
+.shiki:has(.line.focused) .line:not(.focused) {
+  opacity: 0.4;
+  transition: opacity 0.2s;
+}
+
+.shiki:hover .line:not(.focused) {
+  opacity: 1;
+}
+
+.shiki .line.error {
+  background-color: color-mix(
+    in oklab,
+    var(--color-destructive) 14%,
+    transparent
+  );
+  display: inline-block;
+  width: 100%;
+}
+
+.shiki .line.warning {
+  background-color: color-mix(in oklab, var(--color-warning) 16%, transparent);
+  display: inline-block;
+  width: 100%;
+}
+
+/* Line numbers, opt-in per fence with ```ts line-numbers.
+   A CSS counter rather than markup: the numbers are decoration, and a reader
+   copying the block must not get them in the clipboard. */
+.duxt-line-numbers code {
+  counter-reset: duxt-line;
+}
+
+.duxt-line-numbers .line::before {
+  counter-increment: duxt-line;
+  content: counter(duxt-line);
+  display: inline-block;
+  width: 2ch;
+  margin-right: 1.5ch;
+  text-align: right;
+  color: var(--color-muted-foreground);
+  user-select: none;
+}
