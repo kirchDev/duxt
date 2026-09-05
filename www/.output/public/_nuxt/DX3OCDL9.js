@@ -1,0 +1,1 @@
+import{n as e}from"./x1QpYndt.js";function t(){return{success:(t,n)=>e.success(t,{description:n}),info:(t,n)=>e.info(t,{description:n}),warning:(t,n)=>e.warning(t,{description:n}),error:(t,n)=>e.error(t,{description:n}),loading:t=>e.loading(t),dismiss:t=>e.dismiss(t)}}export{t};

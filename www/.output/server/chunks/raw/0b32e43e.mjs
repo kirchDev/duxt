@@ -1,0 +1,5 @@
+// ROLLUP_NO_REPLACE 
+ const _0b32e43e = "{\"duxt\":{\"search\":{\"label\":\"Search\",\"placeholder\":\"Search the documentation…\",\"recent\":\"Recently viewed\",\"sections\":\"Sections\",\"empty\":\"Nothing found for “{query}”.\",\"approximate\":\"No exact match for “{query}” — showing the closest.\"}}}";
+
+export { _0b32e43e as default };
+//# sourceMappingURL=0b32e43e.mjs.map

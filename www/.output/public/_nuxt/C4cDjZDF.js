@@ -1,0 +1,1 @@
+import{mt as e,qt as t,v as n,xt as r}from"./CaODJcyn.js";import{o as i}from"#entry";var a={__name:`ProseA`,props:{href:{type:String,default:``},target:{type:String,default:void 0,required:!1}},setup(a){let o=a;return(a,s)=>{let c=i;return e(),n(c,{href:o.href,target:o.target},{default:t(()=>[r(a.$slots,`default`)]),_:3},8,[`href`,`target`])}}};export{a as default};

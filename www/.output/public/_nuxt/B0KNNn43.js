@@ -1,0 +1,1 @@
+import{_ as e,b as t,mt as n,xt as r}from"./CaODJcyn.js";import{t as i}from"./BDNMzG2s.js";var a={},o={class:`typeset-scroll`};function s(i,a){return n(),t(`div`,o,[e(`table`,null,[r(i.$slots,`default`)])])}var c=Object.assign(i(a,[[`render`,s]]),{__name:`ProseTable`});export{c as default};
