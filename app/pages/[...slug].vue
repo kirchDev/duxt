@@ -68,3 +68,5 @@ useSeoMeta({
     </aside>
   </div>
 </template>
+      <DuxtVersionBanner />
+

@@ -1,0 +1,16 @@
+{
+  "duxt": {
+    "version": {
+      "old": "Você está lendo a documentação de uma versão antiga. Considere atualizar seu projeto para {preferred}.",
+      "upcoming": "Você está lendo a documentação de uma versão futura. A documentação e os recursos ainda podem mudar.",
+      "deprecated": "Você está lendo a documentação de {version}, que está obsoleta e não recebe mais atualizações. Considere atualizar para {preferred}.",
+      "eol": "Você está lendo a documentação de {version}, que chegou ao fim da vida útil e não recebe mais alterações.",
+      "titles": {
+        "upcoming": "Versão futura",
+        "old": "Versão antiga",
+        "deprecated": "Versão obsoleta",
+        "eol": "Fim da vida útil"
+      }
+    }
+  }
+}

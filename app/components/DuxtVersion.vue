@@ -34,7 +34,15 @@ const versions = computed(() => {
     .map((source) => ({
       label: source.version!,
       to: source.prefix || '/',
-      description: source.isDefault ? 'default' : undefined
+      // The lifecycle, not just "is this the default": a list where three
+      // entries look alike says nothing about which of them is still safe to
+      // read. `current` needs no word — it is what the reader assumes.
+      description:
+        source.status && source.status !== 'current'
+          ? `duxt.version.status.${source.status}`
+          : source.isDefault
+            ? 'default'
+            : undefined
     }));
 });
 
@@ -55,14 +63,20 @@ function pathIn(version: { to?: string }) {
 
 <template>
   <DropdownMenu v-if="versions.length > 1">
+    <!-- The trigger is a real <button>, with the Badge inside it. reka-ui puts
+         `aria-haspopup` and `aria-expanded` on whatever element it is handed,
+         and a <span> is allowed neither — which axe reports and a screen
+         reader acts on. -->
     <DropdownMenuTrigger as-child>
-      <Badge
-        variant="secondary"
-        class="cursor-pointer gap-1 font-mono text-[10px] hover:bg-accent"
-      >
-        {{ current?.label ?? duxt.version }}
-        <Icon name="lucide:chevron-down" class="size-3 opacity-60" />
-      </Badge>
+      <button type="button" class="cursor-pointer">
+        <Badge
+          variant="secondary"
+          class="gap-1 font-mono text-[10px] hover:bg-accent"
+        >
+          {{ current?.label ?? duxt.version }}
+          <Icon name="lucide:chevron-down" class="size-3 opacity-60" />
+        </Badge>
+      </button>
     </DropdownMenuTrigger>
 
     <DropdownMenuContent align="start" class="w-44">
@@ -78,7 +92,11 @@ function pathIn(version: { to?: string }) {
             v-if="version.description"
             class="ml-auto text-xs text-muted-foreground"
           >
-            {{ version.description }}
+            {{
+              $te(version.description)
+                ? $t(version.description)
+                : version.description
+            }}
           </span>
         </NuxtLink>
       </DropdownMenuItem>
