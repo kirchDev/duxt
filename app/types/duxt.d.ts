@@ -70,8 +70,30 @@ declare global {
    */
   type DuxtRefInput =
     | string
-    | { branch: string; label?: string; status?: DuxtSourceStatusInput }
-    | { tag: string; label?: string; status?: DuxtSourceStatusInput };
+    | {
+        branch: string;
+        label?: string;
+        status?: DuxtSourceStatusInput;
+        locales?: DuxtSourceLocaleInput[];
+      }
+    | {
+        tag: string;
+        label?: string;
+        status?: DuxtSourceStatusInput;
+        locales?: DuxtSourceLocaleInput[];
+      };
+
+  /**
+   * One language of a source: the folder it lives in, or where else it lives.
+   *
+   * A string is a folder inside the source's `path`. The object form moves the
+   * language wholesale — its own folder, repository or ref — which is how a
+   * translation kept by other people at their own pace becomes a source rather
+   * than a second website.
+   */
+  type DuxtSourceLocaleInput =
+    | string
+    | { locale: string; path?: string; repo?: string; ref?: DuxtRefInput };
 
   /**
    * A documentation source, as a consumer declares it in `app.config.ts`.
@@ -86,6 +108,15 @@ declare global {
     repo?: string;
     /** Refs to publish as versions. Omitted means the current checkout. */
     refs?: DuxtRefInput[];
+    /**
+     * Languages this source is available in, beyond the one in `path`.
+     *
+     * The default locale is the tree in `path` itself, so listing it changes
+     * nothing and a site that adds this key does not move the pages it already
+     * serves. A ref may override the list, because a translation is usually
+     * kept for the current version and not for the two behind it.
+     */
+    locales?: DuxtSourceLocaleInput[];
     /** Shown in the version switcher and used in the URL; defaults to the ref. */
     label?: DuxtText;
     /** Segment used in the URL for this repository; defaults to the repo name. */
@@ -112,6 +143,11 @@ declare global {
     showVersion?: boolean;
     /** The ref served without a version prefix, by name. Defaults to the first. */
     defaultRef?: string;
+    /**
+     * The locale whose pages are the tree in `path` itself, without a folder.
+     * Defaults to the first locale any source declares.
+     */
+    defaultLocale?: string;
   }
 
   /** One entry of the resolved source manifest — see `duxtSourceManifest()`. */
@@ -127,6 +163,10 @@ declare global {
     ref?: string;
     refKind?: 'branch' | 'tag';
     path: string;
+    /** The locale this collection serves; absent on a site with no translations. */
+    locale?: string;
+    /** True for the locale served from `path` itself, without a folder. */
+    isDefaultLocale: boolean;
     status: DuxtSourceStatusInput;
     history: boolean;
   }

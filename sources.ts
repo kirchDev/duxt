@@ -3,7 +3,13 @@ import { dirname, join } from 'node:path';
 import { defineCollection, z } from '@nuxt/content';
 import { defineSitemapSchema } from '@nuxtjs/sitemap/content';
 import type { DuxtSource, DuxtSourcesOptions } from './sources-resolve';
-import { refName, repoUrl, resolveSources } from './sources-resolve';
+import {
+  expandSources,
+  refIsTag,
+  refName,
+  repoUrl,
+  resolveSources
+} from './sources-resolve';
 import { resolveLatestRefs } from './sources-git';
 export type {
   DuxtResolvedSource,
@@ -141,36 +147,61 @@ export function duxtSources(
   const resolved = resolveSources(sources, options);
   const collections: Record<string, ReturnType<typeof defineCollection>> = {};
 
-  const expanded = sources.flatMap((source) =>
-    (source.refs?.length ? source.refs : [undefined]).map((ref) => ({
-      source,
-      ref
-    }))
-  );
+  // The SAME expansion the manifest is built from, so entry `n` here and entry
+  // `n` there are the same source, ref and language. See `expandSources`.
+  const expanded = expandSources(sources, options);
 
   resolved.forEach((entry, index) => {
-    const { source, ref } = expanded[index]!;
+    const { source, ref, effective } = expanded[index]!;
+
+    // A locale entry may carry a ref of its own — a translation repository
+    // that tags on its own schedule.
+    const usedRef = effective.ref ?? ref;
+
+    /**
+     * The translations living INSIDE this source's own folder.
+     *
+     * The default locale reads `docs/` with `**\/*.md`, and that glob happily
+     * swallows `docs/de-DE/` — the original collection would carry every
+     * translated page a second time, under a path beginning with the locale,
+     * and the sidebar would show both. So each folder a sibling language
+     * occupies is excluded from the language that contains it.
+     */
+    const nested = expanded
+      .filter(
+        (other) =>
+          other.source === source &&
+          other.effective.repo === effective.repo &&
+          other.effective.path !== effective.path &&
+          other.effective.path.startsWith(`${effective.path}/`)
+      )
+      .map(
+        (other) => `${other.effective.path.slice(effective.path.length + 1)}/**`
+      );
 
     collections[entry.collection] = defineCollection({
       type: 'page',
       schema: pageSchema,
-      source: source.repo
+      source: effective.repo
         ? {
-            exclude: excluded(),
+            exclude: [
+              ...excluded(),
+              ...nested.map((glob) => `${effective.path}/${glob}`)
+            ],
             // A tag lives outside refs/heads, so it has to be passed as a tag —
             // asking git for a branch by that name fails the build outright.
-            repository: ref
-              ? typeof ref === 'object' && 'tag' in ref
-                ? { url: repoUrl(source.repo), tag: ref.tag }
-                : { url: repoUrl(source.repo), branch: refName(ref) }
-              : repoUrl(source.repo),
-            include: `${source.path ?? 'docs'}/**/*.md`,
+            repository: usedRef
+              ? refIsTag(usedRef)
+                ? { url: repoUrl(effective.repo), tag: refName(usedRef) }
+                : { url: repoUrl(effective.repo), branch: refName(usedRef) }
+              : repoUrl(effective.repo),
+            include: `${effective.path}/**/*.md`,
             prefix: entry.prefix
           }
         : {
-            exclude: excluded(),
+            exclude: [...excluded(), ...nested],
             include: '**/*.md',
-            cwd: join(repositoryRoot(), source.path ?? 'docs'),
+            cwd: join(repositoryRoot(), effective.path),
             prefix: entry.prefix
           }
     });
