@@ -75,12 +75,13 @@ const active = computed({
 });
 const copied = ref(false);
 const notify = useDuxtToast();
+const { t } = useI18n();
 
 async function copy() {
   try {
     await navigator.clipboard.writeText(render(active.value));
     copied.value = true;
-    notify.success('Copied to clipboard');
+    notify.success(t('duxt.code.copiedToast'));
     setTimeout(() => (copied.value = false), 2000);
   } catch {
     notify.error(

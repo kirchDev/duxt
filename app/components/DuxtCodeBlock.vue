@@ -26,6 +26,7 @@ const label = computed(() => props.filename ?? props.language);
 
 const copied = ref(false);
 const notify = useDuxtToast();
+const { t } = useI18n();
 const root = useTemplateRef<HTMLElement>('root');
 
 async function copy() {
@@ -35,7 +36,7 @@ async function copy() {
   try {
     await navigator.clipboard.writeText(text);
     copied.value = true;
-    notify.success('Copied to clipboard');
+    notify.success(t('duxt.code.copiedToast'));
     setTimeout(() => (copied.value = false), 2000);
   } catch {
     notify.error(
