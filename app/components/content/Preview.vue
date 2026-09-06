@@ -36,46 +36,60 @@ const slots = useSlots();
 
 const hasCode = computed(() => Boolean(slots.code));
 const active = ref('preview');
+
+const { t } = useI18n();
+const tabs = computed(() => [
+  { value: 'preview', label: t('duxt.code.preview') },
+  { value: 'code', label: t('duxt.code.source') }
+]);
 </script>
 
 <template>
   <!-- No tabs at all when there is no source: a tab strip with one tab is a
        control that cannot be operated, and reka would still put it in the
        accessibility tree as one. -->
-  <div v-if="!hasCode" class="my-6 rounded-lg border px-4 py-6">
-    <slot />
+  <div v-if="!hasCode" class="my-6 overflow-hidden rounded-lg border">
+    <div class="px-6 py-8">
+      <slot />
+    </div>
   </div>
 
-  <TabsRoot v-else v-model="active" class="my-6">
+  <!-- One box, with the switch inside its own header — the same shape as a code
+       block's filename bar, so an example and a fence read as siblings rather
+       than as two unrelated widgets. -->
+  <TabsRoot
+    v-else
+    v-model="active"
+    class="my-6 overflow-hidden rounded-lg border"
+  >
     <TabsList
-      class="flex gap-1 border-b"
+      class="flex items-center gap-1 border-b bg-muted/40 px-2 py-1.5"
       :aria-label="$t('duxt.code.previewTabs') as string"
     >
       <TabsTrigger
-        value="preview"
-        class="-mb-px cursor-pointer border-b-2 border-transparent px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground data-[state=active]:border-primary data-[state=active]:text-foreground"
+        v-for="tab in tabs"
+        :key="tab.value"
+        :value="tab.value"
+        class="cursor-pointer rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
       >
-        {{ $t('duxt.code.preview') }}
-      </TabsTrigger>
-      <TabsTrigger
-        value="code"
-        class="-mb-px cursor-pointer border-b-2 border-transparent px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground data-[state=active]:border-primary data-[state=active]:text-foreground"
-      >
-        {{ $t('duxt.code.source') }}
+        {{ tab.label }}
       </TabsTrigger>
     </TabsList>
 
     <TabsContent value="preview" class="outline-none">
-      <!-- The example sits in a padded box rather than flush against the page,
-           so a component with its own margins is not read as part of the prose
-           around it. -->
-      <div class="rounded-b-lg border border-t-0 px-4 py-6">
+      <!-- Generous padding, and the page's own background: a component with its
+           own margins should not touch the frame it is being shown in. -->
+      <div class="px-6 py-8">
         <slot />
       </div>
     </TabsContent>
 
-    <!-- The fence brings its own card, so this pane adds none. -->
-    <TabsContent value="code" class="outline-none [&>pre]:mt-0">
+    <!-- The fence brings its own card. Inside this box that is one border too
+         many, so its frame, its rounding and its margin are taken back off. -->
+    <TabsContent
+      value="code"
+      class="outline-none [&_.duxt-code]:my-0 [&_.duxt-code]:rounded-none [&_.duxt-code]:border-0 [&_.duxt-code]:bg-transparent"
+    >
       <slot name="code" />
     </TabsContent>
   </TabsRoot>

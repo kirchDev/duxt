@@ -127,6 +127,13 @@ const previewVisible = ref(false);
  * which an address bar looks stuck, and the timer stops with the component.
  */
 const previewFrame = ref<HTMLIFrameElement>();
+
+/**
+ * True until the framed page has loaded once. Only the FIRST load: a route
+ * change inside the frame is the app's own navigation, which draws its own
+ * progress bar — a second spinner in the chrome would report it twice.
+ */
+const previewLoading = ref(true);
 const previewCurrent = ref<{ href: string; path: string }>();
 
 function readFrameLocation() {
@@ -319,10 +326,30 @@ useSeoMeta({
               <span class="size-2.5 rounded-full bg-muted-foreground/30" />
             </div>
 
-            <div
-              class="min-w-0 flex-1 truncate rounded-md bg-background/70 px-3 py-1 text-center font-mono text-xs text-muted-foreground"
-            >
-              {{ previewHref }}
+            <!-- One fixed width, centred: a bar sized to its text grows and
+                 shrinks on every navigation inside the frame, which reads as
+                 the chrome jittering rather than as a URL changing. The status
+                 icon sits where a browser puts its padlock — leftmost, always
+                 there, so the URL never shifts when it changes. -->
+            <div class="flex min-w-0 flex-1 justify-center">
+              <div
+                class="flex w-full max-w-md items-center gap-2 rounded-md bg-background/70 px-3 py-1 font-mono text-xs text-muted-foreground"
+              >
+                <Icon
+                  :name="
+                    previewLoading ? 'lucide:loader-circle' : 'lucide:globe'
+                  "
+                  class="size-3 shrink-0"
+                  :class="previewLoading ? 'animate-spin' : 'opacity-60'"
+                  role="status"
+                  :aria-label="
+                    previewLoading
+                      ? $t('duxt.defaults.landing.preview')
+                      : undefined
+                  "
+                />
+                <span class="truncate">{{ previewHref }}</span>
+              </div>
             </div>
 
             <!-- The way out of the frame. A page read inside a 30 rem window is
@@ -368,7 +395,10 @@ useSeoMeta({
               v-if="previewVisible"
               ref="previewFrame"
               :src="previewTo"
-              @load="readFrameLocation"
+              @load="
+                previewLoading = false;
+                readFrameLocation();
+              "
               :title="previewTitle"
               loading="lazy"
               class="h-[44rem] w-full max-lg:h-[36rem] max-sm:h-[28rem]"
