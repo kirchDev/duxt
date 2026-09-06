@@ -7,10 +7,11 @@
 export default defineAppConfig({
   duxt: {
     /**
-     * One source, carrying a `slug` — so the site keeps a repository segment
-     * (`/duxt/…`) even though there is nothing to disambiguate it from. A
-     * consumer with one unversioned folder and no slug declares none of this
-     * and gets none of it.
+     * One source, and therefore no prefixes: with a single repository and a
+     * single ref the resolver serves `/getting-started` rather than
+     * `/duxt/v1/getting-started`, because a segment that can only ever hold one
+     * value distinguishes nothing. `sourceOptions.showRepo` and `showVersion`
+     * force them back on for a site that wants the segment anyway.
      */
     sources: [
       // This repository's own documentation. `origin` names the repository for
@@ -18,13 +19,12 @@ export default defineAppConfig({
       // what `repo` would do, and it would clone the checkout we stand in.
       {
         path: 'docs',
-        slug: 'duxt',
         origin: { repo: 'kirchDev/duxt', ref: 'main' }
       }
     ],
     // The feed, pointed at a section that has dated entries. Off by default in
     // the layer; this site turns it on so the route is exercised.
-    feed: { path: '/duxt/adr', title: 'duxt — decisions' },
+    feed: { path: '/adr', title: 'duxt — decisions' },
 
     // The source carries a slug, so every path has a repository segment and the
     // navigation the layer ships — which assumes a single unprefixed source —
@@ -48,7 +48,7 @@ export default defineAppConfig({
           'fr-FR': 'Démarrer',
           'pt-PT': 'Começar'
         },
-        to: '/duxt/getting-started',
+        to: '/getting-started',
         icon: 'lucide:rocket'
       },
       {
@@ -59,7 +59,7 @@ export default defineAppConfig({
           'fr-FR': 'Concepts',
           'pt-PT': 'Conceitos'
         },
-        to: '/duxt/concepts',
+        to: '/concepts',
         icon: 'lucide:compass'
       },
       {
@@ -70,7 +70,7 @@ export default defineAppConfig({
           'fr-FR': 'Guides',
           'pt-PT': 'Guias'
         },
-        to: '/duxt/guides',
+        to: '/guides',
         icon: 'lucide:book-open'
       },
       {
@@ -81,7 +81,7 @@ export default defineAppConfig({
           'fr-FR': 'Référence',
           'pt-PT': 'Referência'
         },
-        to: '/duxt/reference',
+        to: '/reference',
         icon: 'lucide:list'
       },
       {
@@ -92,7 +92,7 @@ export default defineAppConfig({
           'fr-FR': 'Crédits',
           'pt-PT': 'Créditos'
         },
-        to: '/duxt/credits',
+        to: '/credits',
         icon: 'lucide:heart'
       }
     ],
@@ -183,7 +183,7 @@ export default defineAppConfig({
             'fr-FR': 'Documentation',
             'pt-PT': 'Documentação'
           },
-          to: '/duxt/getting-started',
+          to: '/getting-started',
           icon: 'lucide:book-open-text'
         }
       ]
@@ -210,7 +210,7 @@ export default defineAppConfig({
 
       // The window under the hero: this site's own getting-started page,
       // embedded and operable. `to` stays inside the site — see DuxtPreview.
-      preview: { to: '/duxt/getting-started' },
+      preview: { to: '/getting-started' },
 
       // How a reader installs the layer. The layer ships none — it does not
       // know what a consumer's project is called — so duxt's own site is where
@@ -226,7 +226,7 @@ export default defineAppConfig({
             'fr-FR': 'Lire la documentation',
             'pt-PT': 'Ler a documentação'
           },
-          to: '/duxt/getting-started',
+          to: '/getting-started',
           icon: 'lucide:arrow-right'
         },
         {
@@ -267,7 +267,7 @@ export default defineAppConfig({
               'Uma linha de configuração traz tema, páginas e componentes — qualquer arquivo pode ser substituído.'
           },
           icon: 'lucide:package',
-          to: '/duxt/getting-started/installation'
+          to: '/getting-started/installation'
         },
         {
           title: {
@@ -290,7 +290,7 @@ export default defineAppConfig({
               'Uma declaração por fonte em vez de uma coleção por versão e repositório.'
           },
           icon: 'lucide:git-branch',
-          to: '/duxt/concepts/sources'
+          to: '/concepts/sources'
         },
         {
           title: {
@@ -313,7 +313,7 @@ export default defineAppConfig({
               'Uma tag torna-se uma versão, e o seletor permanece na página que está a ler.'
           },
           icon: 'lucide:layers',
-          to: '/duxt/concepts/urls-and-versions'
+          to: '/concepts/urls-and-versions'
         },
         {
           title: {
@@ -336,7 +336,7 @@ export default defineAppConfig({
               'A interface está traduzida; as suas páginas levam prefixo de idioma e hreflang.'
           },
           icon: 'lucide:languages',
-          to: '/duxt/concepts/localisation'
+          to: '/concepts/localisation'
         },
         {
           title: {
@@ -361,7 +361,7 @@ export default defineAppConfig({
               'Branches, tags, repositórios privados e cache vêm do próprio Content v3.'
           },
           icon: 'lucide:git-merge',
-          to: '/duxt/concepts/collections'
+          to: '/concepts/collections'
         },
         {
           title: 'shadcn-vue',
@@ -380,7 +380,7 @@ export default defineAppConfig({
               'Os componentes são copiados, não importados. Redesenhar um é editar um arquivo.'
           },
           icon: 'lucide:palette',
-          to: '/duxt/guides/override-the-theme'
+          to: '/guides/override-the-theme'
         },
         {
           title: {
@@ -403,7 +403,7 @@ export default defineAppConfig({
               'O MDC vem com o Content — chame um componente Vue com sintaxe de bloco.'
           },
           icon: 'lucide:code',
-          to: '/duxt/reference/mdc-components'
+          to: '/reference/mdc-components'
         },
         {
           title: {
@@ -426,7 +426,7 @@ export default defineAppConfig({
               'llms.txt e uma rota MCP sobre o mesmo conteúdo, previstos como saída da build.'
           },
           icon: 'lucide:bot',
-          to: '/duxt/concepts/machine-readers'
+          to: '/concepts/machine-readers'
         }
       ]
     },
