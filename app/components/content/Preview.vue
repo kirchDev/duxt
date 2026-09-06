@@ -48,48 +48,42 @@ const tabs = computed(() => [
   <!-- No tabs at all when there is no source: a tab strip with one tab is a
        control that cannot be operated, and reka would still put it in the
        accessibility tree as one. -->
-  <div v-if="!hasCode" class="my-6 overflow-hidden rounded-lg border">
-    <div class="px-6 py-8">
-      <slot />
-    </div>
+  <div v-if="!hasCode" class="my-6">
+    <slot />
   </div>
 
-  <!-- One box, with the switch inside its own header — the same shape as a code
-       block's filename bar, so an example and a fence read as siblings rather
-       than as two unrelated widgets. -->
-  <TabsRoot
-    v-else
-    v-model="active"
-    class="my-6 overflow-hidden rounded-lg border"
-  >
+  <TabsRoot v-else v-model="active" class="my-6">
+    <!-- Underlined triggers, not filled ones: a filled tab reads as a second
+         surface, and in dark mode as a hole rather than as the selected tab. -->
     <TabsList
-      class="flex items-center gap-1 border-b bg-muted/40 px-2 py-1.5"
+      class="flex items-center gap-4 border-b"
       :aria-label="$t('duxt.code.previewTabs') as string"
     >
       <TabsTrigger
         v-for="tab in tabs"
         :key="tab.value"
         :value="tab.value"
-        class="cursor-pointer rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+        class="-mb-px cursor-pointer border-b-2 border-transparent px-1 pb-2 text-sm text-muted-foreground transition-colors hover:text-foreground data-[state=active]:border-primary data-[state=active]:text-foreground"
       >
         {{ tab.label }}
       </TabsTrigger>
     </TabsList>
 
-    <TabsContent value="preview" class="outline-none">
-      <!-- Generous padding, and the page's own background: a component with its
-           own margins should not touch the frame it is being shown in. -->
-      <div class="px-6 py-8">
-        <slot />
-      </div>
+    <!-- NO BOX around the example, and that is the point of the block: a
+         callout, a file tree or a code group each carry their own card, and a
+         frame around them draws a second one that exists nowhere else on the
+         site. What the reader sees here is exactly what the same Markdown
+         renders in a page — which is the only claim this component makes.
+         Only the first and last margins come off, so the example hangs from
+         the tabs rather than floating a line below them. -->
+    <TabsContent
+      value="preview"
+      class="mt-4 outline-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
+    >
+      <slot />
     </TabsContent>
 
-    <!-- The fence brings its own card. Inside this box that is one border too
-         many, so its frame, its rounding and its margin are taken back off. -->
-    <TabsContent
-      value="code"
-      class="outline-none [&_.duxt-code]:my-0 [&_.duxt-code]:rounded-none [&_.duxt-code]:border-0 [&_.duxt-code]:bg-transparent"
-    >
+    <TabsContent value="code" class="mt-4 outline-none [&_.duxt-code]:my-0">
       <slot name="code" />
     </TabsContent>
   </TabsRoot>
