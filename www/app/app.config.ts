@@ -128,8 +128,8 @@ export default defineAppConfig({
       }
     ],
 
-    // Also empty in the layer. Its title ("Community") is generic chrome and
-    // stays there; the links are kirchDev's own and belong here.
+    // Also empty in the layer. Its title ("Community") is generic interface text
+    // and stays there; the links are kirchDev's own and belong here.
     aside: {
       links: [
         {
@@ -325,7 +325,7 @@ export default defineAppConfig({
           },
           description: {
             'en-GB':
-              'The chrome is translated; your pages carry a locale prefix and an hreflang.',
+              'The interface is translated; your pages carry a locale prefix and an hreflang.',
             'de-DE':
               'Die Oberfläche ist übersetzt; deine Seiten bekommen Locale-Präfix und hreflang.',
             'es-ES':

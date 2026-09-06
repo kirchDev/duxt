@@ -7,7 +7,7 @@
  *  - a LITERAL — `'Guide'` — for the single-language site, which is most of
  *    them, and which must not have to learn i18n to name a navbar entry;
  *  - a KEY — `'nav.guide'` — for the site that already has locale files and
- *    wants its documentation chrome to live in them;
+ *    wants the theme's own interface text to live in them;
  *  - a RECORD — `{ 'en-GB': 'Guide', 'de-DE': 'Anleitung' }` — for the site
  *    with two languages and eight labels, where creating and registering a
  *    locale file per language costs more than it saves.

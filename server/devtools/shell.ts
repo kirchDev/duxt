@@ -2,7 +2,7 @@
 import { devtools } from '#duxt-devtools';
 
 /**
- * The chrome every devtools panel is drawn in.
+ * The frame every devtools panel is drawn in.
  *
  * Plain HTML with inline styles, not a Vue island: the panel renders inside an
  * iframe in the devtools window, which shares nothing with the site — no

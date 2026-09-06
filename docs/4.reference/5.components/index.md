@@ -8,7 +8,7 @@ Every component here is **shadowable**: a file of the same name in your project
 replaces the layer's, with no configuration. A name documented here is part of
 the public surface, so it will not be renamed without a major release.
 
-The pages are grouped the way the theme is: the chrome around a page, the
+The pages are grouped the way the theme is: the layout around a page, the
 navigation through it, and the components that belong to the page itself.
 
 ::page-cards

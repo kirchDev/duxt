@@ -1,6 +1,6 @@
 ---
-title: Chrome
-description: The frame around a page: header, footer, section row, and the controls in them.
+title: Layout
+description: The frame around a page — header, footer, section row, and the controls in them.
 icon: lucide:layout-panel-top
 ---
 

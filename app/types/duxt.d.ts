@@ -237,7 +237,7 @@ declare global {
     landing?: DuxtLanding;
     /** Package managers offered by a command block, in display order. */
     packageManagers?: string[];
-    /** Chrome a consumer can switch off. */
+    /** Layout a consumer can switch off. */
     breadcrumb?: boolean;
     /**
      * The section `/rss.xml` publishes — a changelog, a release log, a blog.

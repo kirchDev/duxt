@@ -72,7 +72,7 @@ export const duxtDefaults: DuxtConfig = {
    * like a bug in duxt rather than a default it had never been told to change.
    *
    * Those labels were duxt's OWN documentation showing through the layer, so
-   * their translations left with them — `duxt.defaults.*` translates chrome the
+   * their translations left with them — `duxt.defaults.*` translates the interface
    * layer draws, never content a site writes.
    *
    * Left empty, the row does not render and the sidebar falls back to the whole
@@ -165,7 +165,7 @@ export const duxtDefaults: DuxtConfig = {
    * Discord that is somebody else's community are worse than an empty column.
    * The block draws nothing until a consumer fills it.
    *
-   * The title is the exception that stays: "Community" is chrome the layer
+   * The title is the exception that stays: "Community" is interface text the layer
    * draws itself, in every language it ships, and it is not anybody's link.
    */
   aside: {

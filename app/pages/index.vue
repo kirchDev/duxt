@@ -131,7 +131,7 @@ const previewFrame = ref<HTMLIFrameElement>();
 /**
  * True until the framed page has loaded once. Only the FIRST load: a route
  * change inside the frame is the app's own navigation, which draws its own
- * progress bar — a second spinner in the chrome would report it twice.
+ * progress bar — a second spinner in the frame would report it twice.
  */
 const previewLoading = ref(true);
 const previewCurrent = ref<{ href: string; path: string }>();
@@ -316,7 +316,7 @@ useSeoMeta({
     <section v-if="preview" ref="previewRoot">
       <div class="mx-auto max-w-[90rem] px-4 py-12 sm:py-16 lg:px-8">
         <div class="overflow-hidden rounded-xl border bg-background shadow-sm">
-          <!-- The window's own chrome. The address bar is a <div>, not an
+          <!-- The window's own frame. The address bar is a <div>, not an
                input: it says which page is inside, and a text field a reader
                can type into but not submit is a control that lies. -->
           <div class="flex items-center gap-3 border-b bg-muted/60 px-4 py-2.5">
@@ -328,7 +328,7 @@ useSeoMeta({
 
             <!-- One fixed width, centred: a bar sized to its text grows and
                  shrinks on every navigation inside the frame, which reads as
-                 the chrome jittering rather than as a URL changing. The status
+                 the frame jittering rather than as a URL changing. The status
                  icon sits where a browser puts its padlock — leftmost, always
                  there, so the URL never shifts when it changes. -->
             <div class="flex min-w-0 flex-1 justify-center">
