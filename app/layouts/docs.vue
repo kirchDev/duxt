@@ -26,7 +26,10 @@ const { items } = useDuxtSection(navigation);
       <!-- A div, not an aside. The <nav> inside is the landmark and carries
            the label; a second, unnamed `complementary` around it only makes a
            screen reader's landmark list longer. -->
-      <div class="hidden w-56 shrink-0 lg:block">
+      <!-- A section with one page has nothing to navigate: the sidebar would be
+           a column listing the page the reader is already on. It drops out, and
+           the content takes the width. -->
+      <div v-if="items.length > 1" class="hidden w-56 shrink-0 lg:block">
         <div
           class="sticky top-[6.5rem] max-h-[calc(100vh-8rem)] overflow-y-auto py-8 pr-2"
         >
