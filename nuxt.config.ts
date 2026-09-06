@@ -241,51 +241,26 @@ export default defineNuxtConfig({
   ],
 
   /**
-   * Register the layer's own server routes.
+   * NO `hooks` KEY, AND NO `serverDir`. The layer's own `server/` is found by
+   * Nitro without either.
    *
-   * `serverDir` is not layer-aware: Nuxt takes the consumer's, so setting it
-   * here either did nothing or replaced the consumer's `server/`. The symptom
-   * was llms.txt answering with the site's 404 page, because no handler was
-   * registered and the catch-all route took it.
+   * These routes used to be pushed by hand from a `nitro:config` hook, on the
+   * belief that only the consumer's server directory is scanned. The
+   * production bundle disproves it: its handler list carried every one of them
+   * TWICE — once lazily, in alphabetical order, from a filesystem scan of this
+   * layer's `server/routes/`, and once eagerly in the order the hook pushed
+   * them. The middleware too.
    *
-   * A nitro hook is layer-safe and composes — the consumer keeps its own
-   * `server/` untouched — and needs no @nuxt/kit dependency to do it.
+   * So Nitro scans `server/routes/` and `server/middleware/` in EVERY layer,
+   * derives the route from the file name and the method from its `.get`
+   * suffix, and loads each handler on demand. A consumer's own `server/` is
+   * merged rather than replaced, which is what the hook was there to protect
+   * and never had to.
+   *
+   * Left as a comment rather than deleted: the next person to add a route here
+   * will look for the place it is registered, and the answer is that there
+   * isn't one.
    */
-  hooks: {
-    'nitro:config': (nitro) => {
-      nitro.handlers ||= [];
-      nitro.handlers.push(
-        {
-          route: '/llms.txt',
-          method: 'get',
-          handler: layer('./server/routes/llms.txt.get.ts')
-        },
-        // The index's companion: the same pages, whole, in one file.
-        {
-          route: '/llms-full.txt',
-          method: 'get',
-          handler: layer('./server/routes/llms-full.txt.get.ts')
-        },
-        // `…/guide/deploying.md` — the page's own source, which is what the
-        // "View as Markdown" action opens and what the model links hand over.
-        // A middleware because `.md` is a suffix, not a path segment, and
-        // Nitro's router matches segments.
-        {
-          middleware: true,
-          handler: layer('./server/middleware/raw-markdown.ts')
-        },
-        // The changelog feed. Draws nothing until `duxt.feed.path` names a
-        // section, so a site without one serves an empty channel rather than
-        // 404 — a reader's feed client should be told "nothing here", not
-        // "gone".
-        {
-          route: '/rss.xml',
-          method: 'get',
-          handler: layer('./server/routes/rss.xml.get.ts')
-        }
-      );
-    }
-  },
 
   // A real MCP server at /mcp, through the official SDK, instead of a JSON
   // endpoint someone else has to wrap. Tools live in server/mcp/tools.
