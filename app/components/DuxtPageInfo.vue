@@ -37,9 +37,14 @@ const file = computed(() =>
     : undefined
 );
 
-const editUrl = computed(() =>
+const link = computed(() =>
   file.value
-    ? sourceEditUrl(source.value?.repositoryUrl, source.value?.ref, file.value)
+    ? sourceLink(
+        source.value?.repositoryUrl,
+        source.value?.ref,
+        source.value?.refKind,
+        file.value
+      )
     : undefined
 );
 
@@ -60,18 +65,23 @@ const contributors = computed(() => page.value?.contributors ?? []);
 
 <template>
   <div
-    v-if="editUrl || updated || contributors.length"
+    v-if="link || updated || contributors.length"
     class="mt-6 border-t pt-4 text-xs text-muted-foreground"
   >
+    <!-- A tag has no edit form — see `sourceLink`. The label follows the kind
+         rather than promising a form that answers with a 404. -->
     <a
-      v-if="editUrl"
-      :href="editUrl"
+      v-if="link"
+      :href="link.url"
       target="_blank"
       rel="noopener"
       class="flex items-center gap-1.5 transition-colors hover:text-foreground"
     >
-      <Icon name="lucide:pencil" class="size-3.5 shrink-0" />
-      {{ $t('duxt.page.edit') }}
+      <Icon
+        :name="link.kind === 'edit' ? 'lucide:pencil' : 'lucide:file-code-2'"
+        class="size-3.5 shrink-0"
+      />
+      {{ link.kind === 'edit' ? $t('duxt.page.edit') : $t('duxt.page.view') }}
     </a>
 
     <p v-if="updated" class="mt-3">

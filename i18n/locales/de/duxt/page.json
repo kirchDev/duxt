@@ -20,7 +20,8 @@
         "chatgpt": "In ChatGPT öffnen",
         "claude": "In Claude öffnen",
         "prompt": "Lies {url}, damit ich dir dazu Fragen stellen kann."
-      }
+      },
+      "view": "Quelle ansehen"
     }
   }
 }

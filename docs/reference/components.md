@@ -137,6 +137,9 @@ control nobody finds.
 Provenance, under the table of contents in the right-hand column: **Edit this
 page**, when it last changed, and who wrote it.
 
+A version served from a **tag** says *View source* instead. GitHub's web editor
+commits to a branch, so an edit link on a tag is a 404 — see `sourceLink`.
+
 Everything is derived. The `sources` entry carries the repository, the ref and
 the folder; the page carries its own file name and, where git could be asked,
 its history. A consumer gets an edit link by declaring nothing — see `origin` in

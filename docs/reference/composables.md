@@ -160,12 +160,19 @@ One place that knows which keys the theme listens to. `duxtShortcuts` is the
 list the `?` sheet draws; `onDuxtShortcut` binds one, with the guard every
 shortcut needs — nothing fires while the reader is typing.
 
-## sourceFilePath(stem, prefix, folder) / sourceEditUrl(url, ref, file)
+## sourceFilePath(stem, prefix, folder) / sourceLink(url, ref, refKind, file)
 
-From a page back to the file it was written in, and to the URL that opens it for
-editing. Pure functions: this is string arithmetic over three moving pieces —
-the URL prefix, the numbered folder names and the source's docs folder — and the
-only way that stays right is a test rather than a click.
+From a page back to the file it was written in, and to the link that opens it.
+Pure functions: this is string arithmetic over three moving pieces — the URL
+prefix, the numbered folder names and the source's docs folder — and the only
+way that stays right is a test rather than a click.
+
+`sourceLink` returns `{ url, kind }`, where `kind` is `edit` or `view`. **A tag
+cannot be edited**: GitHub's web editor commits to a branch, so `/edit/v0.8.0/…`
+is a 404 for anyone signed in — and a version served from a tag is exactly what
+this layer creates. Such a page links to its source instead. Sending that reader
+to the default branch would be worse than the 404: they would be editing today's
+documentation while believing they were fixing the version they were reading.
 
 `stem` is used rather than `path` because the URL has the numbered prefixes
 stripped: `1.guides/2.add-a-body` renders at `/guides/add-a-body` and cannot be

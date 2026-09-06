@@ -20,7 +20,8 @@
         "chatgpt": "Abrir en ChatGPT",
         "claude": "Abrir en Claude",
         "prompt": "Lee {url} para que pueda hacerte preguntas sobre ello."
-      }
+      },
+      "view": "Ver la fuente"
     }
   }
 }

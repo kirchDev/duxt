@@ -31,24 +31,54 @@ export function sourceFilePath(
 }
 
 /**
- * The URL that opens that file for editing.
+ * The link back to a file: an edit form where one is possible, a view where it
+ * is not.
  *
- * GitHub and GitLab spell it differently and everything else is left alone —
- * a wrong link is worse than none, and the button is simply not drawn when the
- * host is not one of the two.
+ * A TAG CANNOT BE EDITED. GitHub's web editor commits to a branch, so
+ * `/edit/v0.8.0/…` is a 404 for anyone signed in — and a version served from a
+ * tag is exactly the case this layer creates. Sending that reader to the
+ * default branch instead would be worse than the 404: they would be editing
+ * today's documentation while believing they were fixing the version they were
+ * reading.
+ *
+ * So a tag gets the source, not a form. The caller draws the label the kind
+ * asks for.
+ *
+ * GitHub and GitLab spell both forms differently and every other host is left
+ * alone — a wrong link is worse than none, so no button is drawn at all.
  */
-export function sourceEditUrl(
+export interface SourceLink {
+  url: string;
+  /** `edit` opens a form; `view` opens the file as it stands. */
+  kind: 'edit' | 'view';
+}
+
+export function sourceLink(
   repositoryUrl: string | undefined,
   ref: string | undefined,
+  refKind: 'branch' | 'tag' | undefined,
   file: string
-): string | undefined {
+): SourceLink | undefined {
   if (!repositoryUrl) return undefined;
 
   const base = repositoryUrl.replace(/\.git$/, '').replace(/\/+$/, '');
-  const at = ref || 'HEAD';
 
-  if (base.includes('gitlab')) return `${base}/-/edit/${at}/${file}`;
-  if (base.includes('github')) return `${base}/edit/${at}/${file}`;
+  // Without a ref there is nothing to open a form against either: `HEAD` is a
+  // symbolic name the editor does not accept, though it reads fine.
+  const editable = refKind !== 'tag' && Boolean(ref);
+  const at = ref || 'HEAD';
+  const kind = editable ? 'edit' : 'view';
+
+  if (base.includes('gitlab')) {
+    return {
+      url: `${base}/-/${editable ? 'edit' : 'blob'}/${at}/${file}`,
+      kind
+    };
+  }
+
+  if (base.includes('github')) {
+    return { url: `${base}/${editable ? 'edit' : 'blob'}/${at}/${file}`, kind };
+  }
 
   return undefined;
 }
