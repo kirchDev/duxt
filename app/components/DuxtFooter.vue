@@ -77,27 +77,6 @@ const poweredBy = computed(() =>
         >
           {{ link.label }}
         </NuxtLink>
-
-        <div v-if="duxt.links?.length" class="-mr-2 flex items-center gap-1">
-          <Button
-            v-for="link in duxt.links"
-            :key="link.to"
-            as-child
-            variant="ghost"
-            size="icon"
-            class="size-8 text-muted-foreground"
-          >
-            <NuxtLink
-              :to="link.to"
-              :aria-label="asText(link.label)"
-              :title="asText(link.label)"
-              target="_blank"
-              rel="noopener"
-            >
-              <Icon v-if="link.icon" :name="link.icon" class="size-4" />
-            </NuxtLink>
-          </Button>
-        </div>
       </div>
     </div>
   </footer>
