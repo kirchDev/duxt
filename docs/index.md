@@ -15,3 +15,6 @@ Two things are deliberately not here. Contributing to duxt itself lives in
 [`CONTRIBUTING.md`](https://github.com/kirchDev/duxt/blob/main/CONTRIBUTING.md),
 and the decisions behind the layer are recorded in
 [Architecture decisions](/adr).
+
+What the layer is built on, and what it was built after, is in
+[Credits](/credits).
