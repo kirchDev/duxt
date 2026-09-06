@@ -17,6 +17,34 @@ import { isLatestRef, newestTag, repoUrl } from './sources-resolve';
  */
 const cache = new Map<string, string[]>();
 
+/**
+ * What a repository URL is allowed to look like before it is handed to `git`.
+ *
+ * An allowlist rather than a check for a leading dash, because the argument
+ * reaches a command: `git ls-remote --upload-pack=<anything>` runs that
+ * anything, and every value that is not a URL is easier to reject than to
+ * reason about. One quantifier over one character class, so the test itself
+ * cannot be the next finding.
+ */
+const REMOTE_URL = /^(?:https?:\/\/|ssh:\/\/|git@)[\w.~:/?#@!$&'()*+,;=%-]+$/;
+
+/** The tags of a remote, or nothing when its URL is not one we will run. */
+function remoteTags(repo: string): string {
+  const url = repoUrl(repo);
+
+  if (!REMOTE_URL.test(url)) {
+    throw new Error(`duxt: refusing to read tags from ${JSON.stringify(url)}`);
+  }
+
+  return execFileSync(
+    'git',
+    // `--end-of-options` so a URL that survived the test above is still read as
+    // a URL and never as an option.
+    ['ls-remote', '--tags', '--refs', '--end-of-options', url],
+    { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }
+  );
+}
+
 function tagsOf(repo: string | undefined): string[] {
   const key = repo ?? '.';
   const cached = cache.get(key);
@@ -26,18 +54,7 @@ function tagsOf(repo: string | undefined): string[] {
 
   try {
     const output = repo
-      ? // `--end-of-options` so the URL is a URL: without it a value shaped
-        // like `--upload-pack=…` is read as an option, and that option runs a
-        // command. `repoUrl` refuses a leading dash as well — one guard at the
-        // parser, one at the source.
-        execFileSync(
-          'git',
-          ['ls-remote', '--tags', '--refs', '--end-of-options', repoUrl(repo)],
-          {
-            encoding: 'utf8',
-            stdio: ['ignore', 'pipe', 'ignore']
-          }
-        )
+      ? remoteTags(repo)
       : execFileSync('git', ['tag', '--list'], {
           encoding: 'utf8',
           stdio: ['ignore', 'pipe', 'ignore']
