@@ -223,6 +223,33 @@ export default defineAppConfig({
     },
 
     landing: {
+      // `{version}` reads `duxt.version`, so the number is never typed twice:
+      // release-please bumps `package.json`, and a copy written out here would
+      // be wrong from the next release onwards. The pill links to the release
+      // it names.
+      badge: {
+        label: {
+          'en-GB': '{version} released',
+          'de-DE': '{version} veröffentlicht',
+          'es-ES': '{version} publicada',
+          'fr-FR': '{version} publiée',
+          'pt-PT': '{version} publicada'
+        },
+        icon: 'lucide:rocket',
+        variant: 'success',
+        to: 'https://github.com/kirchDev/duxt/releases/latest',
+        external: true
+      },
+
+      // The window under the hero: this site's own getting-started page,
+      // embedded and operable. `to` stays inside the site — see DuxtPreview.
+      preview: { to: '/duxt/getting-started' },
+
+      // How a reader installs the layer. The layer ships none — it does not
+      // know what a consumer's project is called — so duxt's own site is where
+      // duxt's own command belongs.
+      command: 'pnpm add -D @kirchdev/duxt',
+
       actions: [
         {
           label: {
@@ -238,8 +265,201 @@ export default defineAppConfig({
         {
           label: 'GitHub',
           to: 'https://github.com/kirchDev/duxt',
+          icon: 'lucide:github',
           variant: 'outline',
           external: true
+        }
+      ],
+
+      // Written out here rather than inherited, because each card now POINTS at
+      // the page that explains it — and the layer cannot know those paths. Same
+      // reason `sections` above is written out: `duxt.defaults.*` is the layer's
+      // private namespace, and a consumer reaching into it turns an internal
+      // rename into a silent break.
+      features: [
+        {
+          title: {
+            'en-GB': "Extend, don't scaffold",
+            'de-DE': 'Erweitern statt generieren',
+            'es-ES': 'Extender, no generar',
+            'fr-FR': 'Étendre, pas générer',
+            'pt-PT': 'Estender, não gerar'
+          },
+          description: {
+            'en-GB':
+              'One line of config brings theme, pages and components — override any file.',
+            'de-DE':
+              'Eine Zeile Konfiguration bringt Theme, Seiten und Komponenten — jede Datei bleibt überschreibbar.',
+            'es-ES':
+              'Una línea de configuración aporta tema, páginas y componentes: cualquier archivo se puede sobrescribir.',
+            'fr-FR':
+              'Une ligne de configuration apporte thème, pages et composants — chaque fichier reste remplaçable.',
+            'pt-PT':
+              'Uma linha de configuração traz tema, páginas e componentes — qualquer ficheiro pode ser substituído.',
+            'pt-BR':
+              'Uma linha de configuração traz tema, páginas e componentes — qualquer arquivo pode ser substituído.'
+          },
+          icon: 'lucide:package',
+          to: '/duxt/getting-started/installation'
+        },
+        {
+          title: {
+            'en-GB': 'Sources as a list',
+            'de-DE': 'Quellen als Liste',
+            'es-ES': 'Fuentes como una lista',
+            'fr-FR': 'Les sources comme une liste',
+            'pt-PT': 'Fontes como uma lista'
+          },
+          description: {
+            'en-GB':
+              'One declaration per source instead of one collection per version and repo.',
+            'de-DE':
+              'Eine Deklaration pro Quelle statt einer Collection pro Version und Repository.',
+            'es-ES':
+              'Una declaración por fuente en lugar de una colección por versión y repositorio.',
+            'fr-FR':
+              "Une déclaration par source au lieu d'une collection par version et par dépôt.",
+            'pt-PT':
+              'Uma declaração por fonte em vez de uma coleção por versão e repositório.'
+          },
+          icon: 'lucide:git-branch',
+          to: '/duxt/concepts/sources'
+        },
+        {
+          title: {
+            'en-GB': 'Versions that switch',
+            'de-DE': 'Versionen zum Umschalten',
+            'es-ES': 'Versiones conmutables',
+            'fr-FR': 'Des versions commutables',
+            'pt-PT': 'Versões comutáveis'
+          },
+          description: {
+            'en-GB':
+              'A tag becomes a version, and the switcher stays on the page you are reading.',
+            'de-DE':
+              'Ein Tag wird zur Version — der Umschalter bleibt auf der Seite, die du liest.',
+            'es-ES':
+              'Una etiqueta se convierte en versión, y el selector no abandona la página que lees.',
+            'fr-FR':
+              'Un tag devient une version, et le sélecteur reste sur la page que vous lisez.',
+            'pt-PT':
+              'Uma tag torna-se uma versão, e o seletor permanece na página que está a ler.'
+          },
+          icon: 'lucide:layers',
+          to: '/duxt/concepts/urls-and-versions'
+        },
+        {
+          title: {
+            'en-GB': 'Localised out of the box',
+            'de-DE': 'Mehrsprachig ab Werk',
+            'es-ES': 'Localizado de fábrica',
+            'fr-FR': "Localisé d'origine",
+            'pt-PT': 'Localizado de origem'
+          },
+          description: {
+            'en-GB':
+              'The chrome is translated; your pages carry a locale prefix and an hreflang.',
+            'de-DE':
+              'Die Oberfläche ist übersetzt; deine Seiten bekommen Locale-Präfix und hreflang.',
+            'es-ES':
+              'La interfaz está traducida; tus páginas llevan prefijo de idioma y hreflang.',
+            'fr-FR':
+              "L'interface est traduite ; vos pages portent un préfixe de langue et un hreflang.",
+            'pt-PT':
+              'A interface está traduzida; as suas páginas levam prefixo de idioma e hreflang.'
+          },
+          icon: 'lucide:languages',
+          to: '/duxt/concepts/localisation'
+        },
+        {
+          title: {
+            'en-GB': 'Git-native, not reinvented',
+            'de-DE': 'Git-nativ, nicht nachgebaut',
+            'es-ES': 'Nativo de Git, no reinventado',
+            'fr-FR': 'Natif Git, pas réinventé',
+            'pt-PT': 'Nativo de Git, não reinventado'
+          },
+          description: {
+            'en-GB':
+              'Branches, tags, private repos and caching come from Content v3 itself.',
+            'de-DE':
+              'Branches, Tags, private Repositories und Caching kommen aus Content v3 selbst.',
+            'es-ES':
+              'Ramas, etiquetas, repositorios privados y caché vienen del propio Content v3.',
+            'fr-FR':
+              'Branches, tags, dépôts privés et cache viennent de Content v3 lui-même.',
+            'pt-PT':
+              'Ramos, tags, repositórios privados e cache vêm do próprio Content v3.',
+            'pt-BR':
+              'Branches, tags, repositórios privados e cache vêm do próprio Content v3.'
+          },
+          icon: 'lucide:git-merge',
+          to: '/duxt/concepts/collections'
+        },
+        {
+          title: 'shadcn-vue',
+          description: {
+            'en-GB':
+              'Components are copied in, not imported. Restyling one is editing a file.',
+            'de-DE':
+              'Komponenten werden kopiert, nicht importiert. Umgestalten heißt eine Datei bearbeiten.',
+            'es-ES':
+              'Los componentes se copian, no se importan. Rediseñar uno es editar un archivo.',
+            'fr-FR':
+              "Les composants sont copiés, pas importés. En restyler un, c'est modifier un fichier.",
+            'pt-PT':
+              'Os componentes são copiados, não importados. Redesenhar um é editar um ficheiro.',
+            'pt-BR':
+              'Os componentes são copiados, não importados. Redesenhar um é editar um arquivo.'
+          },
+          icon: 'lucide:palette',
+          to: '/duxt/guides/override-the-theme'
+        },
+        {
+          title: {
+            'en-GB': 'Components in Markdown',
+            'de-DE': 'Komponenten in Markdown',
+            'es-ES': 'Componentes en Markdown',
+            'fr-FR': 'Des composants dans le Markdown',
+            'pt-PT': 'Componentes em Markdown'
+          },
+          description: {
+            'en-GB':
+              'MDC ships with Content — call a Vue component with block syntax.',
+            'de-DE':
+              'MDC kommt mit Content — eine Vue-Komponente per Block-Syntax aufrufen.',
+            'es-ES':
+              'MDC viene con Content: llama a un componente Vue con sintaxis de bloque.',
+            'fr-FR':
+              'MDC est livré avec Content — appelez un composant Vue en syntaxe de bloc.',
+            'pt-PT':
+              'O MDC vem com o Content — chame um componente Vue com sintaxe de bloco.'
+          },
+          icon: 'lucide:code',
+          to: '/duxt/reference/mdc-components'
+        },
+        {
+          title: {
+            'en-GB': 'Machine-readable',
+            'de-DE': 'Maschinenlesbar',
+            'es-ES': 'Legible por máquinas',
+            'fr-FR': 'Lisible par une machine',
+            'pt-PT': 'Legível por máquinas'
+          },
+          description: {
+            'en-GB':
+              'llms.txt and an MCP route over the same content, planned as build output.',
+            'de-DE':
+              'llms.txt und eine MCP-Route über denselben Inhalt, geplant als Build-Ausgabe.',
+            'es-ES':
+              'llms.txt y una ruta MCP sobre el mismo contenido, previstas como salida de compilación.',
+            'fr-FR':
+              'llms.txt et une route MCP sur le même contenu, prévues comme sortie de build.',
+            'pt-PT':
+              'llms.txt e uma rota MCP sobre o mesmo conteúdo, previstos como saída da build.'
+          },
+          icon: 'lucide:bot',
+          to: '/duxt/concepts/machine-readers'
         }
       ]
     },
