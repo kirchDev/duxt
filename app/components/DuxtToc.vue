@@ -33,7 +33,7 @@ const active = useActiveHeading(ids);
             class="-ml-px block border-l py-1 pl-4 transition-colors"
             :class="
               active === link.id
-                ? 'border-primary font-medium text-foreground'
+                ? 'border-primary text-foreground'
                 : 'border-transparent text-muted-foreground hover:border-primary/60 hover:text-foreground'
             "
           >
@@ -46,7 +46,7 @@ const active = useActiveHeading(ids);
                 class="-ml-px block border-l py-1 pl-7 transition-colors"
                 :class="
                   active === child.id
-                    ? 'border-primary font-medium text-foreground'
+                    ? 'border-primary text-foreground'
                     : 'border-transparent text-muted-foreground hover:border-primary/60 hover:text-foreground'
                 "
               >
