@@ -1,6 +1,6 @@
 ---
 title: Navigation
-description: Getting around: the sidebar, the trail, the contents, and prev/next.
+description: "Getting around: the sidebar, the trail, the contents, and prev/next."
 icon: lucide:compass
 ---
 
