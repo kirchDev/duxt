@@ -3,7 +3,11 @@
     "code": {
       "copy": "Copiar el código",
       "copyCommand": "Copiar el comando",
-      "copied": "Copiado"
+      "copied": "Copiado",
+      "preview": "Vista previa",
+      "source": "Código",
+      "previewTabs": "Ejemplo y código fuente",
+      "copiedToast": "Copiado al portapapeles"
     }
   }
 }
