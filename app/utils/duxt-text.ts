@@ -35,6 +35,32 @@ const TEXT_KEYS = new Set([
   'title'
 ]);
 
+/**
+ * A locale code, as a record's keys are written: `en`, `en-GB`, `zh-Hant-TW`.
+ *
+ * Needed because a text key may now hold something that is NOT a text: a badge
+ * is `{ label, icon, variant, to }`, and a record of locales is
+ * `{ 'en-GB': …, 'de-DE': … }`. Both are objects of strings, so the values
+ * cannot tell them apart — the KEYS can, and a config field whose keys are all
+ * locale codes is a locale record. `to` alone would match, which is why every
+ * key has to: `label` never will.
+ */
+const LOCALE_CODE = /^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/;
+
+/** Whether a value is a text to resolve, rather than a tree to walk into. */
+function isTextValue(value: unknown): boolean {
+  if (typeof value === 'string') return true;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+
+  const entries = Object.entries(value);
+  return (
+    entries.length > 0 &&
+    entries.every(
+      ([key, entry]) => typeof entry === 'string' && LOCALE_CODE.test(key)
+    )
+  );
+}
+
 /** One value: key if one is registered, own language, base language, or as written. */
 export function resolveDuxtText(
   value: unknown,
@@ -79,9 +105,12 @@ export function resolveDuxtTexts<T>(
 
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(node)) {
-    result[key] = TEXT_KEYS.has(key)
-      ? resolveDuxtText(value, locale, lookup)
-      : resolveDuxtTexts(value, locale, lookup);
+    // A text key may carry a structure instead — `badge` takes either a text or
+    // a whole badge — so the value decides, not the key alone.
+    result[key] =
+      TEXT_KEYS.has(key) && isTextValue(value)
+        ? resolveDuxtText(value, locale, lookup)
+        : resolveDuxtTexts(value, locale, lookup);
   }
 
   return result as T;

@@ -52,6 +52,36 @@ describe('resolveDuxtTexts', () => {
     expect(resolved.aside.title).toBe('Community');
   });
 
+  it('walks into a text key that carries a structure', () => {
+    // `badge` takes either a text or a whole badge. Treating the object as a
+    // locale record left `label` unresolved and rendered the record itself.
+    const resolved = resolveDuxtTexts(
+      {
+        badge: {
+          label: { 'en-GB': 'Latest release', 'de-DE': 'Neuestes Release' },
+          icon: 'lucide:rocket',
+          to: 'https://example.com/releases'
+        }
+      },
+      'de-DE',
+      lookup
+    );
+
+    expect(resolved.badge.label).toBe('Neuestes Release');
+    expect(resolved.badge.icon).toBe('lucide:rocket');
+    expect(resolved.badge.to).toBe('https://example.com/releases');
+  });
+
+  it('still resolves a text key that IS a locale record', () => {
+    const resolved = resolveDuxtTexts(
+      { badge: { 'en-GB': 'Beta', 'de-DE': 'Beta-Version' } },
+      'de-DE',
+      lookup
+    );
+
+    expect(resolved.badge).toBe('Beta-Version');
+  });
+
   it('does not touch a string under a non-text key', () => {
     // `nav.guide` IS a registered key — it still must not be translated here,
     // because `to` is a path and paths are not prose.
