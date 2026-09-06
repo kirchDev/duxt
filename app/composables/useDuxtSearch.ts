@@ -28,7 +28,7 @@ export interface DuxtSearchHit extends DuxtSearchSection {
  */
 export function useDuxtSearch() {
   const duxt = useDuxtConfig();
-  const { collection, source } = useDuxtCollection();
+  const { source } = useDuxtCollection();
 
   const sources = computed(() => duxt.resolvedSources ?? []);
 
@@ -63,9 +63,21 @@ export function useDuxtSearch() {
     )
   }));
 
-  const { search: searchApproximately } = useFuzzySearch(collection, {
-    ignoredTags: ['table']
-  });
+  /**
+   * The approximate pass, one index per source.
+   *
+   * It used to run over the collection being read alone, which made a typo
+   * quietly narrow the search from every source back to one — the reader who
+   * most needed the other repositories searched was the reader who had
+   * mistyped. Each index is still built on first use and only on the path FTS
+   * could not answer, so a reader who types accurately downloads none of them.
+   */
+  const approximate = searchable.map((entry) => ({
+    entry,
+    search: useFuzzySearch(entry.collection as DuxtCollectionName, {
+      ignoredTags: ['table']
+    }).search
+  }));
 
   /** One entry per repository: the version being read, else that repo's default. */
   const active = computed(() => {
@@ -169,10 +181,27 @@ export function useDuxtSearch() {
     if (merged.length) return { hits: merged, approximate: false };
 
     // FTS matches terms and prefixes, not near-misses, so one wrong letter
-    // leaves the reader with an empty box. Fuse gets a second look — over the
-    // collection being read only, because building an approximate index per
-    // source to answer a typo is more than the answer is worth.
-    return { hits: await searchApproximately(term, limit), approximate: true };
+    // leaves the reader with an empty box. Fuse gets a second look, over the
+    // same sources and merged the same way.
+    const fuzzy = await Promise.all(
+      approximate
+        .filter((entry) => wanted.includes(entry.entry))
+        .map(async (entry) => {
+          const hits = await entry.search(term, limit);
+
+          return hits.map((hit) => ({
+            ...hit,
+            source: labelled.value
+              ? {
+                  label: labelOf(entry.entry),
+                  collection: entry.entry.collection
+                }
+              : undefined
+          }));
+        })
+    );
+
+    return { hits: interleave(fuzzy, limit), approximate: true };
   }
 
   return { search, init, labelled };
