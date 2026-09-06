@@ -79,7 +79,14 @@ function pathIn(version: { to?: string }) {
       </button>
     </DropdownMenuTrigger>
 
-    <DropdownMenuContent align="start" class="w-44">
+    <!-- A project with thirty versions would otherwise open a menu the height
+         of the window: reka's available-height only stops it at the viewport
+         edge. `min()` keeps that cap and adds a shorter one, so the list
+         scrolls at about ten entries instead of filling the screen. -->
+    <DropdownMenuContent
+      align="start"
+      class="max-h-[min(20rem,var(--reka-dropdown-menu-content-available-height))] w-44"
+    >
       <DropdownMenuItem v-for="version in versions" :key="version.to" as-child>
         <NuxtLink :to="pathIn(version)" class="flex items-center gap-2">
           <Icon

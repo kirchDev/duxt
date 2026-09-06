@@ -59,7 +59,10 @@ function flagFor(code: string): string | null {
       </Button>
     </DropdownMenuTrigger>
 
-    <DropdownMenuContent align="end" class="w-48">
+    <DropdownMenuContent
+      align="end"
+      class="max-h-[min(20rem,var(--reka-dropdown-menu-content-available-height))] w-48"
+    >
       <DropdownMenuItem v-for="entry in available" :key="entry.code" as-child>
         <NuxtLink
           :to="switchLocalePath(entry.code)"
