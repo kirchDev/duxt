@@ -10,6 +10,8 @@ import {
   escape,
   resolvedSources,
   row,
+  stat,
+  stats,
   table,
   tag
 } from './shell';
@@ -97,7 +99,23 @@ export function sourcesPanel(): string {
     ? `<p class="hint">Configured in ${escape(context.appConfigFile)}.</p>`
     : '';
 
-  return `${table(
+  const repos = new Set(
+    sources.map((source) => source.repository ?? 'this repository')
+  );
+  const versioned = sources.filter((source) => source.version);
+  const notCurrent = sources.filter((source) => source.status !== 'current');
+
+  const summary = stats([
+    stat(sources.length, sources.length === 1 ? 'collection' : 'collections'),
+    stat(repos.size, repos.size === 1 ? 'repository' : 'repositories'),
+    stat(versioned.length, 'versions'),
+    // Not "the default version": with two repositories there are two defaults,
+    // and the figure worth seeing is how many versions carry a warning the
+    // reader will meet — deprecated, eol, or a branch still moving.
+    stat(notCurrent.length, 'not current', notCurrent.length ? 'warn' : 'ok')
+  ]);
+
+  return `${summary}${table(
     [
       'Prefix',
       'Collection',
@@ -108,7 +126,8 @@ export function sourcesPanel(): string {
       'Status',
       'Reserved segments'
     ],
-    rows
+    rows,
+    'No sources resolved at all — `duxt.sources` is empty or unreadable.'
   )}${configured}`;
 }
 
@@ -276,23 +295,31 @@ export async function versionsPanel(event: H3Event): Promise<string> {
             .get(source.collection)
             ?.includes(`${source.prefix}${path}` || '/');
 
-          return has ? '<td class="yes">✓</td>' : '<td class="no">·</td>';
+          return has
+            ? '<td class="mark yes">✓</td>'
+            : '<td class="mark no">·</td>';
         });
 
         return `<tr><td>${code(path || '/')}</td>${cells.join('')}</tr>`;
       });
 
-      const headers = group.map(
-        (source) =>
-          `<th>${escape(source.version ?? source.prefix ?? '—')}${source.isDefault ? ' *' : ''}</th>`
-      );
+      // Through `table()` like every other panel. Built by hand it was the one
+      // table in the tab without the scroll container, the border and the
+      // column scopes — visibly a different component for no reason.
+      const headers = [
+        'Page',
+        ...group.map(
+          (source) =>
+            `${escape(source.version ?? source.prefix ?? '—')}${source.isDefault ? ' *' : ''}`
+        )
+      ];
 
-      return `<h2>${escape(repo || 'This repository')}</h2>
-        <table class="matrix">
-          <thead><tr><th>Page</th>${headers.join('')}</tr></thead>
-          <tbody>${rows.join('') || `<tr><td colspan="${group.length + 1}" class="dim">No pages.</td></tr>`}</tbody>
-        </table>
-        <p class="hint">* the version served without a version segment.</p>`;
+      return `<h2>${escape(repo || 'This repository')}</h2>${table(
+        headers,
+        rows,
+        'This repository resolved to versions but to no pages at all.',
+        'matrix'
+      )}<p class="hint">* the version served without a version segment.</p>`;
     });
 
   return (

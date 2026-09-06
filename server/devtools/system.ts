@@ -1,7 +1,18 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { duxtDefaults, mergeDuxtConfig } from '../../app/utils/duxt-config';
-import { code, context, dim, escape, row, table, tag } from './shell';
+import {
+  code,
+  context,
+  dim,
+  escape,
+  filter,
+  row,
+  stat,
+  stats,
+  table,
+  tag
+} from './shell';
 
 /**
  * The panels about the machinery around the content: the merged config, the
@@ -33,30 +44,52 @@ export function configPanel(): string {
   >;
 
   const rows: string[] = [];
+  const counted: Origins = { consumer: 0, layer: 0, build: 0 };
   collect(
     merged,
     consumer,
     duxtDefaults as unknown as Record<string, unknown>,
     '',
-    rows
+    rows,
+    counted
   );
 
-  return `<div class="note">Arrays are replaced whole, objects merge key by key. A row marked ${tag(
+  const summary = stats([
+    stat(rows.length, 'keys'),
+    stat(counted.consumer, 'from the site', 'ok'),
+    stat(counted.layer, 'from the layer'),
+    stat(counted.build, 'computed')
+  ]);
+
+  return `${summary}<div class="note">Arrays are replaced whole, objects merge key by key. A row marked ${tag(
     'build'
-  )} was computed by <code>modules/config.ts</code> and is not written anywhere.</div>${table(
-    ['Key', 'From', 'Value'],
-    rows
-  )}`;
+  )} was computed by <code>modules/config.ts</code> and is written nowhere.</div>${filter(
+    'Filter keys'
+  )}${table(['Key', 'From', 'Value'], rows)}`;
 }
 
 const BUILT = new Set(['resolvedSources']);
+
+/**
+ * Tallied while the rows are built, not counted back out of them.
+ *
+ * The first version of this figure filtered the rendered rows for the string
+ * `>consumer<`, which is a search of the config's own VALUES as much as of its
+ * origin badges — a label reading "consumer" would have counted itself.
+ */
+interface Origins {
+  consumer: number;
+  layer: number;
+  build: number;
+}
 
 function collect(
   merged: Record<string, unknown>,
   consumer: Record<string, unknown> | undefined,
   defaults: Record<string, unknown> | undefined,
   prefix: string,
-  rows: string[]
+  rows: string[],
+  counted: Origins
 ): void {
   for (const [key, value] of Object.entries(merged)) {
     const path = prefix ? `${prefix}.${key}` : key;
@@ -77,16 +110,21 @@ function collect(
         consumer?.[key] as Record<string, unknown>,
         defaults?.[key] as Record<string, unknown>,
         path,
-        rows
+        rows,
+        counted
       );
       continue;
     }
 
-    const origin = BUILT.has(key)
-      ? tag('build')
-      : inConsumer
-        ? tag('consumer', 'ok')
-        : tag('layer', 'muted');
+    const kind = BUILT.has(key) ? 'build' : inConsumer ? 'consumer' : 'layer';
+    counted[kind] += 1;
+
+    const origin =
+      kind === 'build'
+        ? tag('build')
+        : kind === 'consumer'
+          ? tag('consumer', 'ok')
+          : tag('layer', 'muted');
 
     rows.push(row([code(path), origin, preview(value)]));
   }
@@ -162,14 +200,21 @@ export function i18nPanel(): string {
 
   const baseKeys = keysOf(base);
 
-  const rows = dirs.map((dir) => {
+  const compared = dirs.map((dir) => {
     const keys = dir === base ? baseKeys : keysOf(dir);
-    const missing = [...baseKeys].filter((key) => !keys.has(key));
-    const extra = [...keys].filter((key) => !baseKeys.has(key));
 
+    return {
+      dir,
+      keys,
+      missing: [...baseKeys].filter((key) => !keys.has(key)),
+      extra: [...keys].filter((key) => !baseKeys.has(key))
+    };
+  });
+
+  const rows = compared.map(({ dir, keys, missing, extra }) =>
     // A locale file may deliberately hold only its overrides — pt-BR against
     // pt-PT is the case in this repo — so "missing" is a fact, not a verdict.
-    return row([
+    row([
       code(dir) + (dir === base ? ` ${tag('base')}` : ''),
       String(keys.size),
       missing.length
@@ -178,14 +223,27 @@ export function i18nPanel(): string {
       extra.length
         ? `${tag(String(extra.length), 'warn')} ${dim(truncate(extra.join(', '), 120))}`
         : dim('—')
-    ]);
-  });
+    ])
+  );
 
   const served = context.locales.length
     ? `<p class="hint">Served locales: ${context.locales.map((locale) => code(locale)).join(' ')}${context.defaultLocale ? `, default ${code(context.defaultLocale)}` : ''}.</p>`
     : '';
 
-  return `${served}${table(['Directory', 'Keys', 'Missing vs base', 'Not in base'], rows)}`;
+  const gaps = compared.filter(
+    (entry) => entry.missing.length || entry.extra.length
+  ).length;
+
+  const summary = stats([
+    stat(dirs.length, 'locale files'),
+    stat(baseKeys.size, `keys in ${base}`),
+    stat(gaps, 'with a gap', gaps ? 'warn' : 'ok')
+  ]);
+
+  return `${summary}${served}${table(
+    ['Directory', 'Keys', 'Missing vs base', 'Not in base'],
+    rows
+  )}`;
 }
 
 function flatten(node: unknown, prefix: string, out: Set<string>): void {
@@ -244,9 +302,18 @@ export function cachePanel(message?: string): string {
 
   const note = message ? `<div class="note">${escape(message)}</div>` : '';
 
-  return `${note}<p class="hint">${escape(context.dataDir)}</p>${table(
+  const summary = stats([
+    stat(entries.length, 'cached sources'),
+    stat(
+      megabytes(entries.reduce((sum, entry) => sum + entry.size, 0)),
+      'on disk'
+    )
+  ]);
+
+  return `${note}${summary}<p class="hint">${escape(context.dataDir)}</p>${table(
     ['Entry', 'Size', 'Modified', ''],
-    rows
+    rows,
+    'The cache directory exists but holds no source. Nothing remote has been downloaded yet.'
   )}<div class="note">Dropping an entry makes the next build download it again. Content keys a directory by repository <em>and</em> ref, so an entry for a ref you have renamed is never reused and never cleaned up either.</div>`;
 }
 
@@ -303,5 +370,9 @@ export function redirectsPanel(): string {
       ]);
     });
 
-  return `${table(['From', 'To', 'Status'], rows)}<div class="note">One rule per prefix a page is served under — the repository segment, the version segment and every locale — because an old URL was bookmarked under exactly one of them and nothing says which.</div>`;
+  return `${stats([stat(rows.length, 'redirects')])}${table(
+    ['From', 'To', 'Status'],
+    rows,
+    'No page carries `redirectFrom`, so no rule was generated.'
+  )}<div class="note">One rule per prefix a page is served under — the repository segment, the version segment and every locale — because an old URL was bookmarked under exactly one of them and nothing says which.</div>`;
 }

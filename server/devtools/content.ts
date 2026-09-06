@@ -10,8 +10,11 @@ import {
   dim,
   editor,
   escape,
+  filter,
   resolvedSources,
   row,
+  stat,
+  stats,
   table,
   tag
 } from './shell';
@@ -74,25 +77,46 @@ export async function pagesPanel(event: H3Event): Promise<string> {
     'contributors'
   ]);
 
-  return groups
-    .map(({ collection, docs }) => {
-      const rows = docs.map((doc) =>
-        row([
-          code(doc.path),
-          escape(doc.title) || tag('missing', 'warn'),
-          doc.description ? dim('yes') : tag('missing', 'warn'),
-          doc.icon ? code(doc.icon) : dim('—'),
-          doc.lastUpdated
-            ? escape(doc.lastUpdated.slice(0, 10))
-            : dim('no history'),
-          doc.contributors?.length
-            ? escape(String(doc.contributors.length))
-            : dim('—'),
-          editor(doc.id, doc.id?.split('/').slice(1).join('/'))
-        ])
-      );
+  const total = groups.reduce((sum, group) => sum + group.docs.length, 0);
+  const untitled = groups.reduce(
+    (sum, group) => sum + group.docs.filter((doc) => !doc.title).length,
+    0
+  );
+  const dated = groups.reduce(
+    (sum, group) => sum + group.docs.filter((doc) => doc.lastUpdated).length,
+    0
+  );
 
-      return `<h2>${escape(collection)} ${dim(`(${docs.length})`)}</h2>${table(
+  const summary = stats([
+    stat(total, 'pages'),
+    stat(groups.length, 'collections'),
+    stat(dated, 'with history', dated ? '' : 'warn'),
+    stat(untitled, 'without a title', untitled ? 'warn' : 'ok')
+  ]);
+
+  // One block per collection, the first opened: a site with five versions has
+  // five near-identical tables, and all five expanded is a page nobody reads.
+  const sections = groups.map(({ collection, docs }, index) => {
+    const rows = docs.map((doc) =>
+      row([
+        code(doc.path),
+        escape(doc.title) || tag('missing', 'warn'),
+        doc.description ? dim('yes') : tag('missing', 'warn'),
+        doc.icon ? code(doc.icon) : dim('—'),
+        doc.lastUpdated
+          ? escape(doc.lastUpdated.slice(0, 10))
+          : dim('no history'),
+        doc.contributors?.length
+          ? escape(String(doc.contributors.length))
+          : dim('—'),
+        editor(doc.id, doc.id?.split('/').slice(1).join('/'))
+      ])
+    );
+
+    return `<details${index === 0 ? ' open' : ''}>
+      <summary>${escape(collection)} <span class="dim">${docs.length} pages</span></summary>
+      ${docs.length > 12 ? filter(`Filter ${collection}`) : ''}
+      ${table(
         [
           'Path',
           'Title',
@@ -102,14 +126,13 @@ export async function pagesPanel(event: H3Event): Promise<string> {
           'Contributors',
           'File'
         ],
-        rows
-      )}${
-        docs.length
-          ? ''
-          : '<div class="note">Content produced no pages for this collection. The Checks panel says so as an error — it means a wrong <code>path</code> or <code>refs</code>, and every URL under this prefix is a 404.</div>'
-      }`;
-    })
-    .join('');
+        rows,
+        'Content produced no pages here. Every URL under this prefix is a 404 — check the source\u2019s `path` and `refs`; the Checks panel reports it as an error.'
+      )}
+    </details>`;
+  });
+
+  return `${summary}${sections.join('')}`;
 }
 
 /**
@@ -150,10 +173,12 @@ export async function checksPanel(event: H3Event): Promise<string> {
       findings.map((finding) => row([tag(kind, kind), fileLinked(finding)]))
     );
 
-  const summary =
-    !errors.length && !warnings.length
-      ? `<div class="note">${tag('clean', 'ok')} ${pages.length} pages across ${sources.length} collections, nothing to report.</div>`
-      : `<div class="note">${pages.length} pages checked — ${errors.length} error(s), ${warnings.length} warning(s).</div>`;
+  const summary = stats([
+    stat(pages.length, 'pages checked'),
+    stat(sources.length, 'collections'),
+    stat(errors.length, 'errors', errors.length ? 'error' : 'ok'),
+    stat(warnings.length, 'warnings', warnings.length ? 'warn' : 'ok')
+  ]);
 
   return `${summary}${errors.length ? `<h2>Errors</h2>${list(errors, 'error')}` : ''}${
     warnings.length ? `<h2>Warnings</h2>${list(warnings, 'warn')}` : ''
@@ -231,24 +256,32 @@ export async function searchPanel(
       )
     : sections;
 
-  const rows = matching
-    .slice(0, 200)
-    .map((section) =>
-      row([
-        code(section.collection),
-        code(section.id),
-        escape(section.title),
-        escape((section.titles ?? []).join(' › ')) || dim('—'),
-        `${escape((section.content ?? '').slice(0, 180))}${(section.content ?? '').length > 180 ? dim(' …') : ''}`
-      ])
-    );
+  // The id is the longest string in the table and the least worth reading in
+  // full, so it is the one that gets clipped — otherwise it takes the width the
+  // indexed text needs, and the column that answers the question is a sliver.
+  const rows = matching.slice(0, 200).map(
+    (section) => `<tr>
+      <td>${code(section.collection)}</td>
+      <td><code class="trunc" title="${escape(section.id)}">${escape(section.id)}</code></td>
+      <td>${escape(section.title)}</td>
+      <td>${escape((section.titles ?? []).join(' › ')) || dim('—')}</td>
+      <td class="wide">${escape((section.content ?? '').slice(0, 180))}${(section.content ?? '').length > 180 ? dim(' …') : ''}</td>
+    </tr>`
+  );
 
-  const note = `<div class="note">${sections.length} sections indexed in total${
-    needle ? `, ${matching.length} matching` : ''
-  }${matching.length > 200 ? ', showing the first 200' : ''}. One row per heading, which is what the dialog groups back into pages.</div>`;
+  const summary = stats([
+    stat(sections.length, 'sections indexed'),
+    needle
+      ? stat(matching.length, 'matching', matching.length ? '' : 'warn')
+      : undefined,
+    matching.length > 200 ? stat(200, 'shown', 'warn') : undefined
+  ]);
 
-  return `${form}${note}${table(
+  return `${form}${summary}<div class="note">One row per heading — which is what the dialog groups back into pages. The text column is exactly what FTS5 matches against.</div>${table(
     ['Collection', 'Id', 'Heading', 'Under', 'Indexed text'],
-    rows
+    rows,
+    needle
+      ? `Nothing in the index matches \u201c${escape(term)}\u201d. FTS5 matches terms and prefixes, so a typo returns nothing.`
+      : 'The index is empty.'
   )}`;
 }
