@@ -103,14 +103,12 @@ const tabs = computed(() => [
        it: a header of pills, then the panel. Three blocks on a page that all
        switch between things should not switch in three different shapes.
 
-       The panel itself carries NO surface of its own — only the header is
-       tinted. An example is supposed to look like it looks in a page, and a
-       card background under it is a colour the same block never sits on
-       anywhere else. -->
+       One surface for the whole card, example and source alike: switching
+       tabs should change what is in the box, not what the box is made of. -->
   <TabsRoot
     v-else
     v-model="active"
-    class="my-6 overflow-hidden rounded-lg border"
+    class="my-6 overflow-hidden rounded-lg border bg-card"
   >
     <TabsList
       class="flex min-h-11 items-center gap-1 border-b bg-muted/40 px-2 py-1.5"
@@ -155,9 +153,8 @@ const tabs = computed(() => [
 
     <!-- The fence brought its own card into a card, so its frame, its rounding
          and its own header come off — the tab above already names the language,
-         and the copy button moved up there with it. Its SURFACE stays: code is
-         read against the same background here as anywhere else on the site,
-         which is exactly the argument for the example above having none. -->
+         and the copy button moved up there with it. Its surface stays, and it is
+         the card's own — so the panel does not change colour between tabs. -->
     <TabsContent
       value="code"
       class="outline-none [&_.duxt-code]:my-0 [&_.duxt-code]:rounded-none [&_.duxt-code]:border-0 [&_.duxt-code-header]:hidden [&_.duxt-code-copy]:hidden"
