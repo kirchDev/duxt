@@ -1,23 +1,31 @@
 import { execFileSync } from 'node:child_process';
 import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { Nuxt } from '@nuxt/schema';
+import { readDuxtBuildConfig } from '../duxt-app-config';
+import { duxtSourceManifest } from '../sources-resolve';
+import { resolveLatestRefs } from '../sources-git';
 
 /**
  * "Last updated" and the contributor list, from the git history the file
  * already has.
  *
  * Neither needs config: the `sources` entry names the repository, the ref and
- * the folder, and the page names the file. What it does need is a working tree
- * to ask, and that is the honest limit of this module — Content downloads a
- * remote source as a tarball into `.data/content/`, not as a clone, so a page
- * from another repository has no history to read and gets neither field rather
- * than a guessed one.
+ * the folder, and the page names the file.
+ *
+ * A REMOTE source needs one thing more. Content clones it, but with
+ * `--depth 1`: the checkout on disk holds a single commit, so every file in it
+ * looks as if it were written by whoever cut the tip. That is wrong data, not
+ * missing data, and worse than nothing — so a remote source is read only when
+ * it says `history: true`, and the clone is unshallowed once before it is.
+ * A source read off disk is a full checkout already and needs no flag.
  *
  * Hooked on the parse, not on the build, so the answer is cached exactly as
  * long as it is true: Content re-parses a file when its content changes, which
  * is the same moment its last-modified date does.
  */
 interface AfterParseContext {
+  collection?: { name?: string };
   content?: Record<string, unknown>;
   file?: { path?: string; id?: string };
 }
@@ -29,6 +37,26 @@ export interface DuxtContributor {
 }
 
 export default function duxtGitMeta(_options: unknown, nuxt: Nuxt) {
+  const layerDir = fileURLToPath(new URL('..', import.meta.url));
+
+  const dirs = [
+    ...nuxt.options._layers.flatMap((entry) => [
+      entry.config.rootDir,
+      entry.config.srcDir
+    ]),
+    layerDir
+  ].filter(Boolean) as string[];
+
+  const config = readDuxtBuildConfig(dirs);
+  const sources = duxtSourceManifest(
+    resolveLatestRefs(config?.sources ?? [{ path: 'docs' }]),
+    config?.sourceOptions ?? {}
+  );
+
+  const wanted = new Map(
+    sources.map((source) => [source.collection, source.history])
+  );
+
   nuxt.hook(
     'content:file:afterParse' as never,
     ((ctx: AfterParseContext) => {
@@ -36,9 +64,12 @@ export default function duxtGitMeta(_options: unknown, nuxt: Nuxt) {
       const content = ctx.content;
       if (!file || !content) return;
 
-      // A downloaded source is not a checkout. Asking git about it either fails
-      // or, worse, answers about the SITE's repository instead of the page's.
-      if (file.includes('/.data/content/')) return;
+      // A source that has not asked for its history is left alone — for a
+      // downloaded one that would otherwise answer out of a single-commit
+      // clone, which is wrong data rather than missing data.
+      if (!wanted.get(ctx.collection?.name ?? '')) return;
+
+      if (file.includes('/.data/content/')) unshallow(dirname(file));
 
       const log = gitLog(file);
       if (!log.length) return;
@@ -53,6 +84,49 @@ interface Commit {
   date: string;
   name: string;
   email: string;
+}
+
+/**
+ * Turn a `--depth 1` clone into one with a history, once per repository.
+ *
+ * Cached by the repository's own root rather than by the directory the file
+ * sits in: a fetch per page would download the same history once per page.
+ * A failure is silent on purpose — the caller falls back to no history, which
+ * is what the page showed before.
+ */
+const unshallowed = new Set<string>();
+
+function unshallow(dir: string) {
+  let root: string;
+
+  try {
+    root = execFileSync('git', ['-C', dir, 'rev-parse', '--show-toplevel'], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore']
+    }).trim();
+  } catch {
+    return;
+  }
+
+  if (!root || unshallowed.has(root)) return;
+  unshallowed.add(root);
+
+  try {
+    const shallow = execFileSync(
+      'git',
+      ['-C', root, 'rev-parse', '--is-shallow-repository'],
+      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }
+    ).trim();
+
+    if (shallow !== 'true') return;
+
+    execFileSync('git', ['-C', root, 'fetch', '--unshallow', '--quiet'], {
+      stdio: 'ignore'
+    });
+  } catch {
+    // No network, no remote, or a repository that cannot be deepened. The
+    // page keeps the fields it would have had without this module.
+  }
 }
 
 /**

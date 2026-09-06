@@ -32,6 +32,7 @@ export default defineContentConfig({
 | `slug`  | `string`   | the repo name    | Segment used in the URL for this repository        |
 | `status`| `string`   | `current`        | Lifecycle of every version this entry publishes    |
 | `origin`| `object`   | —                | `{ repo, ref }` for links back to a local source   |
+| `history`| `boolean` | local only       | Read this source's git history                     |
 
 `status` is one of `upcoming`, `current`, `maintained`, `deprecated` or `eol`. It is not the
 same question as "is this the default": a site can publish v2 as the default
@@ -54,6 +55,22 @@ page" link and nothing else:
 ```ts
 { path: 'docs', origin: { repo: 'kirchDev/duxt', ref: 'main' } }
 ```
+
+### History
+
+"Last updated" and the contributor list are read out of git. A source read off
+disk is a full checkout, so it needs nothing. A **remote** source has to ask:
+
+```ts
+{ repo: 'kirchDev/app', path: 'docs', history: true }
+```
+
+Content clones a remote repository with `--depth 1`, so the checkout on disk
+holds exactly one commit and every file in it looks as if it were written by
+whoever cut the tip — wrong data rather than missing data. With `history: true`
+the build unshallows that clone once, which downloads the repository's whole
+history: worth it for a docs repo, a real cost for a monorepo, and you are the
+one who knows which you have.
 
 ### Refs
 

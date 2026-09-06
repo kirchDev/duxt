@@ -97,6 +97,12 @@ declare global {
      * Not `repo`, which is what makes Content download a source.
      */
     origin?: { repo: string; ref?: string };
+    /**
+     * Read this source's git history for "Last updated" and the contributors.
+     * Off by default for a remote source: Content clones with `--depth 1`, and
+     * unshallowing that is a download the consumer should choose.
+     */
+    history?: boolean;
   }
 
   interface DuxtSourceOptionsInput {
@@ -122,6 +128,7 @@ declare global {
     refKind?: 'branch' | 'tag';
     path: string;
     status: DuxtSourceStatusInput;
+    history: boolean;
   }
 
   interface DuxtLink {

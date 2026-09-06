@@ -41,6 +41,10 @@ export default defineAppConfig({
       {
         repo: 'kirchDev/workflows',
         path: 'docs',
+        // Unshallows the clone once, so "Last updated" and the contributors
+        // are read out of the real history rather than out of the single
+        // commit a `--depth 1` clone holds.
+        history: true,
         refs: [
           { branch: 'main', status: 'upcoming' },
           { tag: 'v0.8.0' },

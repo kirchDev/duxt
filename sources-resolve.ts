@@ -33,6 +33,21 @@ export interface DuxtSource {
    * would have the build clone the checkout it is already standing in.
    */
   origin?: { repo: string; ref?: string };
+  /**
+   * Read this source's git history for "Last updated" and the contributors.
+   *
+   * Off by default for a REMOTE source, and the reason is a cost, not a
+   * limitation: Content clones a repository with `--depth 1`, so the checkout
+   * on disk holds exactly one commit and every file appears to have been
+   * written by whoever cut the tip — wrong data rather than missing data.
+   * Turning this on has the build unshallow that clone once, which downloads
+   * the repository's whole history. Worth it for a docs repo, a real cost for
+   * a monorepo, and the consumer is the one who knows which they have.
+   *
+   * A source read off disk is already a full checkout, so its history is read
+   * whether or not this is set.
+   */
+  history?: boolean;
 }
 
 /**
@@ -128,6 +143,8 @@ export interface DuxtResolvedSource {
   path: string;
   /** Where this version sits in its life; `current` unless stated. */
   status: DuxtSourceStatus;
+  /** Whether the build may read this source's git history. */
+  history: boolean;
 }
 
 export const slugify = (value: string) =>
@@ -244,7 +261,10 @@ export function resolveSources(
       status:
         (ref && typeof ref === 'object' ? ref.status : undefined) ??
         source.status ??
-        'current'
+        'current',
+      // A local source is a full checkout already; a remote one has to be
+      // unshallowed, which is why it has to be asked for.
+      history: source.repo ? (source.history ?? false) : true
     });
   }
 

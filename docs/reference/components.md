@@ -142,10 +142,11 @@ the folder; the page carries its own file name and, where git could be asked,
 its history. A consumer gets an edit link by declaring nothing — see `origin` in
 the sources reference for a source read off disk.
 
-::callout{type="warning" title="A remote source has no history"}
-Content downloads a remote repository as an archive, not as a clone, so a page
-from another repository gets no date and no contributors — rather than a guessed
-one.
+::callout{type="warning" title="A remote source has to ask for its history"}
+Content clones a remote repository with `--depth 1`, so every file in it looks
+as if it were written by whoever cut the tip. Set `history: true` on the source
+and the build unshallows it once; without that the fields are absent rather than
+wrong.
 ::
 
 ## DuxtPageFeedback
