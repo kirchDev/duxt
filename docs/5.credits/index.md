@@ -39,9 +39,9 @@ table above — nothing is named twice.
   shadcn-vue is worth having.
 - [**Docus**](https://docus.dev) — the original "extend a layer, get a docs
   site" ergonomics in the Nuxt ecosystem.
-- [**Nuxt UI Pro**](https://ui.nuxt.com/pro) — for the machine-readable end:
-  `llms.txt` and a documentation endpoint an agent can call, treated as build
-  output rather than as an add-on.
+- [**Nuxt UI**](https://ui.nuxt.com) — for the machine-readable end: `llms.txt`
+  and a documentation endpoint an agent can call, treated as build output rather
+  than as an add-on.
 - [**VitePress**](https://vitepress.dev) and
   [**Starlight**](https://starlight.astro.build) — for what a documentation
   theme owes a reader by default: a version switcher that survives navigation, a
