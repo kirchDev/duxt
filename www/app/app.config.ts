@@ -19,9 +19,19 @@ export default defineAppConfig({
       // what `repo` would do, and it would clone the checkout we stand in.
       {
         path: 'docs',
-        origin: { repo: 'kirchDev/duxt', ref: 'main' }
+        origin: { repo: 'kirchDev/duxt', ref: 'main' },
+
+        // FOUR languages over one tree, named by LANGUAGE rather than locale.
+        // `docs/pt/` serves both `pt-PT` and `pt-BR`, and `en-US` reads the
+        // original through `fallbackLocale` — the same rule the locale FILES in
+        // nuxt.config already follow, so seven locales need four folders.
+        //
+        // `en-GB` is the tree in `docs/` itself and takes no folder of its own,
+        // which keeps every URL this site already serves where it is.
+        locales: ['en-GB', 'de', 'es', 'fr', 'pt']
       }
     ],
+    sourceOptions: { defaultLocale: 'en-GB' },
     // The feed, pointed at a section that has dated entries. Off by default in
     // the layer; this site turns it on so the route is exercised.
     feed: { path: '/adr', title: 'duxt — decisions' },
