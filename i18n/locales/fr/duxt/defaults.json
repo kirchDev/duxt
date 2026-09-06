@@ -13,12 +13,13 @@
         "mdc": "Des composants dans le Markdown"
       },
       "landing": {
-        "badge": "Tout début — rien n'est décidé",
         "headline": "Documentation pour Nuxt, versionnée et multidépôt",
         "description": "Étendez une couche et votre dossier docs/ devient un site. Pointez-la vers d'autres dépôts, ou vers des tags du même, et ceux-ci deviennent des versions.",
         "actions": {
           "docs": "Lire la documentation"
         },
+        "preview": "Aperçu en direct de la documentation",
+        "previewOpen": "Ouvrir",
         "features": {
           "extend": {
             "title": "Étendre, pas générer",

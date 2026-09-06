@@ -13,12 +13,13 @@
         "mdc": "Komponenten in Markdown"
       },
       "landing": {
-        "badge": "Frühe Phase — nichts ist entschieden",
         "headline": "Dokumentation für Nuxt, versioniert und über mehrere Repositories",
         "description": "Einen Layer erweitern, und dein docs/-Ordner wird zur Website. Zeig damit auf andere Repositories oder auf Tags desselben, und daraus werden Versionen.",
         "actions": {
           "docs": "Dokumentation lesen"
         },
+        "preview": "Live-Vorschau der Dokumentation",
+        "previewOpen": "Öffnen",
         "features": {
           "extend": {
             "title": "Erweitern statt generieren",

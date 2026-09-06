@@ -107,7 +107,9 @@ export const duxtDefaults: DuxtConfig = {
   breadcrumb: true,
 
   landing: {
-    badge: 'duxt.defaults.landing.badge',
+    // No badge. A pill above the headline says something about the state of a
+    // project — "beta", "v2 is out" — and the layer knows nothing about the
+    // state of yours. Set `landing.badge` and it appears.
     headline: 'duxt.defaults.landing.headline',
     description: 'duxt.defaults.landing.description',
     // One action, and a generic one: "read the docs" is true of every site

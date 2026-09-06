@@ -154,14 +154,62 @@ declare global {
     title: DuxtText;
     description?: DuxtText;
     icon?: string;
+    /** Makes the whole card a link — to the page that explains this feature. */
+    to?: string;
+    external?: boolean;
+  }
+
+  /**
+   * The pill above the headline. A plain text is the short form; the object
+   * adds an icon, a colour and a destination — "Latest release" pointing at the
+   * releases page is the case it was built for.
+   */
+  interface DuxtBadge {
+    label: DuxtText;
+    icon?: string;
+    variant?: 'default' | 'secondary' | 'outline' | 'success' | 'destructive';
+    to?: string;
+    external?: boolean;
   }
 
   interface DuxtLanding {
-    badge?: DuxtText;
+    badge?: DuxtText | DuxtBadge;
     headline?: DuxtText;
     description?: DuxtText;
     actions?: DuxtAction[];
+    /**
+     * The command under the hero buttons — how a reader installs the thing this
+     * site documents, e.g. `pnpm add -D @acme/sdk`.
+     *
+     * Not a `DuxtText`: a shell command is the same in every language, and one
+     * translated by mistake is one that does not run. The layer ships none, for
+     * the same reason it ships no repository link — it does not know what your
+     * project is called.
+     */
+    command?: string;
+    /** A picture of the site itself, framed as a browser window. */
+    preview?: DuxtPreview;
     features?: DuxtFeature[];
+  }
+
+  /**
+   * The window under the hero: a page of THIS site, embedded and operable —
+   * the reader scrolls it, opens its navigation and switches its theme without
+   * leaving the landing page.
+   *
+   * A still image is the alternative, not the default: set `src` and the window
+   * shows that instead, for a site that would rather not load itself twice.
+   */
+  interface DuxtPreview {
+    /** The page to embed. Defaults to the first section. */
+    to?: string;
+    /** Window height, any CSS length. Defaults to a responsive clamp. */
+    height?: string;
+    /** A screenshot instead of the live page. `srcDark` serves dark mode. */
+    src?: string;
+    srcDark?: string;
+    /** The image's alt text, and the frame's accessible name. */
+    alt?: DuxtText;
   }
 
   interface DuxtConfig {

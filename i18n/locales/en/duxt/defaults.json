@@ -13,12 +13,13 @@
         "mdc": "Components inside Markdown"
       },
       "landing": {
-        "badge": "Early days — nothing is decided",
         "headline": "Documentation for Nuxt, versioned and multi-repo",
         "description": "Extend one layer and your docs/ folder becomes a site. Point it at other repositories, or at tags of the same one, and those become versions.",
         "actions": {
           "docs": "Read the docs"
         },
+        "preview": "Live preview of the documentation",
+        "previewOpen": "Open",
         "features": {
           "extend": {
             "title": "Extend, don't scaffold",

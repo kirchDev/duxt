@@ -13,12 +13,13 @@
         "mdc": "Componentes dentro de Markdown"
       },
       "landing": {
-        "badge": "Primeros días: nada está decidido",
         "headline": "Documentación para Nuxt, versionada y multirrepositorio",
         "description": "Extiende una capa y tu carpeta docs/ se convierte en un sitio. Apúntala a otros repositorios, o a etiquetas del mismo, y estos se convierten en versiones.",
         "actions": {
           "docs": "Leer la documentación"
         },
+        "preview": "Vista previa en vivo de la documentación",
+        "previewOpen": "Abrir",
         "features": {
           "extend": {
             "title": "Extender, no generar",
