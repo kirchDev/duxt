@@ -147,8 +147,28 @@ export interface DuxtResolvedSource {
   history: boolean;
 }
 
-export const slugify = (value: string) =>
-  value.replace(/[^a-z0-9.]+/gi, '-').replace(/^[-.]+|[-.]+$/g, '');
+/**
+ * A ref or a repository name, as a URL segment.
+ *
+ * The trim is a loop rather than `/^[-.]+|[-.]+$/`: an anchored `+` over a
+ * character class backtracks, so a name that is nothing but separators — which
+ * a branch name may be, and which comes from config this layer does not
+ * own — costs time quadratic in its length. Scanning from each end costs its
+ * length, once.
+ */
+export const slugify = (value: string) => {
+  const collapsed = value.replace(/[^a-z0-9.]+/gi, '-');
+
+  const isSeparator = (char: string | undefined) =>
+    char === '-' || char === '.';
+
+  let start = 0;
+  let end = collapsed.length;
+  while (start < end && isSeparator(collapsed[start])) start += 1;
+  while (end > start && isSeparator(collapsed[end - 1])) end -= 1;
+
+  return collapsed.slice(start, end);
+};
 
 /**
  * Collection names are not URL segments.
@@ -170,8 +190,25 @@ export const repoSlug = (source: DuxtSource) =>
       ?.replace(/\.git$/, '') ?? 'docs'
   );
 
-export const repoUrl = (repo: string) =>
-  repo.includes('://') ? repo : `https://github.com/${repo}`;
+/**
+ * The URL a repository is cloned from.
+ *
+ * A value starting with `-` is REJECTED rather than passed on: it reaches `git`
+ * as an argument, and `git ls-remote --upload-pack=<anything>` runs that
+ * anything. The config it comes from is a file in the consumer's repository
+ * rather than user input, but a source list may be computed — from an
+ * environment variable, from a directory listing — and the cost of the check is
+ * one comparison.
+ */
+export const repoUrl = (repo: string) => {
+  if (repo.startsWith('-')) {
+    throw new Error(
+      `duxt: a repository may not start with "-" — got ${JSON.stringify(repo)}`
+    );
+  }
+
+  return repo.includes('://') ? repo : `https://github.com/${repo}`;
+};
 
 /**
  * Resolve the list once: names, prefixes and labels.

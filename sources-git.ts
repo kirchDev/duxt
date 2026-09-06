@@ -26,10 +26,18 @@ function tagsOf(repo: string | undefined): string[] {
 
   try {
     const output = repo
-      ? execFileSync('git', ['ls-remote', '--tags', '--refs', repoUrl(repo)], {
-          encoding: 'utf8',
-          stdio: ['ignore', 'pipe', 'ignore']
-        })
+      ? // `--end-of-options` so the URL is a URL: without it a value shaped
+        // like `--upload-pack=…` is read as an option, and that option runs a
+        // command. `repoUrl` refuses a leading dash as well — one guard at the
+        // parser, one at the source.
+        execFileSync(
+          'git',
+          ['ls-remote', '--tags', '--refs', '--end-of-options', repoUrl(repo)],
+          {
+            encoding: 'utf8',
+            stdio: ['ignore', 'pipe', 'ignore']
+          }
+        )
       : execFileSync('git', ['tag', '--list'], {
           encoding: 'utf8',
           stdio: ['ignore', 'pipe', 'ignore']

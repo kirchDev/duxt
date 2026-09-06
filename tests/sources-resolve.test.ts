@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolveSources } from '../sources-resolve';
+import { repoUrl, resolveSources, slugify } from '../sources-resolve';
 
 describe('resolveSources', () => {
   it('serves a single unversioned source from the root', () => {
@@ -183,5 +183,23 @@ describe('refs', () => {
 
     expect(resolved[0]!.prefix).toBe('');
     expect(resolved[1]!.prefix).toBe('/main');
+  });
+});
+
+describe('slugify and repoUrl, hardened', () => {
+  it('trims separators without backtracking', () => {
+    expect(slugify('--v1.0--')).toBe('v1.0');
+    expect(slugify('...')).toBe('');
+    // The shape CodeQL flagged: many separators and nothing else. The loop is
+    // linear, so this returns rather than hangs.
+    expect(slugify('-'.repeat(50_000))).toBe('');
+  });
+
+  it('refuses a repository that would read as a git option', () => {
+    expect(() => repoUrl('--upload-pack=touch /tmp/pwned')).toThrow();
+    expect(repoUrl('kirchDev/duxt')).toBe('https://github.com/kirchDev/duxt');
+    expect(repoUrl('https://example.com/x.git')).toBe(
+      'https://example.com/x.git'
+    );
   });
 });
