@@ -368,7 +368,16 @@ export default defineNuxtConfig({
     // Inline the icons actually used into the client bundle instead of fetching
     // them per collection after hydration — no roundtrip, no icon flash.
     clientBundle: {
-      scan: true,
+      // Vue and TS files, plus the MARKDOWN a docs site is made of. Without the
+      // second glob an icon named only in a page's frontmatter — which is where
+      // a documentation tree names most of its icons — is missing from the
+      // bundle, so it is absent from the server-rendered HTML and arrives, if
+      // at all, over the network after hydration. `**/*.md` reaches the pages
+      // of the consumer's own repository; a source downloaded from another one
+      // is cached outside the scan and still falls back to the API.
+      scan: {
+        globInclude: ['**/*.{vue,jsx,tsx,ts,js,mjs}', '**/*.md']
+      },
       sizeLimitKb: 512,
 
       // The locale switcher names its flags at runtime (`flag:${code}-4x3`), so
