@@ -13,7 +13,16 @@ function toggleTheme() {
   colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark';
 }
 
-/** An entry with neither `to` nor children means "the documentation". */
+/**
+ * An entry with neither `to` nor children means "the documentation".
+ *
+ * The layer's own "Docs" entry ships without a `to` on purpose: where the
+ * documentation lives depends on the consumer's prefixes, which the layer
+ * cannot know. Resolving it to the first section here is what makes the default
+ * navbar work on a versioned site and on a flat one alike — and every place
+ * that renders a navigation entry has to go through this, or the entry renders
+ * as an anchor with no href.
+ */
 function linkTarget(link: DuxtLink) {
   return link.to ?? duxt.sections?.[0]?.to ?? '/';
 }
@@ -110,7 +119,7 @@ function current(to?: string) {
                       :key="entry.label"
                     >
                       <NuxtLink
-                        :to="localeLink(entry.to)"
+                        :to="localeLink(linkTarget(entry))"
                         :target="entry.external ? '_blank' : undefined"
                         class="flex items-center gap-2 rounded-md px-2 py-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                       >
@@ -196,11 +205,13 @@ function current(to?: string) {
             size="sm"
             class="font-medium"
             :class="
-              isActive(link.to) ? 'text-foreground' : 'text-muted-foreground'
+              isActive(linkTarget(link))
+                ? 'text-foreground'
+                : 'text-muted-foreground'
             "
           >
             <NuxtLink
-              :to="localeLink(link.to)"
+              :to="localeLink(linkTarget(link))"
               :target="link.external ? '_blank' : undefined"
             >
               {{ link.label }}
