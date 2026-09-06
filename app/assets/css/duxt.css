@@ -44,12 +44,19 @@
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
+  /* THE FOREGROUND FOLLOWS THE BACKGROUND'S LIGHTNESS, not the mode's. A pale
+     green with white on it reads as a badge and measures 3.12:1, which is a
+     badge nobody with low vision can read. Above roughly L 0.6 the pair takes
+     dark text, below it white — `--warning` already did, and success, info and
+     dark-mode destructive were simply missed. Enforced in
+     `tests/contrast.test.ts`; see the note on `--muted-foreground` above for
+     why the browser check cannot answer this. */
   --success: oklch(0.63 0.17 149);
-  --success-foreground: oklch(0.985 0 0);
+  --success-foreground: oklch(0.145 0 0);
   --warning: oklch(0.75 0.16 70);
   --warning-foreground: oklch(0.145 0 0);
   --info: oklch(0.62 0.16 244);
-  --info-foreground: oklch(0.985 0 0);
+  --info-foreground: oklch(0.145 0 0);
 }
 
 .dark {
@@ -70,7 +77,7 @@
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.985 0 0);
+  --destructive-foreground: oklch(0.145 0 0);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);

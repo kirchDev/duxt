@@ -69,8 +69,11 @@ heading order, ARIA validity, the document's language — and that is the half a
 redesign breaks.
 
 A browser-driven check would cover the rest and costs a Playwright download in
-every CI run. The contrast question is answered once, by measurement, in
-`duxt.css`.
+every CI run. The contrast question is answered instead by `pnpm test`, which
+reads the palette out of `duxt.css` and measures every foreground against the
+background it is paired with. That is narrower than a browser check — it says
+nothing about a colour composed at runtime — and it is the half that regresses:
+the risk is somebody adjusting a token, not somebody inventing a new colour.
 
 ## The devtools tab
 
