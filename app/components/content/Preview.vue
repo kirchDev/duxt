@@ -153,12 +153,14 @@ const tabs = computed(() => [
       </div>
     </TabsContent>
 
-    <!-- The fence brought its own card into a card. Its frame, its rounding and
-         its own header come off — the tab above already names the language, and
-         the copy button moved up there with it. -->
+    <!-- The fence brought its own card into a card, so its frame, its rounding
+         and its own header come off — the tab above already names the language,
+         and the copy button moved up there with it. Its SURFACE stays: code is
+         read against the same background here as anywhere else on the site,
+         which is exactly the argument for the example above having none. -->
     <TabsContent
       value="code"
-      class="outline-none [&_.duxt-code]:my-0 [&_.duxt-code]:rounded-none [&_.duxt-code]:border-0 [&_.duxt-code]:bg-transparent [&_.duxt-code-header]:hidden [&_.duxt-code-copy]:hidden"
+      class="outline-none [&_.duxt-code]:my-0 [&_.duxt-code]:rounded-none [&_.duxt-code]:border-0 [&_.duxt-code-header]:hidden [&_.duxt-code-copy]:hidden"
     >
       <slot name="code" />
     </TabsContent>
