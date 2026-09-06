@@ -215,6 +215,15 @@ declare global {
      * what the theme and the version switcher actually read.
      */
     resolvedSources?: DuxtResolvedSource[];
+    /**
+     * GENERATED, not written. The layer's own version and repository, read out
+     * of its `package.json` by the duxt module — what the footer's "Powered by"
+     * line says and links to.
+     */
+    layerVersion?: string;
+    layerRepository?: string;
+    /** `false` drops the "Powered by duxt" line from the footer. */
+    poweredBy?: boolean;
     /** Overrides the versions derived from `sources`, when they need labels. */
     versions?: { label: DuxtText; to?: string; description?: DuxtText }[];
     footer?: {

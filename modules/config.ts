@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type { Nuxt } from '@nuxt/schema';
 import { readDuxtBuildConfig } from '../duxt-app-config';
@@ -49,12 +50,38 @@ export default function duxtConfig(_options: unknown, nuxt: Nuxt) {
   // a type it is itself the only source of.
   nuxt.options.appConfig.duxt = {
     ...nuxt.options.appConfig.duxt,
+    ...layerIdentity(layerDir),
     resolvedSources
   } as typeof nuxt.options.appConfig.duxt;
 
   restrictLocales(nuxt, config?.locales);
   shareSiteUrl(nuxt);
   excludeOldVersionsFromSitemap(nuxt, resolvedSources);
+}
+
+/**
+ * The layer's own version and repository, for the footer line.
+ *
+ * Read out of the layer's `package.json` rather than written anywhere: the
+ * version is bumped by release-please, and a second copy of it is a copy that
+ * goes stale on the first release. Both are absent rather than guessed if the
+ * file cannot be read — the footer then draws nothing.
+ */
+function layerIdentity(layerDir: string) {
+  try {
+    const pkg = JSON.parse(
+      readFileSync(new URL('package.json', `file://${layerDir}`), 'utf8')
+    ) as { version?: string; repository?: { url?: string } };
+
+    return {
+      layerVersion: pkg.version,
+      layerRepository: pkg.repository?.url
+        ?.replace(/^git\+/, '')
+        .replace(/\.git$/, '')
+    };
+  } catch {
+    return {};
+  }
 }
 
 /**

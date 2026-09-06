@@ -84,8 +84,17 @@ The card around a code fence: filename bar, language icon, copy button.
 
 ## DuxtFooter
 
-Columns, the note, and the legal row a consumer fills. The layer ships the row
-empty on purpose: an imprint belongs to whoever runs the site.
+The site's name and copyright on the left, the legal row a consumer fills on the
+right, and **Powered by duxt vX.Y.Z** in the middle, linking to duxt's
+repository. The layer ships the legal row empty on purpose: an imprint belongs
+to whoever runs the site.
+
+The version and the repository are read out of duxt's own `package.json` at
+build time — release-please bumps that file, and a second copy of the number
+would be wrong from the first release onwards.
+
+`poweredBy: false` drops the line. A layer that cannot be told to stop naming
+itself is adware.
 
 ## DuxtVersionBanner
 

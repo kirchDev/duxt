@@ -35,6 +35,7 @@ export default defineAppConfig({
 | `sources`    | The documentation sources — see the sources reference      |
 | `sourceOptions` | How those sources become URL prefixes                   |
 | `feed`       | The section `/rss.xml` publishes                            |
+| `poweredBy`  | `false` drops the "Powered by duxt" line from the footer   |
 
 ## Links belong to whoever runs the site
 
