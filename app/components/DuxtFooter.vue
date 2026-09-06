@@ -27,7 +27,9 @@ const poweredBy = computed(() =>
     <div
       class="mx-auto flex max-w-[90rem] flex-col gap-3 px-4 py-5 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between lg:px-8"
     >
-      <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
+      <div
+        class="flex flex-wrap items-center gap-x-4 gap-y-1 sm:flex-1 sm:basis-0"
+      >
         <NuxtLink
           :to="localeLink('/')"
           class="inline-flex items-center gap-2 font-medium text-foreground"
@@ -42,7 +44,7 @@ const poweredBy = computed(() =>
            target for one destination, and in a screen reader's link list
            "Powered by duxt v0.0.0" reads as a sentence where a bare "Powered
            by" beside it would read as nothing at all. -->
-      <p v-if="poweredBy" class="sm:text-center">
+      <p v-if="poweredBy" class="sm:flex-1 sm:basis-0 sm:text-center">
         <a
           :href="poweredBy.to"
           target="_blank"
@@ -66,7 +68,9 @@ const poweredBy = computed(() =>
       <!-- A consumer's legal links belong to the consumer: the layer offers the
            row and ships nothing in it, because an imprint is never the
            template's to claim. -->
-      <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
+      <div
+        class="flex flex-wrap items-center gap-x-4 gap-y-1 sm:flex-1 sm:basis-0 sm:justify-end"
+      >
         <NuxtLink
           v-for="link in duxt.footer?.legal ?? []"
           :key="link.to"
