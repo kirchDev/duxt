@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { report } from '../modules/validate';
+import { report } from '../validate-report';
 
 const page = (over: Partial<Parameters<typeof report>[1][number]>) => ({
   collection: 'docs',

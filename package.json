@@ -38,7 +38,8 @@
     "server",
     "sources-git.ts",
     "sources-resolve.ts",
-    "sources.ts"
+    "sources.ts",
+    "validate-report.ts"
   ],
   "type": "module",
   "main": "./nuxt.config.ts",
