@@ -38,9 +38,56 @@ const hasCode = computed(() => Boolean(slots.code));
 const active = ref('preview');
 
 const { t } = useI18n();
+
+/**
+ * The fence in `#code`, read off its VNode — the same trick `::code-group`
+ * uses on its children. What it yields is the filename or the language, which
+ * is what the tab should say and which icon it should carry: a reader picking
+ * between an example and its source is picking between a rendered thing and a
+ * `.vue`, a `.md` or an `.mdc` file, and the icon says which without a word.
+ */
+const codeMeta = computed(() => {
+  const nodes = (slots.code?.() ?? []).flatMap((node) =>
+    Array.isArray(node.children) && typeof node.type === 'symbol'
+      ? (node.children as VNode[])
+      : [node]
+  );
+
+  const props = (nodes.find((node) => typeof node.type === 'object')?.props ??
+    {}) as { filename?: string; language?: string; code?: string };
+
+  return {
+    label: props.filename ?? props.language ?? t('duxt.code.source'),
+    icon: fileIcon(props.filename ?? props.language ?? 'md'),
+    code: props.code
+  };
+});
+
+/**
+ * The copy button lives up here rather than in the fence's own header, because
+ * the fence's header is hidden: it would say `mdc` directly under a tab that
+ * already says `mdc`, and one card does not need naming twice.
+ */
+const notify = useDuxtToast();
+const copied = ref(false);
+
+async function copy() {
+  const code = codeMeta.value.code;
+  if (!code) return;
+
+  try {
+    await navigator.clipboard.writeText(code);
+    copied.value = true;
+    notify.success(t('duxt.code.copiedToast'));
+    setTimeout(() => (copied.value = false), 2000);
+  } catch {
+    notify.error(t('duxt.page.copyFailed'));
+  }
+}
+
 const tabs = computed(() => [
-  { value: 'preview', label: t('duxt.code.preview') },
-  { value: 'code', label: t('duxt.code.source') }
+  { value: 'preview', label: t('duxt.code.preview'), icon: 'lucide:eye' },
+  { value: 'code', label: codeMeta.value.label, icon: codeMeta.value.icon }
 ]);
 </script>
 
@@ -52,38 +99,62 @@ const tabs = computed(() => [
     <slot />
   </div>
 
-  <TabsRoot v-else v-model="active" class="my-6">
-    <!-- Underlined triggers, not filled ones: a filled tab reads as a second
-         surface, and in dark mode as a hole rather than as the selected tab. -->
+  <!-- One card, built like the package-manager block and the code block beside
+       it: a header of pills, then the panel. Three blocks on a page that all
+       switch between things should not switch in three different shapes. -->
+  <TabsRoot
+    v-else
+    v-model="active"
+    class="my-6 overflow-hidden rounded-lg border bg-card"
+  >
     <TabsList
-      class="flex items-center gap-4 border-b"
+      class="flex min-h-11 items-center gap-1 border-b bg-muted/40 px-2 py-1.5"
       :aria-label="$t('duxt.code.previewTabs') as string"
     >
       <TabsTrigger
         v-for="tab in tabs"
         :key="tab.value"
         :value="tab.value"
-        class="-mb-px cursor-pointer border-b-2 border-transparent px-1 pb-2 text-sm text-muted-foreground transition-colors hover:text-foreground data-[state=active]:border-primary data-[state=active]:text-foreground"
+        class="flex cursor-pointer items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
       >
+        <Icon :name="tab.icon" class="size-3.5" />
         {{ tab.label }}
       </TabsTrigger>
+
+      <!-- Right of the tabs, where every other card on the site puts it. Only
+           on the source tab: a copy button beside a rendered example copies
+           something the reader cannot see. -->
+      <Button
+        v-if="active === 'code' && codeMeta.code"
+        variant="ghost"
+        size="icon"
+        class="ml-auto size-7"
+        :aria-label="copied ? $t('duxt.code.copied') : $t('duxt.code.copy')"
+        @click="copy"
+      >
+        <Icon
+          :name="copied ? 'lucide:check' : 'lucide:copy'"
+          class="size-3.5"
+        />
+      </Button>
     </TabsList>
 
-    <!-- NO BOX around the example, and that is the point of the block: a
-         callout, a file tree or a code group each carry their own card, and a
-         frame around them draws a second one that exists nowhere else on the
-         site. What the reader sees here is exactly what the same Markdown
-         renders in a page — which is the only claim this component makes.
-         Only the first and last margins come off, so the example hangs from
-         the tabs rather than floating a line below them. -->
-    <TabsContent
-      value="preview"
-      class="mt-4 outline-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
-    >
-      <slot />
+    <TabsContent value="preview" class="outline-none">
+      <!-- The example on the card's own surface, its outer margins taken off:
+           a callout carries `my-6`, and inside a padded panel that margin is
+           the padding a second time. -->
+      <div class="px-4 py-6 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+        <slot />
+      </div>
     </TabsContent>
 
-    <TabsContent value="code" class="mt-4 outline-none [&_.duxt-code]:my-0">
+    <!-- The fence brought its own card into a card. Its frame, its rounding and
+         its own header come off — the tab above already names the language, and
+         the copy button moved up there with it. -->
+    <TabsContent
+      value="code"
+      class="outline-none [&_.duxt-code]:my-0 [&_.duxt-code]:rounded-none [&_.duxt-code]:border-0 [&_.duxt-code]:bg-transparent [&_.duxt-code-header]:hidden [&_.duxt-code-copy]:hidden"
+    >
       <slot name="code" />
     </TabsContent>
   </TabsRoot>

@@ -54,7 +54,7 @@ async function copy() {
   >
     <div
       v-if="label"
-      class="flex items-center gap-2 border-b bg-muted/40 px-3 py-2 text-xs text-muted-foreground"
+      class="duxt-code-header flex min-h-11 items-center gap-2 border-b bg-muted/40 px-3 py-2 text-xs text-muted-foreground"
     >
       <Icon :name="icon" class="size-4 shrink-0" />
       <span class="truncate font-mono">{{ label }}</span>
@@ -77,7 +77,7 @@ async function copy() {
       v-else
       variant="ghost"
       size="icon"
-      class="absolute top-2 right-2 size-7 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-accent focus-visible:opacity-100"
+      class="duxt-code-copy absolute top-2 right-2 size-7 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-accent focus-visible:opacity-100"
       :class="{ 'opacity-100': copied }"
       :aria-label="copied ? $t('duxt.code.copied') : $t('duxt.code.copy')"
       @click="copy"

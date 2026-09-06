@@ -55,7 +55,7 @@ watchEffect(() => {
 <template>
   <TabsRoot v-model="active" class="my-6 overflow-hidden rounded-lg border">
     <TabsList
-      class="flex gap-1 border-b bg-muted/40 px-2"
+      class="flex min-h-11 items-center gap-1 border-b bg-muted/40 px-2"
       :aria-label="$t('duxt.page.tabs') as string"
     >
       <TabsTrigger

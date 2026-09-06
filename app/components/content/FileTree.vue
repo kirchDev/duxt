@@ -46,7 +46,7 @@ const expanded = computed(() => {
   <div class="not-typeset my-6 overflow-hidden rounded-lg border bg-card">
     <div
       v-if="title"
-      class="flex items-center gap-2 border-b bg-muted/40 px-3 py-2 text-xs text-muted-foreground"
+      class="flex min-h-11 items-center gap-2 border-b bg-muted/40 px-3 py-2 text-xs text-muted-foreground"
     >
       <Icon name="lucide:folder-tree" class="size-4" />
       <span class="font-mono">{{ title }}</span>
