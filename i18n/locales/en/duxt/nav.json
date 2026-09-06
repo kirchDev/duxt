@@ -1,0 +1,16 @@
+{
+  "duxt": {
+    "nav": {
+      "open": "Open navigation",
+      "sections": "Sections",
+      "previous": "Previous",
+      "next": "Next",
+      "anchor": "Link to this section",
+      "skip": "Skip to content",
+      "main": "Main navigation",
+      "docs": "Documentation",
+      "pagination": "Page navigation",
+      "breadcrumb": "Breadcrumb"
+    }
+  }
+}

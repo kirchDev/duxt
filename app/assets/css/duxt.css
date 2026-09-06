@@ -1,0 +1,345 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+/* vue-sonner ships its own stylesheet; without it the toasts render as bare
+   text on the page background. */
+@import 'vue-sonner/style.css';
+@import './typeset.css';
+
+/* Tailwind auto-detects sources from the build root, which is the CONSUMER's
+   directory — the layer sits outside it and would be scanned by nobody, so
+   every utility used in these components would be missing from the output.
+   Relative to this file, so it holds wherever the layer is installed. */
+@source '../../../app';
+
+/* shadcn switches themes on a class, not a media query — @nuxtjs/color-mode
+   sets it with classSuffix: '' so the two agree. */
+@custom-variant dark (&:is(.dark *));
+
+/* The neutral base palette, in oklch. A consumer overrides a token by
+   redefining it in its own stylesheet — no fork of this file needed. */
+:root {
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  /* shadcn's own value is oklch(0.556 0 0). Measured, that is 4.73:1 on the
+     page background — and 4.34:1 on --muted / --accent, which is where this
+     token actually lands: a hovered sidebar link, a badge, the sheet. So the
+     default fails AA on exactly the surfaces it is used on. 0.52 gives 5.51:1
+     and 5.05:1, and this token carries the page descriptions, the table of
+     contents and the breadcrumb — too much text to leave borderline. */
+  --muted-foreground: oklch(0.52 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  /* THE FOREGROUND FOLLOWS THE BACKGROUND'S LIGHTNESS, not the mode's. A pale
+     green with white on it reads as a badge and measures 3.12:1, which is a
+     badge nobody with low vision can read. Above roughly L 0.6 the pair takes
+     dark text, below it white — `--warning` already did, and success, info and
+     dark-mode destructive were simply missed. Enforced in
+     `tests/contrast.test.ts`; see the note on `--muted-foreground` above for
+     why the browser check cannot answer this. */
+  --success: oklch(0.63 0.17 149);
+  --success-foreground: oklch(0.145 0 0);
+  --warning: oklch(0.75 0.16 70);
+  --warning-foreground: oklch(0.145 0 0);
+  --info: oklch(0.62 0.16 244);
+  --info-foreground: oklch(0.145 0 0);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  /* Same measurement in the dark: 7.63:1 on the background but 5.83:1 on
+     --muted. Lifted for the same reason, by less, because it starts higher. */
+  --muted-foreground: oklch(0.72 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --destructive-foreground: oklch(0.145 0 0);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --success: oklch(0.7 0.16 149);
+  --success-foreground: oklch(0.145 0 0);
+  --warning: oklch(0.8 0.15 70);
+  --warning-foreground: oklch(0.145 0 0);
+  --info: oklch(0.7 0.14 244);
+  --info-foreground: oklch(0.145 0 0);
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  /* The one line that tells the BROWSER which theme is on. Without it every
+     piece of native UI — scrollbars first, then form controls and the canvas
+     behind a short page — is drawn light on a dark site, which is why a
+     scrollbar inside an iframe looked nothing like the window's own.
+     `scrollbar-*` are inherited properties, so `:root` reaches every scroll
+     container in the page: the sidebar, the table of contents, a code block. */
+  :root {
+    color-scheme: light;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  :root:is(.dark),
+  .dark {
+    color-scheme: dark;
+  }
+}
+
+/* A brand colour that follows the theme. Set --brand and --brand-dark on the
+   element; the class picks the one the current theme needs. */
+.duxt-brand {
+  color: var(--brand);
+}
+
+:root:is(.dark) .duxt-brand,
+.dark .duxt-brand {
+  color: var(--brand-dark);
+}
+
+/* Shiki with `defaultColor: false` writes both themes as custom properties per
+   token and leaves the choice to CSS — the same arrangement Content uses for
+   Markdown fences, applied to the command block. */
+.duxt-shell span {
+  color: var(--shiki-light);
+}
+
+.dark .duxt-shell span {
+  color: var(--shiki-dark);
+}
+
+.duxt-shell pre {
+  margin: 0;
+  background: transparent !important;
+}
+
+/* The layer's typeset preset. Three controls — size, leading, flow — and
+   everything else derives from them; see the typeset docs. A consumer
+   redefines these in its own stylesheet rather than restyling elements. */
+.typeset-docs {
+  --typeset-size: 15px;
+  --typeset-leading: 1.7;
+  --typeset-flow: 1.25em;
+}
+
+/* Kept from the hand-written prose: a heading anchor in the margin, and code
+   blocks drawing their own surface rather than the highlighter's.
+
+   The surface matters: typeset gives every `pre` a muted background (its line
+   293), which lands on top of the card DuxtCodeBlock already draws — two
+   surfaces, and in dark mode the inner one reads as a highlighted row. Not
+   scoped to .typeset, because the package-manager block renders the same
+   markup outside a rendered page. */
+.typeset :where(.duxt-anchor) {
+  @apply absolute -left-5 font-normal text-muted-foreground no-underline opacity-0 transition-opacity;
+}
+
+.typeset :where(h2:hover, h3:hover, h4:hover) .duxt-anchor,
+.typeset :where(.duxt-anchor:focus-visible) {
+  @apply opacity-100;
+}
+
+pre.shiki,
+.typeset :where(pre) {
+  background-color: transparent;
+}
+
+/* Content injects `html.dark .shiki span { background: var(--shiki-dark-bg) }`
+   inline in the document head — specificity (0,2,2), which outranks anything
+   sensible we could write against it. The tokens inherit that variable from
+   the <pre>, where Shiki sets it to the theme's own page colour, so in dark
+   mode every token drew a #24292e rectangle over the card.
+   
+   Redefining the variable is the way out: the rule still applies, it just has
+   nothing to paint. Set on the tokens rather than the <pre>, because there the
+   value is inline and would win. */
+.shiki span {
+  --shiki-light-bg: transparent;
+  --shiki-dark-bg: transparent;
+}
+
+/* A code block draws its own card with a filename header, so the `<pre>` inside
+   is that card's body rather than a block in the flow. typeset's block spacing
+   on `pre` therefore lands *inside* the border and opens a gap between the
+   header and the first line. */
+.typeset :where(.duxt-code pre) {
+  margin: 0;
+}
+
+/* A long unbroken token — a URL, a package name, a path — is the other way a
+   page grows wider than the phone holding it. Inline code may break; the
+   scrollable blocks (code fences, tables) keep their own overflow. */
+.typeset :where(:not(pre) > code) {
+  overflow-wrap: anywhere;
+}
+
+/* Honour a reader who has asked the system for less motion.
+ 
+   Blunt on purpose. The moving parts are the collapsible in the sidebar, the
+   mobile sheet and the toasts, but each of the three animates through a
+   different mechanism — tw-animate-css keyframes on a data-state, reka-ui's
+   presence, vue-sonner's own stylesheet — and naming them one by one leaves the
+   next component to be added moving again. A near-zero duration rather than
+   `none`: reka-ui waits for `animationend` before it unmounts a panel, and an
+   animation that never runs never ends. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Shiki's line annotations, which have classes and no styling of their own.
+   Four come from the transformers @nuxtjs/mdc enables by default, two more from
+   `mdc.config.ts`. Without these rules `// [!code highlight]` removes the
+   comment and changes nothing visible, which reads as the feature being off. */
+.shiki .line.highlighted {
+  background-color: color-mix(in oklab, var(--color-primary) 12%, transparent);
+  display: inline-block;
+  width: 100%;
+}
+
+.shiki .line.diff.add {
+  background-color: color-mix(in oklab, var(--color-success) 14%, transparent);
+  display: inline-block;
+  width: 100%;
+}
+
+.shiki .line.diff.remove {
+  background-color: color-mix(
+    in oklab,
+    var(--color-destructive) 14%,
+    transparent
+  );
+  display: inline-block;
+  width: 100%;
+  opacity: 0.7;
+}
+
+.shiki .line.diff.add::before {
+  content: '+';
+  color: var(--color-success);
+}
+
+.shiki .line.diff.remove::before {
+  content: '-';
+  color: var(--color-destructive);
+}
+
+.shiki .highlighted-word {
+  background-color: color-mix(in oklab, var(--color-primary) 16%, transparent);
+  border-radius: 3px;
+  padding: 1px 2px;
+}
+
+/* `focus` dims everything that is not the point. Not a filter on the code
+   itself: blur on text is unreadable for anyone who needs the contrast, so the
+   unfocused rows lose opacity and come back on hover. */
+.shiki:has(.line.focused) .line:not(.focused) {
+  opacity: 0.4;
+  transition: opacity 0.2s;
+}
+
+.shiki:hover .line:not(.focused) {
+  opacity: 1;
+}
+
+.shiki .line.error {
+  background-color: color-mix(
+    in oklab,
+    var(--color-destructive) 14%,
+    transparent
+  );
+  display: inline-block;
+  width: 100%;
+}
+
+.shiki .line.warning {
+  background-color: color-mix(in oklab, var(--color-warning) 16%, transparent);
+  display: inline-block;
+  width: 100%;
+}
+
+/* Line numbers, opt-in per fence with ```ts line-numbers.
+   A CSS counter rather than markup: the numbers are decoration, and a reader
+   copying the block must not get them in the clipboard. */
+.duxt-line-numbers code {
+  counter-reset: duxt-line;
+}
+
+.duxt-line-numbers .line::before {
+  counter-increment: duxt-line;
+  content: counter(duxt-line);
+  display: inline-block;
+  width: 2ch;
+  margin-right: 1.5ch;
+  text-align: right;
+  color: var(--color-muted-foreground);
+  user-select: none;
+}

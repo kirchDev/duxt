@@ -1,0 +1,24 @@
+{
+  "duxt": {
+    "version": {
+      "old": "Vous consultez la documentation d’une ancienne version. Envisagez de mettre à jour votre projet vers {preferred}.",
+      "upcoming": "Vous consultez la documentation d’une version à venir. Sa documentation et ses fonctionnalités peuvent encore changer.",
+      "deprecated": "Vous consultez la documentation de {version}, obsolète et qui n’est plus mise à jour. Envisagez de passer à {preferred}.",
+      "eol": "Vous consultez la documentation de {version}, qui a atteint sa fin de vie et ne recevra plus aucune modification.",
+      "goToCurrent": "Aller à {preferred}",
+      "status": {
+        "upcoming": "à venir",
+        "current": "actuelle",
+        "maintained": "maintenue",
+        "deprecated": "obsolète",
+        "eol": "fin de vie"
+      },
+      "titles": {
+        "upcoming": "Version à venir",
+        "old": "Ancienne version",
+        "deprecated": "Version obsolète",
+        "eol": "Fin de vie"
+      }
+    }
+  }
+}

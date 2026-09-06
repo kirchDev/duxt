@@ -17,7 +17,7 @@ This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.
 
 Requirements:
 
-- Node **24+** and **pnpm 12**
+- Node **24+**, **pnpm 12** and **TypeScript 6** (7 is held back — see CLAUDE.md)
 - `git`
 
 Clone and install:
@@ -30,13 +30,14 @@ pnpm install   # wires husky hooks
 
 ## Running the suite
 
-| Command          | What it does                                           |
-| :--------------- | :----------------------------------------------------- |
-| `pnpm lint`      | oxlint across the repo.                                |
-| `pnpm format`    | oxfmt check across JS / TS / JSON / YAML / MD.         |
-| `pnpm typecheck` | `tsc --noEmit` over the meta scripts.                  |
-| `pnpm check`     | Runs `lint`, `format`, `typecheck` and `check:policy`. |
-| `pnpm check:fix` | Auto-fix lint + format issues.                         |
+| Command              | What it does                                               |
+| :------------------- | :--------------------------------------------------------- |
+| `pnpm lint`          | oxlint across the repo.                                    |
+| `pnpm format`        | oxfmt check across JS / TS / JSON / YAML / MD.             |
+| `pnpm typecheck`     | `tsc --noEmit` over the meta scripts.                      |
+| `pnpm typecheck:app` | `nuxt typecheck` over the layer, via `www/`.               |
+| `pnpm check`         | Runs `lint`, `format`, both typechecks and `check:policy`. |
+| `pnpm check:fix`     | Auto-fix lint + format issues.                             |
 
 The same commands run in CI — keep them green before you push.
 

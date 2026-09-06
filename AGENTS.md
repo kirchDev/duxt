@@ -19,6 +19,8 @@ Retyping a change is exactly how the two drift; one reflowed line or reworded cl
 > [!IMPORTANT]
 > **Nothing here is decided.** `duxt` is at the idea stage — the repo currently carries the meta layer and nothing else. What follows is the working sketch plus the questions still open. Treat every "is" below as "is currently assumed"; do not harden any of it into code without asking.
 
+The idea started in `kirchDev/greenhouse` as `ideas/nuxt-ai-docs.md`, where it is filed under that working title; `duxt` is the name it got here.
+
 The sketch: `duxt` as a **Nuxt documentation layer on Nuxt Content v3**, published as `@kirchdev/duxt` and consumed with one line:
 
 ```ts
@@ -42,11 +44,20 @@ What that leaves as candidate value: the **ergonomics** (a compact `sources` lis
 
 **Decided so far:**
 
-- **The theme is shadcn-vue, wired through `shadcn-nuxt`** — a clean base with owned components, not Docus or Nuxt UI. No UI-Pro dependency, and the components are copied into the repo rather than imported, so overriding them is editing them.
-- **Numbered section prefixes are a non-issue.** Content strips them itself: `1.guides/` renders at `/guides`, `99.adr/` at `/adr`. Verified in the playground. Reordering does not move a URL; only renaming the name part does.
-- **No SQLite driver is installed.** Content's default is `better-sqlite3`, a native addon needing a node-gyp toolchain. `content.experimental.nativeSqlite` uses Node 24's built-in `node:sqlite` instead, which needs no package at all — the playground builds and renders with neither `better-sqlite3` nor `@libsql/client` present. It is flagged experimental in Content; if that changes, `@libsql/client` is the prebuilt fallback, not `better-sqlite3`.
+- **The theme is shadcn-vue, wired through `shadcn-nuxt`** — a clean Tailwind 4 base with owned components in `app/components/ui/`, not Docus or Nuxt UI. Add one with `pnpm dlx shadcn-vue@latest add <name>`; `components.json` already points the CLI at the layer's own alias. The palette is the neutral shadcn set as CSS variables in `app/assets/css/duxt.css`, `dark` class toggled by `@nuxtjs/color-mode`; a consumer redefines a token in its own stylesheet rather than forking the file.
+- **Markdown components are MDC, not MDX.** Content ships MDC, so `::callout{type="tip"}` works with no extra module. Components live in `app/components/content/`.
+- **Numbered section prefixes are a non-issue.** Content strips them itself: `1.guides/` renders at `/guides`, `99.adr/` at `/adr`. Verified in `www/`. Reordering does not move a URL; only renaming the name part does.
+- **No SQLite driver is installed.** Content's default is `better-sqlite3`, a native addon needing a node-gyp toolchain. `content.experimental.nativeSqlite` uses Node 24's built-in `node:sqlite` instead, which needs no package at all — `www/` builds and renders with neither `better-sqlite3` nor `@libsql/client` present. It is flagged experimental in Content; if that changes, `@libsql/client` is the prebuilt fallback, not `better-sqlite3`.
 
-If the layer is built, `playground/` is where it is developed and wants edge cases, ugly frontmatter, several sources and a tag to read from. [`kirchDev/duxt-starter`](https://github.com/kirchDev/duxt-starter) would be a **different artifact** — minimal and exemplary, what a stranger clones with `npx nuxi@latest init -t github:kirchDev/duxt-starter`. Do not conflate the two; a playground makes a bad starter.
+**Repo shape — the root IS the layer.** `nuxt.config.ts`, `content.config.ts` and `app/` sit at the repo root, and `package.json` points at them with `main: "./nuxt.config.ts"` plus a `files` allowlist, so `extends: ['@kirchdev/duxt']` resolves. `www/` is the consuming site beside it — the only workspace package, and the development target, exactly as `www/` is in `ZTL-UwU/shadcn-docs-nuxt`. `nuxt` is a peerDependency of the layer and a real dependency only of `www/`.
+
+> [!IMPORTANT]
+> **Nothing layer-relative resolves the way it reads.** Three places have hit this already, and a fourth will: the Content collection `cwd`, the `css` entry and `componentDir` in `nuxt.config.ts` (both go through the `layer()` helper resolving against `import.meta.url`), and the `@` alias — which belongs to whoever extends the layer, so the layer's own imports use `@duxt` instead. Assume any path written here is read from the consumer's directory until proven otherwise.
+
+> [!IMPORTANT]
+> **A layer's collections resolve against the LAYER, not the consumer.** Content sets `collection.__rootDir = curr.cwd` per layer, so a relative `source.cwd` in this repo's `content.config.ts` points into this repo — never into the site that extends it. The layer therefore computes an absolute path at load time (`join(process.cwd(), 'docs')`), which works because c12 executes the config. This is the seam the whole `sources` shorthand sits on.
+
+`www/` wants edge cases, ugly frontmatter, several sources and a tag to read from. [`kirchDev/duxt-starter`](https://github.com/kirchDev/duxt-starter) would be a **different artifact** — minimal and exemplary, what a stranger clones with `npx nuxi@latest init -t github:kirchDev/duxt-starter`. Do not conflate the two; a development site makes a bad starter.
 
 ## Commands
 
@@ -56,8 +67,12 @@ If the layer is built, `playground/` is where it is developed and wants edge cas
 | `pnpm lint`         | `oxlint . --deny-warnings`                                 |
 | `pnpm format`       | `oxfmt --check .` (note: `format` is the check, not fix)   |
 | `pnpm typecheck`    | `tsc --noEmit` over the meta scripts                       |
-| `pnpm check`        | Runs `lint` + `format` + `typecheck` + `check:policy` — the CI gate |
+| `pnpm typecheck:app`| `nuxt typecheck` over the layer, run through `www/`        |
+| `pnpm test`         | `vitest run` over the layer's pure logic                   |
+| `pnpm build:app`    | `nuxt build` in `www/` — the gate's SSR check              |
+| `pnpm check`        | Runs `lint` + `format` + both typechecks + `test` + `check:policy` + `build:app` + `check:a11y` — the CI gate |
 | `pnpm check:policy` | Proves the two agent policy files ban the same commands    |
+| `pnpm check:a11y`   | axe-core over five rendered pages of the built site         |
 | `pnpm lint:fix`     | Auto-fix lint                                              |
 | `pnpm format:fix`   | Auto-fix format                                            |
 | `pnpm check:fix`    | Auto-fix lint + format                                     |
@@ -65,13 +80,13 @@ If the layer is built, `playground/` is where it is developed and wants edge cas
 | `pnpm taze`         | Interactive dependency upgrade check                       |
 | `pnpm taze:w`       | Write upgrade results                                      |
 
-There is no test suite yet — the repo currently carries only the meta layer. CI runs `pnpm lint`, `pnpm format`, `pnpm typecheck` and `pnpm check:policy` on PR; adding a check to the `check` script is enough, no workflow change needed.
+Tests cover the layer's pure logic — the source resolver, the config merge, the icon lookup, the build validator, the redirect map, the 404's nearest-page scoring — in `tests/`, run by vitest. `tests/contrast.test.ts` is the odd one out and deliberate: it parses the palette out of `duxt.css` and measures every foreground against the background it is paired with, because that is the one accessibility rule `check:a11y` cannot answer (jsdom has no computed colour) and the one this theme actually broke. Component rendering is not covered: it needs a Nuxt environment, and the failures this repo actually had were SSR failures, which is why `check` builds the site instead. `check:a11y` then runs axe-core over that build: jsdom has no layout, so `color-contrast` and `target-size` are reported as skipped rather than passed, and the structural rules — landmarks, names, heading order, ARIA — are what it enforces. CI runs whatever `check` chains on PR; adding a check to the `check` script is enough, no workflow change needed.
 
 ## Architecture / conventions
 
-- **Node 24, pnpm 12.** Pinned via `.nvmrc`, `engines`, and `packageManager`. `pnpm-workspace.yaml` enforces `minimumReleaseAge=4320` (3-day cooldown), isolated node-linker. Don't loosen these without reason. Package-manager enforcement carries no key on purpose: pnpm 11 replaced `packageManagerStrict`/`packageManagerStrictVersion` with `pmOnFail`, whose default `download` already errors on a foreign package manager and fetches the pinned pnpm version — every other value only weakens it, so leave it unset (the rationale sits as a comment in the file).
+- **Node 24, pnpm 12, TypeScript 6.** Pinned via `.nvmrc`, `engines`, and `packageManager`. `pnpm-workspace.yaml` enforces `minimumReleaseAge=4320` (3-day cooldown), isolated node-linker. Don't loosen these without reason. **TypeScript stays on 6 deliberately**: 7 is the native port, whose `exports` map no longer exposes the compiler internals Volar builds on, so `vue-tsc` cannot run on it — and without `vue-tsc` the layer has no typecheck at all. Move to 7 when Volar does, not before. Package-manager enforcement carries no key on purpose: pnpm 11 replaced `packageManagerStrict`/`packageManagerStrictVersion` with `pmOnFail`, whose default `download` already errors on a foreign package manager and fetches the pinned pnpm version — every other value only weakens it, so leave it unset (the rationale sits as a comment in the file).
 - **oxc, not eslint/prettier.** Linting via `oxlint`, formatting via `oxfmt`. Configs live in `.oxlintrc.json` / `.oxfmtrc.json`. `oxlint` uses `unicorn` + `oxc` plugins; rules deliberately minimal.
-- **TypeScript, no build step.** The meta scripts and the three tool configs are `.ts` — Node 24 strips types natively, so `scripts/check-policy-parity.ts`, `commitlint.config.ts`, `lint-staged.config.ts` and `taze.config.ts` stay directly executable and each tool loads its own `.ts` config unaided. `tsconfig.json` is `noEmit` + `strict` + `erasableSyntaxOnly`, so only strippable syntax (no enums, no parameter properties) can be written; `pnpm typecheck` is the gate. Once `.vue` files land, `typecheck` moves to `vue-tsc`; `oxlint` + `oxfmt` cover `.vue` on their own, so no ESLint is coming.
+- **TypeScript, no build step.** The meta scripts and the three tool configs are `.ts` — Node 24 strips types natively, so `scripts/check-policy-parity.ts`, `commitlint.config.ts`, `lint-staged.config.ts` and `taze.config.ts` stay directly executable and each tool loads its own `.ts` config unaided. `tsconfig.json` is `noEmit` + `strict` + `erasableSyntaxOnly`, so only strippable syntax (no enums, no parameter properties) can be written; `pnpm typecheck` is the gate for those. The layer itself is checked separately by `pnpm typecheck:app` (`nuxt typecheck` in `www/`), because `tsc` cannot see a Nuxt config's module options — those exist only in generated types. `oxlint` + `oxfmt` cover `.vue`, so no ESLint is coming.
 - **Husky hooks** (`.husky/pre-commit`, `.husky/commit-msg`) run `lint-staged` and `commitlint`. `lint-staged.config.ts` excludes `README.md`, `CLAUDE.md`, and `AGENTS.md` (free-form prose) and `pnpm-lock.yaml`. `oxlint --fix --deny-warnings` then `oxfmt` on JS/TS; `oxfmt` only on JSON/YAML/MD.
 - **Conventional Commits enforced** via `@commitlint/config-conventional`. Don't `--no-verify` unless explicitly asked.
 - **release-please** drives the versioning. Files: `release-please-config.json`, `.release-please-manifest.json`, `.github/workflows/release-please.yml`. `release-type: node` (this is a published package, so `package.json` gets bumped too), `include-v-in-tag: true`, starting from `0.0.0`. Publishing to npm is a job added to `release-please.yml`, gated on `needs.release-please.outputs.release-created`.

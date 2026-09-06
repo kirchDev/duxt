@@ -11,7 +11,15 @@
     "erasableSyntaxOnly": true,
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "paths": {
+      "@duxt/*": ["./app/*"]
+    }
   },
-  "include": ["scripts/**/*.ts", "*.config.ts"]
+  "include": [
+    "scripts/**/*.ts",
+    "commitlint.config.ts",
+    "lint-staged.config.ts",
+    "taze.config.ts"
+  ]
 }

@@ -1,0 +1,10 @@
+{
+  "duxt": {
+    "error": {
+      "title": "Algo ha salido mal",
+      "elsewhere": "Existe en:",
+      "back": "Volver a la documentación",
+      "nearest": "¿Buscaba alguna de estas?"
+    }
+  }
+}
