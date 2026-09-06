@@ -1,0 +1,11 @@
+{
+  "duxt": {
+    "shortcuts": {
+      "title": "Keyboard shortcuts",
+      "search": "Search the documentation",
+      "help": "Show this list",
+      "previous": "Previous page",
+      "next": "Next page"
+    }
+  }
+}

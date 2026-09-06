@@ -11,6 +11,8 @@
     "pnpm-lock.yaml",
     "README.md",
     "CLAUDE.md",
-    "AGENTS.md"
+    "AGENTS.md",
+    "docs/**/*.md",
+    "www/content/**/*.md"
   ]
 }

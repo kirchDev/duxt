@@ -1,0 +1,10 @@
+{
+  "duxt": {
+    "error": {
+      "title": "Etwas ist schiefgelaufen",
+      "elsewhere": "Vorhanden in:",
+      "back": "Zurück zur Dokumentation",
+      "nearest": "Meinten Sie eine dieser Seiten?"
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "duxt": {
+    "code": {
+      "copy": "Copy code",
+      "copyCommand": "Copy command",
+      "copied": "Copied",
+      "preview": "Preview",
+      "source": "Code",
+      "previewTabs": "Example and source",
+      "copiedToast": "Copied to clipboard"
+    }
+  }
+}

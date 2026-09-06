@@ -1,0 +1,11 @@
+{
+  "duxt": {
+    "nav": {
+      "sections": "Seções",
+      "next": "Próximo",
+      "anchor": "Link para esta seção",
+      "skip": "Pular para o conteúdo",
+      "breadcrumb": "Trilha de navegação"
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "duxt": {
+    "search": {
+      "label": "Pesquisar",
+      "placeholder": "Pesquisar na documentação…",
+      "recent": "Vistos recentemente",
+      "sections": "Secções",
+      "empty": "Nada encontrado para «{query}».",
+      "approximate": "Sem correspondência exata para «{query}» — a mostrar os mais próximos."
+    }
+  }
+}
