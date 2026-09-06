@@ -7,11 +7,10 @@
 export default defineAppConfig({
   duxt: {
     /**
-     * Deliberately the awkward case, so every branch of the resolver is
-     * exercised by the site the layer is built against: a repository segment
-     * appears because there is more than one repository, a version segment
-     * because `workflows` is published at two refs. A consumer with one
-     * unversioned folder declares none of this and gets none of it.
+     * One source, carrying a `slug` — so the site keeps a repository segment
+     * (`/duxt/…`) even though there is nothing to disambiguate it from. A
+     * consumer with one unversioned folder and no slug declares none of this
+     * and gets none of it.
      */
     sources: [
       // This repository's own documentation. `origin` names the repository for
@@ -21,45 +20,13 @@ export default defineAppConfig({
         path: 'docs',
         slug: 'duxt',
         origin: { repo: 'kirchDev/duxt', ref: 'main' }
-      },
-
-      /**
-       * Another repository, at a branch and at four tags. kirchDev/workflows is
-       * used because it has a real docs/ tree and real tags to read from.
-       *
-       * Deliberately one of EACH lifecycle, so every branch of the version
-       * banner is exercised by the site the layer is built against:
-       *
-       *  - `v0.8.0` is the default, so it is the current documentation;
-       *  - `v0.7.0` is older by semver, so its reader is told to upgrade;
-       *  - `v0.6.0` says `eol`, so it warns and leaves the sitemap;
-       *  - `main` is a branch, which semver cannot place against a tag — so the
-       *    config says what it is, and `upcoming` is the one state that must
-       *    never be reached by guessing. Its reader is told the documentation
-       *    may still change, and is NOT told to upgrade.
-       */
-      {
-        repo: 'kirchDev/workflows',
-        path: 'docs',
-        // Unshallows the clone once, so "Last updated" and the contributors
-        // are read out of the real history rather than out of the single
-        // commit a `--depth 1` clone holds.
-        history: true,
-        refs: [
-          { branch: 'main', status: 'upcoming' },
-          { tag: 'v0.8.0' },
-          { tag: 'v0.7.0' },
-          { tag: 'v0.6.0', status: 'eol' }
-        ]
       }
     ],
-    sourceOptions: { defaultRef: 'v0.8.0' },
-
     // The feed, pointed at a section that has dated entries. Off by default in
     // the layer; this site turns it on so the route is exercised.
-    feed: { path: '/workflows/adr', title: 'duxt — decisions' },
+    feed: { path: '/duxt/adr', title: 'duxt — decisions' },
 
-    // Two repositories means every path carries a repository segment, so the
+    // The source carries a slug, so every path has a repository segment and the
     // navigation the layer ships — which assumes a single unprefixed source —
     // no longer matches. A consumer with prefixes has to name its own.
     //
@@ -119,14 +86,14 @@ export default defineAppConfig({
       },
       {
         label: {
-          'en-GB': 'Workflows',
-          'de-DE': 'Workflows',
-          'es-ES': 'Flujos de trabajo',
-          'fr-FR': 'Flux de travail',
-          'pt-PT': 'Fluxos de trabalho'
+          'en-GB': 'Credits',
+          'de-DE': 'Credits',
+          'es-ES': 'Créditos',
+          'fr-FR': 'Crédits',
+          'pt-PT': 'Créditos'
         },
-        to: '/workflows',
-        icon: 'lucide:workflow'
+        to: '/duxt/credits',
+        icon: 'lucide:heart'
       }
     ],
 
