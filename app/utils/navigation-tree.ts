@@ -90,3 +90,36 @@ export function trailBelowPrefix(
 
   return found.filter((item) => (item.path?.length ?? 0) > prefix.length);
 }
+
+/**
+ * The original's tree, wearing the titles a translation has for it.
+ *
+ * A translated tree is almost never complete — two pages of forty is the normal
+ * state of every documentation project that has ever tried this — and both
+ * obvious answers are wrong. Building the sidebar from the TRANSLATION hides
+ * every page that has none, although the fallback serves them perfectly well;
+ * building it from the ORIGINAL leaves a reader in German looking at an
+ * English table of contents.
+ *
+ * So the structure comes from the original, which is complete by definition,
+ * and each node takes the translated title and description where one exists.
+ * The sidebar is then always navigable and says, entry by entry, how far the
+ * translation has got.
+ */
+export function overlayTranslations(
+  tree: ContentNavigationItem[],
+  translated: Map<string, { title?: string; description?: string }>
+): ContentNavigationItem[] {
+  return tree.map((item) => {
+    const match = item.path ? translated.get(item.path) : undefined;
+
+    return {
+      ...item,
+      ...(match?.title ? { title: match.title } : {}),
+      ...(match?.description ? { description: match.description } : {}),
+      ...(item.children?.length
+        ? { children: overlayTranslations(item.children, translated) }
+        : {})
+    };
+  });
+}
