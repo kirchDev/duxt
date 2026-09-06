@@ -12,12 +12,6 @@
         "tailwind": "The styling system",
         "mdc": "Components inside Markdown"
       },
-      "sections": {
-        "gettingStarted": "Get started",
-        "structure": "Structure",
-        "guide": "Guide",
-        "reference": "Reference"
-      },
       "landing": {
         "badge": "Early days — nothing is decided",
         "headline": "Documentation for Nuxt, versioned and multi-repo",

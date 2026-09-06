@@ -61,28 +61,25 @@ export const duxtDefaults: DuxtConfig = {
     }
   ],
 
-  sections: [
-    {
-      label: 'duxt.defaults.sections.gettingStarted',
-      to: '/getting-started',
-      icon: 'lucide:rocket'
-    },
-    {
-      label: 'duxt.defaults.sections.structure',
-      to: '/structure',
-      icon: 'lucide:folder-tree'
-    },
-    {
-      label: 'duxt.defaults.sections.guide',
-      to: '/guide',
-      icon: 'lucide:book-open'
-    },
-    {
-      label: 'duxt.defaults.sections.reference',
-      to: '/reference',
-      icon: 'lucide:list'
-    }
-  ],
+  /**
+   * Empty, like `links` below — and for a reason one step further out.
+   *
+   * The section row names the top-level parts of a documentation TREE, and the
+   * tree belongs to the consumer. Shipping "Get started / Concepts / Guides /
+   * Reference" pointing at `/getting-started`, `/concepts`, … was the layer
+   * guessing at somebody else's folder names: a site whose docs are shaped
+   * differently got four tabs leading nowhere, and every one of them looked
+   * like a bug in duxt rather than a default it had never been told to change.
+   *
+   * Those labels were duxt's OWN documentation showing through the layer, so
+   * their translations left with them — `duxt.defaults.*` translates chrome the
+   * layer draws, never content a site writes.
+   *
+   * Left empty, the row does not render and the sidebar falls back to the whole
+   * tree, which is the right shape for a site that has not split its docs into
+   * sections at all. duxt's own sections live in `www/app/app.config.ts`.
+   */
+  sections: [],
 
   /**
    * Empty, like `footer.legal`.
@@ -116,10 +113,12 @@ export const duxtDefaults: DuxtConfig = {
     // One action, and a generic one: "read the docs" is true of every site
     // built on this layer. A second button pointing at duxt's own repository
     // was not — see `links` above.
+    // No `to`, for the same reason the section row above ships empty: the
+    // layer knows that a site HAS documentation, never what its first page is
+    // called. The landing resolves it to the first section, or to `/`.
     actions: [
       {
         label: 'duxt.defaults.landing.actions.docs',
-        to: '/getting-started',
         icon: 'lucide:arrow-right'
       }
     ],

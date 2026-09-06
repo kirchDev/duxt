@@ -5,6 +5,16 @@
 const duxt = useDuxtConfig();
 const localeLink = useDuxtLink();
 
+/**
+ * Where a hero button goes when the config did not say.
+ *
+ * The layer's own "read the docs" action names no path — it cannot know what a
+ * consumer called its first page — so it resolves to the first section, the
+ * same fallback `DuxtHeader` uses for the navbar's docs entry.
+ */
+const actionTarget = (action: DuxtResolved<DuxtAction>) =>
+  action.to ?? duxt.sections?.[0]?.to ?? '/';
+
 useSeoMeta({
   title: duxt.title,
   description: duxt.landing?.description
@@ -34,14 +44,14 @@ useSeoMeta({
 
         <div class="mt-10 flex flex-wrap items-center justify-center gap-3">
           <Button
-            v-for="action in duxt.landing?.actions ?? []"
-            :key="action.to"
+            v-for="(action, index) in duxt.landing?.actions ?? []"
+            :key="index"
             as-child
             size="lg"
             :variant="action.variant ?? 'default'"
           >
             <NuxtLink
-              :to="localeLink(action.to)"
+              :to="localeLink(actionTarget(action))"
               :target="action.external ? '_blank' : undefined"
             >
               <Icon v-if="action.icon" :name="action.icon" class="size-4" />

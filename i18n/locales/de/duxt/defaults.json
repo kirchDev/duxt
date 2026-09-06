@@ -12,12 +12,6 @@
         "tailwind": "Das Styling-System",
         "mdc": "Komponenten in Markdown"
       },
-      "sections": {
-        "gettingStarted": "Loslegen",
-        "structure": "Struktur",
-        "guide": "Anleitung",
-        "reference": "Referenz"
-      },
       "landing": {
         "badge": "Frühe Phase — nichts ist entschieden",
         "headline": "Dokumentation für Nuxt, versioniert und über mehrere Repositories",

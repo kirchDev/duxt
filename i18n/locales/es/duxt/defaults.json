@@ -12,12 +12,6 @@
         "tailwind": "El sistema de estilos",
         "mdc": "Componentes dentro de Markdown"
       },
-      "sections": {
-        "gettingStarted": "Primeros pasos",
-        "structure": "Estructura",
-        "guide": "Guía",
-        "reference": "Referencia"
-      },
       "landing": {
         "badge": "Primeros días: nada está decidido",
         "headline": "Documentación para Nuxt, versionada y multirrepositorio",

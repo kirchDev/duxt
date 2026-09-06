@@ -25,6 +25,7 @@ function current(to?: string) {
   <!-- Hidden below lg: the mobile sheet lists the same sections, and a row
        that scrolls sideways under the header is worse than no row. -->
   <div
+    v-if="duxt.sections?.length"
     class="sticky top-14 z-40 hidden border-b bg-background/80 backdrop-blur-sm lg:block"
   >
     <nav
