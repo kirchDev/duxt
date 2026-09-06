@@ -101,11 +101,16 @@ const tabs = computed(() => [
 
   <!-- One card, built like the package-manager block and the code block beside
        it: a header of pills, then the panel. Three blocks on a page that all
-       switch between things should not switch in three different shapes. -->
+       switch between things should not switch in three different shapes.
+
+       The panel itself carries NO surface of its own — only the header is
+       tinted. An example is supposed to look like it looks in a page, and a
+       card background under it is a colour the same block never sits on
+       anywhere else. -->
   <TabsRoot
     v-else
     v-model="active"
-    class="my-6 overflow-hidden rounded-lg border bg-card"
+    class="my-6 overflow-hidden rounded-lg border"
   >
     <TabsList
       class="flex min-h-11 items-center gap-1 border-b bg-muted/40 px-2 py-1.5"
