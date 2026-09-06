@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const { collection } = useDuxtCollection();
+const { collection, source, fallbacks, translates } = useDuxtCollection();
 
 definePageMeta({ layout: 'docs' });
 
@@ -9,11 +9,61 @@ const localeLink = useDuxtLink();
 const { absolute } = useDuxtSiteUrl();
 const { locale } = useI18n();
 
-const { data: page } = await useAsyncData(`docs-${path.value}`, () =>
-  queryCollection(collection.value as DuxtCollectionArg)
-    .path(path.value)
-    .first()
+/**
+ * The page, in the best language this site has it in.
+ *
+ * A translated tree is rarely complete, and a reader who followed a link into
+ * one should not be punished for the gap with a 404 — Starlight is the only
+ * one of the comparable generators that says so out loud, and it is right.
+ * `fallbacks` is empty on a site without translations, so this is one query
+ * there, exactly as before.
+ */
+const { data: found } = await useAsyncData(
+  () => `docs-${locale.value}-${path.value}`,
+  async () => {
+    // Source OBJECTS, not names: the language each one carries is what the
+    // banner compares against, and the first entry has one too.
+    const chain = [source.value, ...fallbacks.value].filter(Boolean);
+
+    // The manifest can be absent for a tick after a hot reload, and a page that
+    // exists must not 404 over that: the collection name carries its own
+    // fallback, so query that rather than nothing at all.
+    const entries = chain.length
+      ? chain
+      : [{ collection: collection.value, locale: undefined }];
+
+    for (const entry of entries) {
+      const hit = await queryCollection(entry!.collection as DuxtCollectionArg)
+        .path(path.value)
+        .first();
+
+      // The language actually delivered, which is what the banner compares
+      // against — NOT the position in the chain. A locale the sources do not
+      // translate at all has the original as its first entry, and a reader
+      // asking for Spanish and getting English has to be told so even though
+      // nothing fell back.
+      if (hit) return { page: hit, from: entry!.locale };
+    }
+
+    return undefined;
+  },
+  { watch: [collection, path] }
 );
+
+const page = computed(() => found.value?.page);
+
+/** True when the reader is being shown a language they did not ask for. */
+const untranslated = computed(() => {
+  if (!translates.value || !found.value) return false;
+
+  // Compared by LANGUAGE, not by code: a `de/` folder serves `de-DE`, and a
+  // reader there is not looking at a foreign language just because the folder
+  // names no region. Same rule as the locale files, and as `localeChain`.
+  const delivered = found.value.from;
+  if (!delivered) return true;
+
+  return delivered.split('-')[0] !== locale.value.split('-')[0];
+});
 
 if (!page.value) {
   throw createError({
@@ -67,7 +117,11 @@ useSeoMeta({
   twitterCard: 'summary_large_image',
   twitterTitle: () => page.value?.title,
   twitterDescription: () => page.value?.description,
-  robots: () => (shouldIndex.value ? undefined : 'noindex, follow')
+  // An untranslated page is the SAME page in another URL: indexing it once per
+  // locale is duplicate content, and the canonical below points at the version
+  // that actually carries the language.
+  robots: () =>
+    shouldIndex.value && !untranslated.value ? undefined : 'noindex, follow'
 });
 
 useHead(() => ({
@@ -120,6 +174,8 @@ useHead(() => ({
   <div class="flex min-w-0 flex-1 justify-center gap-10">
     <article class="min-w-0 max-w-3xl flex-1 py-8">
       <DuxtVersionBanner />
+
+      <DuxtTranslationBanner v-if="untranslated" :from="found?.from" />
 
       <header class="mb-8 border-b pb-8">
         <DuxtBreadcrumb
