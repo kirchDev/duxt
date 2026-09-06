@@ -54,9 +54,68 @@ export default function duxtConfig(_options: unknown, nuxt: Nuxt) {
     resolvedSources
   } as typeof nuxt.options.appConfig.duxt;
 
+  checkSourceLocales(nuxt, config, resolvedSources);
   restrictLocales(nuxt, config?.locales);
   shareSiteUrl(nuxt);
   excludeOldVersionsFromSitemap(nuxt, resolvedSources);
+}
+
+/**
+ * The two ways a translated source can be configured into silence.
+ *
+ * NEITHER is caught by anything else. `content.config.ts` has no access to the
+ * Nuxt config — it is loaded by c12 in Content's own pass — so it resolves the
+ * default locale from `sourceOptions.defaultLocale` alone, and if that
+ * disagrees with `i18n.defaultLocale` the collections are named for one
+ * language while the theme queries for another. The result is not an error but
+ * an empty page, which is the failure mode this layer exists to stop.
+ *
+ * So the value is NOT injected from i18n here — injecting it would fix the
+ * manifest and leave `content.config.ts` computing the other answer, which is
+ * the same bug one layer deeper. It is checked instead.
+ */
+function checkSourceLocales(
+  nuxt: Nuxt,
+  config:
+    | { locales?: string[]; sourceOptions?: { defaultLocale?: string } }
+    | undefined,
+  resolved: ReturnType<typeof duxtSourceManifest>
+) {
+  const translated = resolved.filter((source) => source.locale);
+  if (!translated.length) return;
+
+  const defaultLocale = nuxt.options.i18n?.defaultLocale;
+  const assumed = resolved.find((source) => source.isDefaultLocale)?.locale;
+
+  if (defaultLocale && assumed && assumed !== defaultLocale) {
+    throw new Error(
+      `duxt: sources treat "${assumed}" as the untranslated original, but ` +
+        `i18n.defaultLocale is "${defaultLocale}". Content declares the ` +
+        'collections without access to the Nuxt config, so the two must agree: ' +
+        `set duxt.sourceOptions.defaultLocale to "${defaultLocale}".`
+    );
+  }
+
+  // A translation nobody can reach is a folder parsed, stored and served to no
+  // one — worth a message rather than a silently larger build.
+  const served = config?.locales;
+  if (!served?.length) return;
+
+  const stranded = [
+    ...new Set(
+      translated
+        .filter((source) => source.locale && !served.includes(source.locale))
+        .map((source) => source.locale!)
+    )
+  ];
+
+  if (stranded.length) {
+    console.warn(
+      `[duxt] sources are translated into ${stranded.join(', ')}, which ` +
+        `duxt.locales does not serve (${served.join(', ')}). Those ` +
+        'collections are built and never read.'
+    );
+  }
 }
 
 /**
