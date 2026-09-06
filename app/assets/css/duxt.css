@@ -129,6 +129,23 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* The one line that tells the BROWSER which theme is on. Without it every
+     piece of native UI — scrollbars first, then form controls and the canvas
+     behind a short page — is drawn light on a dark site, which is why a
+     scrollbar inside an iframe looked nothing like the window's own.
+     `scrollbar-*` are inherited properties, so `:root` reaches every scroll
+     container in the page: the sidebar, the table of contents, a code block. */
+  :root {
+    color-scheme: light;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  :root:is(.dark),
+  .dark {
+    color-scheme: dark;
+  }
 }
 
 /* A brand colour that follows the theme. Set --brand and --brand-dark on the
