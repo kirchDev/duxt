@@ -86,24 +86,24 @@ export default defineAppConfig({
       },
       {
         label: {
-          'en-GB': 'Structure',
-          'de-DE': 'Struktur',
-          'es-ES': 'Estructura',
-          'fr-FR': 'Structure',
-          'pt-PT': 'Estrutura'
+          'en-GB': 'Concepts',
+          'de-DE': 'Konzepte',
+          'es-ES': 'Conceptos',
+          'fr-FR': 'Concepts',
+          'pt-PT': 'Conceitos'
         },
-        to: '/duxt/structure',
-        icon: 'lucide:folder-tree'
+        to: '/duxt/concepts',
+        icon: 'lucide:compass'
       },
       {
         label: {
-          'en-GB': 'Guide',
-          'de-DE': 'Anleitung',
-          'es-ES': 'Guía',
-          'fr-FR': 'Guide',
-          'pt-PT': 'Guia'
+          'en-GB': 'Guides',
+          'de-DE': 'Anleitungen',
+          'es-ES': 'Guías',
+          'fr-FR': 'Guides',
+          'pt-PT': 'Guias'
         },
-        to: '/duxt/guide',
+        to: '/duxt/guides',
         icon: 'lucide:book-open'
       },
       {
