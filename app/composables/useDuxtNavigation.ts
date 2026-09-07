@@ -43,15 +43,21 @@ const handler = async (): Promise<ContentNavigationItem[]> => {
     'description'
   ]);
 
-  if (translation === base) return tree;
+  // Before the overlay: a folder's title comes from its own index page, and a
+  // translated index has to be able to carry that up with it.
+  const named = titleFoldersFromIndex(tree);
+
+  if (translation === base) return named;
 
   const translated = await queryCollection(translation as DuxtCollectionArg)
     .select('path', 'title', 'description')
     .all();
 
-  return overlayTranslations(
-    tree,
-    new Map(translated.map((page) => [page.path, page]))
+  return titleFoldersFromIndex(
+    overlayTranslations(
+      named,
+      new Map(translated.map((page) => [page.path, page]))
+    )
   );
 };
 

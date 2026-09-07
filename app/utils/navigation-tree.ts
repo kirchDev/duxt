@@ -123,3 +123,40 @@ export function overlayTranslations(
     };
   });
 }
+
+/**
+ * A folder wearing the title of its own index page.
+ *
+ * Content names a directory node after the DIRECTORY, so `99.adr/` arrives as
+ * "Adr" — while the `index.md` inside it, which is the page that node leads to,
+ * says "Architecture decisions". The two are the same destination under two
+ * names, and the shorter one is a slug rather than a title: the sidebar grouped
+ * eight records under "Adr" and the breadcrumb read "Adr › …".
+ *
+ * It only shows where a folder's name and its index title differ, which is why
+ * it went unnoticed — `4.reference/` is "Reference" either way. An abbreviated
+ * or hyphenated folder is where it bites, and a consumer's tree is full of
+ * those.
+ *
+ * The index is identified by carrying the FOLDER'S OWN path: Content emits it
+ * as a child of the node, not as a sibling. Nothing else in the tree can hold
+ * that path, so there is no ambiguity to resolve.
+ *
+ * Applied to the base tree BEFORE any translation overlay, so a locale that
+ * translates the index title carries it up here too.
+ */
+export function titleFoldersFromIndex(
+  items: ContentNavigationItem[]
+): ContentNavigationItem[] {
+  return items.map((item) => {
+    if (!item.children?.length) return item;
+
+    const index = item.children.find((child) => child.path === item.path);
+
+    return {
+      ...item,
+      ...(index?.title ? { title: index.title } : {}),
+      children: titleFoldersFromIndex(item.children)
+    };
+  });
+}
