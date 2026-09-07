@@ -18,6 +18,14 @@ export interface PageRecord {
   description?: string;
   anchors: Set<string>;
   links: { href: string }[];
+  /**
+   * When the file last changed, as `git-meta` read it off the history.
+   *
+   * Absent for a source that did not ask for its history, and for one whose
+   * clone could not be deepened — which is why the staleness half of the
+   * translation report is skipped rather than guessed when it is missing.
+   */
+  lastUpdated?: string;
 }
 
 /** The manifest, as much of it as the checks read. */
@@ -59,7 +67,7 @@ export function walk(
 export function report(
   sources: SourceRecord[],
   pages: PageRecord[]
-): { errors: string[]; warnings: string[] } {
+): { errors: string[]; warnings: string[]; notes: string[] } {
   const errors: string[] = [];
   const warnings: string[] = [];
 
@@ -189,8 +197,99 @@ export function report(
     }
   }
 
-  return { errors, warnings };
+  return { errors, warnings, notes: translationNotes(sources, byCollection) };
 }
 
 const stripTrailingSlash = (path: string) =>
   path.length > 1 ? path.replace(/\/+$/, '') : path;
+
+/**
+ * What each language carries, and what has stood still.
+ *
+ * Notes rather than warnings: an untranslated page is not a defect, it is a
+ * state — and one nothing else in this layer ever says out loud. The layer
+ * knows, per page, which languages carry it and when each file last changed;
+ * without a report that knowledge sits in the manifest and reaches nobody.
+ *
+ * OpenCode is the cautionary case, and the reason this is a build report rather
+ * than a dashboard: seventeen languages, an agent that kept them in sync, the
+ * workflow switched off, and nothing anywhere saying the translations had
+ * stopped moving. A line per language in every build is what makes that
+ * visible on the day it happens instead of a year later.
+ *
+ * Two findings, and the second is skipped rather than guessed when the data is
+ * missing: a page the original has and a translation does not, and a
+ * translation whose file has not moved since the original's did. `lastUpdated`
+ * comes from `git-meta`, which a source without `history: true` never gets.
+ */
+function translationNotes(
+  sources: SourceRecord[],
+  byCollection: Map<string, PageRecord[]>
+): string[] {
+  const notes: string[] = [];
+
+  // Grouped by PREFIX, because that is what a translation shares with its
+  // original — the locale is never part of a content path.
+  const byPrefix = new Map<string, SourceRecord[]>();
+  for (const source of sources) {
+    const list = byPrefix.get(source.prefix) ?? [];
+    list.push(source);
+    byPrefix.set(source.prefix, list);
+  }
+
+  for (const [prefix, group] of byPrefix) {
+    const original = group.find(
+      (source) => !source.locale || source.isDefaultLocale
+    );
+    const translations = group.filter((source) => source !== original);
+
+    if (!original || !translations.length) continue;
+
+    const base = byCollection.get(original.collection) ?? [];
+    const dates = new Map(
+      base.map((page) => [page.path, page.lastUpdated] as const)
+    );
+
+    for (const translation of translations) {
+      const pages = byCollection.get(translation.collection) ?? [];
+      const have = new Map(pages.map((page) => [page.path, page] as const));
+
+      const missing = base.filter((page) => !have.has(page.path));
+
+      const stale = pages.filter((page) => {
+        const source = dates.get(page.path);
+        return (
+          source &&
+          page.lastUpdated &&
+          Date.parse(page.lastUpdated) < Date.parse(source)
+        );
+      });
+
+      const where = prefix ? ` under "${prefix}"` : '';
+
+      notes.push(
+        `${translation.locale}${where}: ${have.size}/${base.length} pages` +
+          (stale.length ? `, ${stale.length} behind the original` : '')
+      );
+
+      // Named, not just counted — a figure says a translation has drifted and
+      // a file name says where to start. Capped, because a language nobody has
+      // begun would otherwise print the whole tree.
+      for (const page of [...missing, ...stale].slice(0, NAMED)) {
+        notes.push(
+          missing.includes(page)
+            ? `  "${page.file}" has no ${translation.locale} translation.`
+            : `  "${page.file}" has not moved since the original changed.`
+        );
+      }
+
+      const rest = missing.length + stale.length - NAMED;
+      if (rest > 0) notes.push(`  … and ${rest} more.`);
+    }
+  }
+
+  return notes;
+}
+
+/** How many files a language names before the report starts counting instead. */
+const NAMED = 10;

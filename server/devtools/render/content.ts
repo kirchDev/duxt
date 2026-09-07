@@ -111,7 +111,7 @@ export function renderChecks(
   pages: PageRecord[],
   rootDir = ''
 ): string {
-  const { errors, warnings } = report(sources, pages);
+  const { errors, warnings, notes } = report(sources, pages);
 
   const list = (findings: string[], kind: string) =>
     table(
@@ -128,9 +128,26 @@ export function renderChecks(
     stat(warnings.length, 'warnings', warnings.length ? 'warn' : 'ok')
   ]);
 
+  // Notes are not findings and must not read like them: a language's coverage
+  // is a state of the site, and putting it in the warnings table would make
+  // every translated site look as though something were wrong with it.
+  //
+  // A note indented by two spaces belongs UNDER the line above it — the report
+  // is one summary per language followed by the files behind the figure, and
+  // HTML collapses that indent to a single space if it is left as text.
+  const coverage = notes.length
+    ? `<h2>Translations</h2><ul class="steps">${notes
+        .map((note) =>
+          note.startsWith('  ')
+            ? `<li class="dim" style="margin-left:1.5rem">${fileLinked(note.trim(), rootDir)}</li>`
+            : `<li><strong>${fileLinked(note, rootDir)}</strong></li>`
+        )
+        .join('')}</ul>`
+    : '';
+
   return `${summary}${errors.length ? `<h2>Errors</h2>${list(errors, 'error')}` : ''}${
     warnings.length ? `<h2>Warnings</h2>${list(warnings, 'warn')}` : ''
-  }`;
+  }${coverage}`;
 }
 
 /**

@@ -167,3 +167,60 @@ describe('links on a translated site', () => {
     expect(warnings).toEqual([]);
   });
 });
+
+describe('the translation report', () => {
+  const sources = [
+    { collection: 'docs', prefix: '', isDefaultLocale: true, locale: 'en' },
+    { collection: 'docs_de', prefix: '', isDefaultLocale: false, locale: 'de' }
+  ];
+
+  it('says nothing at all on a site with one language', () => {
+    const { notes } = report([{ collection: 'docs', prefix: '' }], [page({})]);
+
+    expect(notes).toEqual([]);
+  });
+
+  it('counts what a language carries and names what it does not', () => {
+    const { notes } = report(sources, [
+      page({ collection: 'docs', path: '/a', file: 'docs/a.md' }),
+      page({ collection: 'docs', path: '/b', file: 'docs/b.md' }),
+      page({ collection: 'docs_de', path: '/a', file: 'docs/de/a.md' })
+    ]);
+
+    expect(notes[0]).toBe('de: 1/2 pages');
+    expect(notes[1]).toMatch(/docs\/b\.md.*no de translation/);
+  });
+
+  it('reports a translation the original has moved past', () => {
+    // The OpenCode case: the files are all there, and none of them has moved
+    // since the workflow was switched off.
+    const { notes } = report(sources, [
+      page({
+        collection: 'docs',
+        path: '/a',
+        file: 'docs/a.md',
+        lastUpdated: '2026-09-01T00:00:00Z'
+      }),
+      page({
+        collection: 'docs_de',
+        path: '/a',
+        file: 'docs/de/a.md',
+        lastUpdated: '2026-06-01T00:00:00Z'
+      })
+    ]);
+
+    expect(notes[0]).toBe('de: 1/1 pages, 1 behind the original');
+    expect(notes[1]).toMatch(/docs\/de\/a\.md.*has not moved/);
+  });
+
+  it('says nothing about staleness with no history to read', () => {
+    // A source without `history: true` has no dates at all, and guessing from
+    // their absence would report every page of every language as stale.
+    const { notes } = report(sources, [
+      page({ collection: 'docs', path: '/a', file: 'docs/a.md' }),
+      page({ collection: 'docs_de', path: '/a', file: 'docs/de/a.md' })
+    ]);
+
+    expect(notes).toEqual(['de: 1/1 pages']);
+  });
+});
