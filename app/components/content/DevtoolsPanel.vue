@@ -22,6 +22,13 @@
  * see; the height comes back, because only the framed document knows how tall
  * its table turned out. Both are best-effort — with the script blocked, the
  * frame keeps its default height and follows the system theme.
+ *
+ * `allow-scripts` WITHOUT `allow-same-origin`, and the pair is the point: on a
+ * document served from this site's own origin the two together hand the frame
+ * back everything the attribute withheld. Nothing here needs it — `postMessage`
+ * crosses origins by design, and the two messages above are all the framed page
+ * does. What is framed is generated HTML nobody reviews per release, so the
+ * sandbox is worth keeping teeth in.
  */
 const props = withDefaults(
   defineProps<{
@@ -93,7 +100,7 @@ onBeforeUnmount(() => window.removeEventListener('message', onMessage));
       :style="{ height: `${height}px` }"
       class="block w-full"
       loading="lazy"
-      sandbox="allow-scripts allow-same-origin"
+      sandbox="allow-scripts"
       @load="tell"
     />
   </div>
