@@ -43,7 +43,28 @@ export function readContentCache(
 
   const names = new Set(collections);
   const pages: CachedPage[] = [];
-  const database = new DatabaseSync(file, { readOnly: true });
+
+  /**
+   * WAIT for Content rather than failing next to it.
+   *
+   * SQLite's default journal mode locks the whole FILE while a writer holds it,
+   * so a reader gets SQLITE_BUSY immediately — `readOnly` does not help, it is
+   * the writer that excludes us. Content writes its parse cache from a
+   * `Promise.all` over the collections, and the build's own hooks read that
+   * cache; with a handful of files the write is over before anyone reads, and
+   * at six hundred it is not. The result was `database is locked` from
+   * whichever module read first, on a site whose only sin was having enough
+   * pages.
+   *
+   * A busy timeout turns the race into a wait: the reader retries internally
+   * until the writer commits. Fifteen seconds is far longer than a parse pass
+   * needs and still fails loudly if something genuinely holds the file — a
+   * stray dev server, say.
+   */
+  const database = new DatabaseSync(file, {
+    readOnly: true,
+    timeout: 15_000
+  });
 
   try {
     const rows = database
