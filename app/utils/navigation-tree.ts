@@ -25,13 +25,30 @@ export function findByPath(
  * gave a collapsible group whose only child was itself. So after picking the
  * section's branch, walk down while there is exactly one node the route is
  * still inside.
+ *
+ * A PAGE IN NO CONFIGURED SECTION STILL GETS ONE BRANCH, not the whole tree.
+ * `sections` is the consumer's reading order, and a tree holds folders it does
+ * not list — `99.adr/` is the standing example, an appendix by construction. The
+ * fallback used to hand back `tree`, so the sidebar on such a page listed every
+ * section and every page under all of them at once, while the page beside it
+ * showed one branch. That reads as the sidebar breaking rather than as a page
+ * being outside the reading order, and it gets worse the larger the tree is.
+ *
+ * So the fallback narrows to the branch the route is actually in, and only
+ * reaches for the whole tree when the route matches no top-level node at all —
+ * a site with no sections configured, where the whole tree IS the branch.
  */
 export function sectionItems(
   tree: ContentNavigationItem[],
   sectionPath: string | undefined,
   routePath: string
 ): ContentNavigationItem[] {
-  const branch = sectionPath ? findByPath(tree, sectionPath) : undefined;
+  const branch =
+    (sectionPath ? findByPath(tree, sectionPath) : undefined) ??
+    // Longest match, so a nested folder wins over the one above it.
+    tree
+      .filter((node) => node.path && routePath.startsWith(node.path))
+      .sort((a, b) => (b.path?.length ?? 0) - (a.path?.length ?? 0))[0];
 
   let items = branch?.children?.length
     ? branch.children
