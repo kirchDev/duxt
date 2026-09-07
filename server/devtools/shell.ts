@@ -39,8 +39,10 @@ export const escape = (value: unknown) =>
 export const code = (value: unknown) => `<code>${escape(value)}</code>`;
 export const dim = (value: unknown) =>
   `<span class="dim">${escape(value)}</span>`;
+// The kind is appended rather than interpolated: `tag('default')` is the
+// commonest call, and a template with a hole in it emits `class="tag "` for it.
 export const tag = (value: unknown, kind = '') =>
-  `<span class="tag ${kind}">${escape(value)}</span>`;
+  `<span class="tag${kind ? ` ${kind}` : ''}">${escape(value)}</span>`;
 
 /**
  * A link that opens the file in the editor.
