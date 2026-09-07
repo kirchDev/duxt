@@ -129,9 +129,9 @@ The repo root **is** the layer — `nuxt.config.ts`, `content.config.ts`, `app/`
 The mark is the package name with its first letter bracketed — `[d]uxt` — because that is how the package is written where it is used: `extends: ['@kirchdev/duxt']`, an array with one entry. It is set in [IBM Plex Mono](https://github.com/IBM/plex) SemiBold and converted to outlines, so no asset depends on the font being installed anywhere.
 
 - **Wordmark:** `.github/assets/wordmark-light.svg` and `wordmark-dark.svg` (README hero, served through `<picture>`). The bracket cells are narrowed by 120 font units — Plex Mono gives `[` a 600-unit cell for 311 units of ink, and at full monospace width the brackets sit in a word-space of their own.
-- **Site icons:** `www/public/favicon.svg` and `www/public/apple-touch-icon.png` (180×180). The SVG carries its own `prefers-color-scheme` rule so the mark lightens against a dark tab strip; the PNG exists only because iOS ignores SVG icons.
+- **Site icons:** `www/public/favicon.svg` and `www/public/apple-touch-icon.png` (180×180), both the bracketed `[d]`. The SVG carries its own `prefers-color-scheme` rule so both colours lighten against a dark tab strip; the PNG exists only because iOS ignores SVG icons.
+- **The icon's brackets are redrawn, the `d` is not.** Plex's bracket is 311 units wide against a 486-unit `d`, and at 16 px that split closes the bowl into a smudge. The icon keeps the font's own stem (104) and arm (88) but shortens the arm to 185, which squares the mark up from 1.45∶1 to 1.13∶1 and buys the counter the pixels it needs. The wordmark, having no such constraint, stays pure Plex.
 - **In-site wordmark:** `www/public/wordmark.svg` + `wordmark-dark.svg`, pointed at by `duxt.logo` in `www/app/app.config.ts` — the same option any consumer uses for their own mark.
-- **The favicon is the bare `d`, not `[d]`.** At 16 px the brackets squeeze the bowl shut and the letter turns into a smudge. The full mark holds from roughly 32 px up, which is why the apple-touch icon keeps it.
 
 **Brand colours** — the brackets carry the colour and the letters take the surrounding text colour, so only the bracket pair is fixed:
 
