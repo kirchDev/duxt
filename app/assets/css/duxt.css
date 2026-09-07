@@ -192,12 +192,25 @@
    surfaces, and in dark mode the inner one reads as a highlighted row. Not
    scoped to .typeset, because the package-manager block renders the same
    markup outside a rendered page. */
-.typeset :where(.duxt-anchor) {
-  @apply absolute -left-5 font-normal text-muted-foreground no-underline opacity-0 transition-opacity;
+/* The heading link wraps the words, so it has to shed what `typeset` gives
+   every other link — the underline would draw a rule under every H2 on the
+   site. `relative` is what the marker below positions against: anchored to the
+   text rather than to the heading box, it lands the same distance out whatever
+   the heading's own margins are. */
+.typeset :where(.duxt-heading-link) {
+  @apply relative no-underline;
+  text-decoration-line: none;
 }
 
+.typeset :where(.duxt-anchor) {
+  @apply absolute -left-5 font-normal text-muted-foreground opacity-0 transition-opacity;
+}
+
+/* Revealed by hovering the heading, not the marker: the marker is 1.25rem
+   outside the text and nobody hunts for it. Focus does the same for the
+   keyboard, where the link is reached without a pointer at all. */
 .typeset :where(h2:hover, h3:hover, h4:hover) .duxt-anchor,
-.typeset :where(.duxt-anchor:focus-visible) {
+.typeset :where(.duxt-heading-link:focus-visible) .duxt-anchor {
   @apply opacity-100;
 }
 
