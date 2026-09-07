@@ -73,9 +73,19 @@ Content die andere Antwort ausrechnen zu lassen.
 Die Zahl gehört in die Dokumentation, denn über die Matrix entscheidet ein
 Konsument.
 
-Partials werden nicht übersetzt. `_partials/` ist eine Collection, die sich alle
-Quellen teilen, und die eigenen Partials eines Sprachordners werden
-ausgeschlossen, statt namentlich mit denen des Originals zu kollidieren.
+Partials folgen den Seiten. `_partials/` ist eine Collection JE SPRACHE, benannt
+wie die Seiten-Collections — `duxt_partials` für das Original, `duxt_partials_de`
+daneben —, und `:partial{name}` durchläuft dieselbe Fallback-Kette wie die Seite.
+Es muss dieselbe Kette sein: Dass eine Seite und die Blöcke, die sie einbindet,
+auf unterschiedliche Sprachen zurückfallen, ist genau der Weg zu einer halb
+übersetzten Seite, auf der nichts davon erzählt.
+
+Die erste Fassung dieser Entscheidung teilte EINE unübersetzte Partials-Collection
+über alle Sprachen hinweg. Das war vertretbar, solange nichts ein Partial
+übersetzte, und hörte in dem Moment auf vertretbar zu sein, in dem ein
+Übersetzungsdurchlauf `docs/de/_partials/` erzeugte — Dateien, die keine
+Collection las, und eine deutsche Seite, die einen englischen Installationshinweis
+rendert, ohne dass irgendetwas darauf hinweist.
 
 ## Erwogene Alternativen
 

@@ -73,9 +73,19 @@ As traduções multiplicam as coleções, e a compilação paga por cada uma
 linearmente. O número pertence à documentação, porque é quem a consome que decide
 a matriz.
 
-Os partials não são traduzidos. `_partials/` é uma coleção única partilhada por
-todas as fontes, e os partials próprios de uma pasta de idioma são excluídos em
-vez de colidirem por nome com os do original.
+Os partials seguem as páginas. `_partials/` é uma coleção POR IDIOMA, nomeada
+como as coleções de páginas — `duxt_partials` para o original, `duxt_partials_de`
+ao lado — e `:partial{name}` percorre a mesma cadeia de recurso que a página
+percorreu. Tem de ser a mesma cadeia: uma página e os blocos que ela inclui a
+recorrerem a idiomas diferentes é exatamente como se chega a uma página meio
+traduzida sem que nada o diga.
+
+A primeira versão desta decisão partilhava UMA coleção de partials por traduzir
+entre todos os idiomas. Era defensável enquanto nada traduzia um partial, e
+deixou de o ser no momento em que uma passagem de tradução produziu
+`docs/de/_partials/` — ficheiros que nenhuma coleção lia, e uma página alemã a
+apresentar uma nota de instalação em inglês sem sinal nenhum de que tal tinha
+acontecido.
 
 ## Alternativas consideradas
 

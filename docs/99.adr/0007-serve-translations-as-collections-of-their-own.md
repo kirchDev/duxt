@@ -66,9 +66,18 @@ injecting one into the other and leaving Content computing the other answer.
 Translations multiply collections, and the build pays for each linearly. The
 figure belongs in the documentation, because a consumer decides the matrix.
 
-Partials are not translated. `_partials/` is one collection shared across
-sources, and a language folder's own partials are excluded rather than
-colliding by name with the original's.
+Partials follow the pages. `_partials/` is one collection per LANGUAGE, named
+the way the page collections are — `duxt_partials` for the original,
+`duxt_partials_de` beside it — and `:partial{name}` walks the same fallback
+chain the page did. It has to be the same chain: a page and the blocks it
+includes falling back to different languages is how a page ends up half
+translated, and nothing on it says so.
+
+The first version of this decision shared ONE untranslated partials collection
+across every language. It was defensible while nothing translated a partial,
+and it stopped being defensible the moment a translation pass produced
+`docs/de/_partials/` — files no collection read, and a German page rendering an
+English install note with no sign that it had happened.
 
 ## Alternatives considered
 

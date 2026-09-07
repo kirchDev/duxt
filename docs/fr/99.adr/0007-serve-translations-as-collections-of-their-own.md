@@ -74,9 +74,19 @@ Les traductions multiplient les collections, et la compilation paie chacune
 linéairement. Le chiffre a sa place dans la documentation, parce que c’est le
 consommateur qui décide de la matrice.
 
-Les fragments ne sont pas traduits. `_partials/` est une collection unique
-partagée entre les sources, et les fragments propres à un dossier de langue sont
-exclus plutôt que d’entrer en collision par leur nom avec ceux de l’original.
+Les fragments suivent les pages. `_partials/` est une collection PAR LANGUE,
+nommée comme les collections de pages — `duxt_partials` pour l’original,
+`duxt_partials_de` à côté — et `:partial{name}` parcourt la même chaîne de repli
+que la page. Ce doit être la même chaîne : qu’une page et les blocs qu’elle
+inclut se replient sur des langues différentes, c’est exactement ainsi qu’on
+obtient une page à moitié traduite sans que rien ne le signale.
+
+La première version de cette décision partageait UNE collection de fragments non
+traduits entre toutes les langues. C’était défendable tant que rien ne traduisait
+un fragment, et cela a cessé de l’être au moment où une passe de traduction a
+produit `docs/de/_partials/` — des fichiers qu’aucune collection ne lisait, et
+une page allemande affichant une note d’installation en anglais sans que rien
+n’indique que cela s’était produit.
 
 ## Alternatives envisagées
 
