@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type { Nuxt } from '@nuxt/schema';
+import { enableWriteAheadLog } from '../content-cache';
 import { readDuxtBuildConfig } from '../duxt-app-config';
 import { duxtSourceManifest } from '../sources-resolve';
 import { resolveLatestRefs } from '../sources-git';
@@ -25,6 +26,12 @@ import { resolveLatestRefs } from '../sources-git';
  * stays i18n's own key.
  */
 export default function duxtConfig(_options: unknown, nuxt: Nuxt) {
+  // FIRST, and before anything else touches the file: this is the earliest of
+  // duxt's modules, so it is the only one that runs while Content's cache
+  // database is still closed — and the journal mode can only be changed then.
+  // See `enableWriteAheadLog`.
+  enableWriteAheadLog(nuxt);
+
   const layerDir = fileURLToPath(new URL('..', import.meta.url));
 
   const dirs = [

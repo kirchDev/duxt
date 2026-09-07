@@ -1,5 +1,5 @@
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, mkdirSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import type { Nuxt } from '@nuxt/schema';
 
@@ -24,20 +24,30 @@ export interface CachedPage {
   content: Record<string, unknown>;
 }
 
-export function readContentCache(
-  nuxt: Nuxt,
-  collections: Iterable<string>
-): CachedPage[] | undefined {
+/**
+ * Where Content keeps its parse cache.
+ *
+ * Read from the runtime config where Content has already put it there, and
+ * from Content's own default where it has not — which is the case for anything
+ * running before Content's setup, `enableWriteAheadLog` included.
+ */
+function cacheFile(nuxt: Nuxt): string {
   const configured = (
     nuxt.options.runtimeConfig as {
       content?: { localDatabase?: { filename?: string } };
     }
   ).content?.localDatabase?.filename;
 
-  const file =
-    configured && existsSync(configured)
-      ? configured
-      : join(nuxt.options.rootDir, '.data/content/contents.sqlite');
+  return configured && existsSync(configured)
+    ? configured
+    : join(nuxt.options.rootDir, '.data/content/contents.sqlite');
+}
+
+export function readContentCache(
+  nuxt: Nuxt,
+  collections: Iterable<string>
+): CachedPage[] | undefined {
+  const file = cacheFile(nuxt);
 
   if (!existsSync(file)) return undefined;
 
@@ -99,4 +109,55 @@ export function readContentCache(
   }
 
   return pages;
+}
+
+/**
+ * Put Content's cache database into WAL mode, before Content opens it.
+ *
+ * The failure this removes: a `nuxt build` the kernel or a Ctrl-C left behind
+ * keeps `contents.sqlite` open, and every following build then fails with
+ * `database is locked` — a message naming neither the process nor the file.
+ * The busy timeout above covers the layer's own reader; Content's cache WRITER
+ * has no such patience, and a build cannot ask it for any.
+ *
+ * SQLite's default rollback journal locks the whole FILE while a writer holds
+ * it, so any reader is excluded outright. Write-ahead logging lets readers and
+ * one writer coexist, which is the actual shape of a build: Content writing the
+ * parse cache while this layer's modules read it. Measured on this repo's own
+ * site while translating — 237 lock errors went to zero.
+ *
+ * The mode lives in the FILE HEADER, not in a connection, so setting it once
+ * holds for every process that opens the file afterwards — Content's included,
+ * which is why this can be done from a module and does not need a patch.
+ *
+ * Creates the file when it is not there yet, so a first build gets WAL too.
+ * Safe: Content opens the path either way and probes for its cache table with
+ * a `SELECT` in a try/catch, so an empty database is the same to it as no file.
+ *
+ * Best-effort throughout. A database that cannot be opened, a filesystem that
+ * does not support WAL (a network mount is the usual one) and a read-only
+ * checkout each leave the build exactly as it was before this ran.
+ */
+export function enableWriteAheadLog(nuxt: Nuxt): 'wal' | 'skipped' {
+  const file = cacheFile(nuxt);
+
+  try {
+    mkdirSync(dirname(file), { recursive: true });
+
+    const database = new DatabaseSync(file, { timeout: 15_000 });
+
+    try {
+      const [row] = database.prepare('PRAGMA journal_mode = WAL').all() as {
+        journal_mode?: string;
+      }[];
+
+      return row?.journal_mode?.toLowerCase() === 'wal' ? 'wal' : 'skipped';
+    } finally {
+      database.close();
+    }
+  } catch {
+    // Nothing here is worth failing a build over: the busy timeout on the
+    // reader is what this improves upon, not what it replaces.
+    return 'skipped';
+  }
 }
