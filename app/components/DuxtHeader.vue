@@ -31,6 +31,22 @@ function isActive(to?: string) {
   return Boolean(to && to !== '/' && path.value.startsWith(to));
 }
 
+/**
+ * Whether a navbar entry owns the page — which for "the documentation" is not
+ * the same question as whether its href matches.
+ *
+ * A `to`-less entry resolves to the FIRST section so the link goes somewhere,
+ * and reusing that resolved href for the highlight was wrong: it lit "Docs"
+ * only inside section one and left the navbar showing nothing at all on every
+ * other section, which is exactly where a reader most needs to see where they
+ * are. Such an entry stands for the whole documentation, so it is active
+ * wherever ANY section is.
+ */
+function entryActive(link: DuxtLink) {
+  if (link.to) return isActive(link.to);
+  return (duxt.sections ?? []).some((section) => isActive(section.to));
+}
+
 /** `page` for the page itself, `true` for the branch holding it. */
 function current(to?: string) {
   if (path.value === to) return 'page';
@@ -200,9 +216,7 @@ function current(to?: string) {
             size="sm"
             class="font-medium"
             :class="
-              isActive(linkTarget(link))
-                ? 'text-foreground'
-                : 'text-muted-foreground'
+              entryActive(link) ? 'text-foreground' : 'text-muted-foreground'
             "
           >
             <NuxtLink
