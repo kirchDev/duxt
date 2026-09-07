@@ -20,6 +20,14 @@ export interface PageRecord {
   links: { href: string }[];
 }
 
+/** The manifest, as much of it as the checks read. */
+export interface SourceRecord {
+  collection: string;
+  prefix: string;
+  locale?: string;
+  isDefaultLocale?: boolean;
+}
+
 /** Collect anchor ids and internal links out of a parsed MDC body. */
 export function walk(
   node: unknown,
@@ -49,7 +57,7 @@ export function walk(
 }
 
 export function report(
-  sources: { collection: string; prefix: string }[],
+  sources: SourceRecord[],
   pages: PageRecord[]
 ): { errors: string[]; warnings: string[] } {
   const errors: string[] = [];
@@ -117,10 +125,42 @@ export function report(
   //    path written in a page is relative to that page's OWN source, so it is
   //    tried under the source's prefix first and bare second. Checking only the
   //    bare form reports every correct link on a prefixed site.
-  const known = new Map(pages.map((page) => [page.path, page]));
+  //
+  //    PER LANGUAGE, and that is not a refinement. Every language of one source
+  //    serves IDENTICAL content paths — the locale lives in front of the URL,
+  //    not in the content tree — so a map keyed by path alone holds one page per
+  //    path and whichever language was parsed last wins. Anchors are derived
+  //    from heading TEXT, so that map would check a German link against English
+  //    headings and report every correct anchor on a translated site. A link is
+  //    therefore resolved in the linking page's OWN collection first, and in the
+  //    untranslated original second — which is where the site itself falls back
+  //    when a language does not carry the page.
+  const known = new Map<string, PageRecord[]>();
+  for (const page of pages) {
+    const list = known.get(page.path) ?? [];
+    list.push(page);
+    known.set(page.path, list);
+  }
+
   const prefixOf = new Map(
     sources.map((source) => [source.collection, source.prefix])
   );
+  const originals = new Set(
+    sources
+      .filter((source) => !source.locale || source.isDefaultLocale)
+      .map((source) => source.collection)
+  );
+
+  const resolve = (path: string, from: PageRecord) => {
+    const candidates = known.get(stripTrailingSlash(path));
+    if (!candidates) return undefined;
+
+    return (
+      candidates.find((page) => page.collection === from.collection) ??
+      candidates.find((page) => originals.has(page.collection)) ??
+      candidates[0]
+    );
+  };
 
   for (const page of pages) {
     const prefix = prefixOf.get(page.collection) ?? '';
@@ -131,8 +171,7 @@ export function report(
 
       const [target, anchor] = href.split('#');
       const destination = target
-        ? (known.get(stripTrailingSlash(`${prefix}${target}`)) ??
-          known.get(stripTrailingSlash(target)))
+        ? (resolve(`${prefix}${target}`, page) ?? resolve(target, page))
         : page;
 
       if (target && !destination) {

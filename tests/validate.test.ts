@@ -85,3 +85,85 @@ describe('report', () => {
     expect(warnings[0]).toMatch(/missing/);
   });
 });
+
+describe('links on a translated site', () => {
+  const sources = [
+    { collection: 'docs', prefix: '', isDefaultLocale: true, locale: 'en' },
+    { collection: 'docs_de', prefix: '', isDefaultLocale: false, locale: 'de' }
+  ];
+
+  it('checks an anchor against the linking page own language', () => {
+    // Anchors come from heading TEXT, so a German page has German anchors.
+    // Resolving by path alone picks whichever language was parsed last and
+    // reports every correct link on one of the two.
+    const { warnings } = report(sources, [
+      page({
+        collection: 'docs',
+        path: '/concepts/localisation',
+        file: 'docs/localisation.md',
+        anchors: new Set(['paths-and-links'])
+      }),
+      page({
+        collection: 'docs_de',
+        path: '/concepts/localisation',
+        file: 'docs/de/localisation.md',
+        anchors: new Set(['pfade-und-links'])
+      }),
+      page({
+        collection: 'docs_de',
+        path: '/guide',
+        file: 'docs/de/guide.md',
+        links: [{ href: '/concepts/localisation#pfade-und-links' }]
+      })
+    ]);
+
+    expect(warnings).toEqual([]);
+  });
+
+  it('still reports an anchor no language has', () => {
+    const { warnings } = report(sources, [
+      page({
+        collection: 'docs',
+        path: '/concepts/localisation',
+        file: 'docs/localisation.md',
+        anchors: new Set(['paths-and-links'])
+      }),
+      page({
+        collection: 'docs_de',
+        path: '/concepts/localisation',
+        file: 'docs/de/localisation.md',
+        anchors: new Set(['pfade-und-links'])
+      }),
+      page({
+        collection: 'docs_de',
+        path: '/guide',
+        file: 'docs/de/guide.md',
+        links: [{ href: '/concepts/localisation#gibt-es-nicht' }]
+      })
+    ]);
+
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toMatch(/gibt-es-nicht/);
+  });
+
+  it('falls back to the original for a page a language does not carry', () => {
+    // What the site itself does — so a link to an untranslated page is not a
+    // broken link, and must not be reported as one.
+    const { warnings } = report(sources, [
+      page({
+        collection: 'docs',
+        path: '/only-english',
+        file: 'docs/only-english.md',
+        anchors: new Set(['setup'])
+      }),
+      page({
+        collection: 'docs_de',
+        path: '/guide',
+        file: 'docs/de/guide.md',
+        links: [{ href: '/only-english#setup' }]
+      })
+    ]);
+
+    expect(warnings).toEqual([]);
+  });
+});
