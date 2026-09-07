@@ -7,6 +7,20 @@
 export default defineAppConfig({
   duxt: {
     /**
+     * This site's own wordmark, set exactly the way a consumer sets theirs.
+     *
+     * The layer ships no `logo` at all, so `DuxtBrand` falls back to a generic
+     * icon beside `title` for anyone who does not set one. Serving duxt's mark
+     * from the layer would put it in every downstream header, which is the one
+     * thing a documentation theme must not do.
+     */
+    logo: {
+      src: '/wordmark.svg',
+      srcDark: '/wordmark-dark.svg',
+      alt: 'duxt'
+    },
+
+    /**
      * One source, and therefore no prefixes: with a single repository and a
      * single ref the resolver serves `/getting-started` rather than
      * `/duxt/v1/getting-started`, because a segment that can only ever hold one
