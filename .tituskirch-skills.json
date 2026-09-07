@@ -48,7 +48,9 @@
     }
   },
   "docs": {
-    "preset": "package"
+    "preset": "package",
+    "render": "duxt",
+    "locales": ["de", "es", "fr", "pt"]
   },
   "work": {
     "tracker": "github",
