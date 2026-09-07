@@ -17,6 +17,11 @@ export type {
   DuxtSourcesOptions
 } from './sources-resolve';
 export { duxtSourceManifest } from './sources-resolve';
+// Named beside the resolver, not here: the app reads it to pick a partial's
+// language, and this file imports `@nuxt/content` — which the bundler refuses
+// to follow out of client code.
+import { PARTIALS_COLLECTION, partialsCollection } from './sources-resolve';
+export { PARTIALS_COLLECTION, partialsCollection };
 
 /**
  * Walk up to the repository root, so `docs/` resolves there and not in a
@@ -207,13 +212,44 @@ export function duxtSources(
     });
   });
 
-  collections[PARTIALS_COLLECTION] = definePartials(sources);
+  // One partials collection per LANGUAGE, named the way the page collections
+  // are — see `partialsCollection`.
+  for (const [locale, entries] of partialFolders(resolved, expanded)) {
+    collections[partialsCollection(locale)] = definePartials(entries);
+  }
 
   return collections;
 }
 
-/** The name every `:partial{name}` resolves against. */
-export const PARTIALS_COLLECTION = 'duxt_partials';
+/** One folder list per language: where that language's `_partials/` live. */
+function partialFolders(
+  resolved: DuxtResolvedSource[],
+  expanded: ReturnType<typeof expandSources>
+): Map<string | undefined, { repo?: string; path: string }[]> {
+  const byLocale = new Map<
+    string | undefined,
+    { repo?: string; path: string }[]
+  >();
+  const seen = new Set<string>();
+
+  resolved.forEach((entry, index) => {
+    const { effective } = expanded[index]!;
+    const key = entry.isDefaultLocale ? undefined : entry.locale;
+
+    // One entry per REPOSITORY AND FOLDER, not per version: a partial is a
+    // block of prose, and reading three versions of it into one collection
+    // would give three blocks under one name.
+    const claim = `${key ?? ''}|${effective.repo ?? ''}:${effective.path}`;
+    if (seen.has(claim)) return;
+    seen.add(claim);
+
+    const list = byLocale.get(key) ?? [];
+    list.push({ repo: effective.repo, path: effective.path });
+    byLocale.set(key, list);
+  });
+
+  return byLocale;
+}
 
 /**
  * One collection over every source's `_partials/` folder.
@@ -229,33 +265,18 @@ export const PARTIALS_COLLECTION = 'duxt_partials';
  * Two sources defining the same name is a collision the build reports rather
  * than resolves; see `modules/validate.ts`.
  */
-function definePartials(sources: DuxtSource[]) {
-  const seen = new Set<string>();
-
-  const entries = sources
-    .map((source) => {
-      const folder = source.path ?? 'docs';
-
-      // One entry per REPOSITORY, not per version: a partial is a block of
-      // prose, and reading three versions of it into one collection would give
-      // three blocks under one name.
-      const key = `${source.repo ?? ''}:${folder}`;
-      if (seen.has(key)) return undefined;
-      seen.add(key);
-
-      return source.repo
-        ? {
-            repository: repoUrl(source.repo),
-            include: `${folder}/_partials/**/*.md`
-          }
-        : {
-            include: '_partials/**/*.md',
-            cwd: join(repositoryRoot(), folder)
-          };
-    })
-    .filter(Boolean) as NonNullable<
-    Parameters<typeof defineCollection>[0]['source']
-  >[];
+function definePartials(folders: { repo?: string; path: string }[]) {
+  const entries = folders.map((folder) =>
+    folder.repo
+      ? {
+          repository: repoUrl(folder.repo),
+          include: `${folder.path}/_partials/**/*.md`
+        }
+      : {
+          include: '_partials/**/*.md',
+          cwd: join(repositoryRoot(), folder.path)
+        }
+  ) as NonNullable<Parameters<typeof defineCollection>[0]['source']>[];
 
   // The SAME schema as the pages, not a smaller one. Content types a query by
   // the fields every collection has in common, so a partials collection with

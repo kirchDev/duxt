@@ -247,7 +247,46 @@ export const slugify = (value: string) => {
  * missing from the site, and nothing connecting the two. So the name is
  * derived separately from the prefix: dashes and dots become underscores.
  */
-const identifier = (value: string) =>
+/** The name a partial in the default language resolves against. */
+export const PARTIALS_COLLECTION = 'duxt_partials';
+
+/**
+ * The partials collection one language reads.
+ *
+ * Named exactly as the page collections are: the default language keeps the
+ * bare name a single-language site already had, and every other language
+ * appends its code. So a site that declares no `locales` gets the one
+ * collection it always got, under the name it always had.
+ *
+ * Takes the RESOLVED SOURCE rather than a code, because "the default language"
+ * is a property of the manifest and not of the string `en`: a site whose
+ * default is `de` still calls that collection `duxt_partials`. A bare string is
+ * accepted for the build's own grouping, where the default is already
+ * `undefined`.
+ */
+export function partialsCollection(
+  locale?: Pick<DuxtResolvedSource, 'locale' | 'isDefaultLocale'> | string
+): string {
+  const code =
+    typeof locale === 'string'
+      ? locale
+      : locale && !locale.isDefaultLocale
+        ? locale.locale
+        : undefined;
+
+  return code
+    ? `${PARTIALS_COLLECTION}_${identifier(code)}`
+    : PARTIALS_COLLECTION;
+}
+
+/**
+ * A collection name Content and TypeScript both accept.
+ *
+ * Exported because the partials collections are named from the same pieces the
+ * page collections are, and a second spelling of this rule is a name that
+ * drifts the first time a locale carries a character neither expected.
+ */
+export const identifier = (value: string) =>
   value.replace(/[^a-z0-9]+/gi, '_').replace(/^_|_$/g, '');
 
 export const repoSlug = (source: DuxtSource) =>

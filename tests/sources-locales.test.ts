@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   localeChain,
+  partialsCollection,
   resolveSources,
   sourcesForRoute
 } from '../sources-resolve';
@@ -209,5 +210,45 @@ describe('sourcesForRoute', () => {
     // An empty chain means no query at all, which 404s a page that exists.
     expect(collections('/nowhere/at/all').length).toBeGreaterThan(0);
     expect(sourcesForRoute('/x', 'de', [])).toEqual([]);
+  });
+});
+
+describe('partialsCollection', () => {
+  it('keeps the bare name for the default language', () => {
+    // Public surface: a single-language site's partials collection must go on
+    // being called what it has always been called.
+    expect(partialsCollection()).toBe('duxt_partials');
+    expect(partialsCollection({ locale: 'de', isDefaultLocale: true })).toBe(
+      'duxt_partials'
+    );
+  });
+
+  it('appends the code for a translation', () => {
+    expect(partialsCollection({ locale: 'de', isDefaultLocale: false })).toBe(
+      'duxt_partials_de'
+    );
+    expect(
+      partialsCollection({ locale: 'pt-BR', isDefaultLocale: false })
+    ).toBe('duxt_partials_pt_BR');
+  });
+
+  it('names one collection per language, not per version', () => {
+    // A partial is a block of prose: three versions of one repository share it,
+    // and reading them into one collection would give three blocks per name.
+    const resolved = resolveSources(
+      [
+        {
+          path: 'docs',
+          repo: 'acme/sdk',
+          refs: [{ branch: 'main' }, { tag: 'v1.9.4' }],
+          locales: ['en', 'de']
+        }
+      ],
+      { defaultLocale: 'en' }
+    );
+
+    expect(new Set(resolved.map((entry) => partialsCollection(entry)))).toEqual(
+      new Set(['duxt_partials', 'duxt_partials_de'])
+    );
   });
 });
