@@ -193,7 +193,6 @@ const locales = [
       'pt/duxt/theme.json',
       'pt/duxt/toc.json',
       'pt/duxt/version.json',
-      'pt-BR/duxt/defaults.json',
       'pt-BR/duxt/error.json',
       'pt-BR/duxt/nav.json',
       'pt-BR/duxt/page.json',
