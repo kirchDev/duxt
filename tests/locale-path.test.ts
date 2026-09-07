@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { stripLocalePrefix } from '../app/utils/locale-path';
+import { splitLocalePath, stripLocalePrefix } from '../app/utils/locale-path';
 
 const codes = ['en-GB', 'en-US', 'de-DE', 'es-ES', 'fr-FR', 'pt-PT', 'pt-BR'];
 
@@ -35,5 +35,33 @@ describe('stripLocalePrefix', () => {
   it('survives the root and an empty path', () => {
     expect(stripLocalePrefix('/', codes)).toBe('/');
     expect(stripLocalePrefix('', codes)).toBe('');
+  });
+});
+
+describe('splitLocalePath', () => {
+  const codes = ['en-GB', 'de-DE', 'pt-BR'];
+
+  it('hands back the language it stripped', () => {
+    expect(splitLocalePath('/de-DE/guide/deploying', codes)).toEqual({
+      locale: 'de-DE',
+      path: '/guide/deploying'
+    });
+  });
+
+  it('reports no language where there was no segment', () => {
+    expect(splitLocalePath('/guide/deploying', codes)).toEqual({
+      path: '/guide/deploying'
+    });
+  });
+
+  it('leaves a folder named like nothing on the list alone', () => {
+    expect(splitLocalePath('/de/guide', codes)).toEqual({ path: '/de/guide' });
+  });
+
+  it('keeps a bare locale root routable', () => {
+    expect(splitLocalePath('/de-DE', codes)).toEqual({
+      locale: 'de-DE',
+      path: '/'
+    });
   });
 });

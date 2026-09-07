@@ -20,6 +20,8 @@ export interface DevtoolsContext {
   appConfigFile?: string;
   locales: string[];
   defaultLocale?: string;
+  /** vue-i18n's own fallback, so the path debugger falls back where pages do. */
+  fallbackLocale?: string | string[];
 }
 
 export const escape = (value: unknown) =>

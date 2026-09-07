@@ -1,6 +1,5 @@
-import { reservedSegments } from '../../../sources-resolve';
-import { stripLocalePrefix } from '../../../app/utils/locale-path';
-import { sourceForPath } from '../../../app/utils/version-paths';
+import { reservedSegments, sourcesForRoute } from '../../../sources-resolve';
+import { splitLocalePath } from '../../../app/utils/locale-path';
 import { code, dim, escape, row, stat, stats, table, tag } from '../shell';
 
 /**
@@ -93,6 +92,8 @@ export interface PathsData {
   /** The URL as the reader pasted it, locale segment and all. */
   input: string;
   locales: string[];
+  /** Where the locale chain ends — vue-i18n's own fallback. */
+  fallbackLocale?: string | string[];
   sources: DuxtResolvedSource[];
   /** The page the claiming collection holds at that path, if it holds one. */
   found: FoundPage | null;
@@ -111,6 +112,7 @@ export interface PathsData {
 export function renderPaths({
   input,
   locales,
+  fallbackLocale,
   sources,
   found,
   byCollection
@@ -126,16 +128,25 @@ export function renderPaths({
 
   const steps: string[] = [];
 
-  // 1. The locale segment, which is interface and not content.
-  const documentationPath = stripLocalePrefix(input, locales);
+  // 1. The locale segment, which is interface and not content — but which is
+  //    kept, because it decides WHICH COLLECTION serves the path below.
+  const { locale, path: documentationPath } = splitLocalePath(input, locales);
   steps.push(
     documentationPath === input
       ? `No locale segment. Documentation path is ${code(input)}.`
-      : `Locale segment stripped: ${code(input)} → ${code(documentationPath)}. ${dim('The locale translates the interface, never the content tree.')}`
+      : `Locale segment stripped: ${code(input)} → ${code(documentationPath)}, language ${code(locale!)}. ${dim('The locale translates the interface, never the content tree — but it does pick the collection.')}`
   );
 
-  // 2. Which source claims it, by longest prefix.
-  const source = sourceForPath(documentationPath, sources);
+  // 2. Which source claims it: longest prefix, then the language. Both at once,
+  //    because a translation carries the SAME prefix as its original — taking
+  //    the prefix alone answers with whichever collection sorted first.
+  const chain = sourcesForRoute(
+    documentationPath,
+    locale,
+    sources,
+    fallbackLocale
+  );
+  const source = chain[0];
 
   if (!source) {
     steps.push(
@@ -146,8 +157,22 @@ export function renderPaths({
   }
 
   steps.push(
-    `Longest matching prefix is ${code(source.prefix || '/')} → collection ${code(source.collection)}${source.version ? `, version ${code(source.version)}` : ''}.`
+    `Longest matching prefix is ${code(source.prefix || '/')} → collection ${code(source.collection)}${source.version ? `, version ${code(source.version)}` : ''}${source.locale ? `, language ${code(source.locale)}` : ''}.`
   );
+
+  // 2b. Where a page missing from that collection goes next. Nothing else
+  //     shows the chain, and the fallback is the half of translation support
+  //     that has no visible symptom until a page is silently English.
+  if (chain.length > 1) {
+    steps.push(
+      `Falls back to ${chain
+        .slice(1)
+        .map((other) => code(other.collection))
+        .join(
+          ' → '
+        )}. ${dim('A page is translated whole or not at all, so this is a chain of collections rather than a merge.')}`
+    );
+  }
 
   // 3. Does that collection hold the page.
   if (found) {
@@ -183,6 +208,11 @@ export function renderPaths({
     return row([
       code(other.prefix || '/'),
       escape(other.version ?? '—'),
+      // A translation shares its original's prefix and version, so without the
+      // language the two are one row printed twice.
+      other.locale
+        ? `${escape(other.locale)}${other.isDefaultLocale ? ` ${tag('original')}` : ''}`
+        : dim('—'),
       code(candidate),
       has ? tag('present', 'ok') : tag('missing', 'muted')
     ]);
@@ -198,7 +228,7 @@ export function renderPaths({
         ).map((path) => row([code(path)]))
       )}`;
 
-  return `${form}${body}<h2>The same page in other sources</h2>${table(['Prefix', 'Version', 'Would be', 'State'], elsewhere)}${near}`;
+  return `${form}${body}<h2>The same page in other sources</h2>${table(['Prefix', 'Version', 'Language', 'Would be', 'State'], elsewhere)}${near}`;
 }
 
 /** The handful of paths that share the longest leading run with the miss. */

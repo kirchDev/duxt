@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { localeChain, resolveSources } from '../sources-resolve';
+import {
+  localeChain,
+  resolveSources,
+  sourcesForRoute
+} from '../sources-resolve';
 
 describe('translated sources', () => {
   it('changes nothing for a site that declares no locales', () => {
@@ -144,5 +148,66 @@ describe('localeChain', () => {
   it('never repeats a locale', () => {
     const chain = localeChain('pt-PT', ['pt-PT', undefined], 'pt-PT');
     expect(chain).toEqual(['pt-PT', undefined]);
+  });
+});
+
+describe('sourcesForRoute', () => {
+  const resolved = resolveSources(
+    [
+      {
+        path: 'docs',
+        repo: 'acme/sdk',
+        refs: [
+          { branch: 'main', label: 'v2' },
+          { tag: 'v1.9.4', label: 'v1.9' }
+        ],
+        locales: ['en', 'de']
+      },
+      { path: 'docs', repo: 'acme/cli' }
+    ],
+    { defaultLocale: 'en' }
+  );
+
+  const collections = (path: string, locale?: string) =>
+    sourcesForRoute(path, locale, resolved, 'en').map(
+      (source) => source.collection
+    );
+
+  it('picks the language, not whichever collection sorted first', () => {
+    // The bug this closes: original and translation share a prefix, so a
+    // lookup given only the path answered with the original every time.
+    expect(collections('/sdk/guides/caching', 'de')[0]).toBe('docs_de_sdk');
+    expect(collections('/sdk/guides/caching', 'en')[0]).toBe('docs_sdk');
+  });
+
+  it('still takes the longest prefix', () => {
+    expect(collections('/sdk/v1.9/guides/caching', 'de')[0]).toBe(
+      'docs_de_sdk_v1_9'
+    );
+  });
+
+  it('falls back to the untranslated original, once', () => {
+    // `fallbackLocale` and the end of the chain are the same collection here,
+    // and naming it twice made the path debugger print "docs → docs".
+    expect(collections('/sdk/guides/caching', 'de')).toEqual([
+      'docs_de_sdk',
+      'docs_sdk'
+    ]);
+  });
+
+  it('serves a language the site does not carry from the original', () => {
+    expect(collections('/sdk/guides/caching', 'fr')).toEqual(['docs_sdk']);
+  });
+
+  it('is segment-aware, like every other prefix comparison', () => {
+    // `/cli` must not claim `/climate` — the collection would exist and the
+    // page would simply never be found in it.
+    expect(collections('/sdk-old/guide')[0]).not.toBe('docs_cli');
+  });
+
+  it('never answers with nothing', () => {
+    // An empty chain means no query at all, which 404s a page that exists.
+    expect(collections('/nowhere/at/all').length).toBeGreaterThan(0);
+    expect(sourcesForRoute('/x', 'de', [])).toEqual([]);
   });
 });

@@ -679,3 +679,89 @@ export function versionRelation(
   // version leads the list — it is the newer of the two.
   return order === 0 ? 'same' : order < 0 ? 'newer' : 'older';
 }
+
+/**
+ * The collections that serve one route, best first.
+ *
+ * Two decisions in one, because neither is complete without the other: WHICH
+ * PREFIX claims the path, and WHICH LANGUAGE of that prefix the reader gets.
+ * The locale is deliberately not part of a prefix — `@nuxtjs/i18n` already puts
+ * it in front of the path — so original and translation are two collections
+ * behind one identical prefix, and a lookup handed only the path cannot tell
+ * them apart. Whichever sorted first won, which is the bug this exists to close.
+ *
+ * `path` is the DOCUMENTATION path, locale segment already stripped, and
+ * `locale` is what was stripped off it. The rest is `localeChain`, so the theme
+ * and every view that debugs it fall back through the same order.
+ *
+ * Never empty while `sources` is not: a route whose manifest has not arrived
+ * still has to query something, and an empty chain 404s a page that exists.
+ */
+export function sourcesForRoute(
+  path: string,
+  locale: string | undefined,
+  sources: DuxtResolvedSource[],
+  fallbackLocale?: string | string[]
+): DuxtResolvedSource[] {
+  if (!sources.length) return [];
+
+  // Read the prefix off the DEFAULT-language entries: every language of one
+  // source shares the prefix, so the pool only has to be free of duplicates.
+  const withDefaultLocale = sources.filter((source) => source.isDefaultLocale);
+  const pool = withDefaultLocale.length ? withDefaultLocale : sources;
+
+  const prefix =
+    (
+      [...pool]
+        .sort((a, b) => b.prefix.length - a.prefix.length)
+        .find(
+          (source) => !source.prefix || isInsidePrefix(path, source.prefix)
+        ) ??
+      pool.find((source) => !source.prefix) ??
+      // The landing page matches no prefix on a site whose every source has
+      // one. It still needs a real collection for the navigation the header
+      // draws, and a literal `docs` names one such a site does not have.
+      pool[0]
+    )?.prefix ?? '';
+
+  const candidates = sources.filter((source) => source.prefix === prefix);
+
+  // Deduplicated, because two links of the chain routinely land on ONE
+  // collection: `fallbackLocale` is usually the default locale, and the chain
+  // ends at the untranslated original regardless — so `en` and `undefined` both
+  // resolve to the same entry, and the panel printed "falls back to docs → docs".
+  const ordered = [
+    ...new Set(
+      localeChain(
+        locale,
+        candidates.map((source) => source.locale),
+        fallbackLocale
+      )
+        .map((code) =>
+          candidates.find((source) =>
+            code === undefined ? source.isDefaultLocale : source.locale === code
+          )
+        )
+        .filter(Boolean) as DuxtResolvedSource[]
+    )
+  ];
+
+  if (ordered.length) return ordered;
+  if (candidates.length) return candidates.slice(0, 1);
+
+  return sources.slice(0, 1);
+}
+
+/**
+ * Is `path` inside `prefix`? Segment-aware — `/workflows-old` is not inside
+ * `/workflows`, though it starts with it.
+ *
+ * The same rule as `isInside` in `app/utils/version-paths.ts`, and duplicated
+ * rather than imported: that file imports from THIS one, and a cycle between
+ * them is what `app.config.ts` reading this module cannot survive.
+ */
+function isInsidePrefix(path: string, prefix: string): boolean {
+  if (!prefix) return true;
+
+  return path === prefix || path.startsWith(`${prefix}/`);
+}

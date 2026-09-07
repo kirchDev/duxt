@@ -367,6 +367,7 @@ export function previewBody(slug: string): string {
         // the reason this panel exists.
         input: '/de/sdk/v1-9/guides/caching',
         locales: ['en', 'de'],
+        fallbackLocale: 'en',
         sources: RESOLVED,
         found: null,
         byCollection: BY_COLLECTION

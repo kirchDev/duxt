@@ -1,7 +1,7 @@
 import type { H3Event } from 'h3';
 import { queryCollection } from '@nuxt/content/nitro';
-import { stripLocalePrefix } from '../../app/utils/locale-path';
-import { sourceForPath } from '../../app/utils/version-paths';
+import { splitLocalePath } from '../../app/utils/locale-path';
+import { sourcesForRoute } from '../../sources-resolve';
 import { context, resolvedSources } from './context';
 import type { FoundPage } from './render/sources';
 import { renderPaths, renderSources, renderVersions } from './render/sources';
@@ -67,6 +67,7 @@ export async function pathsPanel(
     return renderPaths({
       input,
       locales,
+      fallbackLocale: context.fallbackLocale,
       sources,
       found: null,
       byCollection: new Map()
@@ -76,8 +77,19 @@ export async function pathsPanel(
   // The same two pure calls the renderer walks the reader through, repeated
   // here only to know WHICH collection to query. Cheap, and it keeps the
   // renderer free of the database.
-  const documentationPath = stripLocalePrefix(input, locales);
-  const source = sourceForPath(documentationPath, sources);
+  //
+  // The locale is carried into the choice rather than thrown away with the
+  // segment: a translation lives under the SAME prefix as its original, so a
+  // lookup given only the stripped path answers with whichever collection
+  // sorted first — and told the reader about `docs` when they pasted a `/de/`
+  // URL.
+  const { locale, path: documentationPath } = splitLocalePath(input, locales);
+  const source = sourcesForRoute(
+    documentationPath,
+    locale,
+    sources,
+    context.fallbackLocale
+  )[0];
 
   let found: FoundPage | null = null;
 
@@ -97,6 +109,7 @@ export async function pathsPanel(
   return renderPaths({
     input,
     locales,
+    fallbackLocale: context.fallbackLocale,
     sources,
     found,
     byCollection: await pathsByCollection(event)
