@@ -19,3 +19,5 @@ remplace l’ancien, jamais comme une modification de celui-ci.
 | [ADR-0004](/adr/0004-render-markdown-components-with-mdc)                  | Rendre les composants Markdown avec MDC                            | accepted | 2026-09-06 |
 | [ADR-0005](/adr/0005-ship-the-layer-without-owner-specific-links)          | Livrer la couche sans liens propres à un propriétaire              | accepted | 2026-09-06 |
 | [ADR-0006](/adr/0006-rebuild-on-a-schedule-rather-than-refresh-at-runtime) | Recompiler de façon planifiée plutôt que rafraîchir à l’exécution  | accepted | 2026-09-06 |
+| [ADR-0007](/adr/0007-serve-translations-as-collections-of-their-own) | Servir les traductions comme des collections à part | accepted | 2026-09-06 |
+| [ADR-0008](/adr/0008-build-the-theme-on-owned-shadcn-vue-components) | Bâtir le thème sur des composants shadcn-vue possédés | accepted | 2026-09-08 |

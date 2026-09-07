@@ -18,3 +18,5 @@ is written as a new ADR that supersedes the old one, never as an edit to it.
 | [ADR-0004](/adr/0004-render-markdown-components-with-mdc)         | Render Markdown components with MDC              | accepted | 2026-09-06 |
 | [ADR-0005](/adr/0005-ship-the-layer-without-owner-specific-links) | Ship the layer without owner-specific links      | accepted | 2026-09-06 |
 | [ADR-0006](/adr/0006-rebuild-on-a-schedule-rather-than-refresh-at-runtime) | Rebuild on a schedule rather than refresh at runtime | accepted | 2026-09-06 |
+| [ADR-0007](/adr/0007-serve-translations-as-collections-of-their-own) | Serve translations as collections of their own | accepted | 2026-09-06 |
+| [ADR-0008](/adr/0008-build-the-theme-on-owned-shadcn-vue-components) | Build the theme on owned shadcn-vue components | accepted | 2026-09-08 |

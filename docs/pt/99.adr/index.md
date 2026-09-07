@@ -19,3 +19,5 @@ edição dele.
 | [ADR-0004](/adr/0004-render-markdown-components-with-mdc)                  | Desenhar os componentes Markdown com MDC                              | accepted | 2026-09-06 |
 | [ADR-0005](/adr/0005-ship-the-layer-without-owner-specific-links)          | Entregar a camada sem ligações específicas do proprietário            | accepted | 2026-09-06 |
 | [ADR-0006](/adr/0006-rebuild-on-a-schedule-rather-than-refresh-at-runtime) | Recompilar de forma agendada em vez de atualizar em tempo de execução | accepted | 2026-09-06 |
+| [ADR-0007](/adr/0007-serve-translations-as-collections-of-their-own) | Servir as traduções como coleções próprias | accepted | 2026-09-06 |
+| [ADR-0008](/adr/0008-build-the-theme-on-owned-shadcn-vue-components) | Construir o tema sobre componentes shadcn-vue próprios | accepted | 2026-09-08 |
