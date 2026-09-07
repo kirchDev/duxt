@@ -345,6 +345,17 @@ export default defineNuxtConfig({
    * page then tells it to drop. Same for an `eol` version, which is excluded
    * whether or not it is the default.
    */
+  // The devtools previews in `public/` are fixtures for one reference page, not
+  // pages of anybody's site. Every consumer serves them, because Nuxt serves
+  // every layer's `public/` — and none of them wants ten documents titled
+  // "duxt — Sources" indexed against their own domain.
+  //
+  // defu concatenates the list across layers, so a consumer's own `disallow`
+  // is added to this rather than replacing it.
+  robots: {
+    disallow: ['/devtools/']
+  },
+
   sitemap: {
     // Content pages reach the sitemap through the module's own Content
     // integration; the duxt module adds what the version rules exclude.
