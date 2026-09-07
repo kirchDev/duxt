@@ -1,0 +1,37 @@
+/*
+ * This site's accent colour, and nothing else.
+ *
+ * The layer ships the neutral shadcn palette on purpose — a site extending duxt
+ * gets grey and tints it itself. This file is that tinting, done the way
+ * `duxt.css` says a consumer should do it: redefine the token, never fork the
+ * file. Loaded after the layer's stylesheet through `css` in nuxt.config, so
+ * equal specificity resolves in this file's favour on source order alone.
+ *
+ * The two values are the wordmark's, not a second opinion about them: the
+ * bracket colour from `.github/assets/wordmark-light.svg` and its lifted twin
+ * from the dark one. Logo and interface therefore cannot drift apart.
+ *
+ * MEASURED, because nothing here checks it. `tests/contrast.test.ts` reads the
+ * LAYER's palette, and `check:a11y` runs axe over jsdom, which has no computed
+ * colour and reports `color-contrast` as skipped — so these two tokens sit
+ * outside both gates:
+ *
+ *   light  #4F46E5  white on it 6.28:1   ·  as text on the page 6.28:1
+ *   dark   #7D7BF5  dark text on it 5.14:1  ·  as text on the page 5.68:1
+ *
+ * All four clear AA for body text. Anyone changing a value here re-measures it.
+ */
+:root {
+  --primary: oklch(0.511 0.23 277);
+  --primary-foreground: oklch(1 0 0);
+  --ring: oklch(0.511 0.23 277);
+}
+
+.dark {
+  /* Lifted rather than reused: the same indigo that reads on white is too dark
+     to carry a label on a near-black surface, and shadcn's dark mode expects a
+     LIGHT `--primary` with dark text on it. */
+  --primary: oklch(0.644 0.178 281);
+  --primary-foreground: oklch(0.205 0 0);
+  --ring: oklch(0.644 0.178 281);
+}

@@ -8,6 +8,11 @@ export default defineNuxtConfig({
   extends: ['@kirchdev/duxt'],
   compatibilityDate: '2026-09-02',
 
+  // Appended to the layer's own entry, never replacing it: Nuxt concatenates
+  // `css` with the extending app's last, which is exactly the order these
+  // overrides need — same specificity, later wins.
+  css: ['~/assets/css/brand.css'],
+
   // This site's own branding, not the layer's. The layer stays unbranded on
   // purpose — a consumer extending it wants their own mark in the tab, so the
   // icons live here in the consuming site rather than in the published package.
