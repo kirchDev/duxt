@@ -231,7 +231,10 @@ export default defineAppConfig({
           'pt-PT': '{version} publicada'
         },
         icon: 'lucide:rocket',
-        variant: 'success',
+        // The accent, not the success colour: this pill announces a release,
+        // it does not report that something went well. Green reads as a status
+        // and pulls harder than the headline underneath it.
+        variant: 'default',
         to: 'https://github.com/kirchDev/duxt/releases/latest',
         external: true
       },
