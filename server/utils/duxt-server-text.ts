@@ -5,9 +5,9 @@ import { resolveDuxtTexts } from '../../app/utils/duxt-text';
  * Resolve the config's text fields on the server, where there is no i18n.
  *
  * `llms.txt` and the feed are Nitro routes: no Vue app, no `useI18n`, and so no
- * translator. Before this, both printed the KEY — a feed whose description read
- * `duxt.defaults.landing.description` and an llms.txt that told a model the
- * same. Falling back to the layer's English messages is the honest answer: it
+ * translator. Before this, both printed the KEY — a feed whose description was
+ * the dotted path itself, and an llms.txt that told a model the same. Falling
+ * back to the layer's English messages is the honest answer: it
  * is what `fallbackLocale` already says a missing translation resolves to, and
  * these routes have no locale of their own to serve anyway.
  *

@@ -84,11 +84,11 @@ interface Origins {
  * A value the merge descends into: an object, and neither an array nor null.
  *
  * Checked on BOTH sides before recursing, not just for the merged value. The
- * two sides of a key need not have the same shape — `landing.headline` is a
+ * two sides of a key need not have the same shape — `aside.title` is a
  * translation key in the layer's defaults and a per-locale object in a site
  * that translates it — and the earlier version tested only whether the KEY was
  * present, then walked into the string with `in`, which throws. A panel that
- * crashes on a translated headline is a panel nobody can open on the site that
+ * crashes on a translated string is a panel nobody can open on the site that
  * needs it most.
  */
 const branches = (value: unknown): value is Record<string, unknown> =>
