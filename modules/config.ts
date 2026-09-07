@@ -302,6 +302,29 @@ function restrictLocales(nuxt: Nuxt, wanted: string[] | undefined) {
     );
   }
 
+  /**
+   * The same question, asked of the OTHER fallback — the one that decides where
+   * a visitor landing on `/` is sent.
+   *
+   * `detectBrowserLanguage.fallbackLocale` is nested, and defu merges nested
+   * objects key by key: a consumer setting `i18n: { defaultLocale: 'de-DE' }`
+   * does NOT displace the layer's `en-GB` here. Narrow `duxt.locales` to
+   * exclude it and the site stops serving that language while still redirecting
+   * root visitors to it — nothing throws, and the page is empty. Exactly the
+   * class of silent failure the check above exists to stop, one key over.
+   */
+  const browserFallback = (
+    nuxt.options.i18n as { detectBrowserLanguage?: { fallbackLocale?: string } }
+  )?.detectBrowserLanguage?.fallbackLocale;
+
+  if (browserFallback && !wanted.includes(browserFallback)) {
+    throw new Error(
+      `duxt: i18n.detectBrowserLanguage.fallbackLocale is "${browserFallback}", ` +
+        `which app.config duxt.locales does not list (${wanted.join(', ')}). ` +
+        'Set it to one of them, or widen duxt.locales.'
+    );
+  }
+
   // The flags were derived from the full list at config time. Prune them too,
   // so a site serving two languages does not inline seven it never draws.
   const keep = new Set(
