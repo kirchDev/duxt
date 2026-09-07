@@ -64,6 +64,7 @@ export default function duxtConfig(_options: unknown, nuxt: Nuxt) {
   checkSourceLocales(nuxt, config, resolvedSources);
   restrictLocales(nuxt, config?.locales);
   shareSiteUrl(nuxt);
+  nameMcpServer(nuxt, config?.title);
   excludeOldVersionsFromSitemap(nuxt, resolvedSources);
 }
 
@@ -172,6 +173,44 @@ function shareSiteUrl(nuxt: Nuxt) {
     ...site,
     url: baseUrl
   };
+}
+
+/**
+ * The MCP server's name, from the site's own title.
+ *
+ * `mcp.name` is a nuxt.config key, not an app.config one, so it is the single
+ * duxt-facing option a consumer cannot set beside the others. Left as a literal
+ * it published duxt's own name from every downstream site. Derived here
+ * instead: the title a consumer already writes in `app.config.ts` names the
+ * server too, and anyone wanting a different one still writes `mcp: { name }`
+ * in `nuxt.config.ts`, which defu keeps ahead of this.
+ *
+ * A record is resolved against `i18n.defaultLocale`, because the server has one
+ * name and no request to read a language from. A consumer who wrote an i18n KEY
+ * as their title gets that key — the build has no translator, which is why a
+ * literal or a record is the documented form.
+ *
+ * The module's own default is the empty string, so this must always answer.
+ */
+function nameMcpServer(
+  nuxt: Nuxt,
+  title: string | Record<string, string> | undefined
+) {
+  const options = nuxt.options as {
+    mcp?: { name?: string };
+    i18n?: { defaultLocale?: string };
+  };
+  if (!options.mcp || options.mcp.name) return;
+
+  const locale = options.i18n?.defaultLocale;
+  const name =
+    typeof title === 'string'
+      ? title
+      : title
+        ? ((locale && title[locale]) ?? Object.values(title)[0])
+        : undefined;
+
+  options.mcp.name = name ? `${name} documentation` : 'Documentation';
 }
 
 /**

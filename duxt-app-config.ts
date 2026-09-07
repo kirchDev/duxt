@@ -11,6 +11,15 @@ export interface DuxtBuildConfig {
   sourceOptions?: DuxtSourcesOptions;
   /** Which of the layer's locales this site serves. */
   locales?: string[];
+  /**
+   * The site's name — also what the MCP server calls itself.
+   *
+   * Typed structurally rather than as `DuxtText`: this file is loaded by the
+   * build, outside the Nuxt runtime whose generated types carry that global.
+   * Same reason `scripts/check-previews.ts` declares the preview module's
+   * shape instead of importing it.
+   */
+  title?: string | Record<string, string>;
 }
 
 /**

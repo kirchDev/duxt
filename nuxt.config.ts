@@ -277,8 +277,10 @@ export default defineNuxtConfig({
 
   // A real MCP server at /mcp, through the official SDK, instead of a JSON
   // endpoint someone else has to wrap. Tools live in server/mcp/tools.
+  // No `name`: the module's own default is the empty string, so
+  // `modules/config.ts` derives one from the site's own title instead. Left as
+  // a literal here it published duxt's name from every downstream site.
   mcp: {
-    name: 'duxt documentation',
     description: 'The documentation this site publishes, readable by an agent.',
     instructions:
       'Call list_pages for the table of contents, search_docs to find a page by ' +
