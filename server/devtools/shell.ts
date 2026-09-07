@@ -1,6 +1,3 @@
-// @ts-expect-error virtual module, generated in modules/devtools.ts
-import { devtools } from '#duxt-devtools';
-
 /**
  * The frame every devtools panel is drawn in.
  *
@@ -24,8 +21,6 @@ export interface DevtoolsContext {
   locales: string[];
   defaultLocale?: string;
 }
-
-export const context = devtools as DevtoolsContext;
 
 export const escape = (value: unknown) =>
   String(value ?? '').replace(
@@ -51,11 +46,19 @@ export const tag = (value: unknown, kind = '') =>
  * Nuxt Devtools serves this endpoint on the site's own origin, and the panel is
  * an iframe on that origin, so a plain anchor is the whole integration. It only
  * works while devtools is running, which is exactly when this page is reachable.
+ *
+ * The root directory is passed in rather than read from the context: this file
+ * holds the renderers, and a renderer that reaches for a build-time global
+ * cannot be handed fixture data — which is what the documentation previews are.
  */
-export function editor(file: string | undefined, label?: string): string {
+export function editor(
+  file: string | undefined,
+  label?: string,
+  rootDir = ''
+): string {
   if (!file) return dim('—');
 
-  const absolute = file.startsWith('/') ? file : `${context.rootDir}/${file}`;
+  const absolute = file.startsWith('/') ? file : `${rootDir}/${file}`;
 
   return `<a class="file" href="/__nuxt_devtools__/open-in-editor?file=${encodeURIComponent(absolute)}" target="_blank" title="${escape(absolute)}">${escape(label ?? file)}</a>`;
 }
@@ -97,9 +100,79 @@ export function stats(items: (string | undefined)[]): string {
 export const stat = (value: unknown, label: string, kind = '') =>
   `<div class="stat ${kind}"><b>${escape(value)}</b><span>${escape(label)}</span></div>`;
 
-/** A text box that hides every row of a table not matching what is typed. */
+/**
+ * A text box that hides every row of a table not matching what is typed.
+ *
+ * Wrapped in a bar rather than left loose: between an open `summary` and its
+ * table, a bare input broke the one box a `details` is meant to be — the
+ * heading kept its squared-off bottom edge and the input floated in the gap.
+ * The bar is that middle band, and it carries the live match count, because a
+ * filter that hides rows without saying how many it kept makes the reader
+ * count them.
+ */
 export const filter = (placeholder: string) =>
-  `<input type="search" class="filter" data-filter placeholder="${escape(placeholder)}" aria-label="${escape(placeholder)}">`;
+  `<div class="filterbar"><input type="search" class="filter" data-filter placeholder="${escape(placeholder)}" aria-label="${escape(placeholder)}"><span class="count" data-filter-count role="status" aria-live="polite"></span></div>`;
+
+/**
+ * A value as JSON: short ones inline, structured ones as a disclosure.
+ *
+ * The Config panel's whole subject is what a key BECAME, and half those keys
+ * hold a translated object or a list of links. Rendered as one truncated line
+ * of `JSON.stringify` they were unreadable in the only case that matters —
+ * every locale of a label sat past the cut, so the row proved a value exists
+ * and nothing else. Short values still print inline, because a disclosure
+ * around `["pnpm","npm"]` hides nothing and costs a click.
+ *
+ * Kept collapsed, and kept in the DOM: the filter box matches on row text, so
+ * a folded object is still searchable by any string inside it.
+ */
+export function json(value: unknown, inline = 72): string {
+  if (!value || typeof value !== 'object') return code(String(value));
+
+  const flat = JSON.stringify(value);
+  const label = Array.isArray(value)
+    ? `${value.length} entries`
+    : `${Object.keys(value).length} keys`;
+
+  if (flat.length <= inline) return `${dim(label)} ${code(flat)}`;
+
+  return `<details class="json"><summary>${dim(label)} <code class="peek">${escape(truncate(flat, 96))}</code></summary><pre class="json">${highlight(JSON.stringify(value, null, 2))}</pre></details>`;
+}
+
+const truncate = (value: string, length: number) =>
+  value.length > length ? `${value.slice(0, length)}…` : value;
+
+/** String, key, number, keyword — the four colours JSON has to say anything with. */
+const TOKEN =
+  /("(?:\\.|[^"\\])*")(\s*:)?|\b(?:true|false|null)\b|-?\d+(?:\.\d+)?(?:e[+-]?\d+)?/gi;
+
+/**
+ * Escaped as it is tokenised, never after.
+ *
+ * Highlighting the escaped string instead would mean matching `&quot;` as a
+ * string delimiter — one entity in a value and the colours slide off by a
+ * character.
+ */
+function highlight(source: string): string {
+  let out = '';
+  let last = 0;
+
+  for (const match of source.matchAll(TOKEN)) {
+    const text = match[0];
+    out += escape(source.slice(last, match.index));
+    last = match.index + text.length;
+
+    if (match[1] && match[2]) {
+      out += `<span class="j-key">${escape(match[1])}</span>${escape(match[2])}`;
+      continue;
+    }
+
+    const kind = match[1] ? 'str' : /^[a-z]/.test(text) ? 'word' : 'num';
+    out += `<span class="j-${kind}">${escape(text)}</span>`;
+  }
+
+  return out + escape(source.slice(last));
+}
 
 export const row = (cells: string[]) =>
   `<tr>${cells.map((cell) => `<td>${cell}</td>`).join('')}</tr>`;
@@ -164,11 +237,57 @@ export const PANELS: Panel[] = [
   {
     slug: 'redirects',
     title: 'Redirects',
-    hint: 'The route rules `redirectFrom` generated, as they shipped.'
+    hint: 'Every redirect the server ships, with the rules `redirectFrom` generated marked as the layer\u2019s own.'
   }
 ];
 
 const href = (slug: string) => `/_duxt/devtools${slug ? `/${slug}` : ''}`;
+
+/**
+ * How a preview differs from the panel: where its tabs point, and that nothing
+ * else in it navigates.
+ *
+ * A preview is the same document rendered from fixtures and saved as a file, so
+ * its tab row has to link to sibling files rather than to a route that exists
+ * only in a dev server. Everything else in the page — an editor link, the drop
+ * button, the search form — would leave the page or POST somewhere, and a
+ * reader clicking one in the documentation is a reader chasing a broken link.
+ * They stay visible, because they are part of what the panel IS; they are made
+ * inert instead of removed.
+ */
+
+const INERT = `
+  // EVERY link and button, with no exception for the tab row — a preview has
+  // no tab row. Embedded in a documentation page, a reader who clicked one
+  // would land on another panel inside the frame while the prose around it went
+  // on explaining this one.
+  document.addEventListener('click', (event) => {
+    if (event.target.closest('a, button')) event.preventDefault();
+  });
+  document.addEventListener('submit', (event) => event.preventDefault());
+
+  // The page that framed this one owns the theme and the height: it knows
+  // which mode the reader picked, and only this document knows how tall it
+  // turned out. Two messages, one each way.
+  const theme = new URLSearchParams(location.search).get('theme');
+  if (theme) document.documentElement.dataset.theme = theme;
+
+  addEventListener('message', (event) => {
+    if (event.data && event.data.duxtTheme) {
+      document.documentElement.dataset.theme = event.data.duxtTheme;
+    }
+  });
+
+  const measure = () => parent.postMessage(
+    { duxtHeight: document.documentElement.scrollHeight },
+    '*'
+  );
+
+  addEventListener('load', measure);
+  addEventListener('resize', measure);
+  document.addEventListener('toggle', measure, true);
+  document.addEventListener('input', () => setTimeout(measure, 0));
+`;
 
 /**
  * The palette, borrowed rather than invented.
@@ -179,6 +298,29 @@ const href = (slug: string) => `/_duxt/devtools${slug ? `/${slug}` : ''}`;
  * Nuxt's own green, which is what makes the tab read as part of devtools
  * instead of as a document someone embedded in it.
  */
+/**
+ * The dark half of the palette, written once and applied twice.
+ *
+ * Inside devtools `prefers-color-scheme` is the only signal a panel gets. A
+ * preview embedded in the documentation is a different case: it sits on a page
+ * whose theme is a class the reader toggles, so the parent tells it which one
+ * to wear, and an explicit choice has to beat the media query in BOTH
+ * directions — hence the `:not([data-theme='light'])` guard on the query.
+ */
+const DARK = `
+      --bg: #0f1115;
+      --fg: #e8e8ea;
+      --muted: #9099a8;
+      --faint: #5b6472;
+      --line: #23262d;
+      --raised: #171a20;
+      --accent: #00dc82;
+      --accent-soft: #10291f;
+      --warn: #f59e0b;
+      --error: #f87171;
+      --ok: #4ade80;
+`;
+
 const STYLE = `
   :root {
     color-scheme: light dark;
@@ -196,20 +338,9 @@ const STYLE = `
     --radius: 7px;
   }
   @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #0f1115;
-      --fg: #e8e8ea;
-      --muted: #9099a8;
-      --faint: #5b6472;
-      --line: #23262d;
-      --raised: #171a20;
-      --accent: #00dc82;
-      --accent-soft: #10291f;
-      --warn: #f59e0b;
-      --error: #f87171;
-      --ok: #4ade80;
-    }
+    :root:not([data-theme='light']) { ${DARK} }
   }
+  :root[data-theme='dark'] { ${DARK} }
 
   * { box-sizing: border-box; }
   body {
@@ -310,7 +441,17 @@ const STYLE = `
     border: 1px solid var(--line); border-radius: var(--radius);
     font: inherit; background: var(--bg); color: inherit;
   }
-  input.filter { margin-bottom: 12px; }
+  .filterbar { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .filterbar .count {
+    color: var(--muted); font-size: 11.5px;
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  input.filter {
+    flex: 0 1 340px; min-width: 0; margin: 0; padding-left: 31px;
+    background: var(--bg) no-repeat 10px 50% / 14px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239099a8' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.6-3.6'/%3E%3C/svg%3E");
+  }
+  input.filter:focus { border-color: var(--accent); }
+  input.filter::-webkit-search-cancel-button { cursor: pointer; }
   input::placeholder { color: var(--faint); }
   button {
     padding: 6px 14px; border: 1px solid var(--line); border-radius: var(--radius);
@@ -349,6 +490,34 @@ const STYLE = `
   details > summary:hover { border-color: var(--accent); }
   details[open] > summary { border-radius: var(--radius) var(--radius) 0 0; margin-bottom: -1px; }
   details[open] > summary + .scroll { border-radius: 0 0 var(--radius) var(--radius); }
+  details[open] > summary + .filterbar {
+    margin: 0; padding: 8px 11px;
+    background: var(--raised); border: 1px solid var(--line); border-top: 0;
+  }
+  details[open] > .filterbar + .scroll {
+    border-radius: 0 0 var(--radius) var(--radius); margin-top: -1px;
+  }
+
+  /* A disclosure inside a table cell is not the panel-sized one above: no bar,
+     no border, no weight — just a triangle in front of the preview. */
+  details.json { margin: 0; }
+  details.json > summary {
+    padding: 0; background: none; border: 0; border-radius: 0; font-weight: inherit;
+    list-style-position: outside; margin-left: 12px;
+  }
+  details.json > summary::marker { color: var(--faint); }
+  details.json > summary:hover { border: 0; }
+  details.json[open] > summary { margin-bottom: 6px; border-radius: 0; }
+  details.json[open] > summary .peek { display: none; }
+  pre.json {
+    margin: 0 0 2px; padding: 9px 11px; max-height: 320px; overflow: auto;
+    background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius);
+    font: 11.5px/1.6 ui-monospace, 'SF Mono', Menlo, monospace;
+    white-space: pre; tab-size: 2;
+  }
+  .j-key { color: var(--accent); }
+  .j-num { color: var(--warn); }
+  .j-word { color: var(--muted); font-style: italic; }
 
   .matrix th:first-child, .matrix td:first-child {
     position: sticky; left: 0; background: var(--bg);
@@ -375,51 +544,53 @@ const SCRIPT = `
 
     const term = input.value.trim().toLowerCase();
     const scope = input.closest('details') ?? document;
+    const rows = scope.querySelectorAll('tbody tr');
+    let shown = 0;
 
-    for (const row of scope.querySelectorAll('tbody tr')) {
+    for (const row of rows) {
       row.hidden = Boolean(term) && !row.textContent.toLowerCase().includes(term);
+      if (!row.hidden) shown += 1;
+    }
+
+    const count = input.parentElement.querySelector('[data-filter-count]');
+    if (count) {
+      count.textContent = term
+        ? shown ? shown + ' of ' + rows.length : 'no matches'
+        : '';
     }
   });
 `;
 
 /** The full document: tab row, panel heading, body. */
-export function page(active: string, body: string): string {
+export function page(active: string, body: string, preview = false): string {
   const panel = PANELS.find((entry) => entry.slug === active) ?? PANELS[0]!;
 
-  const tabs = PANELS.map(
-    (entry) =>
-      `<a href="${href(entry.slug)}"${entry.slug === active ? ' aria-current="page"' : ''}>${escape(entry.title)}</a>`
-  ).join('');
+  /**
+   * NO TAB ROW IN A PREVIEW.
+   *
+   * The tab row is how the devtools panel is navigated, and it is exactly wrong
+   * inside a documentation page: the frame sits under prose describing ONE
+   * panel, and a reader who switched tabs in it would be reading about Sources
+   * while looking at Paths. The row is also the panel's own chrome — the
+   * documentation already carries a heading, a description and a sidebar entry
+   * saying which panel this is.
+   */
+  const tabs = preview
+    ? ''
+    : `<header class="bar"><nav aria-label="Panels">${PANELS.map(
+        (entry) =>
+          `<a href="${href(entry.slug)}"${entry.slug === active ? ' aria-current="page"' : ''}>${escape(entry.title)}</a>`
+      ).join('')}</nav></header>`;
 
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>duxt — ${escape(panel.title)}</title><style>${STYLE}</style></head><body>
-  <header class="bar"><nav aria-label="Panels">${tabs}</nav></header>
+  ${tabs}
   <main>
     <h1>${escape(panel.title)}</h1>
     <p class="hint">${panel.hint.replace(/`([^`]+)`/g, (_, inner: string) => code(inner))}</p>
     ${body}
   </main>
-  <script>${SCRIPT}</script>
+  <script>${SCRIPT}${preview ? INERT : ''}</script>
 </body></html>`;
-}
-
-/** The collections the site is serving, straight out of the running app config. */
-export function resolvedSources(): DuxtResolvedSource[] {
-  const { duxt } = useAppConfig() as { duxt?: Partial<DuxtConfig> };
-
-  return (
-    duxt?.resolvedSources ?? [
-      {
-        collection: 'docs',
-        prefix: '',
-        path: 'docs',
-        isDefault: true,
-        status: 'current',
-        // A source read off disk is a full checkout, so its history is
-        // readable without asking.
-        history: true
-      }
-    ]
-  );
 }

@@ -65,7 +65,24 @@ export default function duxtRedirects(_options: unknown, nuxt: Nuxt) {
 
     if (!Object.keys(rules).length) return;
 
+    // Which of the shipped rules are the layer's own, recorded because nothing
+    // in a route rule says who wrote it. The devtools panel reads the rules
+    // back out of the running server rather than recomputing them — the honest
+    // source, and the reason it also lists foreign ones: @nuxtjs/sitemap ships
+    // `/sitemap.xml` the moment a site has more than one sitemap, and a reader
+    // debugging a moved page should not have to wonder which rules are theirs.
+    //
+    // Taken BEFORE the merge below and filtered by what was already claimed:
+    // an existing rule wins, so a path someone else had is not ours to own.
+    const owned = Object.keys(rules).filter(
+      (path) => !nitro.routeRules?.[path]
+    );
+
     nitro.routeRules = { ...rules, ...nitro.routeRules };
+    nitro.runtimeConfig = {
+      ...nitro.runtimeConfig,
+      duxt: { ...(nitro.runtimeConfig?.duxt as object), redirects: owned }
+    };
   });
 }
 
