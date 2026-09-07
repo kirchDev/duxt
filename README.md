@@ -1,6 +1,9 @@
 <div align="center">
 
-# 📚 duxt
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/assets/wordmark-dark.svg">
+  <img src=".github/assets/wordmark-light.svg" alt="duxt" width="200" />
+</picture>
 
 **Versioned, multi-repo documentation for Nuxt — one line to extend, no collection boilerplate**
 
@@ -117,6 +120,32 @@ pnpm check     # lint + format + typecheck + tests + policy parity + build + a11
 ```
 
 The repo root **is** the layer — `nuxt.config.ts`, `content.config.ts`, `app/`, `modules/` and `server/` live there, and `package.json` points at them. `www/` beside it is the site that consumes the layer, and the development target: it deliberately carries the awkward cases — two repositories, four refs, one version of each lifecycle. It is not a template; the exemplary starting point lives in [`kirchDev/duxt-starter`](https://github.com/kirchDev/duxt-starter).
+
+## 🎨 Assets & branding
+
+> [!NOTE]
+> The wordmark is **AI-assisted placeholder artwork** — designed in a session with an AI coding agent, not by a designer, and a temporary stand-in to be replaced at some point, with no fixed timeline. No image generator was involved: it is typeset, not drawn.
+
+The mark is the package name with its first letter bracketed — `[d]uxt` — because that is how the package is written where it is used: `extends: ['@kirchdev/duxt']`, an array with one entry. It is set in [IBM Plex Mono](https://github.com/IBM/plex) SemiBold and converted to outlines, so no asset depends on the font being installed anywhere.
+
+- **Wordmark:** `.github/assets/wordmark-light.svg` and `wordmark-dark.svg` (README hero, served through `<picture>`). The bracket cells are narrowed by 120 font units — Plex Mono gives `[` a 600-unit cell for 311 units of ink, and at full monospace width the brackets sit in a word-space of their own.
+- **Site icons:** `www/public/favicon.svg` and `www/public/apple-touch-icon.png` (180×180). The SVG carries its own `prefers-color-scheme` rule so the mark lightens against a dark tab strip; the PNG exists only because iOS ignores SVG icons.
+- **In-site wordmark:** `www/public/wordmark.svg` + `wordmark-dark.svg`, pointed at by `duxt.logo` in `www/app/app.config.ts` — the same option any consumer uses for their own mark.
+- **The favicon is the bare `d`, not `[d]`.** At 16 px the brackets squeeze the bowl shut and the letter turns into a smudge. The full mark holds from roughly 32 px up, which is why the apple-touch icon keeps it.
+
+**Brand colours** — the brackets carry the colour and the letters take the surrounding text colour, so only the bracket pair is fixed:
+
+| Role                | Hex       | OKLCH                    |
+| :------------------ | :-------- | :----------------------- |
+| Brackets (light)    | `#4F46E5` | `oklch(0.511 0.230 277)` |
+| Brackets (dark)     | `#7D7BF5` | `oklch(0.644 0.178 281)` |
+| Letters (light)     | `#15171E` | `oklch(0.206 0.014 273)` |
+| Letters (dark)      | `#E8EBF2` | `oklch(0.940 0.010 267)` |
+
+**Licence** — IBM Plex is [SIL OFL 1.1](https://github.com/IBM/plex/blob/master/LICENSE.txt), and clause 5 settles the case explicitly: _"The requirement for fonts to remain under this license does not apply to any document created using the Font Software."_ An SVG holding outlines is such a document, no font file is redistributed here, and the reserved name "Plex" appears nowhere in the assets. Nothing has to be paid, attributed or relicensed — the credit above is courtesy.
+
+> [!IMPORTANT]
+> The layer ships **no** branding. `duxt.logo` is unset by default, so `DuxtBrand` falls back to the consumer's own `duxt.title` beside a generic icon: a site extending duxt shows its own name in the header and footer and its own icon in the tab, never this one. These assets belong to this repository and to `www/`, not to the published package.
 
 ## 🤝 Contributing
 
