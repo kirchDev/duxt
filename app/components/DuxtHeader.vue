@@ -56,7 +56,7 @@ function current(to?: string) {
 
 <template>
   <header
-    class="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-sm"
+    class="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur-md"
   >
     <!-- Row one: identity and global links. Row two carries the sections, the
          way nuxt.com splits them — the docs tree never reaches this far up. -->
