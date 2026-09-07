@@ -118,6 +118,9 @@ function current(to?: string) {
                 </li>
               </ul>
 
+              <!-- No `label`, so no second "Documentation" landmark: the
+                   sheet is a dialog with its own name, and the sidebar copy of
+                   this tree already carries the one on the page. -->
               <DuxtNavigation :items="items" />
 
               <div class="mt-6 border-t pt-4">
