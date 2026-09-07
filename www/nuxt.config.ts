@@ -1,4 +1,36 @@
+import { readFileSync } from 'node:fs';
 import { defineNuxtConfig } from 'nuxt/config';
+
+/**
+ * The version this site documents, read rather than typed.
+ *
+ * duxt's own `package.json`, one directory up — the file release-please bumps.
+ * A number written into `app.config.ts` would be a second copy of it, wrong
+ * from the first release onwards, which is the mistake the layer default
+ * `version: 'v0.0.0'` made for every site that extended it.
+ *
+ * It goes through `appConfig` here rather than `app.config.ts` because that
+ * file is a RUNTIME module — it is compiled for the browser and cannot read a
+ * file. `nuxt.config.ts` is build code, so it can. The generated template
+ * merges `appConfig` BEHIND `app.config.ts`, so this stands only as long as no
+ * human writes a `version` there, which is the right way round.
+ *
+ * The `v` is added here: `package.json` holds `0.0.0`, and every place duxt
+ * shows a version prefixes it — `DuxtFooter` does the same.
+ */
+const version = (() => {
+  try {
+    const pkg = JSON.parse(
+      readFileSync(new URL('../package.json', import.meta.url), 'utf8')
+    ) as { version?: string };
+
+    return pkg.version ? `v${pkg.version}` : undefined;
+  } catch {
+    // Absent rather than guessed: the badge and the hero pill both draw
+    // nothing without it, which beats a number nobody can trace.
+    return undefined;
+  }
+})();
 
 // Consumes the layer exactly as a downstream repo does. Modules, the Content
 // driver and the theme all arrive with the extend.
@@ -7,6 +39,8 @@ export default defineNuxtConfig({
   // exports map and files allowlist are exercised by the development site.
   extends: ['@kirchdev/duxt'],
   compatibilityDate: '2026-09-02',
+
+  appConfig: { duxt: { version } },
 
   // Appended to the layer's own entry, never replacing it: Nuxt concatenates
   // `css` with the extending app's last, which is exactly the order these

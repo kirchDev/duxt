@@ -7,6 +7,16 @@
 export default defineAppConfig({
   duxt: {
     /**
+     * The site's own name. The layer ships no `title` of its own: a name is the
+     * one thing a documentation theme cannot guess, and "duxt" in every
+     * downstream header was exactly that mistake.
+     *
+     * A plain literal, not a record: the word is the same in every language —
+     * the rule that also keeps `'GitHub'` and `'shadcn-vue'` below unwrapped.
+     */
+    title: 'duxt',
+
+    /**
      * This site's own wordmark, set exactly the way a consumer sets theirs.
      *
      * The layer ships no `logo` at all, so `DuxtBrand` falls back to a generic
@@ -49,6 +59,97 @@ export default defineAppConfig({
     // The feed, pointed at a section that has dated entries. Off by default in
     // the layer; this site turns it on so the route is exercised.
     feed: { path: '/adr', title: 'duxt — decisions' },
+
+    // Written out in full, both entries: `mergeDuxtConfig` REPLACES an array
+    // rather than merging into it, so naming `navigation` at all means naming
+    // every entry. The layer ships only the generic Docs entry; the Resources
+    // dropdown below is duxt's own — five links to duxt's tech stack, which
+    // belong to this site and not to a stranger's header.
+    //
+    // The Docs entry carries no `to` on purpose. `DuxtHeader.linkTarget`
+    // resolves it to the first section, and `entryActive` lights it wherever
+    // ANY section is — giving it an explicit `to` would narrow the highlight
+    // back to one section.
+    navigation: [
+      { label: 'Docs', icon: 'lucide:book-open-text' },
+      {
+        label: {
+          'en-GB': 'Resources',
+          'de-DE': 'Ressourcen',
+          'es-ES': 'Recursos',
+          'fr-FR': 'Ressources',
+          'pt-PT': 'Recursos'
+        },
+        icon: 'lucide:library',
+        children: [
+          {
+            label: 'Nuxt',
+            to: 'https://nuxt.com',
+            icon: 'lucide:box',
+            description: {
+              'en-GB': 'The framework underneath',
+              'de-DE': 'Das Framework darunter',
+              'es-ES': 'El framework de base',
+              'fr-FR': 'Le framework sous-jacent',
+              'pt-PT': 'A framework subjacente'
+            },
+            external: true
+          },
+          {
+            label: 'Nuxt Content',
+            to: 'https://content.nuxt.com',
+            icon: 'lucide:file-text',
+            description: {
+              'en-GB': 'Sourcing, parsing and querying',
+              'de-DE': 'Beschaffen, parsen und abfragen',
+              'es-ES': 'Obtención, análisis y consulta',
+              'fr-FR': 'Récupération, analyse et requêtes',
+              'pt-PT': 'Obtenção, análise e consulta'
+            },
+            external: true
+          },
+          {
+            label: 'shadcn-vue',
+            to: 'https://www.shadcn-vue.com',
+            icon: 'lucide:palette',
+            description: {
+              'en-GB': 'The component base',
+              'de-DE': 'Die Komponentenbasis',
+              'es-ES': 'La base de componentes',
+              'fr-FR': 'La base de composants',
+              'pt-PT': 'A base de componentes'
+            },
+            external: true
+          },
+          {
+            label: 'Tailwind CSS',
+            to: 'https://tailwindcss.com',
+            icon: 'lucide:paintbrush',
+            description: {
+              'en-GB': 'The styling system',
+              'de-DE': 'Das Styling-System',
+              'es-ES': 'El sistema de estilos',
+              'fr-FR': 'Le système de styles',
+              'pt-PT': 'O sistema de estilos'
+            },
+            external: true
+          },
+          {
+            label: 'MDC syntax',
+            to: 'https://content.nuxt.com/docs/files/markdown',
+            icon: 'lucide:code',
+            description: {
+              'en-GB': 'Components inside Markdown',
+              'de-DE': 'Komponenten in Markdown',
+              'es-ES': 'Componentes dentro de Markdown',
+              'fr-FR': 'Des composants dans le Markdown',
+              'pt-PT': 'Componentes dentro do Markdown'
+            },
+            external: true
+          }
+        ]
+      }
+    ],
 
     // The source carries a slug, so every path has a repository segment and the
     // navigation the layer ships — which assumes a single unprefixed source —
@@ -218,10 +319,9 @@ export default defineAppConfig({
     },
 
     landing: {
-      // `{version}` reads `duxt.version`, so the number is never typed twice:
-      // release-please bumps `package.json`, and a copy written out here would
-      // be wrong from the next release onwards. The pill links to the release
-      // it names.
+      // `{version}` reads this site's `version`, which `nuxt.config.ts` reads
+      // out of duxt's own `package.json` — see the note there. Nothing to bump
+      // in either file. The pill links to the release it names.
       badge: {
         label: {
           'en-GB': '{version} released',
@@ -237,6 +337,44 @@ export default defineAppConfig({
         variant: 'default',
         to: 'https://github.com/kirchDev/duxt/releases/latest',
         external: true
+      },
+
+      /**
+       * The hero copy, written out here rather than inherited.
+       *
+       * The layer used to ship both as `duxt.defaults.landing.*` keys, which
+       * made duxt's own marketing the default headline of every site that
+       * extended it. `duxt.defaults.*` translates the interface the layer
+       * draws, never content a site writes.
+       *
+       * The record form rather than a locale file, for the reason the sections
+       * above give — and for one more: `llms.txt`, `llms-full.txt` and the feed
+       * are Nitro routes with no i18n, and `resolveServerTexts` reads only the
+       * LAYER's English messages. A key in a `www/i18n/` file would be printed
+       * to a model verbatim; a record resolves to its `en-GB` entry there.
+       */
+      headline: {
+        'en-GB': 'Documentation for Nuxt, versioned and multi-repo',
+        'de-DE':
+          'Dokumentation für Nuxt, versioniert und über mehrere Repositories',
+        'es-ES': 'Documentación para Nuxt, versionada y multirrepositorio',
+        'fr-FR': 'Documentation pour Nuxt, versionnée et multidépôt',
+        'pt-PT': 'Documentação para Nuxt, com versões e vários repositórios'
+      },
+
+      // Also the `<meta name="description">`, the llms.txt blurb and the RSS
+      // channel description — one sentence, four readers.
+      description: {
+        'en-GB':
+          'Extend one layer and your docs/ folder becomes a site. Point it at other repositories, or at tags of the same one, and those become versions.',
+        'de-DE':
+          'Einen Layer erweitern, und dein docs/-Ordner wird zur Website. Zeig damit auf andere Repositories oder auf Tags desselben, und daraus werden Versionen.',
+        'es-ES':
+          'Extiende una capa y tu carpeta docs/ se convierte en un sitio. Apúntala a otros repositorios, o a etiquetas del mismo, y estos se convierten en versiones.',
+        'fr-FR':
+          "Étendez une couche et votre dossier docs/ devient un site. Pointez-la vers d'autres dépôts, ou vers des tags du même, et ceux-ci deviennent des versions.",
+        'pt-PT':
+          'Estenda uma camada e a sua pasta docs/ torna-se um site. Aponte-a para outros repositórios, ou para tags do mesmo, e estes tornam-se versões.'
       },
 
       // The window under the hero: this site's own getting-started page,
