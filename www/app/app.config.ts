@@ -211,6 +211,17 @@ export default defineAppConfig({
       },
       {
         label: {
+          'en-GB': 'Conventions',
+          'de-DE': 'Konventionen',
+          'es-ES': 'Convenciones',
+          'fr-FR': 'Conventions',
+          'pt-PT': 'Convenções'
+        },
+        to: '/conventions',
+        icon: 'lucide:ruler'
+      },
+      {
+        label: {
           'en-GB': 'Credits',
           'de-DE': 'Credits',
           'es-ES': 'Créditos',
