@@ -13,6 +13,7 @@
     "CLAUDE.md",
     "AGENTS.md",
     "docs/**/*.md",
-    "www/content/**/*.md"
+    "www/content/**/*.md",
+    "www/public/devtools/*.html"
   ]
 }

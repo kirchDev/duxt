@@ -61,6 +61,7 @@ const locales = [
     name: 'English (UK)',
     files: [
       'en/duxt/code.json',
+      'en/duxt/devtools.json',
       'en/duxt/defaults.json',
       'en/duxt/error.json',
       'en/duxt/footer.json',
@@ -80,6 +81,7 @@ const locales = [
     name: 'English (US)',
     files: [
       'en/duxt/code.json',
+      'en/duxt/devtools.json',
       'en/duxt/defaults.json',
       'en/duxt/error.json',
       'en/duxt/footer.json',
@@ -99,6 +101,7 @@ const locales = [
     name: 'Deutsch',
     files: [
       'de/duxt/code.json',
+      'de/duxt/devtools.json',
       'de/duxt/defaults.json',
       'de/duxt/error.json',
       'de/duxt/footer.json',
@@ -118,6 +121,7 @@ const locales = [
     name: 'Español',
     files: [
       'es/duxt/code.json',
+      'es/duxt/devtools.json',
       'es/duxt/defaults.json',
       'es/duxt/error.json',
       'es/duxt/footer.json',
@@ -137,6 +141,7 @@ const locales = [
     name: 'Français',
     files: [
       'fr/duxt/code.json',
+      'fr/duxt/devtools.json',
       'fr/duxt/defaults.json',
       'fr/duxt/error.json',
       'fr/duxt/footer.json',
@@ -156,6 +161,7 @@ const locales = [
     name: 'Português',
     files: [
       'pt/duxt/code.json',
+      'pt/duxt/devtools.json',
       'pt/duxt/defaults.json',
       'pt/duxt/error.json',
       'pt/duxt/footer.json',
@@ -175,6 +181,7 @@ const locales = [
     name: 'Português (Brasil)',
     files: [
       'pt/duxt/code.json',
+      'pt/duxt/devtools.json',
       'pt/duxt/defaults.json',
       'pt/duxt/error.json',
       'pt/duxt/footer.json',
