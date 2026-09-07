@@ -255,6 +255,20 @@ declare global {
   interface DuxtConfig {
     title: DuxtText;
     /**
+     * A wordmark shown in the header and footer instead of the icon-and-title
+     * pair. Unset by default, and deliberately so: the layer ships no branding,
+     * because a site extending duxt has its own.
+     *
+     * `srcDark` is swapped in by CSS, not by reading the colour mode — see
+     * `DuxtBrand`. The image is drawn at a fixed height with the width left to
+     * follow, so any aspect ratio works. `alt` falls back to `title`.
+     */
+    logo?: {
+      src?: string;
+      srcDark?: string;
+      alt?: DuxtText;
+    };
+    /**
      * Which of the layer's locales this site serves. Omitted means all of them.
      *
      * Read at BUILD time — locales decide routes and hreflang, not just what a

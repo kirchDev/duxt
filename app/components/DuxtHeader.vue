@@ -65,11 +65,7 @@ function current(to?: string) {
           >
             <SheetHeader class="border-b">
               <SheetTitle class="flex items-center gap-2">
-                <Icon
-                  name="lucide:book-open-text"
-                  class="size-5 text-primary"
-                />
-                {{ duxt.title }}
+                <DuxtBrand />
               </SheetTitle>
             </SheetHeader>
 
@@ -147,8 +143,7 @@ function current(to?: string) {
           :to="localeLink('/')"
           class="flex items-center gap-2 text-[15px] font-semibold tracking-tight"
         >
-          <Icon name="lucide:book-open-text" class="size-5 text-primary" />
-          {{ duxt.title }}
+          <DuxtBrand />
         </NuxtLink>
       </div>
 
