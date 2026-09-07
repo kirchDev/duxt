@@ -35,6 +35,7 @@
     "mdc.config.ts",
     "modules",
     "nuxt.config.ts",
+    "public",
     "server",
     "sources-git.ts",
     "sources-resolve.ts",

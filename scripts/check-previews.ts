@@ -33,7 +33,7 @@ const { PREVIEW_TABS, previewPage } = (await jiti.import(
   '../server/devtools/preview'
 )) as PreviewModule;
 
-const OUT = fileURLToPath(new URL('../www/public/devtools/', import.meta.url));
+const OUT = fileURLToPath(new URL('../public/devtools/', import.meta.url));
 
 const stale: string[] = [];
 const expected = new Set(PREVIEW_TABS.map((tab) => tab.file));
@@ -58,7 +58,7 @@ let present: string[] = [];
 try {
   present = readdirSync(OUT).filter((file) => file.endsWith('.html'));
 } catch {
-  stale.push('www/public/devtools/ does not exist');
+  stale.push('public/devtools/ does not exist');
 }
 
 for (const file of present) {

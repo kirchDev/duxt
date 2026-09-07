@@ -14,6 +14,6 @@
     "AGENTS.md",
     "docs/**/*.md",
     "www/content/**/*.md",
-    "www/public/devtools/*.html"
+    "public/devtools/*.html"
   ]
 }

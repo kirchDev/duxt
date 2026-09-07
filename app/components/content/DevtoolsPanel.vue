@@ -7,7 +7,10 @@
  * because `modules/devtools.ts` registers nothing outside a dev server, so a
  * published page would frame a 404. What is embedded here is the panel's OWN
  * renderer, run over a fixture site at build time and written to
- * `www/public/devtools/<tab>.html` by `pnpm previews`.
+ * `public/devtools/<tab>.html` by `pnpm previews` — the LAYER's public
+ * directory, so the documents ship in the package beside the pages that ask
+ * for them. Nuxt serves every layer's `public/`, which is what lets a consumer
+ * rendering this reference get the frames rather than ten empty boxes.
  *
  * An iframe rather than inline markup, and deliberately: the panel ships its
  * own stylesheet, written against a documentation site's tokens it knows

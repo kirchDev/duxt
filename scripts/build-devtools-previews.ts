@@ -40,7 +40,16 @@ const { PREVIEW_TABS, previewPage } = (await jiti.import(
   '../server/devtools/preview'
 )) as PreviewModule;
 
-const OUT = fileURLToPath(new URL('../www/public/devtools/', import.meta.url));
+/**
+ * The LAYER's public directory, not `www`'s.
+ *
+ * The pages that embed these ship inside the package, so the documents they
+ * ask for have to ship inside it too — served from `www` they resolve on this
+ * repo's own site and on no other, which is ten empty frames for anyone else
+ * rendering the reference. Nuxt serves every layer's `public/`, so a consumer
+ * gets them by extending.
+ */
+const OUT = fileURLToPath(new URL('../public/devtools/', import.meta.url));
 
 mkdirSync(OUT, { recursive: true });
 
