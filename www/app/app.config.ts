@@ -178,13 +178,16 @@ export default defineAppConfig({
           icon: 'lucide:message-circle',
           external: true
         },
-        // An internal link, deliberately beside three external ones: `to` is
-        // run through `useDuxtLink`, so it picks up the locale prefix while
-        // the absolute URLs above pass through untouched. `external` only
-        // decides the new tab and the arrow, never the routing.
+        // duxt's published documentation, by its own domain rather than by a
+        // path on whatever site is rendering this. That is what makes the entry
+        // mean anything in the row it sits in: the three links above take the
+        // reader to duxt's repository, its tracker and its community, and a
+        // relative `/getting-started` took them back to the page they were
+        // already on.
         //
-        // TODO: point at duxt's own published documentation once it is
-        // deployed. It links to this same site today, which is circular.
+        // Absolute, so `useDuxtLink` passes it through untouched instead of
+        // prefixing a locale onto it. `external` only decides the new tab and
+        // the arrow, never the routing.
         {
           label: {
             'en-GB': 'Documentation',
@@ -193,8 +196,9 @@ export default defineAppConfig({
             'fr-FR': 'Documentation',
             'pt-PT': 'Documentação'
           },
-          to: '/getting-started',
-          icon: 'lucide:book-open-text'
+          to: 'https://duxt.app/',
+          icon: 'lucide:book-open-text',
+          external: true
         }
       ]
     },
