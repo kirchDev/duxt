@@ -9,7 +9,9 @@
       "main": "Hauptnavigation",
       "docs": "Dokumentation",
       "pagination": "Seitennavigation",
-      "breadcrumb": "Navigationspfad"
+      "breadcrumb": "Navigationspfad",
+      "menu": "Navigation",
+      "pages": "Seiten"
     }
   }
 }
