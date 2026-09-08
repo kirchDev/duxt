@@ -63,6 +63,19 @@ const ENTRY = /^(?:[-*+]|\d+[.)])[ \t]+\S/;
 /** How the file is turned into pages. */
 const GRANULARITIES = ['split', 'flat'] as const;
 
+/**
+ * The options this type reads, and the whole of what it answers to.
+ *
+ * Named rather than ignored, for the same reason an unknown VALUE is: a
+ * misspelled `granularty: 'flat'` is one character from the key that works, the
+ * site silently gets the default instead of what it configured, and nothing
+ * downstream ever mentions it again. `options` is opaque to the scaffold on
+ * purpose — `DuxtGeneratedSection.options` carries the bag rather than reading
+ * it — so the type that reads a key is the only place left that can say a key
+ * is not one it knows.
+ */
+const OPTIONS = ['granularity'] as const;
+
 type Granularity = (typeof GRANULARITIES)[number];
 
 interface Release {
@@ -119,13 +132,29 @@ export const changelogSectionType: DuxtSectionType = {
 };
 
 /**
- * The granularity this declaration asked for.
+ * The granularity this declaration asked for, and the declaration checked.
  *
  * Named rather than ignored, for the reason an unknown type is: a misspelled
  * `granularity: 'splitt'` that silently means `split` is a site quietly not
  * getting what it configured, and this build is the last place that can say so.
+ * A misspelled KEY is that same failure one character away, and is named in the
+ * same words — see `OPTIONS`.
  */
 function granularityOf(options: DuxtSectionOptions): Granularity {
+  // Here rather than beside the caller because this is the ONE place the type
+  // reads its options at all: both the layout question and the parser come
+  // through it, so a section that is never built still names the typo.
+  const unknown = Object.keys(options).find(
+    (key) => !OPTIONS.includes(key as (typeof OPTIONS)[number])
+  );
+
+  if (unknown) {
+    throw new Error(
+      `duxt: a changelog section names the option "${unknown}", which is not ` +
+        `one of ${OPTIONS.map((name) => `"${name}"`).join(' or ')}.`
+    );
+  }
+
   const value = options.granularity ?? 'split';
 
   if (!GRANULARITIES.includes(value as Granularity)) {

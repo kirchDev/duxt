@@ -380,4 +380,19 @@ describe('the flat changelog', () => {
       /granularity/
     );
   });
+
+  it('names an option it does not read', () => {
+    // A key one character from the one that works fails exactly as a value one
+    // character from the one that works does, and the build is the last place
+    // that can say so either way.
+    expect(() => parse(CHANGELOG, { granularty: 'flat' })).toThrow(
+      /granularty/
+    );
+  });
+
+  it('names it wherever the options are read first', () => {
+    // The layout question reaches the options before the parser does on a
+    // section that is never built, so both entry points have to ask.
+    expect(() => layout({ granularty: 'flat' })).toThrow(/granularty/);
+  });
 });
