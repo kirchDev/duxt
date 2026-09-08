@@ -46,6 +46,20 @@ export function useDuxtVersion() {
   const status = computed(() => current.value?.status ?? 'current');
 
   /**
+   * The versions the switcher may offer — see `versionChoices`.
+   *
+   * Here rather than in `DuxtVersion` because the mobile sheet asks the same
+   * question to decide WHERE the version goes: a full-width select in its own
+   * strip when there is a choice, a badge beside the brand when there is not.
+   */
+  const choices = computed(() =>
+    versionChoices(sources.value, current.value, duxt.versions)
+  );
+
+  /** Is there anything to switch to? */
+  const switchable = computed(() => choices.value.length > 1);
+
+  /**
    * WHICH KIND of "not the current version" this is.
    *
    * `isDefault` says only "not the one served by default", and that covers two
@@ -106,6 +120,8 @@ export function useDuxtVersion() {
 
   return {
     sources,
+    choices,
+    switchable,
     current,
     preferred,
     isPreferred,

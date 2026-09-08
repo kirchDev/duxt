@@ -11,6 +11,16 @@
  * Now it is one element next to the title: a badge when there is nothing to
  * choose, the same badge as a trigger when there is.
  */
+
+/**
+ * `badge` is the header's inline pill. `block` is the mobile sheet's: a
+ * full-width control with its own caption, because in a column of navigation
+ * rows a bare pill reads as a label rather than as something to press.
+ */
+const props = withDefaults(defineProps<{ variant?: 'badge' | 'block' }>(), {
+  variant: 'badge'
+});
+
 const duxt = useDuxtConfig();
 const path = useDuxtPath();
 const localeLink = useDuxtLink();
@@ -18,39 +28,11 @@ const localeLink = useDuxtLink();
 /**
  * Versions come from the resolved source manifest, so the control can only
  * offer what has a collection behind it, and only for the repository being
- * read — one project's versions say nothing about another's.
- *
- * `versions` in the config still wins where a label needs to read differently
- * from the URL segment.
+ * read — one project's versions say nothing about another's. The list itself
+ * is `useDuxtVersion`'s, because the sheet asks for it too — see
+ * `versionChoices`.
  */
-const versions = computed(() => {
-  const sources = duxt.resolvedSources ?? [];
-  const currentSource = sourceForPath(path.value, sources);
-
-  // A version-neutral generated section suppresses the control entirely, and
-  // that is the point of the policy rather than a tidy-up: a changelog is one
-  // global history, so every entry the switcher could offer would move the
-  // reader to a URL that section does not serve.
-  if (currentSource?.generated?.versioning === 'global') return [];
-
-  if (duxt.versions?.length) return duxt.versions;
-
-  return sources
-    .filter((source) => source.version && source.repo === currentSource?.repo)
-    .map((source) => ({
-      label: source.version!,
-      to: source.prefix || '/',
-      // The lifecycle, not just "is this the default": a list where three
-      // entries look alike says nothing about which of them is still safe to
-      // read. `current` needs no word — it is what the reader assumes.
-      description:
-        source.status && source.status !== 'current'
-          ? `duxt.version.status.${source.status}`
-          : source.isDefault
-            ? 'default'
-            : undefined
-    }));
-});
+const { choices: versions } = useDuxtVersion();
 
 const current = computed(() =>
   sourceForPath(
@@ -58,6 +40,24 @@ const current = computed(() =>
     versions.value.map((version) => ({ ...version, prefix: version.to ?? '' }))
   )
 );
+
+const { t, te } = useI18n();
+
+/**
+ * The caption beside an entry.
+ *
+ * The list carries a translation KEY where the layer wrote one
+ * (`duxt.version.status.deprecated`) and a plain word where a consumer did, so
+ * a key that resolves is translated and anything else is shown as written.
+ * `asText` because the config type keeps `DuxtText` even though
+ * `useDuxtConfig` has already collapsed it to a string.
+ */
+function caption(version: DuxtLink) {
+  const value = asText(version.description);
+  if (!value) return undefined;
+
+  return te(value) ? t(value) : value;
+}
 
 /** Same page, other version: swap the prefix rather than jumping to its root. */
 function pathIn(version: { to?: string }) {
@@ -74,7 +74,26 @@ function pathIn(version: { to?: string }) {
          and a <span> is allowed neither — which axe reports and a screen
          reader acts on. -->
     <DropdownMenuTrigger as-child>
-      <button type="button" class="cursor-pointer">
+      <button
+        v-if="props.variant === 'block'"
+        type="button"
+        class="flex w-full cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-left transition-colors hover:bg-accent"
+      >
+        <span class="min-w-0 flex-1">
+          <span class="block text-[11px] text-muted-foreground">
+            {{ $t('duxt.version.label') }}
+          </span>
+          <span class="block truncate font-mono text-sm font-medium">
+            {{ current?.label ?? duxt.version }}
+          </span>
+        </span>
+        <Icon
+          name="lucide:chevrons-up-down"
+          class="size-4 shrink-0 text-muted-foreground"
+        />
+      </button>
+
+      <button v-else type="button" class="cursor-pointer">
         <Badge
           variant="secondary"
           class="gap-1 font-mono text-[10px] hover:bg-accent"
@@ -91,7 +110,12 @@ function pathIn(version: { to?: string }) {
          scrolls at about ten entries instead of filling the screen. -->
     <DropdownMenuContent
       align="start"
-      class="max-h-[min(20rem,var(--reka-dropdown-menu-content-available-height))] w-44"
+      class="max-h-[min(20rem,var(--reka-dropdown-menu-content-available-height))]"
+      :class="
+        props.variant === 'block'
+          ? 'w-[var(--reka-dropdown-menu-trigger-width)]'
+          : 'w-44'
+      "
     >
       <DropdownMenuItem v-for="version in versions" :key="version.to" as-child>
         <NuxtLink :to="pathIn(version)" class="flex items-center gap-2">
@@ -102,21 +126,20 @@ function pathIn(version: { to?: string }) {
           />
           <span class="font-mono text-xs">{{ version.label }}</span>
           <span
-            v-if="version.description"
+            v-if="caption(version)"
             class="ml-auto text-xs text-muted-foreground"
           >
-            {{
-              $te(version.description)
-                ? $t(version.description)
-                : version.description
-            }}
+            {{ caption(version) }}
           </span>
         </NuxtLink>
       </DropdownMenuItem>
     </DropdownMenuContent>
   </DropdownMenu>
 
-  <!-- Nothing to choose: the project's own version, stated rather than offered. -->
+  <!-- Nothing to choose: the project's own version, stated rather than offered.
+       Always the badge, `block` included — a bordered box with a caption and no
+       control in it looks like a select that has stopped working, and the sheet
+       puts this one beside the brand rather than in the switcher's strip. -->
   <Badge
     v-else-if="duxt.version"
     variant="secondary"

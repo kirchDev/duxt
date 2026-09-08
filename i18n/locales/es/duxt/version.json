@@ -18,7 +18,8 @@
         "old": "Versión antigua",
         "deprecated": "Versión obsoleta",
         "eol": "Fin de vida"
-      }
+      },
+      "label": "Versión"
     }
   }
 }

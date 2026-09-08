@@ -18,7 +18,8 @@
         "old": "Alte Version",
         "deprecated": "Veraltete Version",
         "eol": "Eingestellte Version"
-      }
+      },
+      "label": "Version"
     }
   }
 }
