@@ -1,0 +1,74 @@
+{
+  "duxt": {
+    "openapi": {
+      "required": "Erforderlich",
+      "deprecated": "Veraltet",
+      "readOnly": "Nur lesbar",
+      "writeOnly": "Nur schreibbar",
+      "externalRef": "In einer anderen Datei definiert, die dieser Build nicht liest:",
+      "circular": "Verweist auf sich selbst; oben ausgeklappt.",
+      "truncated": "Tiefer verschachtelt, als diese Ansicht zeigt.",
+      "items": "Jedes Element",
+      "additionalProperties": "Jede weitere Eigenschaft",
+      "noAdditionalProperties": "Weitere Eigenschaften sind nicht erlaubt.",
+      "discriminator": "Unterschieden anhand von",
+      "parameters": "Parameter",
+      "requestBody": "Anfragekörper",
+      "responses": "Antworten",
+      "headers": "Kopfzeilen",
+      "noBody": "Kein Inhalt.",
+      "links": "Was als Nächstes möglich ist",
+      "security": "Autorisierung",
+      "noAuth": "Dieser Endpunkt benötigt keine Authentifizierung.",
+      "anyOfThese": "Eines davon genügt",
+      "callbacks": "Rückrufe",
+      "webhook": "Webhook",
+      "endpoints": "Endpunkte",
+      "servers": "Server",
+      "authentication": "Authentifizierung",
+      "contact": "Kontakt",
+      "license": "Lizenz",
+      "terms": "Nutzungsbedingungen",
+      "moreInfo": "Weitere Informationen",
+      "in": {
+        "path": "Pfad",
+        "query": "Abfrage",
+        "header": "Kopfzeile",
+        "cookie": "Cookie"
+      },
+      "composition": {
+        "oneOf": "Genau eines von",
+        "anyOf": "Mindestens eines von",
+        "allOf": "Alle von",
+        "not": "Alles außer"
+      },
+      "constraints": {
+        "minimum": "min",
+        "maximum": "max",
+        "exclusiveMinimum": "größer als",
+        "exclusiveMaximum": "kleiner als",
+        "multipleOf": "Vielfaches von",
+        "minLength": "Mindestlänge",
+        "maxLength": "Höchstlänge",
+        "pattern": "Muster",
+        "minItems": "min. Elemente",
+        "maxItems": "max. Elemente",
+        "uniqueItems": "eindeutig",
+        "minProperties": "min. Eigenschaften",
+        "maxProperties": "max. Eigenschaften"
+      },
+      "client": {
+        "title": "Anfrage senden",
+        "server": "Server",
+        "auth": "Authentifizierung",
+        "username": "Benutzername",
+        "credentials": "Was Sie hier eingeben, bleibt in diesem Tab, wird nicht gespeichert und geht nur an den gewählten Server.",
+        "certificate": "Dieses Verfahren benötigt ein Client-Zertifikat, das eine Seite nicht bereitstellen kann.",
+        "mediaType": "Medientyp",
+        "send": "Senden",
+        "direct": "Die Anfrage sendet Ihr Browser direkt an diesen Server.",
+        "blocked": "Die Anfrage hat den Server nicht erreicht. Möglicherweise erlaubt er keine Anfragen von einer anderen Herkunft, oder die Adresse ist von hier nicht erreichbar."
+      }
+    }
+  }
+}

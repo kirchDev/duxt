@@ -85,6 +85,29 @@ const heading = useDuxtPageFocus();
 
 const { current, shouldIndex, preferredPath } = useDuxtVersion();
 
+/**
+ * Does the page draw its own chrome?
+ *
+ * A generated section whose TYPE NAMES A LAYOUT has replaced the docs shell
+ * around this page, and the two halves cannot both draw a header: an API
+ * reference wants its title beside a method chip and its right-hand column
+ * filled with a request client, not with a table of contents. So the rule is
+ * one line — a type that names a layout owns its page — and everything below
+ * that belongs to the docs shell drops out: the breadcrumb, the title block,
+ * the article's reading width, the contents column and the prev/next pair.
+ *
+ * The BANNERS stay. "You are reading an old version" and "this page is not
+ * translated" are true of a generated page exactly as they are of a written
+ * one, and a type cannot be expected to redraw them.
+ *
+ * `generatedLayout` is the same lookup `middleware/duxt-section-layout.global`
+ * makes to choose the layout, so the two cannot disagree about which pages are
+ * in one.
+ */
+const owned = computed(() =>
+  Boolean(generatedLayout(path.value, duxt?.resolvedSources ?? []))
+);
+
 // The social card. Rendered from the layer's own template unless the consumer
 // ships a component of the same name — see `OgImage/Duxt.satori.vue`.
 //
@@ -179,7 +202,25 @@ useSchemaOrg([
 </script>
 
 <template>
-  <div class="flex min-w-0 flex-1 justify-center gap-10">
+  <!-- The type's own layout owns the page: no reading width, no contents
+       column, no header of ours — see `owned`. -->
+  <div v-if="owned" class="min-w-0 flex-1 py-8">
+    <DuxtVersionBanner />
+
+    <DuxtTranslationBanner v-if="untranslated" :from="found?.from" />
+
+    <div class="typeset typeset-docs">
+      <ContentRenderer v-if="page" :value="page" />
+    </div>
+
+    <!-- Provenance survives the chrome, because it is the one part of it that
+         is still true: every page of a generated section came out of one
+         artefact, and `DuxtPageInfo` already links at that artefact rather than
+         at a file named after the URL. -->
+    <DuxtPageInfo :page="page" class="max-w-3xl" />
+  </div>
+
+  <div v-else class="flex min-w-0 flex-1 justify-center gap-10">
     <article class="min-w-0 max-w-3xl flex-1 py-8">
       <DuxtVersionBanner />
 

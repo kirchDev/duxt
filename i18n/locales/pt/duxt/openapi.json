@@ -1,0 +1,74 @@
+{
+  "duxt": {
+    "openapi": {
+      "required": "Obrigatório",
+      "deprecated": "Obsoleto",
+      "readOnly": "Apenas leitura",
+      "writeOnly": "Apenas escrita",
+      "externalRef": "Definido noutro ficheiro, que esta compilação não lê:",
+      "circular": "Refere-se a si próprio; expandido acima.",
+      "truncated": "Aninhado mais fundo do que esta vista mostra.",
+      "items": "Cada elemento",
+      "additionalProperties": "Qualquer outra propriedade",
+      "noAdditionalProperties": "Não são permitidas outras propriedades.",
+      "discriminator": "Distinguido por",
+      "parameters": "Parâmetros",
+      "requestBody": "Corpo do pedido",
+      "responses": "Respostas",
+      "headers": "Cabeçalhos",
+      "noBody": "Sem corpo.",
+      "links": "O que fazer a seguir",
+      "security": "Autorização",
+      "noAuth": "Este ponto final não precisa de autenticação.",
+      "anyOfThese": "Qualquer um destes",
+      "callbacks": "Chamadas de retorno",
+      "webhook": "Webhook",
+      "endpoints": "Pontos finais",
+      "servers": "Servidores",
+      "authentication": "Autenticação",
+      "contact": "Contacto",
+      "license": "Licença",
+      "terms": "Termos do serviço",
+      "moreInfo": "Mais informação",
+      "in": {
+        "path": "Caminho",
+        "query": "Consulta",
+        "header": "Cabeçalho",
+        "cookie": "Cookie"
+      },
+      "composition": {
+        "oneOf": "Exatamente um de",
+        "anyOf": "Pelo menos um de",
+        "allOf": "Todos de",
+        "not": "Tudo menos"
+      },
+      "constraints": {
+        "minimum": "mín",
+        "maximum": "máx",
+        "exclusiveMinimum": "maior que",
+        "exclusiveMaximum": "menor que",
+        "multipleOf": "múltiplo de",
+        "minLength": "comprimento mín",
+        "maxLength": "comprimento máx",
+        "pattern": "padrão",
+        "minItems": "elementos mín",
+        "maxItems": "elementos máx",
+        "uniqueItems": "únicos",
+        "minProperties": "propriedades mín",
+        "maxProperties": "propriedades máx"
+      },
+      "client": {
+        "title": "Enviar um pedido",
+        "server": "Servidor",
+        "auth": "Autenticação",
+        "username": "Nome de utilizador",
+        "credentials": "O que escrever aqui fica neste separador, nunca é guardado e só é enviado para o servidor que escolheu.",
+        "certificate": "Este esquema exige um certificado de cliente, que uma página não pode fornecer.",
+        "mediaType": "Tipo de suporte",
+        "send": "Enviar",
+        "direct": "O pedido é enviado pelo seu navegador, diretamente para esse servidor.",
+        "blocked": "O pedido não chegou ao servidor. Pode não aceitar pedidos de outra origem, ou o endereço não estar acessível a partir daqui."
+      }
+    }
+  }
+}

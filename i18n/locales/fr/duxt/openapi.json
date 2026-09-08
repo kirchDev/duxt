@@ -1,0 +1,74 @@
+{
+  "duxt": {
+    "openapi": {
+      "required": "Obligatoire",
+      "deprecated": "Obsolète",
+      "readOnly": "Lecture seule",
+      "writeOnly": "Écriture seule",
+      "externalRef": "Défini dans un autre fichier, que cette compilation ne lit pas :",
+      "circular": "Se référence lui-même ; déplié plus haut.",
+      "truncated": "Imbriqué plus profondément que cette vue ne l’affiche.",
+      "items": "Chaque élément",
+      "additionalProperties": "Toute autre propriété",
+      "noAdditionalProperties": "Aucune autre propriété n’est autorisée.",
+      "discriminator": "Distingué par",
+      "parameters": "Paramètres",
+      "requestBody": "Corps de la requête",
+      "responses": "Réponses",
+      "headers": "En-têtes",
+      "noBody": "Aucun corps.",
+      "links": "Que faire ensuite",
+      "security": "Autorisation",
+      "noAuth": "Ce point de terminaison ne demande aucune authentification.",
+      "anyOfThese": "L’un de ceux-ci suffit",
+      "callbacks": "Rappels",
+      "webhook": "Webhook",
+      "endpoints": "Points de terminaison",
+      "servers": "Serveurs",
+      "authentication": "Authentification",
+      "contact": "Contact",
+      "license": "Licence",
+      "terms": "Conditions d’utilisation",
+      "moreInfo": "Plus d’informations",
+      "in": {
+        "path": "Chemin",
+        "query": "Requête",
+        "header": "En-tête",
+        "cookie": "Cookie"
+      },
+      "composition": {
+        "oneOf": "Exactement l’un de",
+        "anyOf": "Au moins l’un de",
+        "allOf": "Tous de",
+        "not": "Tout sauf"
+      },
+      "constraints": {
+        "minimum": "min",
+        "maximum": "max",
+        "exclusiveMinimum": "supérieur à",
+        "exclusiveMaximum": "inférieur à",
+        "multipleOf": "multiple de",
+        "minLength": "longueur min",
+        "maxLength": "longueur max",
+        "pattern": "motif",
+        "minItems": "éléments min",
+        "maxItems": "éléments max",
+        "uniqueItems": "uniques",
+        "minProperties": "propriétés min",
+        "maxProperties": "propriétés max"
+      },
+      "client": {
+        "title": "Envoyer une requête",
+        "server": "Serveur",
+        "auth": "Authentification",
+        "username": "Nom d’utilisateur",
+        "credentials": "Ce que vous saisissez ici reste dans cet onglet, n’est jamais conservé et n’est envoyé qu’au serveur que vous avez choisi.",
+        "certificate": "Ce schéma exige un certificat client, qu’une page ne peut pas fournir.",
+        "mediaType": "Type de média",
+        "send": "Envoyer",
+        "direct": "La requête est envoyée par votre navigateur, directement à ce serveur.",
+        "blocked": "La requête n’a pas atteint le serveur. Il n’accepte peut-être pas les requêtes d’une autre origine, ou l’adresse est inaccessible d’ici."
+      }
+    }
+  }
+}

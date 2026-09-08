@@ -1,0 +1,129 @@
+<script setup lang="ts">
+import type {
+  DuxtOpenApiOperation,
+  DuxtOpenApiSecurity,
+  DuxtOpenApiSecurityScheme,
+  DuxtOpenApiServer
+} from '../../../openapi-model';
+
+/**
+ * One operation, as the two right-hand columns of the reference.
+ *
+ * MDC: the `openapi` section type writes `::open-api-operation` into every
+ * operation page, with the structure as props and the operation's own
+ * description in the slot. The description is Markdown because the
+ * specification says it is CommonMark — rendering it as plain text is the
+ * commonest thing a reference gets wrong, and it costs the author every link
+ * and every code span they wrote.
+ *
+ * THE COLUMNS. The `reference` layout gives the operation list on the left and
+ * the full width; this splits what is left into the description in the middle
+ * and the client on the right, which is the arrangement the issue settled on.
+ * It is one grid rather than two page regions on purpose: the right column is a
+ * property of the OPERATION — its servers, its parameters, its security — so it
+ * has to be rendered by whatever renders the operation, and a layout cannot
+ * reach it.
+ *
+ * The structural blocks carry `not-typeset`; the slot does not. A page's prose
+ * wants the typeset preset and a parameter table does not, and they are
+ * siblings here so each gets what it needs.
+ */
+defineProps<{
+  operation: DuxtOpenApiOperation;
+  servers?: DuxtOpenApiServer[];
+  security?: DuxtOpenApiSecurity;
+  securitySchemes?: DuxtOpenApiSecurityScheme[];
+}>();
+</script>
+
+<template>
+  <div class="grid gap-8 xl:grid-cols-[minmax(0,1fr)_23rem]">
+    <div class="min-w-0">
+      <div class="not-typeset flex flex-wrap items-center gap-2">
+        <DuxtOpenApiMethod :method="operation.method" class="px-2 py-1" />
+
+        <code class="font-mono text-sm break-all">{{ operation.path }}</code>
+
+        <!-- A webhook is the same object pointing the other way, and a reader
+             who does not know that will try to call it. -->
+        <Badge v-if="operation.kind === 'webhook'" variant="secondary">
+          {{ $t('duxt.openapi.webhook') }}
+        </Badge>
+
+        <Badge v-if="operation.deprecated" variant="destructive">
+          {{ $t('duxt.openapi.deprecated') }}
+        </Badge>
+      </div>
+
+      <p
+        v-if="operation.operationId"
+        class="not-typeset mt-2 font-mono text-xs text-muted-foreground"
+      >
+        {{ operation.operationId }}
+      </p>
+
+      <div class="mt-4">
+        <slot />
+      </div>
+
+      <div class="not-typeset">
+        <DuxtOpenApiSecurity :security="security" />
+
+        <DuxtOpenApiParameters :parameters="operation.parameters" />
+
+        <section v-if="operation.requestBody?.content?.length" class="mt-8">
+          <h2 class="text-sm font-semibold tracking-wide uppercase">
+            {{ $t('duxt.openapi.requestBody') }}
+            <span
+              v-if="operation.requestBody.required"
+              class="ml-1 text-xs font-medium text-destructive"
+            >
+              {{ $t('duxt.openapi.required') }}
+            </span>
+          </h2>
+
+          <p
+            v-if="operation.requestBody.description"
+            class="mt-2 text-sm text-muted-foreground"
+          >
+            {{ operation.requestBody.description }}
+          </p>
+
+          <div class="mt-4 rounded-lg border px-4 py-3">
+            <DuxtOpenApiMedia :content="operation.requestBody.content" />
+          </div>
+        </section>
+
+        <DuxtOpenApiResponses :responses="operation.responses" />
+
+        <DuxtOpenApiCallbacks :callbacks="operation.callbacks" />
+
+        <p v-if="operation.externalDocs" class="mt-8 text-sm">
+          <a
+            :href="operation.externalDocs.url"
+            rel="noopener noreferrer"
+            target="_blank"
+            class="text-primary underline underline-offset-4"
+          >
+            {{
+              operation.externalDocs.description ?? $t('duxt.openapi.moreInfo')
+            }}
+          </a>
+        </p>
+      </div>
+    </div>
+
+    <!-- Sticky only where there is a column to be sticky in: below `xl` the
+         client sits after the description, which is the order a phone reads. -->
+    <div class="not-typeset min-w-0">
+      <div class="xl:sticky xl:top-[6.5rem]">
+        <DuxtOpenApiClient
+          :operation="operation"
+          :servers="servers"
+          :security="security"
+          :security-schemes="securitySchemes"
+        />
+      </div>
+    </div>
+  </div>
+</template>

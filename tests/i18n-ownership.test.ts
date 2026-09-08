@@ -153,7 +153,16 @@ function walk(dir: string): string[] {
 const COMPUTED = [
   'duxt.version.',
   'duxt.version.status.',
-  'duxt.version.titles.'
+  'duxt.version.titles.',
+  // `duxt.openapi.in.${parameter.in}` — where a parameter goes, which the
+  // document names and the interface translates.
+  'duxt.openapi.in.',
+  // `duxt.openapi.composition.${kind}` — the four JSON Schema combinators, read
+  // off the schema rather than branched on in the template.
+  'duxt.openapi.composition.',
+  // `duxt.openapi.constraints.${key}` — one key per constraint keyword, and the
+  // keywords come from the document.
+  'duxt.openapi.constraints.'
 ];
 
 describe('every key is reachable', () => {

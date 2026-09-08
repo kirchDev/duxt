@@ -1,0 +1,74 @@
+<script setup lang="ts">
+import type { DuxtOpenApiExternalDocs } from '../../../openapi-model';
+
+/**
+ * The endpoints under one tag, as the list a reader scans.
+ *
+ * MDC: `::open-api-operations` on a tag's index page. The method is a coloured
+ * chip and the path is the link text, because "find this endpoint" is the
+ * search a reader actually performs — a list of summaries alone makes them read
+ * every line to find `DELETE /pets/{id}`.
+ */
+defineProps<{
+  operations?: {
+    method: string;
+    path: string;
+    kind?: string;
+    summary?: string;
+    deprecated?: boolean;
+    to: string;
+  }[];
+  externalDocs?: DuxtOpenApiExternalDocs;
+}>();
+
+const localeLink = useDuxtLink();
+</script>
+
+<template>
+  <div>
+    <!-- Outside `not-typeset`: the tag's own description is Markdown and wants
+         the typeset preset; the list below emphatically does not. -->
+    <slot />
+
+    <ul
+      v-if="operations?.length"
+      class="not-typeset mt-6 divide-y rounded-lg border"
+    >
+      <li v-for="entry in operations" :key="`${entry.method}-${entry.to}`">
+        <NuxtLink
+          :to="localeLink(entry.to) ?? entry.to"
+          class="flex flex-wrap items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/50"
+        >
+          <DuxtOpenApiMethod
+            :method="entry.method"
+            class="w-16 justify-center py-0.5"
+          />
+
+          <code class="font-mono text-sm break-all">{{ entry.path }}</code>
+
+          <span
+            v-if="entry.summary"
+            class="w-full text-sm text-muted-foreground sm:ml-auto sm:w-auto sm:text-right"
+          >
+            {{ entry.summary }}
+          </span>
+
+          <Badge v-if="entry.deprecated" variant="destructive">
+            {{ $t('duxt.openapi.deprecated') }}
+          </Badge>
+        </NuxtLink>
+      </li>
+    </ul>
+
+    <p v-if="externalDocs" class="not-typeset mt-6 text-sm">
+      <a
+        :href="externalDocs.url"
+        rel="noopener noreferrer"
+        target="_blank"
+        class="text-primary underline underline-offset-4"
+      >
+        {{ externalDocs.description ?? $t('duxt.openapi.moreInfo') }}
+      </a>
+    </p>
+  </div>
+</template>
