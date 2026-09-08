@@ -1,0 +1,9 @@
+{
+  "duxt": {
+    "changelog": {
+      "releases": "Versiones",
+      "filter": "Filtrar por tipo de cambio",
+      "all": "Todas"
+    }
+  }
+}

@@ -1,10 +1,27 @@
+import { parse as parseYaml } from 'yaml';
 import { describe, expect, it } from 'vitest';
 import { changelogSectionType } from '../sections-changelog';
+import type { DuxtSectionOptions } from '../sections-resolve';
 
-const context = { label: 'Releases', prefix: '/releases' };
+const parse = (artefact: string, options: DuxtSectionOptions = {}) =>
+  changelogSectionType.parse(artefact, {
+    label: 'Releases',
+    prefix: '/releases',
+    options
+  });
 
-const parse = (artefact: string) =>
-  changelogSectionType.parse(artefact, context);
+/** The layout the type asks for, given the declaration's own options. */
+const layout = (options: DuxtSectionOptions = {}) =>
+  typeof changelogSectionType.layout === 'function'
+    ? changelogSectionType.layout(options)
+    : changelogSectionType.layout;
+
+/** The props of the first MDC block in a page, as the renderer will read them. */
+const props = (body: string) => {
+  const block = /^:{3,}[a-z-]+\n---\n([\s\S]*?)\n---\n/m.exec(body);
+
+  return block ? parseYaml(block[1]!) : undefined;
+};
 
 /** The shape release-please writes, minor and patch releases both. */
 const CHANGELOG = `# Changelog
@@ -16,6 +33,7 @@ Everything that changed.
 ### Features
 
 * a thing ([#12](https://example.com/12))
+* a second thing
 
 ### Bug Fixes
 
@@ -94,25 +112,6 @@ describe('the changelog type', () => {
     expect(first!.body).not.toContain('date:');
   });
 
-  it('promotes the release body so the headings do not skip a level', () => {
-    // The release itself is the page's `<h1>`; an `###` under it is a broken
-    // outline and an axe `heading-order` failure.
-    const [, first] = parse(CHANGELOG);
-
-    expect(first!.body).toContain('## Features');
-    expect(first!.body).toContain('## Bug Fixes');
-    expect(first!.body).not.toContain('### ');
-  });
-
-  it('reads a patch release written one level down', () => {
-    const patch = parse(CHANGELOG)[2]!;
-
-    expect(patch.body).toContain('title: "0.1.1"');
-    expect(patch.body).toContain('* the first fix');
-    // Its own body was `###` too, so it lands at the same level as a minor's.
-    expect(patch.body).toContain('## Bug Fixes');
-  });
-
   it('keeps one release out of the next', () => {
     const [, first] = parse(CHANGELOG);
 
@@ -120,21 +119,120 @@ describe('the changelog type', () => {
     expect(first!.body).not.toContain('* the first fix');
   });
 
-  it('gives the index the section label and the preamble', () => {
-    const [index] = parse(CHANGELOG);
+  it('reads a patch release written one level down', () => {
+    const patch = parse(CHANGELOG)[2]!;
 
-    expect(index!.body).toContain('title: "Releases"');
-    expect(index!.body).toContain('Everything that changed.');
-    // The file's own `# Changelog`: the page draws its heading from `title`,
-    // and a second h1 in the body is a duplicate and an axe finding.
-    expect(index!.body).not.toContain('# Changelog');
+    expect(patch.body).toContain('title: "0.1.1"');
+    expect(patch.body).toContain('* the first fix');
+  });
+});
+
+/**
+ * The presentation half: what the pages LOOK like, which is what a type's
+ * layout and its components decide.
+ */
+describe('the changelog rendering', () => {
+  it('renders the split history in a layout of its own', () => {
+    // A layout name is public surface — renaming it is a `feat!:`.
+    expect(layout()).toBe('changelog');
   });
 
-  it('lists the releases on the index, under the section prefix', () => {
+  it('draws its own page heading, because the layout draws none', () => {
+    // A type that names a layout owns its page: `pages/[...slug].vue` skips the
+    // docs header for it, so the `<h1>` has to come out of the parser.
+    const [index, first] = parse(CHANGELOG);
+
+    expect(index!.body).toContain('# Releases');
+    expect(first!.body).toContain('# 0.2.0');
+  });
+
+  it('groups a release by the file`s own headings, taken verbatim', () => {
+    const [, first] = parse(CHANGELOG);
+
+    expect(first!.body).toContain('::changelog-group');
+    expect(first!.body).toContain('name: "Features"');
+    expect(first!.body).toContain('name: "Bug Fixes"');
+    // The entries stay Markdown inside the block, so search, `llms-full.txt`
+    // and the copy button carry them as prose rather than as props.
+    expect(first!.body).toContain('* a thing ([#12](https://example.com/12))');
+  });
+
+  it('counts the entries of each group', () => {
+    const [, first] = parse(CHANGELOG);
+
+    expect(first!.body).toMatch(/name: "Features"\ncount: 2/);
+    expect(first!.body).toMatch(/name: "Bug Fixes"\ncount: 1/);
+  });
+
+  it('groups a patch release written one level down', () => {
+    // Its own heading was `###`, so its groups are `###` too — the level is
+    // read off the body rather than assumed.
+    const patch = parse(CHANGELOG)[2]!;
+
+    expect(patch.body).toContain('name: "Bug Fixes"');
+    expect(patch.body).toContain('* the first fix');
+  });
+
+  it('promotes a heading below the group level, so none skips one', () => {
+    const nested = [
+      '## 1.0.0',
+      '',
+      '### Features',
+      '',
+      '#### A detail',
+      '',
+      '* a thing',
+      ''
+    ].join('\n');
+
+    // The group is the page's `<h2>`, so what was under it lands at `###`.
+    expect(parse(nested)[1]!.body).toContain('### A detail');
+  });
+
+  it('leaves the prose before the first group where it is', () => {
+    const noted = ['## 1.0.0', '', 'A note about this one.', ''].join('\n');
+
+    const [, first] = parse(noted);
+
+    expect(first!.body).toContain('A note about this one.');
+    expect(first!.body).not.toContain('::changelog-group');
+  });
+
+  it('lists the releases on the index for the component to draw', () => {
     const [index] = parse(CHANGELOG);
 
-    expect(index!.body).toContain('- [0.2.0](/releases/v0.2.0) — 2026-02-01');
-    expect(index!.body).toContain('- [0.1.0](/releases/v0.1.0) — 2026-01-01');
+    expect(index!.body).toContain('::changelog-releases');
+    expect(props(index!.body)).toMatchObject({
+      releases: [
+        {
+          version: '0.2.0',
+          date: '2026-02-01',
+          to: '/releases/v0.2.0',
+          groups: [
+            { name: 'Features', count: 2 },
+            { name: 'Bug Fixes', count: 1 }
+          ]
+        },
+        { version: '0.1.1', date: '2026-01-15', to: '/releases/v0.1.1' },
+        { version: '0.1.0', date: '2026-01-01', to: '/releases/v0.1.0' }
+      ]
+    });
+  });
+
+  it('quotes a date, which a plain one would reach the page as', () => {
+    // YAML resolves `2026-02-01` to a timestamp under the schema remark-mdc
+    // reads props with, and a `Date` in `<time :datetime>` prints the reader's
+    // own timezone rather than the release day.
+    const [index] = parse(CHANGELOG);
+
+    expect(typeof props(index!.body).releases[0].date).toBe('string');
+  });
+
+  it('keeps the preamble on the index and drops the file`s own title', () => {
+    const [index] = parse(CHANGELOG);
+
+    expect(index!.body).toContain('Everything that changed.');
+    expect(index!.body).not.toContain('# Changelog');
   });
 
   it('reads a changelog with no releases as the index alone', () => {
@@ -162,7 +260,7 @@ describe('the changelog type', () => {
     ]);
   });
 
-  it('leaves a heading inside a fenced block unpromoted', () => {
+  it('does not read a heading inside a fenced block as a group', () => {
     const fenced = [
       '## 1.0.0',
       '',
@@ -172,7 +270,10 @@ describe('the changelog type', () => {
       ''
     ].join('\n');
 
-    expect(parse(fenced)[1]!.body).toContain('### a heading in an example');
+    const [, first] = parse(fenced);
+
+    expect(first!.body).not.toContain('::changelog-group');
+    expect(first!.body).toContain('### a heading in an example');
   });
 
   it('quotes every frontmatter value, so a colon cannot end the mapping', () => {
@@ -180,9 +281,52 @@ describe('the changelog type', () => {
     // here the frontmatter is generated rather than written.
     const [index] = changelogSectionType.parse('# Changelog\n', {
       label: 'Releases: the log',
-      prefix: '/releases'
+      prefix: '/releases',
+      options: {}
     });
 
     expect(index!.body).toContain('title: "Releases: the log"');
+  });
+});
+
+/**
+ * The other granularity: the file as it stands, for a project that wants it
+ * shown rather than turned into a section.
+ */
+describe('the flat changelog', () => {
+  const flat = (artefact: string) => parse(artefact, { granularity: 'flat' });
+
+  it('is one page, whatever the file holds', () => {
+    expect(flat(CHANGELOG).map((page) => page.file)).toEqual(['index.md']);
+  });
+
+  it('renders the file unchanged, releases and all', () => {
+    const [only] = flat(CHANGELOG);
+
+    expect(only!.body).toContain('## [0.2.0]');
+    expect(only!.body).toContain('### Features');
+    expect(only!.body).toContain('* the first release');
+    expect(only!.body).not.toContain('::changelog-group');
+  });
+
+  it('is an ordinary page, so it keeps the docs chrome', () => {
+    // No layout, and therefore the header, the breadcrumb, the table of
+    // contents and the prev/next pair the docs shell draws — which is the
+    // whole point of asking for the file as it stands.
+    expect(layout({ granularity: 'flat' })).toBeUndefined();
+  });
+
+  it('draws no heading of its own, because the page draws one', () => {
+    const [only] = flat(CHANGELOG);
+
+    expect(only!.body).toContain('title: "Releases"');
+    expect(only!.body).not.toContain('# Changelog');
+    expect(only!.body).not.toContain('# Releases');
+  });
+
+  it('names a granularity it does not have', () => {
+    expect(() => parse(CHANGELOG, { granularity: 'timeline' })).toThrow(
+      /granularity/
+    );
   });
 });

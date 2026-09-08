@@ -1,0 +1,9 @@
+{
+  "duxt": {
+    "changelog": {
+      "releases": "Releases",
+      "filter": "Filter by kind of change",
+      "all": "All"
+    }
+  }
+}

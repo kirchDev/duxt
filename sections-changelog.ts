@@ -12,15 +12,38 @@
  * something that looks like a version, so a hand-kept `## 1.4.0` or a
  * Keep-a-Changelog file reads too.
  *
- * Pure text in, files out. Everything about how the result LOOKS — grouping,
- * filters, the layout — belongs to the type's layout rather than here.
+ * TWO GRANULARITIES, and `split` is the default. Split turns each release into
+ * a page of its own — a deep link, a search hit, a feed item and an `llms.txt`
+ * entry per release — under a generated overview; `flat` renders the file as
+ * the one page it was written as, for a project that just wants it shown. The
+ * cost of two rendering paths was weighed and accepted, and the difference runs
+ * further than the page count: a flat changelog is an ORDINARY docs page and
+ * keeps the docs chrome, which is why `layout` is answered per declaration.
+ *
+ * Pure text in, files out. What the split history LOOKS like — the timeline,
+ * the group badges, the filters — belongs to `layouts/changelog.vue` and the
+ * two components this file writes calls to.
  */
+import { stringify as stringifyYaml } from 'yaml';
 import type {
   DuxtSectionContext,
+  DuxtSectionOptions,
   DuxtSectionPage,
   DuxtSectionType
 } from './sections-resolve';
 import { slugify } from './sources-resolve';
+
+/**
+ * The names this type binds — PUBLIC SURFACE, so renaming one is a `feat!:`.
+ *
+ * A layout and two MDC components, because that is the whole of what a
+ * consumer can override: dropping a `ChangelogGroup.vue` of their own into
+ * `app/components/content/` replaces the layer's, exactly as it does for a
+ * callout, and a `layouts/changelog.vue` replaces the chrome around it.
+ */
+export const DUXT_CHANGELOG_LAYOUT = 'changelog';
+export const DUXT_CHANGELOG_RELEASES = 'changelog-releases';
+export const DUXT_CHANGELOG_GROUP = 'changelog-group';
 
 /** A heading, at any level. */
 const HEADING = /^(#{1,6})[ \t]+(.+?)[ \t]*$/;
@@ -34,6 +57,14 @@ const LINK = /\[([^\]]*)\]\([^)]*\)/g;
 /** What is left of a release heading once its link is gone: version, date. */
 const RELEASE = /^(v?\d[\w.+-]*)(?:[ \t]+\((\d{4}-\d{2}-\d{2})\))?$/;
 
+/** A list item at the top level of a group — one entry of the release. */
+const ENTRY = /^(?:[-*+]|\d+[.)])[ \t]+\S/;
+
+/** How the file is turned into pages. */
+const GRANULARITIES = ['split', 'flat'] as const;
+
+type Granularity = (typeof GRANULARITIES)[number];
+
 interface Release {
   /** The version exactly as the changelog wrote it. */
   version: string;
@@ -41,6 +72,16 @@ interface Release {
   date?: string;
   /** The lines under the heading, up to the next release. */
   body: string[];
+}
+
+/** One `###` block of a release, named by its own heading. */
+interface Group {
+  /** The heading, VERBATIM — see `groupsOf`. */
+  name: string;
+  /** How many entries it lists, for the badge on the overview. */
+  count: number;
+  /** The lines under it. */
+  lines: string[];
 }
 
 export const changelogSectionType: DuxtSectionType = {
@@ -63,14 +104,49 @@ export const changelogSectionType: DuxtSectionType = {
    * page — which is the honest answer, and needs no new component.
    */
   localisation: 'original',
+  /**
+   * A layout of its own for the split history, and none for the flat file.
+   *
+   * The split history is a timeline: the releases in the sidebar, a page per
+   * release, no table of contents over four bullet points. The flat file is a
+   * long ordinary page, and the docs chrome is exactly what it wants — a
+   * contents column listing the releases most of all. Same type, two products,
+   * so the question is answered from the declaration's own options.
+   */
+  layout: (options) =>
+    granularityOf(options) === 'split' ? DUXT_CHANGELOG_LAYOUT : undefined,
   icon: 'lucide:tag'
 };
+
+/**
+ * The granularity this declaration asked for.
+ *
+ * Named rather than ignored, for the reason an unknown type is: a misspelled
+ * `granularity: 'splitt'` that silently means `split` is a site quietly not
+ * getting what it configured, and this build is the last place that can say so.
+ */
+function granularityOf(options: DuxtSectionOptions): Granularity {
+  const value = options.granularity ?? 'split';
+
+  if (!GRANULARITIES.includes(value as Granularity)) {
+    throw new Error(
+      `duxt: a changelog section asks for the granularity ` +
+        `"${String(value)}", which is not one of ` +
+        `${GRANULARITIES.map((name) => `"${name}"`).join(' or ')}.`
+    );
+  }
+
+  return value as Granularity;
+}
 
 function parseChangelog(
   artefact: string,
   context: DuxtSectionContext
 ): DuxtSectionPage[] {
   const lines = artefact.split(/\r?\n/);
+
+  if (granularityOf(context.options) === 'flat') return [flat(lines, context)];
+
   const headings = headingsOf(lines);
 
   const starts = headings.filter((heading) => release(heading.text));
@@ -100,25 +176,35 @@ function parseChangelog(
   ];
 }
 
+/**
+ * The file as it stands, as one page.
+ *
+ * Nothing is rewritten but the title: the file's own `# Changelog` goes,
+ * because the docs page draws its heading from `title` and a second `<h1>` in
+ * the body is both a duplicate and an axe finding. Every release heading stays
+ * exactly where the release tool put it — which is what "unchanged" has to
+ * mean, or the mode is not the escape hatch it exists to be.
+ */
+function flat(lines: string[], context: DuxtSectionContext): DuxtSectionPage {
+  return {
+    file: 'index.md',
+    body: [
+      frontmatter({ title: context.label }),
+      '',
+      ...trim(withoutTitle(lines)),
+      ''
+    ].join('\n')
+  };
+}
+
 /** Every heading outside a fenced code block, with the line it sits on. */
 function headingsOf(
   lines: string[]
 ): { line: number; level: number; text: string }[] {
   const headings: { line: number; level: number; text: string }[] = [];
-  let fence: string | undefined;
 
-  lines.forEach((line, number) => {
-    const fenced = FENCE.exec(line);
-
-    if (fenced) {
-      // A fence closes only on its own kind, so a ``` inside a ~~~ block is
-      // content rather than the end of it.
-      if (!fence) fence = fenced[1];
-      else if (fence === fenced[1]) fence = undefined;
-      return;
-    }
-
-    if (fence) return;
+  scan(lines, (line, number, fenced) => {
+    if (fenced) return;
 
     const match = HEADING.exec(line);
     if (match) {
@@ -133,6 +219,36 @@ function headingsOf(
   return headings;
 }
 
+/**
+ * Every line, with whether it sits inside a fenced block.
+ *
+ * One walk, three readers: the heading list, the entry count and the promotion
+ * pass all have to agree about what is code and what is content, and three
+ * copies of the fence rule is three places for them to stop agreeing. A fence
+ * closes only on its own kind, so a ``` inside a ~~~ block is content rather
+ * than the end of it.
+ */
+function scan(
+  lines: string[],
+  visit: (line: string, number: number, fenced: boolean) => void
+): void {
+  let fence: string | undefined;
+
+  lines.forEach((line, number) => {
+    const opened = FENCE.exec(line);
+
+    if (opened) {
+      if (!fence) fence = opened[1];
+      else if (fence === opened[1]) fence = undefined;
+
+      visit(line, number, true);
+      return;
+    }
+
+    visit(line, number, Boolean(fence));
+  });
+}
+
 /** Is this heading a release, and which one? */
 function release(text: string): { version: string; date?: string } | undefined {
   const match = RELEASE.exec(text.replace(LINK, '$1').trim());
@@ -142,50 +258,125 @@ function release(text: string): { version: string; date?: string } | undefined {
 }
 
 /**
- * The section's own page, at the prefix the navbar entry points at.
+ * A release body, split into the groups its own headings name.
  *
- * Its body is whatever the changelog says before its first release — the
- * preamble release-please leaves at the top — followed by the releases as
- * links, so the section is navigable before anything renders it specially.
+ * THE GROUPS ARE THE FILE'S HEADINGS, TAKEN VERBATIM. No fixed taxonomy and no
+ * mapping: release-please writes "Features" and "Bug Fixes", changesets and
+ * Keep a Changelog write their own, and every one of them writes them in the
+ * language the project is kept in. A hard-wired list would fail silently on the
+ * first heading it did not know — which is the failure mode this repository
+ * least wants, and the reason the filters on the overview are built from
+ * whatever came out of the file.
+ *
+ * The LEVEL comes off the body rather than being assumed: release-please writes
+ * a patch release at `###` and its groups at `###` as well, so "the shallowest
+ * heading in this release" is the only rule that reads both.
+ */
+function groupsOf(lines: string[]): { intro: string[]; groups: Group[] } {
+  const headings = headingsOf(lines);
+  if (!headings.length) return { intro: lines, groups: [] };
+
+  const level = Math.min(...headings.map((heading) => heading.level));
+  const starts = headings.filter((heading) => heading.level === level);
+
+  return {
+    intro: trim(lines.slice(0, starts[0]!.line)),
+    groups: starts.map((heading, index) => {
+      const end = starts[index + 1]?.line ?? lines.length;
+      const body = trim(lines.slice(heading.line + 1, end));
+
+      return {
+        name: heading.text.trim(),
+        count: entries(body),
+        lines: body
+      };
+    })
+  };
+}
+
+/** How many entries a group lists — its top-level list items. */
+function entries(lines: string[]): number {
+  let count = 0;
+
+  scan(lines, (line, _number, fenced) => {
+    if (!fenced && ENTRY.test(line)) count += 1;
+  });
+
+  return count;
+}
+
+/**
+ * The section's own page: the preamble, then the releases as a timeline.
+ *
+ * The release LIST travels as props rather than as a Markdown list, the way
+ * `sections-openapi.ts` hands its tags over: what the component needs is the
+ * date and the groups beside each version, and a bullet list carrying that
+ * would be a data structure spelled as prose. The entries themselves stay on
+ * the release pages — repeating them here would put the whole changelog twice
+ * into the search index, `llms-full.txt` and the feed.
  */
 function index(
   preamble: string[],
   releases: Release[],
   context: DuxtSectionContext
 ): DuxtSectionPage {
-  const body = trim(
-    preamble
-      // The file's own title. The page draws its heading from `title`, and a
-      // second h1 in the body is both a duplicate and an axe finding.
-      .filter((line) => !/^#[ \t]/.test(line))
-      .join('\n')
-      .split('\n')
-  );
+  const body = trim(withoutTitle(preamble));
 
-  const list = releases.map(
-    (entry) =>
-      `- [${entry.version}](${context.prefix}/${segment(entry.version)})` +
-      (entry.date ? ` — ${entry.date}` : '')
-  );
+  const props = {
+    releases: releases.map((entry) => ({
+      version: entry.version,
+      date: entry.date,
+      to: `${context.prefix}/${segment(entry.version)}`,
+      groups: groupsOf(trim(entry.body)).groups.map((group) => ({
+        name: group.name,
+        count: group.count
+      }))
+    }))
+  };
 
   return {
     file: 'index.md',
     body: [
       frontmatter({ title: context.label }),
       '',
+      // The page's own `<h1>`, which the DOCS SHELL would have drawn: a type
+      // that names a layout owns its page, so `pages/[...slug].vue` draws no
+      // header for it and the heading has to come out of the parser.
+      `# ${heading(context.label)}`,
+      '',
       ...(body.length ? [...body, ''] : []),
-      ...list
+      ...(releases.length
+        ? [component(DUXT_CHANGELOG_RELEASES, props), '']
+        : [])
     ].join('\n')
   };
 }
 
+/** One release, as a page: the version as its heading, then its groups. */
 function page(entry: Release, order: string): DuxtSectionPage {
+  const { intro, groups } = groupsOf(trim(entry.body));
+
   return {
     file: `${order}.${segment(entry.version)}.md`,
     body: [
       frontmatter({ title: entry.version, date: entry.date }),
       '',
-      ...promote(trim(entry.body))
+      `# ${heading(entry.version)}`,
+      '',
+      ...(intro.length ? [...promote(intro), ''] : []),
+      ...groups.flatMap((group) => [
+        // The entries stay MARKDOWN, in the component's slot: they are the
+        // release, and what a reader searches for, what `llms-full.txt` carries
+        // and what the copy button hands a model is prose either way. Only the
+        // name and the count — which the badge and the filters need as data —
+        // travel as props.
+        component(
+          DUXT_CHANGELOG_GROUP,
+          { name: group.name, count: group.count },
+          promote(group.lines).join('\n')
+        ),
+        ''
+      ])
     ].join('\n')
   };
 }
@@ -209,29 +400,43 @@ function segment(version: string): string {
  *
  * A release body starts at `###` — release-please puts "Features" and "Bug
  * Fixes" there, under the `##` the release itself occupies. On a page of its
- * own that release is the `<h1>` the theme draws from `title`, so an `###`
- * under it skips a level: a broken outline for a screen reader, and an axe
- * `heading-order` failure on the built page.
+ * own that release is the `<h1>`, and the groups it was split into are the
+ * `<h2>`s their component draws — so what was written under a group has to come
+ * up one level too, or it skips one: a broken outline for a screen reader, and
+ * an axe `heading-order` failure on the built page.
  */
 function promote(lines: string[]): string[] {
-  let fence: string | undefined;
+  const promoted: string[] = [];
 
-  return lines.map((line) => {
-    const fenced = FENCE.exec(line);
+  scan(lines, (line, _number, fenced) => {
+    const match = fenced ? undefined : HEADING.exec(line);
 
-    if (fenced) {
-      if (!fence) fence = fenced[1];
-      else if (fence === fenced[1]) fence = undefined;
-      return line;
-    }
-
-    if (fence) return line;
-
-    const match = HEADING.exec(line);
-    if (!match || match[1]!.length < 3) return line;
-
-    return `${'#'.repeat(match[1]!.length - 1)} ${match[2]}`;
+    promoted.push(
+      match && match[1]!.length >= 3
+        ? `${'#'.repeat(match[1]!.length - 1)} ${match[2]}`
+        : line
+    );
   });
+
+  return promoted;
+}
+
+/**
+ * The lines without the file's own title.
+ *
+ * A page draws its `<h1>` from `title` — its own in the docs shell, the one the
+ * parser writes in a layout of its own — so the `# Changelog` at the top of the
+ * file is a second one either way.
+ */
+function withoutTitle(lines: string[]): string[] {
+  const kept: string[] = [];
+
+  scan(lines, (line, _number, fenced) => {
+    if (!fenced && /^#[ \t]/.test(line)) return;
+    kept.push(line);
+  });
+
+  return kept;
 }
 
 /** The lines with the blank ones at either end dropped. */
@@ -243,6 +448,52 @@ function trim(lines: string[]): string[] {
   while (end > start && !lines[end - 1]!.trim()) end -= 1;
 
   return lines.slice(start, end);
+}
+
+/**
+ * An MDC block component with YAML props and Markdown inside it.
+ *
+ * The fence LENGTH is computed rather than fixed, exactly as in
+ * `sections-openapi.ts`: a release note containing a `::callout` would
+ * otherwise close the component early and spill its props into the page.
+ *
+ * EVERY STRING IS QUOTED, and that is the same defence the frontmatter helper
+ * below makes for the same reason one level up. A plain `2026-02-01` is a
+ * timestamp under the schema the props are read back with, so an unquoted date
+ * reaches the component as a `Date` and `<time :datetime>` prints the reader's
+ * own timezone rather than the day the release was cut.
+ */
+function component(
+  name: string,
+  props: Record<string, unknown>,
+  slot?: string
+): string {
+  const body = slot?.trim() ?? '';
+
+  const longest = Math.max(
+    2,
+    ...body.split('\n').map((line) => /^\s*(:+)/.exec(line)?.[1]?.length ?? 0)
+  );
+
+  const fence = ':'.repeat(Math.max(3, longest + 1));
+
+  return [
+    `${fence}${name}`,
+    '---',
+    stringifyYaml(props, {
+      defaultStringType: 'QUOTE_DOUBLE',
+      defaultKeyType: 'PLAIN',
+      lineWidth: 0
+    }).trimEnd(),
+    '---',
+    ...(body ? [body] : []),
+    fence
+  ].join('\n');
+}
+
+/** A heading is one line, and the text is written as it stands. */
+function heading(value: string): string {
+  return value.replace(/\s+/g, ' ').trim();
 }
 
 /**
