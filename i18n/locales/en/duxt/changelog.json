@@ -3,7 +3,11 @@
     "changelog": {
       "releases": "Releases",
       "filter": "Filter by kind of change",
-      "all": "All"
+      "latest": "Latest",
+      "kind": "Kind of change",
+      "reset": "Reset",
+      "history": "Release history",
+      "selected": "Selected kinds of change"
     }
   }
 }

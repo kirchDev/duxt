@@ -3,7 +3,11 @@
     "changelog": {
       "releases": "Versiones",
       "filter": "Filtrar por tipo de cambio",
-      "all": "Todas"
+      "latest": "Más reciente",
+      "kind": "Tipo de cambio",
+      "reset": "Restablecer",
+      "history": "Historial de versiones",
+      "selected": "Tipos de cambio seleccionados"
     }
   }
 }

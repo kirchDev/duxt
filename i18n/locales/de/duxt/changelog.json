@@ -3,7 +3,11 @@
     "changelog": {
       "releases": "Versionen",
       "filter": "Nach Art der Änderung filtern",
-      "all": "Alle"
+      "latest": "Neueste",
+      "kind": "Änderungsart",
+      "reset": "Zurücksetzen",
+      "history": "Versionsverlauf",
+      "selected": "Ausgewählte Änderungsarten"
     }
   }
 }
