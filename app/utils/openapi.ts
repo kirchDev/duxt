@@ -206,6 +206,464 @@ function stringExample(schema: DuxtOpenApiSchema): string {
  * reader cannot copy, so an unanswered variable falls back to the document's
  * own default rather than staying `{stage}`.
  */
+/** What kind of control a value of this schema should be typed into. */
+export interface DuxtOpenApiField {
+  /** `select` when the document names the whole set of legal values. */
+  control: 'text' | 'number' | 'select';
+  /** The values a `select` offers, as the strings the request will carry. */
+  options?: string[];
+  /** Attributes the box takes verbatim — `type`, `step`, `min`, `max`. */
+  attrs: Record<string, string>;
+}
+
+/**
+ * The box a parameter is typed into, chosen from what the document says it is.
+ *
+ * Every try-it client the layer has drawn until now offered one text box for
+ * every parameter, and a text box is the honest control only where the document
+ * says nothing: `limit: integer, min 1, max 100` is a number with a range, and
+ * an `enum` is a list — typing either by hand is a chance to send something the
+ * endpoint will reject, on a form whose whole purpose is to reach it.
+ *
+ * The VALUE STAYS A STRING whatever the control is, because that is what goes
+ * on the wire: a query, a path segment and a header are text, and parsing them
+ * into numbers here would only be undone one function later in
+ * `openApiQueryString`. What the type buys is the box, the stepper and the
+ * range — not a different representation.
+ *
+ * Pure, and here rather than in the component, for the reason everything else
+ * in this file is: a mapping written inline in a template can only be checked
+ * by clicking through every operation of every document.
+ */
+export function openApiField(schema?: DuxtOpenApiSchema): DuxtOpenApiField {
+  const types = schema?.types ?? [];
+
+  // The document naming the values wins over the type it names them as: an
+  // `enum` of integers is still a list to pick from, not a number to type.
+  if (schema?.enum?.length) {
+    return {
+      control: 'select',
+      options: schema.enum.map((value) =>
+        typeof value === 'string' ? value : String(value)
+      ),
+      attrs: {}
+    };
+  }
+
+  if (types.includes('boolean')) {
+    return { control: 'select', options: ['true', 'false'], attrs: {} };
+  }
+
+  if (types.includes('integer') || types.includes('number')) {
+    const { minimum, maximum, multipleOf } = schema?.constraints ?? {};
+
+    return {
+      control: 'number',
+      attrs: {
+        type: 'number',
+        // An integer steps by one unless the document says otherwise; a
+        // `number` takes anything, or the browser's own validation rejects a
+        // decimal in a field it decided was whole.
+        step: String(multipleOf ?? (types.includes('integer') ? 1 : 'any')),
+        ...(minimum === undefined ? {} : { min: String(minimum) }),
+        ...(maximum === undefined ? {} : { max: String(maximum) })
+      }
+    };
+  }
+
+  return { control: 'text', attrs: {} };
+}
+
+/** One property of a request body, as the box it is typed into. */
+export interface DuxtOpenApiBodyField {
+  name: string;
+  required: boolean;
+  description?: string;
+  field: DuxtOpenApiField;
+}
+
+/** Why a body cannot be drawn as a form, when it cannot. */
+export type DuxtOpenApiBodyReason =
+  | 'not-object'
+  | 'empty'
+  | 'nested'
+  | 'variants'
+  | 'unresolved'
+  | 'dynamic';
+
+export type DuxtOpenApiBodyForm =
+  | { expressible: true; fields: DuxtOpenApiBodyField[] }
+  | { expressible: false; reason: DuxtOpenApiBodyReason };
+
+/** The scalar types a single box can carry a value of. */
+const SCALARS = new Set(['string', 'number', 'integer', 'boolean', 'null']);
+
+/**
+ * Can one box hold a value of this schema?
+ *
+ * An UNTYPED property counts, and that is the interesting half. A schema that
+ * names no type at all constrains nothing — OpenAPI's `any` — and refusing the
+ * whole form over one of them is how a body of five strings and one `any` ended
+ * up with no form at all. It gets a text box like any other unconstrained
+ * value, and the JSON view is one click away for the reader who needs to put an
+ * object in it. A schema that names no type but DOES carry properties, items or
+ * a combinator is a shape rather than a value, and still disqualifies.
+ */
+function scalar(schema: DuxtOpenApiSchema): boolean {
+  if (schema.enum?.length) return true;
+
+  const types = schema.types ?? [];
+  if (types.length) return types.every((type) => SCALARS.has(type));
+
+  return !(
+    schema.properties?.length ||
+    schema.items ||
+    schema.prefixItems?.length ||
+    schema.oneOf?.length ||
+    schema.anyOf?.length ||
+    schema.allOf?.length ||
+    schema.additionalProperties
+  );
+}
+
+/**
+ * Can this request body be drawn as a form, and out of which boxes?
+ *
+ * THE ANSWER IS OFTEN NO, and saying so is the whole point. A JSON body is a
+ * tree: `oneOf` between two shapes, an array of objects, a `$ref` that loops or
+ * leaves the document, a map with no fixed keys. A form covers the flat object
+ * — which is most request bodies most of the time — and a form that silently
+ * could not express the rest would be worse than no form at all, because the
+ * reader would not learn that what they typed is not what would be sent. So
+ * every case it cannot draw comes back named, and the client shows the editor
+ * instead.
+ *
+ * `null` is allowed among a property's types rather than disqualifying it: a
+ * nullable string is a string with one more legal value, and 3.0's `nullable`
+ * reaches the model as exactly that — see `DuxtOpenApiSchema.types`.
+ */
+export function openApiBodyForm(
+  schema?: DuxtOpenApiSchema
+): DuxtOpenApiBodyForm {
+  if (!schema) return { expressible: false, reason: 'not-object' };
+
+  // A reference the build could not follow has no properties to read, and one
+  // that loops would draw a form of itself.
+  //
+  // NOT `schema.ref`, which was the bug: the parser keeps `ref` on a reference
+  // it DID follow, beside the name and the properties it resolved — so testing
+  // it refused every body that is a named component, which is very nearly all
+  // of them. `circular` and `external` are the two that actually mean "there is
+  // nothing here to read".
+  if (schema.circular || schema.external) {
+    return { expressible: false, reason: 'unresolved' };
+  }
+
+  if (schema.oneOf?.length || schema.anyOf?.length || schema.allOf?.length) {
+    return { expressible: false, reason: 'variants' };
+  }
+
+  if (schema.types?.length && !schema.types.includes('object')) {
+    return { expressible: false, reason: 'not-object' };
+  }
+
+  // A map with no fixed keys: the form would offer the properties it happens to
+  // know and quietly forbid every other key the endpoint accepts. `false` is
+  // the opposite statement — no other keys exist — and a form says that fine.
+  if (schema.additionalProperties) {
+    return { expressible: false, reason: 'dynamic' };
+  }
+
+  const properties = schema.properties ?? [];
+  if (!properties.length) return { expressible: false, reason: 'empty' };
+
+  if (properties.some((property) => !scalar(property.schema))) {
+    return { expressible: false, reason: 'nested' };
+  }
+
+  return {
+    expressible: true,
+    fields: properties.map((property) => ({
+      name: property.name,
+      required: property.required,
+      description: property.schema.description,
+      field: openApiField(property.schema)
+    }))
+  };
+}
+
+/**
+ * The form's boxes, filled from a JSON body.
+ *
+ * Read from the TEXT rather than kept beside it, so the two views are one
+ * value: whatever the reader last typed in the editor is what the form opens
+ * on, and a body the form cannot account for is not silently dropped — see
+ * `openApiBodyJson`, which writes back only what the form owns.
+ */
+export function openApiBodyValues(
+  fields: DuxtOpenApiBodyField[],
+  json: string
+): Record<string, string> {
+  let parsed: unknown;
+
+  try {
+    parsed = JSON.parse(json);
+  } catch {
+    parsed = undefined;
+  }
+
+  const source =
+    parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : {};
+
+  return Object.fromEntries(
+    fields.map((entry) => {
+      const value = source[entry.name];
+
+      return [
+        entry.name,
+        value === undefined || value === null
+          ? ''
+          : typeof value === 'string'
+            ? value
+            : String(value)
+      ];
+    })
+  );
+}
+
+/**
+ * The form's boxes, back as a JSON body.
+ *
+ * An empty OPTIONAL box is left out rather than sent as `""`: a form has no way
+ * to say "absent" other than by being empty, and an endpoint told a field is
+ * the empty string was told something. A required one stays, because dropping
+ * it would send a body the document says is invalid without saying so.
+ *
+ * The TYPE decides the JSON type, which is the half a textarea cannot help
+ * with: `20` typed into a number box is a number, `true` in a boolean box is a
+ * boolean, and both were strings a moment ago.
+ */
+export function openApiBodyJson(
+  fields: DuxtOpenApiBodyField[],
+  values: Record<string, string>,
+  json = ''
+): string {
+  // WHAT THE FORM DOES NOT OWN SURVIVES. A body may carry keys the document
+  // never described — a reader typed one in the JSON view, or the server takes
+  // more than it says — and rebuilding the object from the boxes alone deleted
+  // every one of them the moment a box was touched. The form edits the body it
+  // was given; it does not replace it.
+  let body: Record<string, unknown> = {};
+
+  try {
+    const parsed: unknown = JSON.parse(json);
+
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      body = { ...(parsed as Record<string, unknown>) };
+    }
+  } catch {
+    // Not an object yet; the boxes are the whole body.
+  }
+
+  for (const entry of fields) {
+    const raw = values[entry.name] ?? '';
+
+    if (raw === '' && !entry.required) {
+      delete body[entry.name];
+      continue;
+    }
+
+    body[entry.name] = openApiBodyValue(entry, raw);
+  }
+
+  return openApiJson(body);
+}
+
+/** One box's text, as the JSON value its schema calls for. */
+function openApiBodyValue(entry: DuxtOpenApiBodyField, raw: string): unknown {
+  if (entry.field.control === 'number') {
+    const value = Number(raw);
+
+    // Not a number after all — the box is empty, or holds something the
+    // browser let through. Sent as written rather than as `NaN`, which is not
+    // JSON at all and would be serialised as `null`.
+    return raw !== '' && Number.isFinite(value) ? value : raw;
+  }
+
+  if (entry.field.options?.length === 2 && entry.field.options[0] === 'true') {
+    return raw === 'true';
+  }
+
+  return raw;
+}
+
+/** One key a body may carry, as the editor offers and checks it. */
+export interface DuxtOpenApiKey {
+  name: string;
+  required: boolean;
+  /** The one word `openApiTypeLabel` would print, for the completion list. */
+  type: string;
+  description?: string;
+  /** The values the document allows, where it named them. */
+  enum?: string[];
+}
+
+/**
+ * The keys a request body's TOP LEVEL may carry, for the editor.
+ *
+ * Narrower than `openApiBodyForm` on purpose, and the two answer different
+ * questions. The form asks "can I draw every one of these as a box?" and gives
+ * up on the first nested object; completion has no such requirement — offering
+ * `address` and letting the reader type the object themselves is strictly
+ * better than offering nothing, and marking a misspelt key is useful whatever
+ * its value looks like.
+ *
+ * Empty where the top level is not a fixed set of keys at all: an array, a
+ * `oneOf` between two shapes, a reference that could not be followed, or a map
+ * with no fixed keys. Empty means the editor still lints the JSON itself and
+ * simply has nothing to add — never that it starts inventing.
+ */
+export function openApiBodyKeys(schema?: DuxtOpenApiSchema): DuxtOpenApiKey[] {
+  // `ref` is deliberately not among these — see `openApiBodyForm`.
+  if (!schema || schema.circular || schema.external) return [];
+  if (schema.oneOf?.length || schema.anyOf?.length || schema.allOf?.length) {
+    return [];
+  }
+  if (schema.types?.length && !schema.types.includes('object')) return [];
+
+  return (schema.properties ?? []).map((property) => ({
+    name: property.name,
+    required: property.required,
+    type: openApiTypeLabel(property.schema),
+    description: property.schema.description,
+    enum: property.schema.enum?.length
+      ? property.schema.enum.map((value) =>
+          typeof value === 'string' ? value : String(value)
+        )
+      : undefined
+  }));
+}
+
+/** One thing wrong with a body, at the character where it is wrong. */
+export interface DuxtOpenApiBodyProblem {
+  from: number;
+  to: number;
+  severity: 'error' | 'warning';
+  message: string;
+}
+
+/**
+ * What the document says is wrong with this body — MISSING and UNKNOWN keys.
+ *
+ * Only the two the top level can be sure about, and each is a different kind
+ * of claim: a required key that is not there is an `error`, because the
+ * document says the request is invalid without it; a key the document does not
+ * list is a `warning`, because a server is free to accept more than it
+ * describes and this client exists partly to find out that it does.
+ *
+ * Positions are found by SEARCHING THE TEXT rather than by a parser with
+ * offsets: `JSON.parse` throws away where anything was, and pulling in a
+ * position-preserving parser for two rules would be a dependency for a
+ * squiggle. The search is for the quoted key at the top nesting level, which is
+ * the only place these rules apply anyway — a nested `"name"` is somebody
+ * else's key and is skipped by the depth count.
+ */
+export function openApiBodyProblems(
+  json: string,
+  keys: DuxtOpenApiKey[]
+): DuxtOpenApiBodyProblem[] {
+  if (!keys.length || !json.trim()) return [];
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(json);
+  } catch {
+    // Not JSON yet. The editor's own linter is already saying so, and a second
+    // opinion on a document that does not parse is noise.
+    return [];
+  }
+
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return [];
+
+  const body = parsed as Record<string, unknown>;
+  const known = new Set(keys.map((key) => key.name));
+  const problems: DuxtOpenApiBodyProblem[] = [];
+
+  for (const name of Object.keys(body)) {
+    if (known.has(name)) continue;
+
+    const at = topLevelKey(json, name);
+    if (!at) continue;
+
+    problems.push({
+      ...at,
+      severity: 'warning',
+      message: `"${name}" is not described by this document.`
+    });
+  }
+
+  const missing = keys
+    .filter((key) => key.required && !(key.name in body))
+    .map((key) => key.name);
+
+  if (missing.length) {
+    const open = json.indexOf('{');
+
+    problems.push({
+      from: Math.max(open, 0),
+      to: Math.max(open, 0) + 1,
+      severity: 'error',
+      message: `Required by this document: ${missing.join(', ')}.`
+    });
+  }
+
+  return problems;
+}
+
+/** Where a key sits, counted at the top level of the object only. */
+function topLevelKey(
+  json: string,
+  name: string
+): { from: number; to: number } | undefined {
+  const needle = JSON.stringify(name);
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let index = 0; index < json.length; index += 1) {
+    const character = json[index]!;
+
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+
+    if (inString) {
+      if (character === '\\') escaped = true;
+      else if (character === '"') inString = false;
+      continue;
+    }
+
+    if (character === '"') {
+      // A string opening exactly here, one level in, and spelled like the key.
+      if (depth === 1 && json.startsWith(needle, index)) {
+        return { from: index, to: index + needle.length };
+      }
+
+      inString = true;
+      continue;
+    }
+
+    if (character === '{' || character === '[') depth += 1;
+    else if (character === '}' || character === ']') depth -= 1;
+  }
+
+  return undefined;
+}
+
 export function openApiServerUrl(
   server?: DuxtOpenApiServer,
   values: Record<string, string> = {}

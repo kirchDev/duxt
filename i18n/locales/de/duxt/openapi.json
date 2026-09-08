@@ -68,7 +68,13 @@
         "mediaType": "Medientyp",
         "send": "Senden",
         "direct": "Die Anfrage sendet Ihr Browser direkt an diesen Server.",
-        "blocked": "Die Anfrage hat den Server nicht erreicht. Möglicherweise erlaubt er keine Anfragen von einer anderen Herkunft, oder die Adresse ist von hier nicht erreichbar."
+        "blocked": "Die Anfrage hat den Server nicht erreicht. Möglicherweise erlaubt er keine Anfragen von einer anderen Herkunft, oder die Adresse ist von hier nicht erreichbar.",
+        "samples": "Beispielanfrage",
+        "form": "Formular",
+        "json": "JSON",
+        "format": "Formatieren",
+        "invalidJson": "Noch kein gültiges JSON — die Anfrage wird so gesendet, wie sie dasteht.",
+        "noForm": "Dieser Body lässt sich nicht als Formular darstellen: bitte als JSON bearbeiten."
       }
     }
   }

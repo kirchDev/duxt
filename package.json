@@ -87,9 +87,17 @@
     "check:seo": "node scripts/check-seo.ts"
   },
   "dependencies": {
+    "@codemirror/autocomplete": "^6.20.3",
+    "@codemirror/commands": "^6.11.0",
+    "@codemirror/lang-json": "^6.0.2",
+    "@codemirror/language": "^6.12.4",
+    "@codemirror/lint": "^6.9.7",
+    "@codemirror/state": "^6.7.4",
+    "@codemirror/view": "^6.43.11",
     "@iconify-json/flag": "^1.2.12",
     "@iconify-json/lucide": "^1.2.127",
     "@iconify-json/simple-icons": "^1.2.94",
+    "@lezer/highlight": "^1.2.3",
     "@lucide/vue": "^1.37.0",
     "@nuxt/content": "^3.16.0",
     "@nuxt/icon": "^2.5.1",

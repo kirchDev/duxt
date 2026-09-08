@@ -58,6 +58,21 @@ const servers = computed(() => props.servers ?? []);
 const serverIndex = ref(0);
 const server = computed(() => servers.value[serverIndex.value]);
 
+/**
+ * The chosen server, as the STRING reka's Select carries.
+ *
+ * A list's value is a string in every listbox implementation there is, and the
+ * index it stands for is what everything downstream reads — so the conversion
+ * lives here, once, rather than in a `.number` modifier the component does not
+ * have.
+ */
+const serverValue = computed({
+  get: () => String(serverIndex.value),
+  set: (value: string) => {
+    serverIndex.value = Number(value);
+  }
+});
+
 /** One box per `{variable}` the chosen server's URL still carries. */
 const variables = ref<Record<string, string>>({});
 
@@ -98,6 +113,110 @@ const values = ref<Record<string, string>>(
 
 const bodyIndex = ref(0);
 const media = computed(() => bodies.value[bodyIndex.value]);
+
+/**
+ * Is this body a shape a form can say?
+ *
+ * The answer follows the CHOSEN media type, not the operation: a document may
+ * describe the same endpoint as flat JSON and as multipart, and only one of
+ * those is a form. See `openApiBodyForm` for what disqualifies a schema.
+ */
+const bodyForm = computed(() => openApiBodyForm(media.value?.schema));
+
+/** JSON only: a form over `text/csv` would be a form over one string. */
+const formable = computed(
+  () => bodyForm.value.expressible && /json/i.test(media.value?.type ?? '')
+);
+
+const bodyFields = computed(() =>
+  bodyForm.value.expressible ? bodyForm.value.fields : []
+);
+
+/**
+ * What the editor knows about this body — wider than the form's fields.
+ *
+ * A body the form gives up on still has keys worth offering and worth
+ * checking: see `openApiBodyKeys` for why the two questions are not the same
+ * one asked twice.
+ */
+const bodyKeys = computed(() => openApiBodyKeys(media.value?.schema));
+
+/**
+ * Which view the reader is in — remembered, for the reason the sample is.
+ *
+ * The choice between a form and raw JSON is a way of working rather than a
+ * property of one endpoint: somebody who edits the body as JSON means it on
+ * the next one too. Falls back to the form the moment it cannot serve.
+ */
+const storedMode = useDuxtChoice('request-body-view');
+
+const bodyMode = computed({
+  get: (): 'form' | 'json' => (storedMode.value === 'json' ? 'json' : 'form'),
+  set: (value: 'form' | 'json') => {
+    storedMode.value = value;
+  }
+});
+
+/**
+ * The two views, with their labels written out rather than built from the
+ * mode: `tests/i18n-ownership.test.ts` reads the sources for the keys a locale
+ * file ships, and a key assembled at runtime is a key nothing points at.
+ */
+const bodyViews = [
+  { value: 'form' as const, label: 'duxt.openapi.client.form' },
+  { value: 'json' as const, label: 'duxt.openapi.client.json' }
+];
+
+const mode = computed(() => (formable.value ? bodyMode.value : 'json'));
+
+/**
+ * The form's boxes, derived from the TEXT rather than kept beside it.
+ *
+ * One value, two views: whatever was last typed in the editor is what the form
+ * opens on, and writing a box back edits that same text. Two states would drift
+ * the first time a reader switched tabs mid-edit — and the text is the one that
+ * has to win, because it is what is sent.
+ */
+const bodyValues = computed({
+  get: () => openApiBodyValues(bodyFields.value, body.value),
+  set: (values: Record<string, string>) => {
+    body.value = openApiBodyJson(bodyFields.value, values);
+  }
+});
+
+function setBodyValue(name: string, value: string) {
+  bodyValues.value = { ...bodyValues.value, [name]: value };
+}
+
+/** What the body is not, while it is not JSON. Empty is not an error. */
+const bodyError = computed(() => {
+  const text = body.value.trim();
+  if (!text) return undefined;
+
+  try {
+    JSON.parse(text);
+    return undefined;
+  } catch (error) {
+    return error instanceof Error ? error.message : String(error);
+  }
+});
+
+/** Two spaces, the way every other JSON on these pages is written. */
+function formatBody() {
+  try {
+    body.value = openApiJson(JSON.parse(body.value));
+  } catch {
+    // Nothing to format yet; the error under the box already says so.
+  }
+}
+
+/** The chosen media type, as a string — see `serverValue`. */
+const bodyValue = computed({
+  get: () => String(bodyIndex.value),
+  set: (value: string) => {
+    bodyIndex.value = Number(value);
+  }
+});
 
 const body = ref(
   bodies.value.length
@@ -300,19 +419,30 @@ function pretty(text: string): string {
           {{ $t('duxt.openapi.client.server') }}
         </label>
 
-        <select
-          :id="`${id}-server`"
-          v-model.number="serverIndex"
-          class="h-9 w-full rounded-md border border-input bg-transparent px-3 font-mono text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-        >
-          <option
-            v-for="(entry, index) in servers"
-            :key="entry.url"
-            :value="index"
+        <UiSelect v-model="serverValue">
+          <!-- The chosen value written out, not left to `SelectValue`. That
+               one reads the text off the item the reader picked, and the items
+               exist only once reka has mounted them — so the server rendered an
+               empty box and the URL appeared a beat after hydration. This is
+               the same string, and it is in the first byte. -->
+          <UiSelectTrigger
+            :id="`${id}-server`"
+            class="w-full font-mono text-sm"
           >
-            {{ entry.url }}
-          </option>
-        </select>
+            <span class="truncate">{{ server?.url }}</span>
+          </UiSelectTrigger>
+
+          <UiSelectContent>
+            <UiSelectItem
+              v-for="(entry, index) in servers"
+              :key="entry.url"
+              :value="String(index)"
+              class="font-mono text-sm"
+            >
+              {{ entry.url }}
+            </UiSelectItem>
+          </UiSelectContent>
+        </UiSelect>
 
         <div
           v-for="variable in server?.variables ?? []"
@@ -421,9 +551,39 @@ function pretty(text: string): string {
               {{ parameter.name }}
               <span v-if="parameter.required" class="text-destructive">*</span>
             </label>
-            <Input
+            <!-- The box the DOCUMENT asks for: a list where it names the
+                 whole set of values, a number with the range it gave, a text
+                 box only where it said nothing. See `openApiField`. -->
+            <UiSelect
+              v-if="openApiField(parameter.schema).control === 'select'"
+              v-model="values[openApiParameterKey(parameter)]"
+            >
+              <UiSelectTrigger
+                :id="`${id}-p-${openApiParameterKey(parameter)}`"
+                class="w-full font-mono text-sm"
+              >
+                <span class="truncate">
+                  {{ values[openApiParameterKey(parameter)] }}
+                </span>
+              </UiSelectTrigger>
+
+              <UiSelectContent>
+                <UiSelectItem
+                  v-for="option in openApiField(parameter.schema).options"
+                  :key="option"
+                  :value="option"
+                  class="font-mono text-sm"
+                >
+                  {{ option }}
+                </UiSelectItem>
+              </UiSelectContent>
+            </UiSelect>
+
+            <UiInput
+              v-else
               :id="`${id}-p-${openApiParameterKey(parameter)}`"
               v-model="values[openApiParameterKey(parameter)]"
+              v-bind="openApiField(parameter.schema).attrs"
               class="font-mono text-sm"
               autocomplete="off"
             />
@@ -433,35 +593,148 @@ function pretty(text: string): string {
 
       <!-- body -->
       <div v-if="bodies.length">
-        <label
-          :for="`${id}-body`"
-          class="mb-1 block text-xs font-medium text-muted-foreground"
-        >
-          {{ $t('duxt.openapi.requestBody') }}
-        </label>
-
-        <select
-          v-if="bodies.length > 1"
-          v-model.number="bodyIndex"
-          :aria-label="$t('duxt.openapi.client.mediaType')"
-          class="mb-2 h-9 w-full rounded-md border border-input bg-transparent px-3 font-mono text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-        >
-          <option
-            v-for="(entry, index) in bodies"
-            :key="entry.type"
-            :value="index"
+        <div class="mb-1 flex items-center gap-2">
+          <label
+            :for="`${id}-body`"
+            class="block text-xs font-medium text-muted-foreground"
           >
-            {{ entry.type }}
-          </option>
-        </select>
+            {{ $t('duxt.openapi.requestBody') }}
+          </label>
 
-        <textarea
-          :id="`${id}-body`"
-          v-model="body"
-          rows="8"
-          spellcheck="false"
-          class="w-full rounded-md border border-input bg-transparent p-3 font-mono text-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-        />
+          <!-- Beside the label, not beside the toggle. It belongs to the JSON
+               view, so it comes and goes with it — and on the LEFT that costs
+               nothing: the toggle is pinned to the right edge by `ml-auto`, so
+               the control the reader just clicked cannot move out from under
+               the pointer, which is what happened when the two shared the right
+               end of this row. -->
+          <UiButton
+            v-if="mode === 'json'"
+            type="button"
+            variant="ghost"
+            size="sm"
+            class="h-6 px-2 text-xs"
+            @click="formatBody"
+          >
+            {{ $t('duxt.openapi.client.format') }}
+          </UiButton>
+
+          <!-- The toggle only where there is something to toggle TO: a body
+               the schema cannot describe as a form has one view, and a strip
+               offering a tab that falls straight back is a control that lies
+               about what it does. -->
+          <div
+            v-if="formable"
+            class="ml-auto flex items-center gap-0.5 rounded-md border p-0.5"
+          >
+            <button
+              v-for="view in ['form', 'json'] as const"
+              :key="view"
+              type="button"
+              :aria-pressed="mode === view"
+              class="cursor-pointer rounded px-2 py-0.5 text-xs font-medium transition-colors"
+              :class="
+                mode === view
+                  ? 'bg-accent text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              "
+              @click="bodyMode = view"
+            >
+              {{ $t(`duxt.openapi.client.${view}`) }}
+            </button>
+          </div>
+        </div>
+
+        <UiSelect v-if="bodies.length > 1" v-model="bodyValue">
+          <UiSelectTrigger
+            :aria-label="$t('duxt.openapi.client.mediaType')"
+            class="mb-2 w-full font-mono text-sm"
+          >
+            <span class="truncate">{{ media?.type }}</span>
+          </UiSelectTrigger>
+
+          <UiSelectContent>
+            <UiSelectItem
+              v-for="(entry, index) in bodies"
+              :key="entry.type"
+              :value="String(index)"
+              class="font-mono text-sm"
+            >
+              {{ entry.type }}
+            </UiSelectItem>
+          </UiSelectContent>
+        </UiSelect>
+
+        <!-- One box per property, exactly as the parameters above are drawn —
+             same helper, same rules, so an `integer` is a number box here for
+             the same reason it is one there. -->
+        <div v-if="mode === 'form'" class="space-y-2">
+          <div v-for="entry in bodyFields" :key="entry.name">
+            <label
+              :for="`${id}-b-${entry.name}`"
+              class="mb-1 block font-mono text-xs text-muted-foreground"
+            >
+              {{ entry.name }}
+              <span v-if="entry.required" class="text-destructive">*</span>
+            </label>
+
+            <UiSelect
+              v-if="entry.field.control === 'select'"
+              :model-value="bodyValues[entry.name]"
+              @update:model-value="
+                (value) => setBodyValue(entry.name, String(value ?? ''))
+              "
+            >
+              <UiSelectTrigger
+                :id="`${id}-b-${entry.name}`"
+                class="w-full font-mono text-sm"
+              >
+                <span class="truncate">{{ bodyValues[entry.name] }}</span>
+              </UiSelectTrigger>
+
+              <UiSelectContent>
+                <UiSelectItem
+                  v-for="option in entry.field.options"
+                  :key="option"
+                  :value="option"
+                  class="font-mono text-sm"
+                >
+                  {{ option }}
+                </UiSelectItem>
+              </UiSelectContent>
+            </UiSelect>
+
+            <UiInput
+              v-else
+              :id="`${id}-b-${entry.name}`"
+              :model-value="bodyValues[entry.name]"
+              v-bind="entry.field.attrs"
+              class="font-mono text-sm"
+              autocomplete="off"
+              @update:model-value="
+                (value) => setBodyValue(entry.name, String(value ?? ''))
+              "
+            />
+          </div>
+        </div>
+
+        <template v-else>
+          <DuxtJsonEditor
+            :id="`${id}-body`"
+            v-model="body"
+            :keys="bodyKeys"
+            :aria-label="$t('duxt.openapi.requestBody')"
+          />
+
+          <!-- Said while it is still fixable, rather than after a 400. The
+               request is not blocked: a document is sometimes wrong about what
+               its own endpoint accepts, and this client exists to find out. -->
+          <p v-if="bodyError" class="mt-1 text-xs text-destructive">
+            {{ $t('duxt.openapi.client.invalidJson') }}
+          </p>
+          <p v-else-if="!formable" class="mt-1 text-xs text-muted-foreground">
+            {{ $t('duxt.openapi.client.noForm') }}
+          </p>
+        </template>
       </div>
 
       <UiButton type="submit" :disabled="sending" class="w-full">

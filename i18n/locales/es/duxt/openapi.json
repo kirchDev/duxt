@@ -68,7 +68,13 @@
         "mediaType": "Tipo de medio",
         "send": "Enviar",
         "direct": "La solicitud la envía su navegador, directamente a ese servidor.",
-        "blocked": "La solicitud no llegó al servidor. Puede que no admita solicitudes de otro origen, o que la dirección no sea accesible desde aquí."
+        "blocked": "La solicitud no llegó al servidor. Puede que no admita solicitudes de otro origen, o que la dirección no sea accesible desde aquí.",
+        "samples": "Ejemplo de petición",
+        "form": "Formulario",
+        "json": "JSON",
+        "format": "Formatear",
+        "invalidJson": "Todavía no es JSON válido: la petición se enviará tal cual.",
+        "noForm": "Este cuerpo no puede mostrarse como formulario: edítalo como JSON."
       }
     }
   }

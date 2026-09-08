@@ -3,7 +3,13 @@ import type { DuxtOpenApiSchema } from '../openapi-model';
 import {
   openApiConstraints,
   openApiCurl,
+  openApiBodyForm,
+  openApiBodyKeys,
+  openApiBodyProblems,
+  openApiBodyJson,
+  openApiBodyValues,
   openApiExampleValue,
+  openApiField,
   openApiFillPath,
   openApiParameterKey,
   openApiQueryString,
@@ -308,5 +314,311 @@ describe('openApiConstraints', () => {
 
   it('is empty where the schema constrains nothing', () => {
     expect(openApiConstraints(schema())).toEqual([]);
+  });
+});
+
+describe('openApiField', () => {
+  it('makes an integer a number box with the document`s own range', () => {
+    expect(
+      openApiField({
+        types: ['integer'],
+        constraints: { minimum: 1, maximum: 100 }
+      })
+    ).toEqual({
+      control: 'number',
+      attrs: { type: 'number', step: '1', min: '1', max: '100' }
+    });
+  });
+
+  it('lets a plain number take a decimal', () => {
+    // `step="1"` on a `number` is the browser rejecting `0.5` on a field the
+    // document never said was whole.
+    expect(openApiField({ types: ['number'] }).attrs.step).toBe('any');
+  });
+
+  it('takes the step from multipleOf where the document names one', () => {
+    expect(
+      openApiField({ types: ['integer'], constraints: { multipleOf: 10 } })
+        .attrs.step
+    ).toBe('10');
+  });
+
+  it('offers a list where the document names the whole set', () => {
+    const field = openApiField({ types: ['string'], enum: ['asc', 'desc'] });
+
+    expect(field.control).toBe('select');
+    expect(field.options).toEqual(['asc', 'desc']);
+  });
+
+  it('reads an enum of numbers as the strings the request carries', () => {
+    // The value goes on the wire as text whatever the schema called it.
+    expect(
+      openApiField({ types: ['integer'], enum: [10, 20] }).options
+    ).toEqual(['10', '20']);
+  });
+
+  it('gives a boolean the only two values it has', () => {
+    expect(openApiField({ types: ['boolean'] }).options).toEqual([
+      'true',
+      'false'
+    ]);
+  });
+
+  it('leaves anything else a text box', () => {
+    expect(openApiField({ types: ['string'] }).control).toBe('text');
+    expect(openApiField(undefined).control).toBe('text');
+  });
+});
+
+describe('openApiBodyForm', () => {
+  const flat: DuxtOpenApiSchema = {
+    types: ['object'],
+    properties: [
+      { name: 'name', required: true, schema: { types: ['string'] } },
+      {
+        name: 'size',
+        required: false,
+        schema: { types: ['integer'], constraints: { minimum: 1 } }
+      },
+      { name: 'active', required: false, schema: { types: ['boolean'] } }
+    ]
+  };
+
+  it('draws a flat object as one box per property', () => {
+    const form = openApiBodyForm(flat);
+
+    expect(form.expressible).toBe(true);
+    expect(form.expressible && form.fields.map((entry) => entry.name)).toEqual([
+      'name',
+      'size',
+      'active'
+    ]);
+    expect(form.expressible && form.fields[1]!.field.control).toBe('number');
+  });
+
+  it('allows a nullable scalar, because that is still one value', () => {
+    // 3.0's `nullable` reaches the model as a second entry in `types`.
+    const form = openApiBodyForm({
+      types: ['object'],
+      properties: [
+        { name: 'note', required: false, schema: { types: ['string', 'null'] } }
+      ]
+    });
+
+    expect(form.expressible).toBe(true);
+  });
+
+  it('refuses what a form cannot say, and says which', () => {
+    // Every one of these would otherwise be a form that quietly sends
+    // something other than what the reader typed.
+    expect(openApiBodyForm({ types: ['array'] })).toEqual({
+      expressible: false,
+      reason: 'not-object'
+    });
+    expect(openApiBodyForm({ types: ['object'], circular: true })).toEqual({
+      expressible: false,
+      reason: 'unresolved'
+    });
+    expect(
+      openApiBodyForm({ types: ['object'], oneOf: [{ types: ['object'] }] })
+    ).toEqual({ expressible: false, reason: 'variants' });
+    expect(
+      openApiBodyForm({
+        types: ['object'],
+        properties: [
+          { name: 'meta', required: false, schema: { types: ['object'] } }
+        ]
+      })
+    ).toEqual({ expressible: false, reason: 'nested' });
+    expect(
+      openApiBodyForm({
+        types: ['object'],
+        additionalProperties: { types: ['string'] },
+        properties: [
+          { name: 'a', required: false, schema: { types: ['string'] } }
+        ]
+      })
+    ).toEqual({ expressible: false, reason: 'dynamic' });
+    expect(openApiBodyForm({ types: ['object'] })).toEqual({
+      expressible: false,
+      reason: 'empty'
+    });
+  });
+
+  it('round-trips a body through the form without changing its types', () => {
+    const form = openApiBodyForm(flat);
+    const fields = form.expressible ? form.fields : [];
+
+    const values = openApiBodyValues(
+      fields,
+      '{"name":"a","size":3,"active":true}'
+    );
+    expect(values).toEqual({ name: 'a', size: '3', active: 'true' });
+
+    // The box holds text; what goes on the wire is what the schema called for.
+    expect(JSON.parse(openApiBodyJson(fields, values))).toEqual({
+      name: 'a',
+      size: 3,
+      active: true
+    });
+  });
+
+  it('reads a reference the build DID follow', () => {
+    // The parser keeps `ref` beside the name and the properties it resolved,
+    // so treating `ref` as "unresolved" refused every body that is a named
+    // component — which is very nearly all of them, and was the bug.
+    const resolved: DuxtOpenApiSchema = {
+      name: 'WidgetPatch',
+      ref: '#/components/schemas/WidgetPatch',
+      types: ['object'],
+      properties: [
+        { name: 'name', required: false, schema: { types: ['string'] } }
+      ]
+    };
+
+    expect(openApiBodyForm(resolved).expressible).toBe(true);
+    expect(openApiBodyKeys(resolved).map((key) => key.name)).toEqual(['name']);
+  });
+
+  it('draws a form for an untyped property rather than refusing the lot', () => {
+    // One `any` beside five strings used to cost the whole form. It is an
+    // unconstrained value, which is a text box — and JSON is one click away.
+    const form = openApiBodyForm({
+      types: ['object'],
+      properties: [
+        { name: 'name', required: true, schema: { types: ['string'] } },
+        { name: 'parent', required: false, schema: {} }
+      ]
+    });
+
+    expect(form.expressible).toBe(true);
+    expect(form.expressible && form.fields[1]!.field.control).toBe('text');
+  });
+
+  it('still refuses an untyped property that is plainly a shape', () => {
+    expect(
+      openApiBodyForm({
+        types: ['object'],
+        properties: [
+          {
+            name: 'meta',
+            required: false,
+            schema: { properties: [] as never, items: { types: ['string'] } }
+          }
+        ]
+      })
+    ).toEqual({ expressible: false, reason: 'nested' });
+  });
+
+  it('keeps a key the form does not own when a box is edited', () => {
+    // A reader typed `colour` in the JSON view; touching a box must not
+    // silently delete it.
+    const form = openApiBodyForm(flat);
+    const fields = form.expressible ? form.fields : [];
+
+    const json = openApiBodyJson(
+      fields,
+      { name: 'b', size: '3', active: '' },
+      '{"name":"a","colour":"red"}'
+    );
+
+    expect(JSON.parse(json)).toEqual({ name: 'b', colour: 'red', size: 3 });
+  });
+
+  it('leaves an empty optional box out, and keeps a required one', () => {
+    const form = openApiBodyForm(flat);
+    const fields = form.expressible ? form.fields : [];
+
+    expect(
+      JSON.parse(openApiBodyJson(fields, { name: '', size: '', active: '' }))
+    ).toEqual({ name: '' });
+  });
+
+  it('opens on empty boxes when the text is not an object at all', () => {
+    const form = openApiBodyForm(flat);
+    const fields = form.expressible ? form.fields : [];
+
+    expect(openApiBodyValues(fields, 'not json')).toEqual({
+      name: '',
+      size: '',
+      active: ''
+    });
+  });
+});
+
+describe('openApiBodyKeys', () => {
+  it('offers a nested property the form would have refused', () => {
+    // Wider than `openApiBodyForm` on purpose: completion has no obligation to
+    // draw a box, so a nested object is still a key worth offering.
+    const keys = openApiBodyKeys({
+      types: ['object'],
+      properties: [
+        { name: 'name', required: true, schema: { types: ['string'] } },
+        { name: 'address', required: false, schema: { types: ['object'] } },
+        {
+          name: 'op',
+          required: false,
+          schema: { types: ['string'], enum: ['add', 'remove'] }
+        }
+      ]
+    });
+
+    expect(keys.map((key) => key.name)).toEqual(['name', 'address', 'op']);
+    expect(keys[0]!.required).toBe(true);
+    expect(keys[2]!.enum).toEqual(['add', 'remove']);
+  });
+
+  it('offers nothing where the top level is not a fixed set of keys', () => {
+    expect(openApiBodyKeys({ types: ['array'] })).toEqual([]);
+    expect(openApiBodyKeys({ oneOf: [{ types: ['object'] }] })).toEqual([]);
+    expect(openApiBodyKeys({ types: ['object'], circular: true })).toEqual([]);
+    expect(openApiBodyKeys(undefined)).toEqual([]);
+  });
+});
+
+describe('openApiBodyProblems', () => {
+  const keys = openApiBodyKeys({
+    types: ['object'],
+    properties: [
+      { name: 'name', required: true, schema: { types: ['string'] } },
+      { name: 'size', required: false, schema: { types: ['integer'] } }
+    ]
+  });
+
+  it('marks a key the document does not describe, where it is', () => {
+    const json = '{"name": "a", "colour": "red"}';
+    const [problem] = openApiBodyProblems(json, keys);
+
+    expect(problem?.severity).toBe('warning');
+    expect(json.slice(problem!.from, problem!.to)).toBe('"colour"');
+  });
+
+  it('looks at the top level only, never inside a nested object', () => {
+    // `"colour"` belongs to `meta`, and what `meta` may hold is not this
+    // schema's business. Only `meta` itself is a key this document did not
+    // describe.
+    const json = '{"name": "a", "meta": {"colour": "red"}}';
+
+    const warnings = openApiBodyProblems(json, keys).filter(
+      (problem) => problem.severity === 'warning'
+    );
+
+    expect(
+      warnings.map((problem) => json.slice(problem.from, problem.to))
+    ).toEqual(['"meta"']);
+  });
+
+  it('reports a required key that is absent as an error', () => {
+    const [problem] = openApiBodyProblems('{"size": 2}', keys);
+
+    expect(problem?.severity).toBe('error');
+    expect(problem?.message).toContain('name');
+  });
+
+  it('says nothing while the text does not parse', () => {
+    // The editor's own JSON linter is already on that, and a second opinion on
+    // a document with a missing brace is noise.
+    expect(openApiBodyProblems('{"name": ', keys)).toEqual([]);
+    expect(openApiBodyProblems('{}', [])).toEqual([]);
   });
 });

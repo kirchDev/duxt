@@ -182,9 +182,38 @@
   color: var(--brand-dark);
 }
 
-/* Shiki with `defaultColor: false` writes both themes as custom properties per
-   token and leaves the choice to CSS — the same arrangement Content uses for
-   Markdown fences, applied to the command block. */
+/* The editor's own syntax colours, taken from the two Shiki themes the fences
+   use — `github-light` and `github-dark`, read off their token settings rather
+   than eyeballed: string `#032f62`/`#9ecbff`, every constant (number, boolean,
+   null) and every `support` scope (which is where a JSON property name lands)
+   `#005cc5`/`#79b8ff`, keyword `#d73a49`/`#f97583`.
+
+   Variables rather than two CodeMirror themes, for the reason the palette above
+   is variables: the editor is built once and would otherwise freeze whichever
+   mode was current when it mounted, and a consumer who wants other colours
+   redefines four names instead of forking a component. */
+:root {
+  --duxt-cm-key: #005cc5;
+  --duxt-cm-string: #032f62;
+  --duxt-cm-value: #005cc5;
+  --duxt-cm-keyword: #d73a49;
+  --duxt-cm-comment: #6a737d;
+}
+
+:root:is(.dark),
+.dark {
+  --duxt-cm-key: #79b8ff;
+  --duxt-cm-string: #9ecbff;
+  --duxt-cm-value: #79b8ff;
+  --duxt-cm-keyword: #f97583;
+}
+
+/* `defaultColor: false` emits BOTH themes as custom properties and sets no
+   colour at all, so a block highlighted that way renders flat until something
+   picks one. Content's own fences do not need this — they carry the light
+   colour inline and Content injects the dark rule — but every block this site
+   highlights itself does, which is why the two classes are named together:
+   forgetting the second is a box of grey text beside a coloured one. */
 .duxt-shell span,
 .duxt-code-body span {
   color: var(--shiki-light);

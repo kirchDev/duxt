@@ -68,7 +68,13 @@
         "mediaType": "Media type",
         "send": "Send",
         "direct": "The request is sent by your browser, straight to that server.",
-        "blocked": "The request did not reach the server. It may not allow requests from another origin, or the address may be unreachable from here."
+        "blocked": "The request did not reach the server. It may not allow requests from another origin, or the address may be unreachable from here.",
+        "samples": "Request sample",
+        "form": "Form",
+        "json": "JSON",
+        "format": "Format",
+        "invalidJson": "Not valid JSON yet — the request will be sent as written.",
+        "noForm": "This body cannot be drawn as a form: edit it as JSON."
       }
     }
   }

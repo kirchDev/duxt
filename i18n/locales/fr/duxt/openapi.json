@@ -68,7 +68,13 @@
         "mediaType": "Type de média",
         "send": "Envoyer",
         "direct": "La requête est envoyée par votre navigateur, directement à ce serveur.",
-        "blocked": "La requête n’a pas atteint le serveur. Il n’accepte peut-être pas les requêtes d’une autre origine, ou l’adresse est inaccessible d’ici."
+        "blocked": "La requête n’a pas atteint le serveur. Il n’accepte peut-être pas les requêtes d’une autre origine, ou l’adresse est inaccessible d’ici.",
+        "samples": "Exemple de requête",
+        "form": "Formulaire",
+        "json": "JSON",
+        "format": "Formater",
+        "invalidJson": "Ce n'est pas encore du JSON valide — la requête sera envoyée telle quelle.",
+        "noForm": "Ce corps ne peut pas être présenté sous forme de formulaire : modifiez-le en JSON."
       }
     }
   }

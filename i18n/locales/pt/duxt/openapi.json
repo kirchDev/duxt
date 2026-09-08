@@ -68,7 +68,13 @@
         "mediaType": "Tipo de suporte",
         "send": "Enviar",
         "direct": "O pedido é enviado pelo seu navegador, diretamente para esse servidor.",
-        "blocked": "O pedido não chegou ao servidor. Pode não aceitar pedidos de outra origem, ou o endereço não estar acessível a partir daqui."
+        "blocked": "O pedido não chegou ao servidor. Pode não aceitar pedidos de outra origem, ou o endereço não estar acessível a partir daqui.",
+        "samples": "Exemplo de pedido",
+        "form": "Formulário",
+        "json": "JSON",
+        "format": "Formatar",
+        "invalidJson": "Ainda não é JSON válido — o pedido será enviado tal como está.",
+        "noForm": "Este corpo não pode ser apresentado como formulário: edite-o como JSON."
       }
     }
   }
