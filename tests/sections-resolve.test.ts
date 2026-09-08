@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { DuxtSectionType } from '../sections-resolve';
+import type { DuxtSectionOptions, DuxtSectionType } from '../sections-resolve';
 import type { DuxtResolvedSource } from '../sources-resolve';
 import {
   duxtManifest,
@@ -227,6 +227,50 @@ describe('resolveGeneratedSections', () => {
     });
   });
 
+  it('carries the declaration`s own options for the type to read', () => {
+    const [only] = resolveGeneratedSections(
+      [
+        {
+          path: 'docs',
+          generated: [{ ...section, options: { granularity: 'flat' } }]
+        }
+      ],
+      {},
+      types()
+    );
+
+    expect(only!.generated!.options).toEqual({ granularity: 'flat' });
+  });
+
+  it('lets the type name a layout per those options', () => {
+    // The knob a declaration turns can change what the pages ARE — a changelog
+    // asked for as one file is an ordinary page and wants the docs chrome, the
+    // same one split into releases is not. So the layout is resolved from the
+    // options rather than fixed per type.
+    const layout = (options: DuxtSectionOptions) =>
+      options.granularity === 'flat' ? undefined : 'changelog';
+
+    const [split] = resolveGeneratedSections(
+      [{ path: 'docs', generated: [section] }],
+      {},
+      types({ layout })
+    );
+
+    const [flat] = resolveGeneratedSections(
+      [
+        {
+          path: 'docs',
+          generated: [{ ...section, options: { granularity: 'flat' } }]
+        }
+      ],
+      {},
+      types({ layout })
+    );
+
+    expect(split!.generated!.layout).toBe('changelog');
+    expect(flat!.generated!.layout).toBeUndefined();
+  });
+
   it('marks a downloaded source as remote and a local one as not', () => {
     const generated = resolveGeneratedSections(
       [
@@ -386,6 +430,35 @@ describe('the severity of a section that produces nothing', () => {
     );
 
     warn.mockRestore();
+  });
+
+  it('hands the type the label, the prefix and the declared options', () => {
+    // The context is the whole of what a parser is told: everything else it
+    // needs about the section is a knob the site turned.
+    const parse = vi.fn(() => [{ file: 'index.md', body: '' }]);
+
+    sectionPages(
+      entry({ options: { granularity: 'flat' } }),
+      stub({ parse }),
+      'anything'
+    );
+
+    expect(parse).toHaveBeenCalledWith('anything', {
+      label: 'Releases',
+      prefix: '/releases',
+      options: { granularity: 'flat' }
+    });
+  });
+
+  it('hands a type that was given no options an empty set', () => {
+    const parse = vi.fn(() => [{ file: 'index.md', body: '' }]);
+
+    sectionPages(entry(), stub({ parse }), 'anything');
+
+    expect(parse).toHaveBeenCalledWith(
+      'anything',
+      expect.objectContaining({ options: {} })
+    );
   });
 
   it('treats a type that read nothing as the same finding', () => {

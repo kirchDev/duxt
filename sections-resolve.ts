@@ -62,6 +62,15 @@ export interface DuxtGeneratedSection {
   /** URL segment for this section; defaults to the slugified label. */
   slug?: string;
   /**
+   * The knobs THIS TYPE offers, as the site turned them.
+   *
+   * Opaque to the scaffold on purpose: a granularity means something to a
+   * changelog and nothing to an API reference, and a scaffold that knew the
+   * difference would have to grow a field per type. So it is carried, not
+   * read — the type validates its own and says so in its own words.
+   */
+  options?: DuxtSectionOptions;
+  /**
    * The artefact a LOCALE reads, where that locale ships one of its own.
    *
    * Only a `per-locale` type reads this — a `changelog` is written once by the
@@ -93,6 +102,15 @@ export interface DuxtGeneratedSection {
 
 export type DuxtSectionPlacement = 'navigation' | 'sections' | false;
 
+/**
+ * What a declaration hands its own type, and nothing else reads.
+ *
+ * A bag rather than a union of the known shapes: the registry is open, so the
+ * set of types is not the layer's to enumerate — a consumer's own type gets the
+ * same seam the built-in ones use.
+ */
+export type DuxtSectionOptions = Record<string, unknown>;
+
 /** One page a type's parser produced out of an artefact. */
 export interface DuxtSectionPage {
   /**
@@ -113,6 +131,8 @@ export interface DuxtSectionContext {
   label: string;
   /** The URL prefix its pages are served at, e.g. `/releases`. */
   prefix: string;
+  /** The declaration's own `options`, empty where it named none. */
+  options: DuxtSectionOptions;
 }
 
 /**
@@ -154,8 +174,14 @@ export interface DuxtSectionType {
    *
    * A layout name a type binds is PUBLIC SURFACE — renaming one later is a
    * `feat!:`. Unset renders the section in the ordinary docs chrome.
+   *
+   * A FUNCTION where the declaration's own options decide: the same type can
+   * produce two different things, and a changelog is the case that proves it —
+   * split into a page per release it is a timeline with chrome of its own,
+   * rendered as the one file it was written as it is an ordinary docs page and
+   * wants the sidebar, the breadcrumb and the table of contents back.
    */
-  layout?: string;
+  layout?: string | ((options: DuxtSectionOptions) => string | undefined);
   /** Icon for the navbar entry, when the declaration names none. */
   icon?: string;
 }
@@ -200,8 +226,10 @@ export interface DuxtGeneratedMeta {
   navigation: DuxtSectionPlacement;
   /** Icon for that entry. */
   icon?: string;
-  /** The layout its pages render in, when the type names one. */
+  /** The layout its pages render in, when the type names one for these options. */
   layout?: string;
+  /** The declaration's own options, where it named any. */
+  options?: DuxtSectionOptions;
   /** The type's versioning policy — `global` suppresses the switcher. */
   versioning: 'global' | 'per-version';
   /** The type's localisation policy. */
@@ -251,6 +279,8 @@ export function resolveGeneratedSections(
             'Register it in `duxt.sectionTypes`.'
         );
       }
+
+      const options = declared.options ?? {};
 
       // LOWERCASED, and that is not a style choice. Content slugifies a page's
       // own path with `lower: true`, so a section called `Releases` would be
@@ -312,10 +342,17 @@ export function resolveGeneratedSections(
             slug,
             navigation: declared.navigation ?? 'sections',
             icon: declared.icon ?? type.icon,
-            layout: type.layout,
+            layout:
+              typeof type.layout === 'function'
+                ? type.layout(options)
+                : type.layout,
             versioning: type.versioning,
             localisation: type.localisation,
-            remote: base.remote
+            remote: base.remote,
+            // Only when the site named some: an empty object where there was
+            // `undefined` is a different value in the manifest every page
+            // ships, and this one changes on no site that declares nothing.
+            ...(Object.keys(options).length ? { options } : {})
           }
         });
       }
@@ -415,7 +452,8 @@ export function sectionPages(
 ): DuxtSectionPage[] {
   const pages = type.parse(artefact, {
     label: entry.generated!.label,
-    prefix: entry.prefix
+    prefix: entry.prefix,
+    options: entry.generated!.options ?? {}
   });
 
   if (!pages.length) {

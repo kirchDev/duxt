@@ -171,6 +171,15 @@ declare global {
     /** URL segment for this section; defaults to the slugified label. */
     slug?: string;
     /**
+     * The knobs this TYPE offers, as this site turns them.
+     *
+     * Opaque to the layer: what a key means is the type's own business — the
+     * `changelog` type reads `granularity` here (`split`, the default, or
+     * `flat`), an API reference would read something else entirely. A type
+     * names the option it does not recognise rather than ignoring it.
+     */
+    options?: Record<string, unknown>;
+    /**
      * The artefact a LOCALE reads, where that locale ships one of its own.
      *
      * Only a `per-locale` type reads it. Keyed by the locale code the source
@@ -207,7 +216,12 @@ declare global {
   interface DuxtSectionTypeInput {
     parse: (
       artefact: string,
-      context: { label: string; prefix: string }
+      context: {
+        label: string;
+        prefix: string;
+        /** The declaration's own `options`, empty where it named none. */
+        options: Record<string, unknown>;
+      }
     ) => DuxtSectionPageInput[];
     /** `global` is one history at a version-neutral URL; `per-version` is not. */
     versioning: 'global' | 'per-version';
@@ -216,8 +230,16 @@ declare global {
      * `per-locale` builds one per language that declares an artefact of its own.
      */
     localisation: 'original' | 'per-locale';
-    /** The layout its pages render in. A name bound here is public surface. */
-    layout?: string;
+    /**
+     * The layout its pages render in. A name bound here is public surface.
+     *
+     * A function where the declaration's own options decide it — a changelog
+     * split into a page per release draws chrome of its own, the same file
+     * rendered whole is an ordinary docs page.
+     */
+    layout?:
+      | string
+      | ((options: Record<string, unknown>) => string | undefined);
     /** Icon for the navbar entry, when the declaration names none. */
     icon?: string;
   }
@@ -269,6 +291,8 @@ declare global {
       versioning: 'global' | 'per-version';
       localisation: 'original' | 'per-locale';
       remote: boolean;
+      /** The declaration's own options, where it named any. */
+      options?: Record<string, unknown>;
     };
   }
 
