@@ -64,6 +64,7 @@
         "username": "Nombre de usuario",
         "credentials": "Lo que escriba aquí permanece en esta pestaña, no se guarda y solo se envía al servidor que eligió.",
         "certificate": "Este esquema necesita un certificado de cliente, que una página no puede aportar.",
+        "cookie": "Su navegador no permite que una página fije una cookie, así que esto no se puede enviar desde aquí.",
         "mediaType": "Tipo de medio",
         "send": "Enviar",
         "direct": "La solicitud la envía su navegador, directamente a ese servidor.",

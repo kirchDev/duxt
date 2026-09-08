@@ -211,8 +211,7 @@ describe('the request a reader is about to send', () => {
       {
         'path-id': '7',
         'query-limit': '10',
-        'header-X-Trace': 'abc',
-        'cookie-session': 'xyz'
+        'header-X-Trace': 'abc'
       },
       { Accept: 'application/json' }
     );
@@ -221,8 +220,7 @@ describe('the request a reader is about to send', () => {
     expect(request.url).toBe('https://api.test/pets/7?limit=10');
     expect(request.headers).toEqual({
       Accept: 'application/json',
-      'X-Trace': 'abc',
-      Cookie: 'session=xyz'
+      'X-Trace': 'abc'
     });
   });
 
@@ -246,6 +244,18 @@ describe('the request a reader is about to send', () => {
 
     expect(request.url).toBe('https://api.test/pets/7?id=9');
     expect(request.headers).toEqual({ id: '11' });
+  });
+
+  it('never writes a cookie into a header the browser will not send', () => {
+    // `Cookie` is a forbidden header name for `fetch`: the browser drops it
+    // silently. Building it produced a request that lacked the credential
+    // while the `curl` sample rendered from this same object showed it there.
+    const request = openApiRequest(operation, 'https://api.test', {
+      'cookie-session': 'xyz'
+    });
+
+    expect(request.headers).toEqual({});
+    expect(openApiCurl(request)).not.toContain('Cookie');
   });
 
   it('writes a curl a shell cannot be talked out of', () => {

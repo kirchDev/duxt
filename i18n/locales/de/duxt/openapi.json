@@ -64,6 +64,7 @@
         "username": "Benutzername",
         "credentials": "Was Sie hier eingeben, bleibt in diesem Tab, wird nicht gespeichert und geht nur an den gewählten Server.",
         "certificate": "Dieses Verfahren benötigt ein Client-Zertifikat, das eine Seite nicht bereitstellen kann.",
+        "cookie": "Ihr Browser lässt eine Seite keinen Cookie setzen, daher kann dies von hier nicht gesendet werden.",
         "mediaType": "Medientyp",
         "send": "Senden",
         "direct": "Die Anfrage sendet Ihr Browser direkt an diesen Server.",

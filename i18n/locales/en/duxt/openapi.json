@@ -64,6 +64,7 @@
         "username": "User name",
         "credentials": "What you type here stays in this tab, is never stored, and is sent only to the server you chose.",
         "certificate": "This scheme needs a client certificate, which a page cannot provide.",
+        "cookie": "Your browser will not let a page set a cookie, so this cannot be sent from here.",
         "mediaType": "Media type",
         "send": "Send",
         "direct": "The request is sent by your browser, straight to that server.",

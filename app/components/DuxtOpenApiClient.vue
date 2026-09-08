@@ -27,6 +27,14 @@ import type {
  * forwards a reader's credentials to a host of their choosing, and every
  * documentation site running it would be one.
  *
+ * NO BOX FOR A COOKIE. `Cookie` is a forbidden header name for `fetch`, so a
+ * browser drops it with no error, no rejection and nothing in the console. A
+ * page therefore cannot satisfy an `apiKey` scheme declared `in: cookie`, nor a
+ * cookie parameter — and drawing a box for one would collect a live credential
+ * to throw it away, while the `curl` sample beneath showed the header present.
+ * So the client says so, the way it already does for `mutualTLS`, and the
+ * request it sends and the sample it prints are the same request again.
+ *
  * Rendered on the server as well as the client — the form is a pure function of
  * the operation, so there is nothing to mismatch, and a control the a11y gate
  * cannot see is a control nothing checks the labels of.
@@ -66,19 +74,23 @@ const base = computed(() => openApiServerUrl(server.value, variables.value));
  */
 const values = ref<Record<string, string>>(
   Object.fromEntries(
-    (props.operation.parameters ?? []).map((parameter) => {
-      const derived = openApiExampleValue(parameter.schema);
-      const example = parameter.examples?.[0]?.value ?? derived;
+    (props.operation.parameters ?? [])
+      // No box is drawn for a cookie, so no state is kept for one: the form and
+      // what is sent say the same thing about every parameter.
+      .filter((parameter) => parameter.in !== 'cookie')
+      .map((parameter) => {
+        const derived = openApiExampleValue(parameter.schema);
+        const example = parameter.examples?.[0]?.value ?? derived;
 
-      return [
-        openApiParameterKey(parameter),
-        example === null || example === undefined
-          ? ''
-          : typeof example === 'string'
-            ? example
-            : openApiJson(example)
-      ];
-    })
+        return [
+          openApiParameterKey(parameter),
+          example === null || example === undefined
+            ? ''
+            : typeof example === 'string'
+              ? example
+              : openApiJson(example)
+        ];
+      })
   )
 );
 
@@ -128,6 +140,10 @@ const isBasic = (scheme: DuxtOpenApiSecurityScheme) =>
 const isClientCertificate = (scheme: DuxtOpenApiSecurityScheme) =>
   scheme.type === 'mutualTLS';
 
+/** The other one: a page cannot set a cookie, so it is said rather than drawn. */
+const isCookieKey = (scheme: DuxtOpenApiSecurityScheme) =>
+  scheme.type === 'apiKey' && scheme.in === 'cookie';
+
 /* ---------------------------------------------------------------- request */
 
 /** What the credentials add to the request, per the scheme that asked for them. */
@@ -140,18 +156,13 @@ function authFor(): { headers: Record<string, string>; query: string[] } {
     if (!value) continue;
 
     if (scheme.type === 'apiKey' && scheme.name) {
+      // `in: cookie` is absent on purpose: it draws no box, so it holds no
+      // value, and a `Cookie` header would be dropped by the browser anyway.
       if (scheme.in === 'header') headers[scheme.name] = value;
       else if (scheme.in === 'query') {
         query.push(
           `${encodeURIComponent(scheme.name)}=${encodeURIComponent(value)}`
         );
-      } else if (scheme.in === 'cookie') {
-        headers.Cookie = [
-          headers.Cookie,
-          `${scheme.name}=${encodeURIComponent(value)}`
-        ]
-          .filter(Boolean)
-          .join('; ');
       }
 
       continue;
@@ -338,6 +349,13 @@ function pretty(text: string): string {
             {{ $t('duxt.openapi.client.certificate') }}
           </p>
 
+          <p
+            v-else-if="isCookieKey(scheme)"
+            class="text-sm text-muted-foreground"
+          >
+            {{ $t('duxt.openapi.client.cookie') }}
+          </p>
+
           <template v-else>
             <label
               v-if="isBasic(scheme)"
@@ -386,19 +404,30 @@ function pretty(text: string): string {
           v-for="parameter in parameters"
           :key="openApiParameterKey(parameter)"
         >
-          <label
-            :for="`${id}-p-${openApiParameterKey(parameter)}`"
-            class="mb-1 block font-mono text-xs text-muted-foreground"
-          >
-            {{ parameter.name }}
-            <span v-if="parameter.required" class="text-destructive">*</span>
-          </label>
-          <Input
-            :id="`${id}-p-${openApiParameterKey(parameter)}`"
-            v-model="values[openApiParameterKey(parameter)]"
-            class="font-mono text-sm"
-            autocomplete="off"
-          />
+          <template v-if="parameter.in === 'cookie'">
+            <p class="mb-1 font-mono text-xs text-muted-foreground">
+              {{ parameter.name }}
+            </p>
+            <p class="text-sm text-muted-foreground">
+              {{ $t('duxt.openapi.client.cookie') }}
+            </p>
+          </template>
+
+          <template v-else>
+            <label
+              :for="`${id}-p-${openApiParameterKey(parameter)}`"
+              class="mb-1 block font-mono text-xs text-muted-foreground"
+            >
+              {{ parameter.name }}
+              <span v-if="parameter.required" class="text-destructive">*</span>
+            </label>
+            <Input
+              :id="`${id}-p-${openApiParameterKey(parameter)}`"
+              v-model="values[openApiParameterKey(parameter)]"
+              class="font-mono text-sm"
+              autocomplete="off"
+            />
+          </template>
         </div>
       </fieldset>
 

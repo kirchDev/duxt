@@ -314,17 +314,13 @@ export function openApiRequest(
     if (value) sent[parameter.name] = value;
   }
 
-  const cookies = parameters
-    .filter(
-      (parameter) =>
-        parameter.in === 'cookie' && values[openApiParameterKey(parameter)]
-    )
-    .map(
-      (parameter) =>
-        `${parameter.name}=${encodeURIComponent(values[openApiParameterKey(parameter)]!)}`
-    );
-
-  if (cookies.length) sent.Cookie = cookies.join('; ');
+  // A COOKIE PARAMETER IS DELIBERATELY NOT SENT. `Cookie` is a forbidden header
+  // name for `fetch`: a browser drops it with no error, no rejection and
+  // nothing in the console. Building it anyway produced a request that quietly
+  // lacked the credential while the `curl` sample rendered from this same
+  // object showed it present — the one place a reader would look to confirm.
+  // The client says the cookie cannot be set from a page instead, so what is
+  // sent and what is shown are the same request again.
 
   return {
     method: operation.method.toUpperCase(),

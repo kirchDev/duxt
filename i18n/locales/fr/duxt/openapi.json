@@ -64,6 +64,7 @@
         "username": "Nom d’utilisateur",
         "credentials": "Ce que vous saisissez ici reste dans cet onglet, n’est jamais conservé et n’est envoyé qu’au serveur que vous avez choisi.",
         "certificate": "Ce schéma exige un certificat client, qu’une page ne peut pas fournir.",
+        "cookie": "Votre navigateur n’autorise pas une page à définir un cookie ; cela ne peut donc pas être envoyé d’ici.",
         "mediaType": "Type de média",
         "send": "Envoyer",
         "direct": "La requête est envoyée par votre navigateur, directement à ce serveur.",

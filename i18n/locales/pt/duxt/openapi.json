@@ -64,6 +64,7 @@
         "username": "Nome de utilizador",
         "credentials": "O que escrever aqui fica neste separador, nunca é guardado e só é enviado para o servidor que escolheu.",
         "certificate": "Este esquema exige um certificado de cliente, que uma página não pode fornecer.",
+        "cookie": "O seu navegador não permite que uma página defina um cookie, por isso isto não pode ser enviado a partir daqui.",
         "mediaType": "Tipo de suporte",
         "send": "Enviar",
         "direct": "O pedido é enviado pelo seu navegador, diretamente para esse servidor.",
