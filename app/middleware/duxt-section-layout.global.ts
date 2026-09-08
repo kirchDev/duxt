@@ -25,10 +25,15 @@ export default defineNuxtRouteMiddleware((to) => {
 
   // Cast for the reason `DuxtCollectionName` is a plain string: the name is
   // DATA. Nuxt types `setPageLayout` by the layouts it found in this app, and a
-  // type's layout is named in a config the layer cannot see at build time. The
-  // parameter type is taken from Nuxt's own signature rather than written out,
-  // exactly as `DuxtCollectionArg` takes Content's.
-  if (layout) setPageLayout(layout as Parameters<typeof setPageLayout>[0]);
+  // type's layout is named in a config the layer cannot see at build time.
+  //
+  // The FUNCTION is cast, not the argument. `setPageLayout` is generic over
+  // `keyof NuxtLayouts`, so `Parameters<typeof setPageLayout>[0]` resolves
+  // through a conditional on the type parameter and lands back on `string` —
+  // which is then not assignable to the parameter it was derived from. Casting
+  // the call signature says the one thing that is actually true: this name is
+  // checked at run time, against a registry the compiler cannot see.
+  if (layout) (setPageLayout as (name: string) => void)(layout);
 });
 
 /**
