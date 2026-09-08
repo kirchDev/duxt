@@ -26,7 +26,11 @@ import { sourceForPath } from './version-paths';
  * exactly the sites that configure the most.
  *
  * A section already listed by hand is left alone, so a consumer who wants it
- * somewhere else in the row simply writes it there.
+ * somewhere else in the row simply writes it there. "Listed by hand" is asked
+ * of the SECTION rather than of one URL: the consumer wrote the entry at the
+ * position they were reading, and a `per-version` section is at a different URL
+ * on every other version — so the per-URL question answered no there and
+ * appended a second entry with the same label.
  *
  * ONE DECLARATION IS ONE ENTRY, whatever it resolved to. A section is a
  * collection per version and per locale, so `per-version` and `per-locale`
@@ -36,15 +40,18 @@ import { sourceForPath } from './version-paths';
  * currently in, exactly as `DuxtVersion` and `useDuxtVersion` resolve theirs,
  * with a de-dupe by `to` underneath it: two entries pointing at one URL are one
  * link twice, and under `DuxtHeader`'s label key, one Vue key twice.
+ *
+ * Which entries are one declaration is READ OFF THE MANIFEST, never guessed —
+ * see `DuxtGeneratedMeta.declaration` for what guessing it cost.
  */
 export function withGeneratedSections(
   config: DuxtConfig,
   path = '/'
 ): DuxtConfig {
   const sources = config.resolvedSources ?? [];
-  const generated = sources.filter((source) => source.generated);
+  const declarations = declarationsIn(sources);
 
-  if (!generated.length) return config;
+  if (!declarations.length) return config;
 
   const base = readerBase(path, sources);
 
@@ -59,18 +66,20 @@ export function withGeneratedSections(
     const taken = new Set(existing.map((entry) => entry.to).filter(Boolean));
     const entries: DuxtLink[] = [];
 
-    for (const source of generated) {
-      if (source.generated!.navigation !== placement) continue;
+    for (const declaration of declarations) {
+      const meta = declaration[0]!.generated!;
+      if (meta.navigation !== placement) continue;
 
-      const to = entryPath(source, generated, base);
-      if (taken.has(to)) continue;
+      // ANY position of this declaration counts as already in the row, not just
+      // the one this reader would be given: a section listed by hand is listed,
+      // and the entry `to` resolves to is always one of these prefixes, so this
+      // is the de-dupe by URL as well.
+      if (declaration.some((entry) => taken.has(entry.prefix))) continue;
+
+      const to = entryPath(declaration, base);
 
       taken.add(to);
-      entries.push({
-        label: source.generated!.label,
-        to,
-        icon: source.generated!.icon
-      });
+      entries.push({ label: meta.label, to, icon: meta.icon });
     }
 
     return entries;
@@ -95,6 +104,27 @@ export function withGeneratedSections(
 }
 
 /**
+ * The manifest's generated entries, grouped into the declarations that made
+ * them, in the order the site declared them.
+ *
+ * A `Map` rather than a sort: the manifest already lists a declaration's
+ * entries together, and the grouping has to survive it not doing so.
+ */
+function declarationsIn(sources: DuxtResolvedSource[]): DuxtResolvedSource[][] {
+  const groups = new Map<number, DuxtResolvedSource[]>();
+
+  for (const source of sources) {
+    if (!source.generated) continue;
+
+    const group = groups.get(source.generated.declaration);
+    if (group) group.push(source);
+    else groups.set(source.generated.declaration, [source]);
+  }
+
+  return [...groups.values()];
+}
+
+/**
  * The prefix the reader's DOCUMENTATION sits at — their repository and their
  * version, with no section segment on the end.
  *
@@ -116,20 +146,11 @@ function readerBase(path: string, sources: DuxtResolvedSource[]): string {
 /**
  * Where one declared section's navbar entry points, from where the reader is.
  *
- * The manifest entries of a single declaration are its versions and its
- * languages: same repository, same slug, prefixes that differ by a version
- * segment or not at all. The reader's own base picks one of them.
+ * The entries handed in ARE the declaration — its versions and its languages,
+ * as the manifest recorded them. The reader's own base picks one of them.
  */
-function entryPath(
-  source: DuxtResolvedSource,
-  generated: DuxtResolvedSource[],
-  base: string
-): string {
-  const slug = source.generated!.slug;
-  const here = `${base}/${slug}`;
-  const declaration = generated.filter(
-    (other) => other.generated!.slug === slug && other.repo === source.repo
-  );
+function entryPath(declaration: DuxtResolvedSource[], base: string): string {
+  const here = `${base}/${declaration[0]!.generated!.slug}`;
 
   if (declaration.some((other) => other.prefix === here)) return here;
 

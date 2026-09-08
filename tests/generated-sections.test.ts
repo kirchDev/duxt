@@ -27,6 +27,7 @@ const section = (over: Partial<Source> = {}): Source =>
       type: 'changelog',
       label: 'Releases',
       slug: 'releases',
+      declaration: 0,
       navigation: 'sections',
       versioning: 'global',
       localisation: 'original',
@@ -64,6 +65,24 @@ const perVersion = (): Source[] => {
     })
   ];
 };
+
+/**
+ * Two docs trees, each declaring a section of the same name.
+ *
+ * Same repository and same slug, which is precisely what the entry used to be
+ * grouped by — so the two collapsed into one and the second vanished from the
+ * row.
+ */
+const twoSources = (): Source[] => [
+  { ...base, collection: 'docs_a', prefix: '/a' } as Source,
+  { ...base, collection: 'docs_b', prefix: '/b' } as Source,
+  section({ collection: 'docs_a_releases', prefix: '/a/releases' }),
+  section({
+    collection: 'docs_b_releases',
+    prefix: '/b/releases',
+    generated: { ...section().generated!, declaration: 1 }
+  })
+];
 
 describe('withGeneratedSections', () => {
   it('leaves a config with no generated section untouched', () => {
@@ -198,6 +217,42 @@ describe('withGeneratedSections', () => {
     expect(
       withGeneratedSections(config as never, '/v1.x/guides').sections
     ).toEqual([{ label: 'Releases', to: '/releases', icon: undefined }]);
+  });
+
+  it('keeps both sections when two sources declare the same slug', () => {
+    // Two docs trees, each with its own CHANGELOG.md, both naturally labelled
+    // "Releases" — the monorepo shape this feature calls the normal case. They
+    // are two sections, so the row gets two entries wherever it is read from;
+    // grouping them by (slug, repository) lost one of them without a word,
+    // which is the failure this layer exists to stop.
+    const config = { sections: [], resolvedSources: twoSources() };
+    const row = (path: string) =>
+      withGeneratedSections(config as never, path).sections;
+
+    const both = [
+      { label: 'Releases', to: '/a/releases', icon: undefined },
+      { label: 'Releases', to: '/b/releases', icon: undefined }
+    ];
+
+    expect(row('/a/guides')).toEqual(both);
+    expect(row('/b/guides')).toEqual(both);
+    expect(row('/')).toEqual(both);
+  });
+
+  it('leaves a hand-listed section alone from a non-default version too', () => {
+    // "Listed by hand" is a statement about the SECTION, not about one URL: the
+    // consumer wrote the entry at the position they read it at, and on any
+    // other version the generated entry is a different string — so asking per
+    // URL appended a second entry with the same label the moment the reader
+    // left the default version.
+    const config = {
+      sections: [{ label: 'Release notes', to: '/releases' }],
+      resolvedSources: perVersion()
+    };
+
+    expect(
+      withGeneratedSections(config as never, '/v1.x/guides').sections
+    ).toHaveLength(1);
   });
 
   it('carries the icon the section resolved to', () => {
