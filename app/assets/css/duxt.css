@@ -185,11 +185,13 @@
 /* Shiki with `defaultColor: false` writes both themes as custom properties per
    token and leaves the choice to CSS — the same arrangement Content uses for
    Markdown fences, applied to the command block. */
-.duxt-shell span {
+.duxt-shell span,
+.duxt-code-body span {
   color: var(--shiki-light);
 }
 
-.dark .duxt-shell span {
+.dark .duxt-shell span,
+.dark .duxt-code-body span {
   color: var(--shiki-dark);
 }
 
@@ -262,6 +264,23 @@ pre.shiki,
    header and the first line. */
 .typeset :where(.duxt-code pre) {
   margin: 0;
+}
+
+/* Code this site highlighted itself rather than Content — a derived example, a
+   response, a `curl` sample — arrives as Shiki's own `<pre class="shiki">` with
+   no padding of its own. Content's fences get theirs from the MDC renderer, so
+   this is the same rule stated for the blocks that never went through it. Not
+   scoped to `.typeset`: the try-it client draws these outside a rendered
+   page. */
+.duxt-code-body pre {
+  margin: 0;
+  overflow-x: auto;
+  padding: 1rem;
+  font-size: 0.875rem;
+}
+
+.duxt-code-body pre code {
+  font-family: inherit;
 }
 
 /* A long unbroken token — a URL, a package name, a path — is the other way a

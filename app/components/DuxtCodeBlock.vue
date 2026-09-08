@@ -13,8 +13,28 @@ const slots = useSlots();
 // which is exactly what happened, and looked like Shiki being switched off.
 const hasBody = computed(() => Boolean(slots.default));
 
-// The filename wins over the language: `nuxt.config.ts` gets Nuxt's icon, a
-// bare ```ts fence gets TypeScript's.
+/**
+ * The other half of that: a block with NO slot never passed through Content at
+ * all — it is code this site derived at runtime, an example body off a schema
+ * or a response the client just received — and it used to render as flat text
+ * beside fences that were coloured, which reads as the highlighter being off
+ * for that one box. Highlighted here instead, with the same themes.
+ *
+ * Skipped where there is a slot, because Content already did it, and where the
+ * language is not one this site generates — see `duxtCodeLang`.
+ */
+const { data: highlighted } = await useAsyncData(
+  () => `duxt-code-${props.language ?? 'text'}-${props.code ?? ''}`,
+  () => {
+    const lang = duxtCodeLang(props.language);
+
+    return !hasBody.value && props.code && lang
+      ? highlightCode(props.code, lang)
+      : Promise.resolve(undefined);
+  },
+  { watch: [() => props.code, () => props.language] }
+);
+
 const icon = computed(() =>
   fileIcon(
     props.filename ?? props.language,
@@ -87,6 +107,13 @@ async function copy() {
 
     <div ref="root">
       <slot v-if="hasBody" />
+      <!-- eslint-disable-next-line vue/no-v-html -- Shiki's own output, from
+           this site's own string; nothing a reader typed reaches it. -->
+      <div
+        v-else-if="highlighted"
+        class="duxt-code-body"
+        v-html="highlighted"
+      />
       <pre
         v-else
         class="overflow-x-auto p-4 text-sm"

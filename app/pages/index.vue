@@ -36,7 +36,8 @@ const actionTarget = (action: DuxtResolved<DuxtAction>) =>
 const command = computed(() => duxt.landing?.command);
 const { data: highlightedCommand } = await useAsyncData(
   () => `landing-command-${command.value ?? ''}`,
-  () => (command.value ? highlightShell(command.value) : Promise.resolve('')),
+  () =>
+    command.value ? highlightCode(command.value, 'bash') : Promise.resolve(''),
   { watch: [command] }
 );
 

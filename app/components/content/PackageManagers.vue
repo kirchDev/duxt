@@ -50,7 +50,7 @@ const { data: highlighted } = await useAsyncData(
     const entries = await Promise.all(
       Object.entries(commands.value).map(
         async ([manager, command]) =>
-          [manager, await highlightShell(command)] as const
+          [manager, await highlightCode(command, 'bash')] as const
       )
     );
     return Object.fromEntries(entries);
