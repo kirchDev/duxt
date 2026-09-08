@@ -61,6 +61,7 @@ const locales = [
     name: 'English (UK)',
     files: [
       'en/duxt/code.json',
+      'en/duxt/devtools.json',
       'en/duxt/defaults.json',
       'en/duxt/error.json',
       'en/duxt/footer.json',
@@ -80,6 +81,7 @@ const locales = [
     name: 'English (US)',
     files: [
       'en/duxt/code.json',
+      'en/duxt/devtools.json',
       'en/duxt/defaults.json',
       'en/duxt/error.json',
       'en/duxt/footer.json',
@@ -99,6 +101,7 @@ const locales = [
     name: 'Deutsch',
     files: [
       'de/duxt/code.json',
+      'de/duxt/devtools.json',
       'de/duxt/defaults.json',
       'de/duxt/error.json',
       'de/duxt/footer.json',
@@ -118,6 +121,7 @@ const locales = [
     name: 'Español',
     files: [
       'es/duxt/code.json',
+      'es/duxt/devtools.json',
       'es/duxt/defaults.json',
       'es/duxt/error.json',
       'es/duxt/footer.json',
@@ -137,6 +141,7 @@ const locales = [
     name: 'Français',
     files: [
       'fr/duxt/code.json',
+      'fr/duxt/devtools.json',
       'fr/duxt/defaults.json',
       'fr/duxt/error.json',
       'fr/duxt/footer.json',
@@ -156,6 +161,7 @@ const locales = [
     name: 'Português',
     files: [
       'pt/duxt/code.json',
+      'pt/duxt/devtools.json',
       'pt/duxt/defaults.json',
       'pt/duxt/error.json',
       'pt/duxt/footer.json',
@@ -175,6 +181,7 @@ const locales = [
     name: 'Português (Brasil)',
     files: [
       'pt/duxt/code.json',
+      'pt/duxt/devtools.json',
       'pt/duxt/defaults.json',
       'pt/duxt/error.json',
       'pt/duxt/footer.json',
@@ -186,7 +193,6 @@ const locales = [
       'pt/duxt/theme.json',
       'pt/duxt/toc.json',
       'pt/duxt/version.json',
-      'pt-BR/duxt/defaults.json',
       'pt-BR/duxt/error.json',
       'pt-BR/duxt/nav.json',
       'pt-BR/duxt/page.json',
@@ -227,16 +233,23 @@ export default defineNuxtConfig({
      * @nuxtjs/sitemap wires itself into Content's collections, and it says so
      * out loud when it is loaded second — "this may cause issues with the
      * integration". It does: the sitemap then lists the site's routes and not
-     * one documentation page.
+     * one documentation page. The bundle loads its modules in its own order,
+     * so the whole bundle goes here rather than three named modules.
      *
-     * All four read `site.url`, which the duxt module fills in from
-     * `i18n.baseUrl` so a consumer states its origin once rather than four
+     * `@nuxtjs/seo` is an ALIAS, not a wrapper — its own documentation says it
+     * "contains no logic of its own". What it buys is the four modules this
+     * layer used to do by hand: schema.org from `nuxt-schema-org`, the
+     * automatic canonical and og/twitter tags from `nuxt-seo-utils`, the link
+     * check, and `nuxt-site-config` as the one place `site.url` is read from.
+     * It also completes the shared devtools panel, which every one of these
+     * modules feeds and which lists the ones that are missing.
+     *
+     * They all read `site.url`, which the duxt module fills in from
+     * `i18n.baseUrl` so a consumer states its origin once rather than five
      * times; without one they degrade to relative output rather than inventing
      * a domain.
      */
-    '@nuxtjs/robots',
-    '@nuxtjs/sitemap',
-    'nuxt-og-image',
+    '@nuxtjs/seo',
     '@nuxt/image',
 
     '@nuxt/content',
@@ -271,8 +284,10 @@ export default defineNuxtConfig({
 
   // A real MCP server at /mcp, through the official SDK, instead of a JSON
   // endpoint someone else has to wrap. Tools live in server/mcp/tools.
+  // No `name`: the module's own default is the empty string, so
+  // `modules/config.ts` derives one from the site's own title instead. Left as
+  // a literal here it published duxt's name from every downstream site.
   mcp: {
-    name: 'duxt documentation',
     description: 'The documentation this site publishes, readable by an agent.',
     instructions:
       'Call list_pages for the table of contents, search_docs to find a page by ' +
@@ -337,6 +352,17 @@ export default defineNuxtConfig({
    * page then tells it to drop. Same for an `eol` version, which is excluded
    * whether or not it is the default.
    */
+  // The devtools previews in `public/` are fixtures for one reference page, not
+  // pages of anybody's site. Every consumer serves them, because Nuxt serves
+  // every layer's `public/` — and none of them wants ten documents titled
+  // "duxt — Sources" indexed against their own domain.
+  //
+  // defu concatenates the list across layers, so a consumer's own `disallow`
+  // is added to this rather than replacing it.
+  robots: {
+    disallow: ['/devtools/']
+  },
+
   sitemap: {
     // Content pages reach the sitemap through the module's own Content
     // integration; the duxt module adds what the version rules exclude.
@@ -346,6 +372,50 @@ export default defineNuxtConfig({
     // a block of prose meant to be included in three places is not a page a
     // crawler should be offered.
     exclude: ['/_partials/**', '/*/_partials/**']
+  },
+
+  /**
+   * nuxt-seo-utils, whose defaults are written for a site that sets no head
+   * tags of its own. Three of them are wrong HERE, and each for a reason this
+   * layer cannot design away.
+   */
+  seo: {
+    /**
+     * A LOCALE PREFIX IS CASE-SENSITIVE. i18n routes this site's locales under
+     * their own codes — `/de-DE/guides`, `/pt-BR/guides` — and lowercasing a
+     * canonical would point every translated page at a URL that 404s. The
+     * option exists for sites whose paths differ only in case; ours do not.
+     */
+    canonicalLowercase: false,
+
+    /**
+     * A title invented from the last slug segment is a title nobody wrote.
+     * Every page here carries one from its frontmatter, and `modules/validate`
+     * fails the build over a page that does not — so the fallback can only ever
+     * mask that check.
+     */
+    fallbackTitle: false,
+
+    /**
+     * `app.vue` owns the title template — it appends the site's own name, which
+     * is what a tab and a search result need. Letting site config inject a
+     * second one leaves two templates competing over one title.
+     */
+    mergeWithSiteConfig: false
+  },
+
+  /**
+   * The link check REPORTS, it does not fail the build: `modules/validate.ts`
+   * already fails it over a link pointing nowhere, and it is the one that knows
+   * about versions and locale fallbacks. Two gates over one rule means the
+   * looser one decides when a build breaks, which is the wrong way round.
+   *
+   * What the module adds over that is the devtools panel and the live check
+   * while writing, which is where a broken link is cheapest to fix.
+   */
+  linkChecker: {
+    failOnError: false,
+    excludeLinks: ['/devtools/**']
   },
 
   colorMode: {

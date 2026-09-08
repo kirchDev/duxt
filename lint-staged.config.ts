@@ -16,7 +16,10 @@ const config: Configuration = {
     const files = filenames.filter((f) => !f.includes('pnpm-lock.yaml'));
     return files.length > 0 ? `pnpm exec oxfmt ${files.join(' ')}` : [];
   },
-  '*.{js,ts,mjs,cjs}': (filenames) => [
+  // `.vue` rides along with the scripts: oxlint and oxfmt both read an SFC,
+  // and without it here the theme's components — nearly every file this repo
+  // changes — passed the hook unchecked.
+  '*.{js,ts,mjs,cjs,vue}': (filenames) => [
     `pnpm exec oxlint --fix --deny-warnings ${filenames.join(' ')}`,
     `pnpm exec oxfmt ${filenames.join(' ')}`
   ]

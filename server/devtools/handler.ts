@@ -1,6 +1,7 @@
 import { rmSync } from 'node:fs';
 import type { H3Event } from 'h3';
-import { context, page, PANELS } from './shell';
+import { context } from './context';
+import { page, PANELS } from './shell';
 import { pathsPanel, sourcesPanel, versionsPanel } from './sources';
 import { checksPanel, pagesPanel, searchPanel } from './content';
 import { cacheEntryToDrop } from './entry-path';

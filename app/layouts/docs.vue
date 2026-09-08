@@ -33,7 +33,7 @@ const { items } = useDuxtSection(navigation);
         <div
           class="sticky top-[6.5rem] max-h-[calc(100vh-8rem)] overflow-y-auto py-8 pr-2"
         >
-          <DuxtNavigation :items="items" />
+          <DuxtNavigation :items="items" :label="$t('duxt.nav.docs')" />
         </div>
       </div>
 

@@ -34,8 +34,7 @@ const poweredBy = computed(() =>
           :to="localeLink('/')"
           class="inline-flex items-center gap-2 font-medium text-foreground"
         >
-          <Icon name="lucide:book-open-text" class="size-4 text-primary" />
-          {{ duxt.title }}
+          <DuxtBrand size="sm" />
         </NuxtLink>
         <span v-if="duxt.footer?.copyright">{{ duxt.footer.copyright }}</span>
       </div>

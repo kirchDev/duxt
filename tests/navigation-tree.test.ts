@@ -2,6 +2,7 @@ import type { ContentNavigationItem } from '@nuxt/content';
 import { describe, expect, it } from 'vitest';
 import {
   findByPath,
+  overlayTranslations,
   sectionItems,
   trailBelowPrefix
 } from '../app/utils/navigation-tree';
@@ -157,5 +158,59 @@ describe('trailBelowPrefix', () => {
 
   it('returns nothing for a page that is not in the tree', () => {
     expect(trailBelowPrefix(branchTree, '/missing', '/workflows')).toEqual([]);
+  });
+});
+
+describe('overlayTranslations', () => {
+  const tree = [
+    {
+      title: 'Get started',
+      path: '/getting-started',
+      children: [
+        { title: 'Introduction', path: '/getting-started' },
+        { title: 'Installation', path: '/getting-started/installation' }
+      ]
+    },
+    { title: 'Concepts', path: '/concepts' }
+  ];
+
+  it('keeps every page of the original, translated or not', () => {
+    const out = overlayTranslations(tree, new Map());
+
+    // The whole point: a translation with two pages must not shrink the
+    // sidebar to two entries — the rest is served by the fallback and has to
+    // stay reachable.
+    expect(out).toHaveLength(2);
+    expect(out[0]!.children).toHaveLength(2);
+  });
+
+  it('takes the translated title where there is one', () => {
+    const out = overlayTranslations(
+      tree,
+      new Map([['/getting-started', { title: 'Loslegen' }]])
+    );
+
+    expect(out[0]!.title).toBe('Loslegen');
+    // A page with no translation keeps the original wording rather than a gap.
+    expect(out[1]!.title).toBe('Concepts');
+  });
+
+  it('translates nested entries too', () => {
+    const out = overlayTranslations(
+      tree,
+      new Map([['/getting-started/installation', { title: 'Installation DE' }]])
+    );
+
+    expect(out[0]!.children![1]!.title).toBe('Installation DE');
+  });
+
+  it('leaves a title alone when the translation has none', () => {
+    const out = overlayTranslations(
+      tree,
+      new Map([['/concepts', { description: 'Nur die Beschreibung' }]])
+    );
+
+    expect(out[1]!.title).toBe('Concepts');
+    expect(out[1]!.description).toBe('Nur die Beschreibung');
   });
 });

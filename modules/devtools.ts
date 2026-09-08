@@ -43,6 +43,13 @@ export default function duxtDevtools(_options: unknown, nuxt: Nuxt) {
     appConfigFile: appConfigOf(nuxt),
     locales: localeCodes(nuxt),
     defaultLocale: (nuxt.options as { i18n?: { defaultLocale?: string } }).i18n
+      ?.defaultLocale,
+    // The Paths panel picks a collection per locale, through the same chain the
+    // theme walks. vue-i18n's own `fallbackLocale` lives in `i18n.config.ts`,
+    // which is a runtime module Nuxt does not evaluate here — and the default
+    // locale is where that chain ends regardless, because the untranslated
+    // original is the collection a page falls back to when nothing else has it.
+    fallbackLocale: (nuxt.options as { i18n?: { defaultLocale?: string } }).i18n
       ?.defaultLocale
   };
 

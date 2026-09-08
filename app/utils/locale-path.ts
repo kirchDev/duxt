@@ -15,15 +15,31 @@ export function stripLocalePrefix(
   path: string,
   codes: Iterable<string>
 ): string {
+  return splitLocalePath(path, codes).path;
+}
+
+/**
+ * The same split, keeping the half that was thrown away.
+ *
+ * Which language a URL asks for is not decoration: original and translation
+ * live under IDENTICAL content paths in different collections, so a lookup
+ * given only the stripped path cannot tell them apart and takes whichever
+ * sorted first. Anything choosing a collection needs both halves — see
+ * `sourcesForRoute`.
+ */
+export function splitLocalePath(
+  path: string,
+  codes: Iterable<string>
+): { locale?: string; path: string } {
   const first = path.split('/')[1];
-  if (!first) return path;
+  if (!first) return { path };
 
   for (const code of codes) {
     if (code !== first) continue;
 
     const rest = path.slice(first.length + 1);
-    return rest.startsWith('/') ? rest : (rest ?? '') || '/';
+    return { locale: code, path: rest.startsWith('/') ? rest : rest || '/' };
   }
 
-  return path;
+  return { path };
 }

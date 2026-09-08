@@ -24,7 +24,11 @@ import { report, walk } from '../validate-report';
  *    costs is unreachable and no amount of reading the site would say why;
  *  - a broken link or a missing `title` is a WARNING naming the file, because
  *    the page still renders and a remote source can go stale between releases
- *    without that being this build's fault.
+ *    without that being this build's fault;
+ *  - what each language carries, and what has stood still behind its original,
+ *    is a NOTE — a state of the site rather than a defect in it. It is here
+ *    because nothing else in the layer ever says it out loud, and a translation
+ *    that quietly stopped moving is the failure this whole file is about.
  */
 
 export default function duxtValidate(_options: unknown, nuxt: Nuxt) {
@@ -74,11 +78,23 @@ export default function duxtValidate(_options: unknown, nuxt: Nuxt) {
             ? entry.content.description
             : undefined,
         anchors,
-        links
+        links,
+        lastUpdated:
+          typeof entry.content.lastUpdated === 'string'
+            ? entry.content.lastUpdated
+            : undefined
       };
     });
 
     const problems = report(sources, pages);
+
+    // The translation report is INFORMATION, not a finding: an untranslated
+    // page is a state of the site rather than a defect in it, and printing it
+    // as a warning would train everyone to ignore the warnings.
+    if (problems.notes.length) {
+      console.info('[duxt] translations');
+      for (const note of problems.notes) console.info(`[duxt]   ${note}`);
+    }
 
     for (const warning of problems.warnings) {
       console.warn(`[duxt] ${warning}`);

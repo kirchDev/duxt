@@ -3,7 +3,13 @@ import { dirname, join } from 'node:path';
 import { defineCollection, z } from '@nuxt/content';
 import { defineSitemapSchema } from '@nuxtjs/sitemap/content';
 import type { DuxtSource, DuxtSourcesOptions } from './sources-resolve';
-import { refName, repoUrl, resolveSources } from './sources-resolve';
+import {
+  expandSources,
+  refIsTag,
+  refName,
+  repoUrl,
+  resolveSources
+} from './sources-resolve';
 import { resolveLatestRefs } from './sources-git';
 export type {
   DuxtResolvedSource,
@@ -11,6 +17,11 @@ export type {
   DuxtSourcesOptions
 } from './sources-resolve';
 export { duxtSourceManifest } from './sources-resolve';
+// Named beside the resolver, not here: the app reads it to pick a partial's
+// language, and this file imports `@nuxt/content` — which the bundler refuses
+// to follow out of client code.
+import { PARTIALS_COLLECTION, partialsCollection } from './sources-resolve';
+export { PARTIALS_COLLECTION, partialsCollection };
 
 /**
  * Walk up to the repository root, so `docs/` resolves there and not in a
@@ -141,48 +152,104 @@ export function duxtSources(
   const resolved = resolveSources(sources, options);
   const collections: Record<string, ReturnType<typeof defineCollection>> = {};
 
-  const expanded = sources.flatMap((source) =>
-    (source.refs?.length ? source.refs : [undefined]).map((ref) => ({
-      source,
-      ref
-    }))
-  );
+  // The SAME expansion the manifest is built from, so entry `n` here and entry
+  // `n` there are the same source, ref and language. See `expandSources`.
+  const expanded = expandSources(sources, options);
 
   resolved.forEach((entry, index) => {
-    const { source, ref } = expanded[index]!;
+    const { source, ref, effective } = expanded[index]!;
+
+    // A locale entry may carry a ref of its own — a translation repository
+    // that tags on its own schedule.
+    const usedRef = effective.ref ?? ref;
+
+    /**
+     * The translations living INSIDE this source's own folder.
+     *
+     * The default locale reads `docs/` with `**\/*.md`, and that glob happily
+     * swallows `docs/de-DE/` — the original collection would carry every
+     * translated page a second time, under a path beginning with the locale,
+     * and the sidebar would show both. So each folder a sibling language
+     * occupies is excluded from the language that contains it.
+     */
+    const nested = expanded
+      .filter(
+        (other) =>
+          other.source === source &&
+          other.effective.repo === effective.repo &&
+          other.effective.path !== effective.path &&
+          other.effective.path.startsWith(`${effective.path}/`)
+      )
+      .map(
+        (other) => `${other.effective.path.slice(effective.path.length + 1)}/**`
+      );
 
     collections[entry.collection] = defineCollection({
       type: 'page',
       schema: pageSchema,
-      source: source.repo
+      source: effective.repo
         ? {
-            exclude: excluded(),
+            exclude: [
+              ...excluded(),
+              ...nested.map((glob) => `${effective.path}/${glob}`)
+            ],
             // A tag lives outside refs/heads, so it has to be passed as a tag —
             // asking git for a branch by that name fails the build outright.
-            repository: ref
-              ? typeof ref === 'object' && 'tag' in ref
-                ? { url: repoUrl(source.repo), tag: ref.tag }
-                : { url: repoUrl(source.repo), branch: refName(ref) }
-              : repoUrl(source.repo),
-            include: `${source.path ?? 'docs'}/**/*.md`,
+            repository: usedRef
+              ? refIsTag(usedRef)
+                ? { url: repoUrl(effective.repo), tag: refName(usedRef) }
+                : { url: repoUrl(effective.repo), branch: refName(usedRef) }
+              : repoUrl(effective.repo),
+            include: `${effective.path}/**/*.md`,
             prefix: entry.prefix
           }
         : {
-            exclude: excluded(),
+            exclude: [...excluded(), ...nested],
             include: '**/*.md',
-            cwd: join(repositoryRoot(), source.path ?? 'docs'),
+            cwd: join(repositoryRoot(), effective.path),
             prefix: entry.prefix
           }
     });
   });
 
-  collections[PARTIALS_COLLECTION] = definePartials(sources);
+  // One partials collection per LANGUAGE, named the way the page collections
+  // are — see `partialsCollection`.
+  for (const [locale, entries] of partialFolders(resolved, expanded)) {
+    collections[partialsCollection(locale)] = definePartials(entries);
+  }
 
   return collections;
 }
 
-/** The name every `:partial{name}` resolves against. */
-export const PARTIALS_COLLECTION = 'duxt_partials';
+/** One folder list per language: where that language's `_partials/` live. */
+function partialFolders(
+  resolved: DuxtResolvedSource[],
+  expanded: ReturnType<typeof expandSources>
+): Map<string | undefined, { repo?: string; path: string }[]> {
+  const byLocale = new Map<
+    string | undefined,
+    { repo?: string; path: string }[]
+  >();
+  const seen = new Set<string>();
+
+  resolved.forEach((entry, index) => {
+    const { effective } = expanded[index]!;
+    const key = entry.isDefaultLocale ? undefined : entry.locale;
+
+    // One entry per REPOSITORY AND FOLDER, not per version: a partial is a
+    // block of prose, and reading three versions of it into one collection
+    // would give three blocks under one name.
+    const claim = `${key ?? ''}|${effective.repo ?? ''}:${effective.path}`;
+    if (seen.has(claim)) return;
+    seen.add(claim);
+
+    const list = byLocale.get(key) ?? [];
+    list.push({ repo: effective.repo, path: effective.path });
+    byLocale.set(key, list);
+  });
+
+  return byLocale;
+}
 
 /**
  * One collection over every source's `_partials/` folder.
@@ -198,33 +265,18 @@ export const PARTIALS_COLLECTION = 'duxt_partials';
  * Two sources defining the same name is a collision the build reports rather
  * than resolves; see `modules/validate.ts`.
  */
-function definePartials(sources: DuxtSource[]) {
-  const seen = new Set<string>();
-
-  const entries = sources
-    .map((source) => {
-      const folder = source.path ?? 'docs';
-
-      // One entry per REPOSITORY, not per version: a partial is a block of
-      // prose, and reading three versions of it into one collection would give
-      // three blocks under one name.
-      const key = `${source.repo ?? ''}:${folder}`;
-      if (seen.has(key)) return undefined;
-      seen.add(key);
-
-      return source.repo
-        ? {
-            repository: repoUrl(source.repo),
-            include: `${folder}/_partials/**/*.md`
-          }
-        : {
-            include: '_partials/**/*.md',
-            cwd: join(repositoryRoot(), folder)
-          };
-    })
-    .filter(Boolean) as NonNullable<
-    Parameters<typeof defineCollection>[0]['source']
-  >[];
+function definePartials(folders: { repo?: string; path: string }[]) {
+  const entries = folders.map((folder) =>
+    folder.repo
+      ? {
+          repository: repoUrl(folder.repo),
+          include: `${folder.path}/_partials/**/*.md`
+        }
+      : {
+          include: '_partials/**/*.md',
+          cwd: join(repositoryRoot(), folder.path)
+        }
+  ) as NonNullable<Parameters<typeof defineCollection>[0]['source']>[];
 
   // The SAME schema as the pages, not a smaller one. Content types a query by
   // the fields every collection has in common, so a partials collection with

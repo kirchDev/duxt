@@ -1,5 +1,5 @@
 # region gitignore-sync
-# stacks: core, agents, git, node, nuxt, vscode, intellij, macos, windows, linux
+# stacks: core, agents, git, node, nuxt, dotenv, vscode, intellij, macos, windows, linux
 # ─────────────────────────────────────────
 
 # region core@v1
@@ -41,6 +41,14 @@ coverage
 .output
 .nitro
 .data
+# endregion
+
+# region dotenv@v1
+.env
+.env.*
+!.env.example
+!.env.*.example
+!.env.testing
 # endregion
 
 # region vscode@v1

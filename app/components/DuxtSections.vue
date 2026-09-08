@@ -24,9 +24,12 @@ function current(to?: string) {
 <template>
   <!-- Hidden below lg: the mobile sheet lists the same sections, and a row
        that scrolls sideways under the header is worse than no row. -->
+  <!-- `top-14` is one pixel short: the header is h-14 PLUS its own border-b,
+       so the row parked over that border and the two swapped places by a pixel
+       as the browser rounded the scroll offset. -->
   <div
     v-if="duxt.sections?.length"
-    class="sticky top-14 z-40 hidden border-b bg-background/80 backdrop-blur-sm lg:block"
+    class="sticky top-[calc(3.5rem_+_1px)] z-40 hidden border-b bg-background/95 backdrop-blur-md lg:block"
   >
     <nav
       class="mx-auto flex max-w-[90rem] items-center gap-1 overflow-x-auto px-4 lg:px-8"

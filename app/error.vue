@@ -20,6 +20,16 @@ useHead(() => ({
 }));
 
 /**
+ * An error page is not a page of the site.
+ *
+ * Nothing stopped a crawler indexing this one, and a 404 that gets indexed
+ * competes in a search result with the page the reader was actually looking
+ * for. `follow` on purpose: the suggestions below are real pages and a crawler
+ * that arrived here by a broken link should still reach them.
+ */
+useSeoMeta({ robots: 'noindex, follow' });
+
+/**
  * The nearest real pages, from the navigation the layout already fetched.
  *
  * A 404 in versioned documentation is usually a URL that is nearly right, and
