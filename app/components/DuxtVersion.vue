@@ -74,19 +74,33 @@ function pathIn(version: { to?: string }) {
          and a <span> is allowed neither — which axe reports and a screen
          reader acts on. -->
     <UiDropdownMenuTrigger as-child>
+      <!-- Built like shadcn's own large sidebar button: a square mark, then
+           two lines, then the chevrons. The VERSION LEADS and the caption sits
+           under it — the reverse of what this was, where the reader met the
+           word "Version" before the number they came to read. The caption is
+           the version's own lifecycle where it has one ("default",
+           "maintenance"), because on a switcher that is the fact worth the
+           second line; the label is what is left when it has none. -->
       <button
         v-if="props.variant === 'block'"
         type="button"
-        class="flex w-full cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-left transition-colors hover:bg-accent"
+        class="flex w-full cursor-pointer items-center gap-2 rounded-md border p-2 text-left transition-colors hover:bg-accent"
       >
-        <span class="min-w-0 flex-1">
-          <span class="block text-[11px] text-muted-foreground">
-            {{ $t('duxt.version.label') }}
-          </span>
-          <span class="block truncate font-mono text-sm font-medium">
+        <span
+          class="flex aspect-square size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground"
+        >
+          <Icon name="lucide:git-branch" class="size-4" />
+        </span>
+
+        <span class="grid min-w-0 flex-1 leading-tight">
+          <span class="truncate font-mono text-sm font-medium">
             {{ current?.label ?? duxt.version }}
           </span>
+          <span class="truncate text-xs text-muted-foreground">
+            {{ (current && caption(current)) ?? $t('duxt.version.label') }}
+          </span>
         </span>
+
         <Icon
           name="lucide:chevrons-up-down"
           class="size-4 shrink-0 text-muted-foreground"
