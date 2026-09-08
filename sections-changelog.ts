@@ -427,16 +427,39 @@ function promote(lines: string[]): string[] {
  * A page draws its `<h1>` from `title` — its own in the docs shell, the one the
  * parser writes in a layout of its own — so the `# Changelog` at the top of the
  * file is a second one either way.
+ *
+ * THE FIRST ONE ONLY, and only ahead of the first release. Dropping every `#`
+ * reads correctly on the file release-please writes, where there is exactly
+ * one — and is silent content loss on a hand-kept changelog that puts its
+ * releases at the top level: every release heading would go, and `flat`, the
+ * mode that exists to render the file untouched, would print one unbroken run
+ * of bullets with no release boundaries in it. `split` reads that same file
+ * release by release, which is what makes the general rule an asymmetry rather
+ * than a policy.
  */
 function withoutTitle(lines: string[]): string[] {
-  const kept: string[] = [];
+  const title = titleOf(lines);
+  if (title === undefined) return lines;
 
-  scan(lines, (line, _number, fenced) => {
-    if (!fenced && /^#[ \t]/.test(line)) return;
-    kept.push(line);
-  });
+  return [...lines.slice(0, title), ...lines.slice(title + 1)];
+}
 
-  return kept;
+/**
+ * The line the file's own title sits on, where it has one.
+ *
+ * A heading is the title when it is the first `#` in the file and no release
+ * came before it — a file that opens on a release has no title to take, and
+ * `index()` reads the same rule scoped to the preamble it is handed, where
+ * "before the first release" is the whole of what it holds. A heading inside a
+ * fenced block is text, which `headingsOf` already settles.
+ */
+function titleOf(lines: string[]): number | undefined {
+  for (const heading of headingsOf(lines)) {
+    if (release(heading.text)) return undefined;
+    if (heading.level === 1) return heading.line;
+  }
+
+  return undefined;
 }
 
 /** The lines with the blank ones at either end dropped. */

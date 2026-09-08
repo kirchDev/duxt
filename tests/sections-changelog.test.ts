@@ -52,6 +52,23 @@ Everything that changed.
 * the first release
 `;
 
+/**
+ * A hand-kept changelog that writes its releases at the top level.
+ *
+ * The shape the two rendering paths have to agree on: `split` reads the
+ * releases whatever level they sit at, so `flat` cannot quietly drop them.
+ */
+const HAND_KEPT = `# Changelog
+
+# 1.1.0 (2026-02-01)
+
+* a thing
+
+# 1.0.0 (2026-01-01)
+
+* the first release
+`;
+
 describe('the changelog type', () => {
   it('is one global history in the original language', () => {
     // The two policies the whole per-type registry exists to make parameters:
@@ -276,6 +293,20 @@ describe('the changelog rendering', () => {
     expect(first!.body).toContain('### a heading in an example');
   });
 
+  it('reads a release the file wrote at the top level', () => {
+    // A release is a release at whatever level the file put it, and this is
+    // the half that already read one — which is what makes the flat page
+    // dropping the same headings the asymmetry rather than the policy.
+    const pages = parse(HAND_KEPT);
+
+    expect(pages.map((page) => page.file)).toEqual([
+      'index.md',
+      '1.v1.1.0.md',
+      '2.v1.0.0.md'
+    ]);
+    expect(pages[0]!.body).not.toContain('# Changelog');
+  });
+
   it('quotes every frontmatter value, so a colon cannot end the mapping', () => {
     // The failure `tests/frontmatter-yaml.test.ts` exists over, one layer up:
     // here the frontmatter is generated rather than written.
@@ -322,6 +353,26 @@ describe('the flat changelog', () => {
     expect(only!.body).toContain('title: "Releases"');
     expect(only!.body).not.toContain('# Changelog');
     expect(only!.body).not.toContain('# Releases');
+  });
+
+  it('keeps every release heading the file wrote at the top level', () => {
+    // The file's own title goes, because the page draws one from `title`. The
+    // releases beside it are the file, and dropping them would leave the mode
+    // that exists to render the file untouched printing one unbroken run of
+    // bullets with no release boundaries in it at all.
+    const [only] = flat(HAND_KEPT);
+
+    expect(only!.body).not.toContain('# Changelog');
+    expect(only!.body).toContain('# 1.1.0 (2026-02-01)');
+    expect(only!.body).toContain('# 1.0.0 (2026-01-01)');
+  });
+
+  it('drops no heading from a file that opens on a release', () => {
+    // Nothing precedes the first release, so there is no title to take: the
+    // rule is the file's own title, not the first `#` in it.
+    const [only] = flat('# 1.0.0 (2026-01-01)\n\n* the first release\n');
+
+    expect(only!.body).toContain('# 1.0.0 (2026-01-01)');
   });
 
   it('names a granularity it does not have', () => {
