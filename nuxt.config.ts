@@ -233,16 +233,23 @@ export default defineNuxtConfig({
      * @nuxtjs/sitemap wires itself into Content's collections, and it says so
      * out loud when it is loaded second — "this may cause issues with the
      * integration". It does: the sitemap then lists the site's routes and not
-     * one documentation page.
+     * one documentation page. The bundle loads its modules in its own order,
+     * so the whole bundle goes here rather than three named modules.
      *
-     * All four read `site.url`, which the duxt module fills in from
-     * `i18n.baseUrl` so a consumer states its origin once rather than four
+     * `@nuxtjs/seo` is an ALIAS, not a wrapper — its own documentation says it
+     * "contains no logic of its own". What it buys is the four modules this
+     * layer used to do by hand: schema.org from `nuxt-schema-org`, the
+     * automatic canonical and og/twitter tags from `nuxt-seo-utils`, the link
+     * check, and `nuxt-site-config` as the one place `site.url` is read from.
+     * It also completes the shared devtools panel, which every one of these
+     * modules feeds and which lists the ones that are missing.
+     *
+     * They all read `site.url`, which the duxt module fills in from
+     * `i18n.baseUrl` so a consumer states its origin once rather than five
      * times; without one they degrade to relative output rather than inventing
      * a domain.
      */
-    '@nuxtjs/robots',
-    '@nuxtjs/sitemap',
-    'nuxt-og-image',
+    '@nuxtjs/seo',
     '@nuxt/image',
 
     '@nuxt/content',
@@ -365,6 +372,50 @@ export default defineNuxtConfig({
     // a block of prose meant to be included in three places is not a page a
     // crawler should be offered.
     exclude: ['/_partials/**', '/*/_partials/**']
+  },
+
+  /**
+   * nuxt-seo-utils, whose defaults are written for a site that sets no head
+   * tags of its own. Three of them are wrong HERE, and each for a reason this
+   * layer cannot design away.
+   */
+  seo: {
+    /**
+     * A LOCALE PREFIX IS CASE-SENSITIVE. i18n routes this site's locales under
+     * their own codes — `/de-DE/guides`, `/pt-BR/guides` — and lowercasing a
+     * canonical would point every translated page at a URL that 404s. The
+     * option exists for sites whose paths differ only in case; ours do not.
+     */
+    canonicalLowercase: false,
+
+    /**
+     * A title invented from the last slug segment is a title nobody wrote.
+     * Every page here carries one from its frontmatter, and `modules/validate`
+     * fails the build over a page that does not — so the fallback can only ever
+     * mask that check.
+     */
+    fallbackTitle: false,
+
+    /**
+     * `app.vue` owns the title template — it appends the site's own name, which
+     * is what a tab and a search result need. Letting site config inject a
+     * second one leaves two templates competing over one title.
+     */
+    mergeWithSiteConfig: false
+  },
+
+  /**
+   * The link check REPORTS, it does not fail the build: `modules/validate.ts`
+   * already fails it over a link pointing nowhere, and it is the one that knows
+   * about versions and locale fallbacks. Two gates over one rule means the
+   * looser one decides when a build breaks, which is the wrong way round.
+   *
+   * What the module adds over that is the devtools panel and the live check
+   * while writing, which is where a broken link is cheapest to fix.
+   */
+  linkChecker: {
+    failOnError: false,
+    excludeLinks: ['/devtools/**']
   },
 
   colorMode: {
