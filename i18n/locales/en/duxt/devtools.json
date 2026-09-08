@@ -1,7 +1,7 @@
 {
   "duxt": {
     "devtools": {
-      "preview": "The {tab} panel of the devtools tab"
+      "preview": "The {tab} devtools panel"
     }
   }
 }
