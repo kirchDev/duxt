@@ -13,9 +13,14 @@
  * Two differences from `docs`, and both follow from what the pages ARE. The
  * sidebar is the release list rather than a prose tree — same navigation, same
  * collection, because a generated section is an ordinary collection and its
- * pages are the releases. And there is no table of contents: a release page's
- * headings are its groups, which the page already shows as a filterable set,
- * and a column repeating "Features, Bug Fixes" beside them says nothing twice.
+ * pages are the releases. And the reading column is capped inside a window that
+ * still leaves room for the contents on the right, which is why `main` carries
+ * a width rather than the page: a layout owns how wide its prose is set, and
+ * `pages/[...slug].vue` draws the same column for every generated section.
+ *
+ * The contents column IS there, and its links are not the ones Content found:
+ * a release page's headings are drawn by `ChangelogGroup` from a prop, so the
+ * outline is read back off the page's own AST — see `generated-toc.ts`.
  *
  * Bound only by the SPLIT granularity. A changelog asked for as the one file it
  * was written as is an ordinary docs page and renders in the docs chrome — see
@@ -47,7 +52,7 @@ const { chrome } = useDuxtSectionRow();
     <DuxtHeader />
     <DuxtSections />
 
-    <div class="mx-auto flex w-full max-w-6xl flex-1 gap-8 px-4 lg:px-8">
+    <div class="mx-auto flex w-full max-w-[90rem] flex-1 gap-8 px-4 lg:px-8">
       <!-- A section with one page has nothing to navigate, exactly as in the
            docs layout: the column would list the page the reader is on. That is
            the whole overview of a changelog with a single release. -->
@@ -65,7 +70,7 @@ const { chrome } = useDuxtSectionRow();
       <main
         id="duxt-main"
         tabindex="-1"
-        class="flex min-w-0 max-w-3xl flex-1 outline-none"
+        class="mx-auto flex w-full min-w-0 max-w-5xl flex-1 outline-none"
       >
         <slot />
       </main>

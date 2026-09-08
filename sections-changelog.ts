@@ -368,11 +368,11 @@ function index(
     body: [
       frontmatter({ title: context.label }),
       '',
-      // The page's own `<h1>`, which the DOCS SHELL would have drawn: a type
-      // that names a layout owns its page, so `pages/[...slug].vue` draws no
-      // header for it and the heading has to come out of the parser.
-      `# ${heading(context.label)}`,
-      '',
+      // NO `<h1>` OF ITS OWN. The page draws the docs header — breadcrumb,
+      // title, description, the copy control beside it — for exactly the
+      // generated pages whose body opens on no heading, and a release history
+      // is one: its pages have a title and a trail like any other page, and the
+      // only reason they ever drew their own was that the layout drew none.
       ...(body.length ? [...body, ''] : []),
       ...(releases.length
         ? [component(DUXT_CHANGELOG_RELEASES, props), '']
@@ -390,8 +390,7 @@ function page(entry: Release, order: string): DuxtSectionPage {
     body: [
       frontmatter({ title: entry.version, date: entry.date }),
       '',
-      `# ${heading(entry.version)}`,
-      '',
+      // The version is the page's title, and the page draws it — see `index`.
       ...(intro.length ? [...promote(intro), ''] : []),
       ...groups.flatMap((group) => [
         // The entries stay MARKDOWN, in the component's slot: they are the
@@ -453,9 +452,8 @@ function promote(lines: string[]): string[] {
 /**
  * The lines without the file's own title.
  *
- * A page draws its `<h1>` from `title` — its own in the docs shell, the one the
- * parser writes in a layout of its own — so the `# Changelog` at the top of the
- * file is a second one either way.
+ * A page draws its `<h1>` from `title`, so the `# Changelog` at the top of the
+ * file is a second one — in the docs shell and in a layout of its own alike.
  *
  * THE FIRST ONE ONLY, and only ahead of the first release. Dropping every `#`
  * reads correctly on the file release-please writes, where there is exactly
@@ -541,11 +539,6 @@ function component(
     ...(body ? [body] : []),
     fence
   ].join('\n');
-}
-
-/** A heading is one line, and the text is written as it stands. */
-function heading(value: string): string {
-  return value.replace(/\s+/g, ' ').trim();
 }
 
 /**

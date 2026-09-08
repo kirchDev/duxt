@@ -154,13 +154,16 @@ describe('the changelog rendering', () => {
     expect(layout()).toBe('changelog');
   });
 
-  it('draws its own page heading, because the layout draws none', () => {
-    // A type that names a layout owns its page: `pages/[...slug].vue` skips the
-    // docs header for it, so the `<h1>` has to come out of the parser.
+  it('draws no page heading, because the shell draws it from the title', () => {
+    // The header a written page gets is the header these pages get: the title
+    // is in the frontmatter, and `pages/[...slug].vue` draws the `<h1>` for
+    // every generated page whose body opens on no heading of its own.
     const [index, first] = parse(CHANGELOG);
 
-    expect(index!.body).toContain('# Releases');
-    expect(first!.body).toContain('# 0.2.0');
+    expect(index!.body).toContain('title: "Releases"');
+    expect(index!.body).not.toContain('# Releases');
+    expect(first!.body).toContain('title: "0.2.0"');
+    expect(first!.body).not.toContain('# 0.2.0');
   });
 
   it('groups a release by the file`s own headings, taken verbatim', () => {
