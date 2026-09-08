@@ -34,6 +34,16 @@ export interface SourceRecord {
   prefix: string;
   locale?: string;
   isDefaultLocale?: boolean;
+  /**
+   * Set when this collection is a GENERATED SECTION rather than a docs tree.
+   *
+   * Two of the checks below mean something different for one: an empty section
+   * is already reported where the artefact is read, with the severity the
+   * source's kind asks for, and a page split out of a changelog has no field a
+   * `description` could come from. Both are properties of the artefact rather
+   * than defects in it.
+   */
+  generated?: unknown;
 }
 
 /** Collect anchor ids and internal links out of a parsed MDC body. */
@@ -80,7 +90,15 @@ export function report(
 
   // 1. A collection with nothing in it. The symptom is an empty sidebar and a
   //    404 on every page of one version — never a message.
+  //
+  //    A generated section is exempt: `sections.ts` already reports an artefact
+  //    that is missing or unreadable, and it does so at the severity the
+  //    source's kind asks for — an error for a local file, a warning for a
+  //    remote one that may legitimately not have existed at an older tag.
+  //    Repeating it here as an error would overrule that decision.
   for (const source of sources) {
+    if (source.generated) continue;
+
     if (!byCollection.get(source.collection)?.length) {
       errors.push(
         `collection "${source.collection}" (serving "${source.prefix || '/'}") ` +
@@ -115,10 +133,19 @@ export function report(
 
   // 3. Frontmatter. Neither field breaks a page; both quietly degrade the
   //    table of contents, the OG image and llms.txt.
+  //
+  //    A generated page is asked for a title and not for a description: the
+  //    title is the type's to produce and a missing one is a bug in the parser,
+  //    where a description would have to be invented — a changelog entry has no
+  //    field that could carry one.
+  const isGenerated = new Set(
+    sources.filter((source) => source.generated).map((s) => s.collection)
+  );
+
   for (const page of pages) {
     const missing = [
       !page.title && 'title',
-      !page.description && 'description'
+      !page.description && !isGenerated.has(page.collection) && 'description'
     ].filter(Boolean);
 
     if (missing.length) {

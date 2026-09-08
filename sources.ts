@@ -28,7 +28,7 @@ export { PARTIALS_COLLECTION, partialsCollection };
  * subfolder. Node-only, and kept here rather than beside the resolver: that
  * file is read by app.config.ts and therefore bundled for the browser.
  */
-function repositoryRoot(): string {
+export function repositoryRoot(): string {
   let dir = process.cwd();
 
   for (;;) {
@@ -46,7 +46,7 @@ function repositoryRoot(): string {
  * Without a schema Content neither stores these nor types them, so `icon:` in a
  * page's frontmatter was silently dropped before the sidebar ever saw it.
  */
-const pageSchema = z.object({
+export const pageSchema = z.object({
   /** Shown beside the entry in the sidebar, the section row and page cards. */
   icon: z.string().optional(),
   /** `landing` renders the page without the docs chrome. */

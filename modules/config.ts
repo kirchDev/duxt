@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 import type { Nuxt } from '@nuxt/schema';
 import { enableWriteAheadLog } from '../content-cache';
 import { readDuxtBuildConfig } from '../duxt-app-config';
-import { duxtSourceManifest } from '../sources-resolve';
+import { duxtManifest, duxtSectionTypes } from '../sections-resolve';
 import { resolveLatestRefs } from '../sources-git';
 
 /**
@@ -44,9 +44,10 @@ export default function duxtConfig(_options: unknown, nuxt: Nuxt) {
 
   const config = readDuxtBuildConfig(dirs);
 
-  const resolvedSources = duxtSourceManifest(
+  const resolvedSources = duxtManifest(
     resolveLatestRefs(config?.sources ?? [{ path: 'docs' }]),
-    config?.sourceOptions ?? {}
+    config?.sourceOptions ?? {},
+    duxtSectionTypes(config?.sectionTypes)
   );
 
   // Written into `appConfig`, which the generated template merges LAST — behind
@@ -87,7 +88,7 @@ function checkSourceLocales(
   config:
     | { locales?: string[]; sourceOptions?: { defaultLocale?: string } }
     | undefined,
-  resolved: ReturnType<typeof duxtSourceManifest>
+  resolved: ReturnType<typeof duxtManifest>
 ) {
   const translated = resolved.filter((source) => source.locale);
   if (!translated.length) return;
@@ -227,7 +228,7 @@ function nameMcpServer(
  */
 function excludeOldVersionsFromSitemap(
   nuxt: Nuxt,
-  sources: ReturnType<typeof duxtSourceManifest>
+  sources: ReturnType<typeof duxtManifest>
 ) {
   const hidden = sources.filter(
     (source) => source.prefix && (!source.isDefault || source.status === 'eol')

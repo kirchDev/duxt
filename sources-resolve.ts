@@ -1,3 +1,10 @@
+// Type-only, and therefore erased: the section resolver imports the functions
+// below, so a value import here would be a cycle between the two files.
+import type {
+  DuxtGeneratedMeta,
+  DuxtGeneratedSection
+} from './sections-resolve';
+
 /**
  * A documentation source: a folder, in this repository or another, at the
  * current checkout or at named refs.
@@ -62,6 +69,13 @@ export interface DuxtSource {
    * whether or not this is set.
    */
   history?: boolean;
+  /**
+   * Artefacts beside this source's Markdown, published as pages of the site.
+   *
+   * Off until declared, the same rule as `feed.path`. A changelog, an OpenAPI
+   * document, whatever a registered type can read — see `DuxtGeneratedSection`.
+   */
+  generated?: DuxtGeneratedSection[];
 }
 
 /**
@@ -214,6 +228,15 @@ export interface DuxtResolvedSource {
   status: DuxtSourceStatus;
   /** Whether the build may read this source's git history. */
   history: boolean;
+  /**
+   * Present when this collection is a GENERATED SECTION rather than a docs
+   * tree — see `resolveGeneratedSections`.
+   *
+   * The one question anything downstream asks: the version switcher to know it
+   * has nothing to offer here, the layout slot to know which layout to set, and
+   * "edit this page" to link at the artefact instead of at a file per page.
+   */
+  generated?: DuxtGeneratedMeta;
 }
 
 /**
@@ -599,6 +622,11 @@ export function localeChain(
  * declare collections, and importing a module's entry point from client code is
  * rejected by the bundler. This file is plain logic, so `app.config.ts` can read
  * it and both halves still resolve the list exactly once.
+ *
+ * THE DOCUMENTATION HALF ONLY. `duxtSources` walks this list index-for-index
+ * against `expandSources`, so a generated section appended here would put the
+ * two out of step; `duxtManifest` in `sections-resolve.ts` is the whole
+ * manifest, and what everything serving a site reads.
  */
 export function duxtSourceManifest(
   sources: DuxtSource[],

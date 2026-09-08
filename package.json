@@ -36,6 +36,9 @@
     "modules",
     "nuxt.config.ts",
     "public",
+    "sections-changelog.ts",
+    "sections-resolve.ts",
+    "sections.ts",
     "server",
     "sources-git.ts",
     "sources-resolve.ts",
@@ -46,6 +49,8 @@
   "main": "./nuxt.config.ts",
   "exports": {
     ".": "./nuxt.config.ts",
+    "./sections": "./sections.ts",
+    "./sections-resolve": "./sections-resolve.ts",
     "./sources": "./sources.ts",
     "./sources-resolve": "./sources-resolve.ts",
     "./sources-git": "./sources-git.ts"

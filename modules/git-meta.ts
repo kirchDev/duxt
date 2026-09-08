@@ -3,7 +3,7 @@ import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Nuxt } from '@nuxt/schema';
 import { readDuxtBuildConfig } from '../duxt-app-config';
-import { duxtSourceManifest } from '../sources-resolve';
+import { duxtManifest, duxtSectionTypes } from '../sections-resolve';
 import { resolveLatestRefs } from '../sources-git';
 
 /**
@@ -48,9 +48,10 @@ export default function duxtGitMeta(_options: unknown, nuxt: Nuxt) {
   ].filter(Boolean) as string[];
 
   const config = readDuxtBuildConfig(dirs);
-  const sources = duxtSourceManifest(
+  const sources = duxtManifest(
     resolveLatestRefs(config?.sources ?? [{ path: 'docs' }]),
-    config?.sourceOptions ?? {}
+    config?.sourceOptions ?? {},
+    duxtSectionTypes(config?.sectionTypes)
   );
 
   const wanted = new Map(

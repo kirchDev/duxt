@@ -134,6 +134,79 @@ declare global {
      * unshallowing that is a download the consumer should choose.
      */
     history?: boolean;
+    /**
+     * Artefacts beside this source's Markdown, published as pages of the site.
+     *
+     * Off until declared. A list, because a monorepo declaring a changelog per
+     * package is the normal case rather than the exotic one.
+     */
+    generated?: DuxtGeneratedSectionInput[];
+  }
+
+  /** Where a generated section's navbar entry goes. */
+  type DuxtSectionPlacementInput = 'navigation' | 'sections' | false;
+
+  /**
+   * One artefact that is not Markdown, published as pages of the site.
+   *
+   * Not spelled `sections`: `duxt.sections` below is the second navbar row, and
+   * two meanings on one public name is a collision the layer pays for later.
+   */
+  interface DuxtGeneratedSectionInput {
+    /** The registry key of the type that parses it, e.g. `changelog`. */
+    type: string;
+    /**
+     * The artefact, relative to the source's own root — the repository root
+     * for a source read off disk, the root of the downloaded checkout for one
+     * Content clones. A path only, never a URL.
+     */
+    path: string;
+    /**
+     * The navbar entry's label, and — slugified — its URL segment.
+     *
+     * A plain string, not a `DuxtText`: a translated text is not a stable URL,
+     * the same rule a version's label follows.
+     */
+    label: string;
+    /** URL segment for this section; defaults to the slugified label. */
+    slug?: string;
+    /**
+     * Where its navbar entry goes. The second navbar row unless stated, so a
+     * declared section is findable without further config.
+     */
+    navigation?: DuxtSectionPlacementInput;
+    /** Icon for that entry; falls back to the type's own. */
+    icon?: string;
+  }
+
+  /** One page a section type's parser produced. */
+  interface DuxtSectionPageInput {
+    /** File name inside the section, extension included. */
+    file: string;
+    /** The whole file — frontmatter block and body. */
+    body: string;
+  }
+
+  /**
+   * A type in the section registry: what turns one artefact into pages.
+   *
+   * The whole extension surface, and public from day one — a consumer supplying
+   * a parser and a layout inherits search, `llms.txt`, the feed, the sitemap and
+   * the navigation, because what it produces is an ordinary collection.
+   */
+  interface DuxtSectionTypeInput {
+    parse: (
+      artefact: string,
+      context: { label: string; prefix: string }
+    ) => DuxtSectionPageInput[];
+    /** `global` is one history at a version-neutral URL; `per-version` is not. */
+    versioning: 'global' | 'per-version';
+    /** `original` builds one collection and lets the translation banner say so. */
+    localisation: 'original' | 'per-locale';
+    /** The layout its pages render in. A name bound here is public surface. */
+    layout?: string;
+    /** Icon for the navbar entry, when the declaration names none. */
+    icon?: string;
   }
 
   interface DuxtSourceOptionsInput {
@@ -169,6 +242,21 @@ declare global {
     isDefaultLocale: boolean;
     status: DuxtSourceStatusInput;
     history: boolean;
+    /**
+     * Present when this collection is a generated section rather than a docs
+     * tree. `path` is then the artefact itself rather than a folder.
+     */
+    generated?: {
+      type: string;
+      label: string;
+      slug: string;
+      navigation: DuxtSectionPlacementInput;
+      icon?: string;
+      layout?: string;
+      versioning: 'global' | 'per-version';
+      localisation: 'original' | 'per-locale';
+      remote: boolean;
+    };
   }
 
   interface DuxtLink {
@@ -355,6 +443,14 @@ declare global {
     sources?: DuxtSourceInput[];
     /** How those sources become URL prefixes. */
     sourceOptions?: DuxtSourceOptionsInput;
+    /**
+     * Types a source's `generated` sections may name, beyond `changelog`.
+     *
+     * Read at BUILD time, like `sources` — a map rather than a registration
+     * call, because the two loaders that need it cannot see one another's
+     * globals. A consumer's entry wins, so a shipped type can be replaced.
+     */
+    sectionTypes?: Record<string, DuxtSectionTypeInput>;
     /**
      * GENERATED, not written. The duxt module resolves `sources` at build time
      * and writes the manifest here: which collection serves which prefix. It is

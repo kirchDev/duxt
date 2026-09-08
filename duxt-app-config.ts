@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { createJiti } from 'jiti';
 import type { DuxtSource, DuxtSourcesOptions } from './sources-resolve';
+import type { DuxtSectionTypes } from './sections-resolve';
 
 /** The build-time half of `app.config`'s `duxt` key. */
 export interface DuxtBuildConfig {
@@ -9,6 +10,15 @@ export interface DuxtBuildConfig {
   sources?: DuxtSource[];
   /** How those sources become URL prefixes. */
   sourceOptions?: DuxtSourcesOptions;
+  /**
+   * Types a source's `generated` sections may name, beyond the layer's own.
+   *
+   * The registry is open, and this is the whole of it: a map rather than a
+   * registration call, because `content.config.ts` and the duxt module are
+   * loaded by two different loaders and a mutable registry each of them wrote
+   * into would be two registries.
+   */
+  sectionTypes?: DuxtSectionTypes;
   /** Which of the layer's locales this site serves. */
   locales?: string[];
   /**

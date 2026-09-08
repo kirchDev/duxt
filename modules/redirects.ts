@@ -1,7 +1,7 @@
 import { fileURLToPath } from 'node:url';
 import type { Nuxt } from '@nuxt/schema';
 import { readDuxtBuildConfig } from '../duxt-app-config';
-import { duxtSourceManifest } from '../sources-resolve';
+import { duxtManifest, duxtSectionTypes } from '../sections-resolve';
 import { resolveLatestRefs } from '../sources-git';
 import { readContentCache } from '../content-cache';
 
@@ -32,9 +32,10 @@ export default function duxtRedirects(_options: unknown, nuxt: Nuxt) {
   ].filter(Boolean) as string[];
 
   const config = readDuxtBuildConfig(dirs);
-  const sources = duxtSourceManifest(
+  const sources = duxtManifest(
     resolveLatestRefs(config?.sources ?? [{ path: 'docs' }]),
-    config?.sourceOptions ?? {}
+    config?.sourceOptions ?? {},
+    duxtSectionTypes(config?.sectionTypes)
   );
 
   // `nitro:config` rather than `build:done`: route rules are read when Nitro is
