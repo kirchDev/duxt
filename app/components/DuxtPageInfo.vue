@@ -27,15 +27,20 @@ const page = computed(() => props.page);
 const { source } = useDuxtCollection();
 const { locale } = useI18n();
 
-const file = computed(() =>
-  page.value?.stem
+const file = computed(() => {
+  // A GENERATED SECTION has no file per page: every page in it was split out of
+  // one artefact, and `path` is that artefact. Sending the reader to a file
+  // named after the URL would be a 404 with an edit form on it.
+  if (source.value?.generated) return source.value.path;
+
+  return page.value?.stem
     ? sourceFilePath(
         page.value.stem,
         source.value?.prefix ?? '',
         source.value?.path ?? 'docs'
       )
-    : undefined
-);
+    : undefined;
+});
 
 const link = computed(() =>
   file.value

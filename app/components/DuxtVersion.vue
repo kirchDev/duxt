@@ -24,10 +24,16 @@ const localeLink = useDuxtLink();
  * from the URL segment.
  */
 const versions = computed(() => {
-  if (duxt.versions?.length) return duxt.versions;
-
   const sources = duxt.resolvedSources ?? [];
   const currentSource = sourceForPath(path.value, sources);
+
+  // A version-neutral generated section suppresses the control entirely, and
+  // that is the point of the policy rather than a tidy-up: a changelog is one
+  // global history, so every entry the switcher could offer would move the
+  // reader to a URL that section does not serve.
+  if (currentSource?.generated?.versioning === 'global') return [];
+
+  if (duxt.versions?.length) return duxt.versions;
 
   return sources
     .filter((source) => source.version && source.repo === currentSource?.repo)

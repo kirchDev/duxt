@@ -20,11 +20,22 @@ export function useDuxtVersion() {
   /**
    * The version to send the reader to instead — the default of the SAME
    * repository. Another project's default says nothing about this one.
+   *
+   * A VERSION-NEUTRAL GENERATED SECTION is its own answer. A changelog is one
+   * global history served at a URL with no version in it, so there is no other
+   * version of it to prefer: left to the search below it would have matched the
+   * documentation's default instead, and the page would then have carried
+   * `noindex` and a canonical pointing at a URL that does not exist.
    */
   const preferred = computed(() =>
-    sources.value.find(
-      (source) => source.isDefault && source.repo === current.value?.repo
-    )
+    current.value?.generated?.versioning === 'global'
+      ? current.value
+      : sources.value.find(
+          (source) =>
+            source.isDefault &&
+            source.generated?.versioning !== 'global' &&
+            source.repo === current.value?.repo
+        )
   );
 
   /** Is this the version a first-time reader should be on? */

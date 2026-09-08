@@ -11,6 +11,8 @@ import { toReactive } from '@vueuse/core';
  *    its own — see `duxt-config.ts`.
  *  - a label may be a literal, an i18n key or a per-locale record, and
  *    `resolveDuxtTexts` collapses all three to a string — see `duxt-text.ts`.
+ *  - a generated section's navbar entry is not in the config a human wrote at
+ *    all; it follows from the resolved manifest — see `withGeneratedSections`.
  *
  * Resolving here rather than at each call site is the point: `DuxtHeader`,
  * `DuxtFooter` and the rest keep writing `{{ section.label }}` and none of them
@@ -24,7 +26,9 @@ export function useDuxtConfig(): DuxtConfigResolved {
   return toReactive(
     computed(() =>
       resolveDuxtTexts(
-        mergeDuxtConfig(appConfig.duxt, duxtDefaults),
+        // After the merge, because a generated section's entry is APPENDED to
+        // whatever list the consumer wrote — see `withGeneratedSections`.
+        withGeneratedSections(mergeDuxtConfig(appConfig.duxt, duxtDefaults)),
         locale.value,
         // `te` first, so a literal never reaches `t` and never produces a
         // "key not found" warning. duxt's OWN missing keys still warn, which a
