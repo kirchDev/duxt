@@ -141,6 +141,20 @@ export function readContentCache(
 export function enableWriteAheadLog(nuxt: Nuxt): 'wal' | 'skipped' {
   const file = cacheFile(nuxt);
 
+  /**
+   * NEVER CREATE THE FILE. `new DatabaseSync` on a missing path writes an empty
+   * 4 kB database, and Content then finds a file where it expected none and
+   * never creates its schema — every query afterwards dies with `no such table:
+   * _development_cache`.
+   *
+   * Invisible on any machine that has built once, because the file is there by
+   * then; it only bites a FRESH checkout, which is to say CI and every new
+   * contributor. Skipping here costs the first build its WAL and nothing else:
+   * that build has no cache to read anyway, and the second one finds the file
+   * and switches it over.
+   */
+  if (!existsSync(file)) return 'skipped';
+
   try {
     mkdirSync(dirname(file), { recursive: true });
 
