@@ -271,6 +271,36 @@ describe('resolveGeneratedSections', () => {
     expect(flat!.generated!.layout).toBeUndefined();
   });
 
+  it('tells the entries of one declaration from those of another', () => {
+    // WHICH DECLARATION an entry came from is known here and nowhere after, so
+    // it is recorded rather than reconstructed downstream: the navbar puts one
+    // link in the row per declaration, and it used to guess the grouping from
+    // (slug, repository) — a pair the resolver never promised was unique.
+    const generated = resolveGeneratedSections(
+      [
+        {
+          path: 'docs',
+          refs: ['main', 'v1.x'],
+          // One artefact declared twice, as `www` declares its own changelog.
+          generated: [section, { ...section, slug: 'changelog' }]
+        },
+        { path: 'other', slug: 'other', generated: [section] }
+      ],
+      { showRepo: true },
+      types({ versioning: 'per-version' })
+    );
+
+    expect(
+      generated.map((entry) => [entry.prefix, entry.generated!.declaration])
+    ).toEqual([
+      ['/docs/releases', 0],
+      ['/docs/v1.x/releases', 0],
+      ['/docs/changelog', 1],
+      ['/docs/v1.x/changelog', 1],
+      ['/other/releases', 2]
+    ]);
+  });
+
   it('marks a downloaded source as remote and a local one as not', () => {
     const generated = resolveGeneratedSections(
       [

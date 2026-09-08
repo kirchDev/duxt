@@ -222,6 +222,27 @@ export interface DuxtGeneratedMeta {
   label: string;
   /** The URL segment, as resolved. */
   slug: string;
+  /**
+   * WHICH DECLARATION produced this entry — the identity, not an address.
+   *
+   * A section is one collection per version and per locale, so a single
+   * `generated: [...]` entry reaches the manifest as several sources, and the
+   * navbar has to put ONE link in the row for all of them. Which of them belong
+   * together is known exactly here, while `source.generated` is being iterated,
+   * and nowhere else afterwards — so it is recorded rather than reconstructed.
+   *
+   * It was reconstructed, from `(slug, repository)`, and that guess is wrong in
+   * both directions: two sources declaring a `Releases` section — per-package
+   * docs trees in a monorepo, the shape this feature calls the normal case —
+   * read as one declaration and lost an entry from the row, while nothing in
+   * the resolver ever promised the pair was unique. Prefixes are claimed per
+   * `(locale, prefix)`, so those two sections are not a collision and no error
+   * is raised.
+   *
+   * Its VALUE means nothing: a counter over the declarations in the site's own
+   * source list, only ever compared for equality inside one manifest.
+   */
+  declaration: number;
   /** Where its navbar entry goes. */
   navigation: DuxtSectionPlacement;
   /** Icon for that entry. */
@@ -264,8 +285,15 @@ export function resolveGeneratedSections(
     ])
   );
 
+  // Counted over the whole list rather than per source, so the identity is
+  // unique across the manifest without anything having to pair it with a source
+  // again. Incremented for every declaration, including one that resolves to no
+  // entry at all: it names a declaration, not a row of the output.
+  let declarations = 0;
+
   sources.forEach((source) => {
     for (const declared of source.generated ?? []) {
+      const declaration = declarations++;
       const type = types[declared.type];
 
       if (!type) {
@@ -340,6 +368,7 @@ export function resolveGeneratedSections(
             type: declared.type,
             label: declared.label,
             slug,
+            declaration,
             navigation: declared.navigation ?? 'sections',
             icon: declared.icon ?? type.icon,
             layout:

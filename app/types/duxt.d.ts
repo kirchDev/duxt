@@ -285,6 +285,15 @@ declare global {
       type: string;
       label: string;
       slug: string;
+      /**
+       * Which declaration produced this entry — the identity, not an address.
+       *
+       * A section is one collection per version and per locale, so one declared
+       * section reaches the manifest as several of these; the navbar puts one
+       * link in the row for all of them, and this is how it knows which ones.
+       * Compared for equality only, inside one manifest.
+       */
+      declaration: number;
       navigation: DuxtSectionPlacementInput;
       icon?: string;
       layout?: string;
