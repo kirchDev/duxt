@@ -63,9 +63,9 @@ export default defineAppConfig({
     // Written out in full, both entries: `mergeDuxtConfig` REPLACES an array
     // rather than merging into it, so naming `navigation` at all means naming
     // every entry. The layer ships only the generic Docs entry; the Resources
-    // dropdown below is duxt's own — five links to duxt's tech stack plus the
-    // credits page that thanks them, which belong to this site and not to a
-    // stranger's header.
+    // dropdown below and the Credits link after it are duxt's own — five links
+    // to duxt's tech stack and the page that thanks them, which belong to this
+    // site and not to a stranger's header.
     //
     // The Docs entry carries no `to` on purpose. `DuxtHeader.linkTarget`
     // resolves it to the first section, and `entryActive` lights it wherever
@@ -147,30 +147,23 @@ export default defineAppConfig({
               'pt-PT': 'Componentes dentro do Markdown'
             },
             external: true
-          },
-          // The one entry of this menu that stays on the site. It sits with the
-          // five links rather than in the section row because it is about the
-          // same subject they are — what duxt is built on — and a section row
-          // is for parts of the documentation someone reads, which this is not.
-          {
-            label: {
-              'en-GB': 'Credits',
-              'de-DE': 'Credits',
-              'es-ES': 'Créditos',
-              'fr-FR': 'Crédits',
-              'pt-PT': 'Créditos'
-            },
-            to: '/credits',
-            icon: 'lucide:heart',
-            description: {
-              'en-GB': 'Everyone this is built on',
-              'de-DE': 'Alle, auf denen das hier aufbaut',
-              'es-ES': 'Todo aquello sobre lo que se apoya',
-              'fr-FR': 'Tout ce sur quoi ceci repose',
-              'pt-PT': 'Tudo aquilo em que isto assenta'
-            }
           }
         ]
+      },
+      // A navbar entry of its own rather than an item inside the dropdown: a
+      // link buried in a menu is a link nobody opens the menu for, and this one
+      // is a page of the site while the five above leave it. It sits after
+      // Resources because it is the smaller thing.
+      {
+        label: {
+          'en-GB': 'Credits',
+          'de-DE': 'Credits',
+          'es-ES': 'Créditos',
+          'fr-FR': 'Crédits',
+          'pt-PT': 'Créditos'
+        },
+        to: '/credits',
+        icon: 'lucide:heart'
       }
     ],
 
