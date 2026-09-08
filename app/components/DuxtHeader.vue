@@ -97,7 +97,12 @@ function current(to?: string) {
                 {{ $t('duxt.nav.sections') }}
               </p>
               <ul v-if="duxt.sections?.length" class="mb-6 space-y-0.5 text-sm">
-                <li v-for="section in duxt.sections" :key="section.label">
+                <!-- Keyed on the URL, as the desktop row is: two sources may
+                     name a section the same, and a label is not unique. -->
+                <li
+                  v-for="section in duxt.sections"
+                  :key="section.to ?? section.label"
+                >
                   <NuxtLink
                     :to="localeLink(section.to)"
                     :aria-current="current(section.to)"
