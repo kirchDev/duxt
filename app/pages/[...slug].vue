@@ -42,7 +42,14 @@ const { data: found } = await useAsyncData(
       // translate at all has the original as its first entry, and a reader
       // asking for Spanish and getting English has to be told so even though
       // nothing fell back.
-      if (hit) return { page: hit, from: entry!.locale };
+      //
+      // `asked` travels WITH the hit. `locale` changes the instant the reader
+      // picks a language, while this query — and therefore `from` — is still
+      // the previous language's result, so comparing the delivered language
+      // against the LIVE locale reports every switch as untranslated for the
+      // tick between the two. Freezing the language that was asked for into
+      // the same object keeps the pair consistent at every moment.
+      if (hit) return { page: hit, from: entry!.locale, asked: locale.value };
     }
 
     return undefined;
@@ -62,7 +69,7 @@ const untranslated = computed(() => {
   const delivered = found.value.from;
   if (!delivered) return true;
 
-  return delivered.split('-')[0] !== locale.value.split('-')[0];
+  return delivered.split('-')[0] !== found.value.asked.split('-')[0];
 });
 
 if (!page.value) {
