@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TabsContent, TabsList, TabsRoot, TabsTrigger } from 'reka-ui';
 import type {
   DuxtOpenApiOperation,
   DuxtOpenApiSecurity,
@@ -48,6 +49,7 @@ const props = defineProps<{
 
 const id = useId();
 const { t } = useI18n();
+const notify = useDuxtToast();
 
 const parameters = computed(() => props.operation.parameters ?? []);
 const bodies = computed(() => props.operation.requestBody?.content ?? []);
@@ -338,7 +340,65 @@ const samples = computed(() => [
   { name: 'fetch', language: 'ts', code: openApiFetch(request.value) }
 ]);
 
-const sample = ref(0);
+/**
+ * Which sample is showing, by NAME rather than by index: it is the tab strip's
+ * own value, and an index would go stale the day a third language is added
+ * above `curl` in the list.
+ */
+/**
+ * REMEMBERED ACROSS PAGES, like the package manager: a reader who works in
+ * `curl` works in `curl` on the next endpoint too, and asking again on every
+ * page of a forty-endpoint reference is asking forty times. The cookie travels
+ * with the request, so the server already renders the right tab.
+ */
+const stored = useDuxtChoice('request-sample');
+
+const sample = computed({
+  get: () =>
+    samples.value.some((entry) => entry.name === stored.value)
+      ? stored.value!
+      : samples.value[0]!.name,
+  set: (value: string) => {
+    stored.value = value;
+  }
+});
+
+const shown = computed(() =>
+  samples.value.find((entry) => entry.name === sample.value)!
+);
+
+/**
+ * The sample, coloured the way every other block on the page is.
+ *
+ * A STABLE KEY with `shown` watched, rather than the code in the key: the
+ * sample is rewritten on every keystroke, and keying on it would leave one
+ * cache entry per character typed. This way the server highlights what it
+ * renders and the client replaces it as the request changes.
+ */
+const { data: sampleHtml } = await useAsyncData(
+  `duxt-openapi-sample-${id}`,
+  () => {
+    const lang = duxtCodeLang(shown.value.language);
+
+    return lang
+      ? highlightCode(shown.value.code, lang)
+      : Promise.resolve(undefined);
+  },
+  { watch: [shown] }
+);
+
+const copiedSample = ref(false);
+
+async function copySample() {
+  try {
+    await navigator.clipboard.writeText(shown.value.code);
+    copiedSample.value = true;
+    notify.success(t('duxt.code.copiedToast'));
+    setTimeout(() => (copiedSample.value = false), 2000);
+  } catch {
+    notify.error(t('duxt.page.copyFailed'));
+  }
+}
 
 /* ------------------------------------------------------------------- send */
 
@@ -785,29 +845,69 @@ function pretty(text: string): string {
     </div>
 
     <!-- the same request, as something to paste elsewhere -->
+    <!-- ONE CARD, tabs and code together, exactly as `::preview` and the
+         package-manager block are built: the strip used to float above a card
+         of its own, so the page carried two boxes for one thing and the copy
+         button sat inside the lower one, away from the choice it belongs to. -->
     <div class="border-t px-4 py-3">
-      <div class="mb-2 flex flex-wrap gap-1.5">
-        <button
-          v-for="(entry, index) in samples"
-          :key="entry.name"
-          type="button"
-          class="rounded-md px-2 py-1 font-mono text-xs transition-colors"
-          :class="
-            index === sample
-              ? 'bg-muted text-foreground'
-              : 'text-muted-foreground hover:text-foreground'
-          "
-          :aria-pressed="index === sample"
-          @click="sample = index"
+      <TabsRoot
+        v-model="sample"
+        class="overflow-hidden rounded-lg border bg-card"
+      >
+        <!-- The copy button is a SIBLING of the strip, not a child of it: a
+             `tablist` may hold tabs and nothing else, and axe reports the
+             button inside one as `aria-required-children`. The header row is
+             the flex container instead, so it still sits where every other
+             card on the site puts it. -->
+        <div
+          class="flex min-h-11 items-center gap-1 border-b bg-muted/40 px-2 py-1.5"
         >
-          {{ entry.name }}
-        </button>
-      </div>
+          <TabsList
+            class="flex items-center gap-1"
+            :aria-label="$t('duxt.openapi.client.samples') as string"
+          >
+            <TabsTrigger
+              v-for="entry in samples"
+              :key="entry.name"
+              :value="entry.name"
+              class="flex cursor-pointer items-center gap-1.5 rounded-md px-2.5 py-1 font-mono text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+            >
+              <Icon :name="fileIcon(entry.language)" class="size-3.5" />
+              {{ entry.name }}
+            </TabsTrigger>
+          </TabsList>
 
-      <DuxtCodeBlock
-        :code="samples[sample]!.code"
-        :language="samples[sample]!.language"
-      />
+          <UiButton
+            variant="ghost"
+            size="icon"
+            class="ml-auto size-7 hover:bg-accent hover:text-foreground"
+            :aria-label="
+              copiedSample ? $t('duxt.code.copied') : $t('duxt.code.copy')
+            "
+            @click="copySample"
+          >
+            <Icon
+              :name="copiedSample ? 'lucide:check' : 'lucide:copy'"
+              class="size-3.5"
+            />
+          </UiButton>
+        </div>
+
+        <TabsContent :value="sample">
+          <!-- eslint-disable-next-line vue/no-v-html -- Shiki's own output over
+               a string this component built; nothing a reader typed reaches it
+               unescaped. -->
+          <div
+            v-if="sampleHtml"
+            class="duxt-code-body duxt-code-body-sm"
+            v-html="sampleHtml"
+          />
+          <pre
+            v-else
+            class="overflow-x-auto p-4 text-xs"
+          ><code>{{ shown.code }}</code></pre>
+        </TabsContent>
+      </TabsRoot>
     </div>
   </div>
 </template>
