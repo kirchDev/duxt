@@ -93,11 +93,13 @@ describe('the openapi type', () => {
     ).not.toThrow();
   });
 
-  it('writes the heading into the body, because the layout owns the chrome', () => {
-    // A type that names a layout draws its own page — so the h1 has to be in
-    // the Markdown rather than left to the docs header the layout replaced.
+  it('writes no heading, because the shell draws it from the title', () => {
+    // The header a written page gets is the header these pages get: the title
+    // is in the frontmatter, and `pages/[...slug].vue` draws the `<h1>` for
+    // every generated page whose body opens on no heading of its own.
     for (const page of parse()) {
-      expect(page.body).toMatch(/^# .+$/m);
+      expect(page.body).toContain('title: "');
+      expect(page.body).not.toMatch(/^# .+$/m);
     }
   });
 

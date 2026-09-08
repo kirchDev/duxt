@@ -159,11 +159,12 @@ function overview(
     file: 'index.md',
     body: page(
       { title: spec.info.title, description: overviewDescription(spec) },
-      [
-        `# ${escapeHeading(spec.info.title)}`,
-        '',
-        component('open-api-overview', props, spec.info.description)
-      ]
+      // NO `<h1>` OF ITS OWN. The shell draws the docs header — breadcrumb,
+      // title, the copy control beside it — for every generated page whose body
+      // opens on no heading, and these pages want exactly that: a reference
+      // page has a title and a trail like any written one, and the method chip
+      // that made this type look different is drawn below the heading anyway.
+      [component('open-api-overview', props, spec.info.description)]
     )
   };
 }
@@ -205,8 +206,6 @@ function pagesFor(
       // own, which `tests/i18n-ownership.test.ts` exists to keep out.
       { title: group.tag.name, description: firstLine(group.tag.description) },
       [
-        `# ${escapeHeading(group.tag.name)}`,
-        '',
         component(
           'open-api-operations',
           { operations: links, externalDocs: group.tag.externalDocs },
@@ -271,11 +270,7 @@ function operationPage(
           firstLine(description) ??
           `${operation.method.toUpperCase()} ${operation.path}`
       },
-      [
-        `# ${escapeHeading(title)}`,
-        '',
-        component('open-api-operation', props, description)
-      ]
+      [component('open-api-operation', props, description)]
     )
   };
 }
@@ -447,9 +442,4 @@ function frontmatter(fields: Record<string, string | undefined>): string {
       .map(([key, value]) => `${key}: ${JSON.stringify(value)}`),
     '---'
   ].join('\n');
-}
-
-/** A heading is one line, and a `#` in the text is not a level. */
-function escapeHeading(value: string): string {
-  return value.replace(/\s+/g, ' ').trim();
 }
