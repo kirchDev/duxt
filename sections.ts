@@ -12,6 +12,10 @@
  * their contents, so a type's parser can turn one artefact into as many pages as
  * it has releases, endpoints or records, and Content parses them exactly as it
  * parses Markdown on disk.
+ *
+ * Reading a file is all that is left here. What a finding MEANS — a missing
+ * artefact, a type that read nothing out of one — is the severity policy, and
+ * it lives in the pure half where a test can reach it.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -29,7 +33,9 @@ import type {
 import {
   duxtSectionTypes,
   generatedSectionRef,
-  resolveGeneratedSections
+  missingSectionArtefact,
+  resolveGeneratedSections,
+  sectionPages
 } from './sections-resolve';
 import { resolveLatestRefs } from './sources-git';
 import { pageSchema, repositoryRoot } from './sources';
@@ -68,15 +74,16 @@ export function duxtGeneratedCollections(
  *
  * Read and parsed HERE, while the config is being loaded, rather than lazily:
  * the file is on disk already, and a missing one is an error this build must
- * fail on — see `missing`. Failing at config load says which section and which
- * path, where the same throw from inside the parse pass says neither.
+ * fail on — see `missingSectionArtefact`. Failing at config load says which
+ * section and which path, where the same throw from inside the parse pass says
+ * neither.
  */
 function localCollection(entry: DuxtResolvedSource, type: DuxtSectionType) {
   const file = join(repositoryRoot(), entry.path);
 
   const pages = existsSync(file)
-    ? parse(entry, type, readFileSync(file, 'utf8'))
-    : missing(entry, file);
+    ? sectionPages(entry, type, readFileSync(file, 'utf8'))
+    : missingSectionArtefact(entry, file);
 
   const source = defineCollectionSource({
     getKeys: async () => pages.map((page) => page.file),
@@ -132,8 +139,8 @@ function remoteCollection(entry: DuxtResolvedSource, type: DuxtSectionType) {
     const file = join(source.cwd, entry.path);
 
     pages = existsSync(file)
-      ? parse(entry, type, readFileSync(file, 'utf8'))
-      : missing(entry, file);
+      ? sectionPages(entry, type, readFileSync(file, 'utf8'))
+      : missingSectionArtefact(entry, file);
 
     return pages;
   };
@@ -147,74 +154,4 @@ function remoteCollection(entry: DuxtResolvedSource, type: DuxtSectionType) {
 /** One page's file, by name. */
 function body(pages: DuxtSectionPage[], key: string): string {
   return pages.find((page) => page.file === key)?.body ?? '';
-}
-
-/**
- * The artefact, as the type reads it.
- *
- * A type that produces nothing out of a file that exists is the same finding as
- * a file that is not there, and carries the same severity — the section would
- * otherwise be an empty collection, which is a 404 on every URL it claims and
- * nothing said about why.
- */
-function parse(
-  entry: DuxtResolvedSource,
-  type: DuxtSectionType,
-  artefact: string
-): DuxtSectionPage[] {
-  const pages = type.parse(artefact, {
-    label: entry.generated!.label,
-    prefix: entry.prefix
-  });
-
-  if (!pages.length) {
-    const problem =
-      `holds nothing the "${entry.generated!.type}" type can read, so the ` +
-      `section "${entry.generated!.label}" has no pages`;
-
-    if (entry.generated!.remote) {
-      console.warn(`[duxt] ${entry.path} in ${where(entry)} ${problem}.`);
-    } else {
-      throw new Error(`duxt: ${entry.path} ${problem}.`);
-    }
-  }
-
-  return pages;
-}
-
-/**
- * A declared artefact that is not there.
- *
- * The severity is not uniform, and follows the rule `modules/validate.ts`
- * already states. A LOCAL source is the site's own configuration, so a path
- * that does not exist is a mistake in it and fails the build. A REMOTE one may
- * legitimately not have had the file at an older tag — a remote source can go
- * stale between releases without that being this build's fault — so it warns,
- * names the source and the ref, and the section is simply not built.
- *
- * Returns the pages a caller should carry on with, which for the warning case
- * is none — so the two severities read as one expression at both call sites.
- */
-function missing(entry: DuxtResolvedSource, file: string): DuxtSectionPage[] {
-  if (entry.generated!.remote) {
-    console.warn(
-      `[duxt] the generated section "${entry.generated!.label}" declares ` +
-        `${entry.path}, which ${where(entry)} does not have. ` +
-        'The section is not built.'
-    );
-    return [];
-  }
-
-  throw new Error(
-    `duxt: the generated section "${entry.generated!.label}" declares ` +
-      `${entry.path}, which this repository does not have (looked in ${file}). ` +
-      "A generated section resolves its path against the source's own root."
-  );
-}
-
-/** The repository and ref an artefact was looked for in. */
-function where(entry: DuxtResolvedSource): string {
-  return `${entry.repository ?? entry.repositoryUrl ?? 'the source'}${
-    entry.ref ? `@${entry.ref}` : ''
-  }`;
 }

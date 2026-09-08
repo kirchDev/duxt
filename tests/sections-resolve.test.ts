@@ -1,10 +1,13 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { DuxtSectionType } from '../sections-resolve';
+import type { DuxtResolvedSource } from '../sources-resolve';
 import {
   duxtManifest,
   duxtSectionTypes,
   generatedSectionRef,
-  resolveGeneratedSections
+  missingSectionArtefact,
+  resolveGeneratedSections,
+  sectionPages
 } from '../sections-resolve';
 
 /** A type that does nothing, so the policies are the only variable. */
@@ -333,5 +336,72 @@ describe('generatedSectionRef', () => {
       generatedSectionRef({ ...base, ref: 'main', refKind: 'branch' })
     ).toEqual({ branch: 'main' });
     expect(generatedSectionRef(base)).toBeUndefined();
+  });
+});
+
+describe('the severity of a section that produces nothing', () => {
+  const entry = (
+    over: Partial<DuxtResolvedSource['generated']> = {}
+  ): DuxtResolvedSource => ({
+    collection: 'docs_releases',
+    prefix: '/releases',
+    path: 'CHANGELOG.md',
+    isDefault: true,
+    isDefaultLocale: true,
+    status: 'current',
+    history: false,
+    repository: 'kirchDev/duxt',
+    ref: 'v1.0.0',
+    refKind: 'tag',
+    generated: {
+      type: 'stub',
+      label: 'Releases',
+      slug: 'releases',
+      navigation: 'sections',
+      versioning: 'global',
+      localisation: 'original',
+      remote: false,
+      ...over
+    }
+  });
+
+  it('fails the build when a LOCAL source declares a file it has not', () => {
+    // The site's own configuration, so a path that does not exist is a mistake
+    // in it — the rule `modules/validate.ts` states, applied here.
+    expect(() => missingSectionArtefact(entry(), '/repo/CHANGELOG.md')).toThrow(
+      /which this repository does not have/
+    );
+  });
+
+  it('warns and builds nothing when a REMOTE source has not the file', () => {
+    // A remote source can go stale between releases without that being this
+    // build's fault, so it names the source and the ref and carries on.
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    expect(
+      missingSectionArtefact(entry({ remote: true }), '/cache/CHANGELOG.md')
+    ).toEqual([]);
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('kirchDev/duxt@v1.0.0')
+    );
+
+    warn.mockRestore();
+  });
+
+  it('treats a type that read nothing as the same finding', () => {
+    // An empty collection is a 404 on every URL the section claims, with
+    // nothing said about why — the same outcome as a file that is not there.
+    const empty = stub({ parse: () => [] });
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    expect(() => sectionPages(entry(), empty, 'anything')).toThrow(
+      /holds nothing the "stub" type can read/
+    );
+    expect(sectionPages(entry({ remote: true }), empty, 'anything')).toEqual(
+      []
+    );
+    expect(warn).toHaveBeenCalledOnce();
+
+    warn.mockRestore();
   });
 });

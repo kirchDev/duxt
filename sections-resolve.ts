@@ -396,6 +396,86 @@ export function generatedSectionRef(
 }
 
 /**
+ * The artefact, as its type reads it.
+ *
+ * Here rather than beside the file reading, so the SEVERITY POLICY is testable:
+ * whether a finding fails the build or warns is one of this feature's stated
+ * decisions, and it was decided per source kind rather than per finding. The
+ * reading itself stays in `sections.ts`, which is the half that touches disk.
+ *
+ * A type that produces nothing out of a file that exists is the same finding as
+ * a file that is not there, and carries the same severity — the section would
+ * otherwise be an empty collection, which is a 404 on every URL it claims and
+ * nothing said about why.
+ */
+export function sectionPages(
+  entry: DuxtResolvedSource,
+  type: DuxtSectionType,
+  artefact: string
+): DuxtSectionPage[] {
+  const pages = type.parse(artefact, {
+    label: entry.generated!.label,
+    prefix: entry.prefix
+  });
+
+  if (!pages.length) {
+    const problem =
+      `holds nothing the "${entry.generated!.type}" type can read, so the ` +
+      `section "${entry.generated!.label}" has no pages`;
+
+    if (entry.generated!.remote) {
+      console.warn(
+        `[duxt] ${entry.path} in ${sectionOrigin(entry)} ${problem}.`
+      );
+    } else {
+      throw new Error(`duxt: ${entry.path} ${problem}.`);
+    }
+  }
+
+  return pages;
+}
+
+/**
+ * A declared artefact that is not there.
+ *
+ * The severity is not uniform, and follows the rule `modules/validate.ts`
+ * already states. A LOCAL source is the site's own configuration, so a path
+ * that does not exist is a mistake in it and fails the build. A REMOTE one may
+ * legitimately not have had the file at an older tag — a remote source can go
+ * stale between releases without that being this build's fault — so it warns,
+ * names the source and the ref, and the section is simply not built.
+ *
+ * Returns the pages a caller should carry on with, which for the warning case
+ * is none — so the two severities read as one expression at both call sites.
+ */
+export function missingSectionArtefact(
+  entry: DuxtResolvedSource,
+  file: string
+): DuxtSectionPage[] {
+  if (entry.generated!.remote) {
+    console.warn(
+      `[duxt] the generated section "${entry.generated!.label}" declares ` +
+        `${entry.path}, which ${sectionOrigin(entry)} does not have. ` +
+        'The section is not built.'
+    );
+    return [];
+  }
+
+  throw new Error(
+    `duxt: the generated section "${entry.generated!.label}" declares ` +
+      `${entry.path}, which this repository does not have (looked in ${file}). ` +
+      "A generated section resolves its path against the source's own root."
+  );
+}
+
+/** The repository and ref an artefact was looked for in. */
+function sectionOrigin(entry: DuxtResolvedSource): string {
+  return `${entry.repository ?? entry.repositoryUrl ?? 'the source'}${
+    entry.ref ? `@${entry.ref}` : ''
+  }`;
+}
+
+/**
  * The whole manifest: the documentation, then whatever it generates beside it.
  *
  * `duxtSourceManifest` deliberately stays the documentation half alone —
