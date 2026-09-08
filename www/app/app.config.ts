@@ -63,8 +63,9 @@ export default defineAppConfig({
     // Written out in full, both entries: `mergeDuxtConfig` REPLACES an array
     // rather than merging into it, so naming `navigation` at all means naming
     // every entry. The layer ships only the generic Docs entry; the Resources
-    // dropdown below is duxt's own — five links to duxt's tech stack, which
-    // belong to this site and not to a stranger's header.
+    // dropdown below is duxt's own — five links to duxt's tech stack plus the
+    // credits page that thanks them, which belong to this site and not to a
+    // stranger's header.
     //
     // The Docs entry carries no `to` on purpose. `DuxtHeader.linkTarget`
     // resolves it to the first section, and `entryActive` lights it wherever
@@ -146,6 +147,28 @@ export default defineAppConfig({
               'pt-PT': 'Componentes dentro do Markdown'
             },
             external: true
+          },
+          // The one entry of this menu that stays on the site. It sits with the
+          // five links rather than in the section row because it is about the
+          // same subject they are — what duxt is built on — and a section row
+          // is for parts of the documentation someone reads, which this is not.
+          {
+            label: {
+              'en-GB': 'Credits',
+              'de-DE': 'Credits',
+              'es-ES': 'Créditos',
+              'fr-FR': 'Crédits',
+              'pt-PT': 'Créditos'
+            },
+            to: '/credits',
+            icon: 'lucide:heart',
+            description: {
+              'en-GB': 'Everyone this is built on',
+              'de-DE': 'Alle, auf denen das hier aufbaut',
+              'es-ES': 'Todo aquello sobre lo que se apoya',
+              'fr-FR': 'Tout ce sur quoi ceci repose',
+              'pt-PT': 'Tudo aquilo em que isto assenta'
+            }
           }
         ]
       }
@@ -221,17 +244,6 @@ export default defineAppConfig({
         icon: 'lucide:ruler'
       },
       {
-        label: {
-          'en-GB': 'Credits',
-          'de-DE': 'Credits',
-          'es-ES': 'Créditos',
-          'fr-FR': 'Crédits',
-          'pt-PT': 'Créditos'
-        },
-        to: '/credits',
-        icon: 'lucide:heart'
-      },
-      {
         // Last, and deliberately so: the decision log is an appendix rather
         // than reading order — which is what `99.` encodes in the folder name.
         // It earns a row anyway, because a section the row omits falls back to
@@ -245,13 +257,14 @@ export default defineAppConfig({
         },
         to: '/adr',
         icon: 'lucide:gavel',
-        // Also on every record inside. An ADR's frontmatter is fixed at
+        // A document, not a second gavel. An ADR's frontmatter is fixed at
         // `title`, `description`, `status` and `date`, so the records carry no
         // icon of their own and the log rendered as eight bare rows beside
-        // sections that all have a column of them. One symbol for a set of like
-        // records is the honest answer anyway — eight different ones would
-        // distinguish nothing.
-        pageIcon: 'lucide:gavel'
+        // sections that all have a column of them. The section is the decision
+        // log — the gavel above says so; each row in it is one written record,
+        // and repeating the section's own symbol on every child would say
+        // nothing the heading has not already said.
+        pageIcon: 'lucide:file-text'
       }
     ],
 
