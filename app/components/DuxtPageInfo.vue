@@ -12,6 +12,15 @@
  * be asked, its history.
  */
 const props = defineProps<{
+  /**
+   * Lay it out as a ROW rather than a stack.
+   *
+   * The column form is the one this was written for; the row is what it needs
+   * where there is no column to sit in — under the article of a page whose
+   * layout fills the right-hand side itself, where a stack of three lines
+   * hanging off the left edge under a full-width rule reads as leftovers.
+   */
+  row?: boolean;
   page:
     | {
         stem?: string;
@@ -72,6 +81,9 @@ const contributors = computed(() => page.value?.contributors ?? []);
   <div
     v-if="link || updated || contributors.length"
     class="mt-6 border-t pt-4 text-xs text-muted-foreground"
+    :class="
+      row ? 'flex flex-wrap items-center justify-end gap-x-6 gap-y-2' : ''
+    "
   >
     <!-- A tag has no edit form — see `sourceLink`. The label follows the kind
          rather than promising a form that answers with a 404. -->
@@ -89,14 +101,17 @@ const contributors = computed(() => page.value?.contributors ?? []);
       {{ link.kind === 'edit' ? $t('duxt.page.edit') : $t('duxt.page.view') }}
     </a>
 
-    <p v-if="updated" class="mt-3">
+    <p v-if="updated" :class="row ? '' : 'mt-3'">
       {{ $t('duxt.page.lastUpdated', { date: updated }) }}
     </p>
 
     <template v-if="contributors.length">
-      <p class="mt-3">{{ $t('duxt.page.contributors') }}</p>
+      <p :class="row ? '' : 'mt-3'">{{ $t('duxt.page.contributors') }}</p>
 
-      <ul class="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1.5">
+      <ul
+        class="flex flex-wrap items-center gap-x-2 gap-y-1.5"
+        :class="row ? '' : 'mt-1.5'"
+      >
         <li
           v-for="person in contributors"
           :key="person.name"

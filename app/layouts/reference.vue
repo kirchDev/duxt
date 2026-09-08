@@ -17,7 +17,15 @@
  *
  * A page rendered here draws its own header: see the `owned` computed in
  * `pages/[...slug].vue`.
+ *
+ * NO CONTENTS COLUMN, and it is this layout that has to say so — the page
+ * cannot know. An operation already fills its right-hand side with the request
+ * client, and a second sticky column beside that one is two columns of
+ * furniture around a table of parameters. `provide` before any await, or the
+ * value never reaches the page.
  */
+provide(DUXT_ASIDE, false);
+
 const { data: navigation } = await useDuxtNavigation();
 
 const { items } = useDuxtSection(navigation);

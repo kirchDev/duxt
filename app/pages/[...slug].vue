@@ -133,6 +133,12 @@ const generated = computed(() =>
 );
 
 /**
+ * A layout can refuse the column outright — see `DUXT_ASIDE`. The reference
+ * does, because an operation fills that side with its request client.
+ */
+const allowed = inject(DUXT_ASIDE, true);
+
+/**
  * Is there a right-hand column to draw at all?
  *
  * The outline is not the only thing in it: `DuxtToc` also carries the aside's
@@ -152,7 +158,9 @@ const generated = computed(() =>
 const titled = computed(() => owned.value && generatedTitle(page.value?.body));
 
 const aside = computed(
-  () => generated.value.length > 0 || (duxt.aside?.links?.length ?? 0) > 0
+  () =>
+    allowed &&
+    (generated.value.length > 0 || (duxt.aside?.links?.length ?? 0) > 0)
 );
 
 // The social card. Rendered from the layer's own template unless the consumer
@@ -316,7 +324,10 @@ useSchemaOrg([
            artefact, and `DuxtPageInfo` already links at that artefact rather
            than at a file named after the URL. It moves into the column beside
            the contents wherever there is one, exactly as in the docs shell. -->
-      <DuxtPageInfo v-if="!aside" :page="page" class="max-w-3xl" />
+      <!-- As a row, and as wide as the page: with no column to sit in it is a
+           footer, and a rule that stopped at the reading measure under a page
+           set wider than that ended halfway across. -->
+      <DuxtPageInfo v-if="!aside" row :page="page" />
     </div>
 
     <div v-if="aside" class="hidden w-56 shrink-0 xl:block">
