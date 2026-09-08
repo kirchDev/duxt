@@ -37,7 +37,12 @@ defineProps<{
 </script>
 
 <template>
-  <div class="grid gap-8 xl:grid-cols-[minmax(0,1fr)_23rem]">
+  <!-- Wider on a wide screen: a `curl` line with a couple of headers wraps at
+       23rem however much room the window has, and the column that shows it is
+       the reason this layout takes the whole width in the first place. -->
+  <div
+    class="grid gap-8 xl:grid-cols-[minmax(0,1fr)_23rem] 2xl:grid-cols-[minmax(0,1fr)_34rem]"
+  >
     <div class="min-w-0">
       <div class="not-typeset flex flex-wrap items-center gap-2">
         <DuxtOpenApiMethod :method="operation.method" class="h-6 px-2" />
@@ -116,7 +121,7 @@ defineProps<{
     <!-- Sticky only where there is a column to be sticky in: below `xl` the
          client sits after the description, which is the order a phone reads. -->
     <div class="not-typeset min-w-0">
-      <div class="xl:sticky xl:top-[6.5rem]">
+      <div class="xl:sticky xl:top-[var(--duxt-chrome)]">
         <DuxtOpenApiClient
           :operation="operation"
           :servers="servers"

@@ -8,12 +8,13 @@
  * and the client, because those two are properties of the operation and a
  * layout cannot reach them.
  *
- * Two differences from `docs`, and only two. It does NOT centre the content in
- * a `max-w-[90rem]` column: three columns of parameter tables and a request
- * client need the window, which is what the issue meant by "full-width". And
- * its sidebar is the endpoint list rather than a prose tree — the same
- * navigation, from the same collection, because a generated section is an
- * ordinary collection and its pages ARE the endpoints.
+ * Two differences from `docs`, and only two. Its column is WIDER — parameter
+ * tables and a request client beside them need more than the 90rem the prose
+ * gets — but it is still a column: unbounded, the endpoint ran the full width
+ * of a 27" screen, and a description set across 1900px is unreadable however
+ * many tables sit under it. And its sidebar is the endpoint list rather than a
+ * prose tree — the same navigation, from the same collection, because a
+ * generated section is an ordinary collection and its pages ARE the endpoints.
  *
  * A page rendered here draws its own header: see the `owned` computed in
  * `pages/[...slug].vue`.
@@ -49,7 +50,7 @@ const { chrome } = useDuxtSectionRow();
     <DuxtHeader />
     <DuxtSections />
 
-    <div class="flex w-full flex-1 gap-8 px-4 lg:px-8">
+    <div class="mx-auto flex w-full max-w-[100rem] flex-1 gap-8 px-4 lg:px-8">
       <!-- A section with one page has nothing to navigate, exactly as in the
            docs layout: the column would list the page the reader is on. -->
       <div v-if="items.length > 1" class="hidden w-64 shrink-0 lg:block">

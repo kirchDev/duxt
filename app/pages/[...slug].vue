@@ -271,6 +271,10 @@ useSchemaOrg([
            like any other, and the only reason it ever drew its own heading was
            that the layout drew none — which left the copy control floating in a
            row above a title it belongs beside. -->
+      <!-- As wide as the page below it. The reading measure is the LAYOUT's
+           to set — `changelog` caps its own column, `reference` deliberately
+           does not — and a header narrower than the parameter tables under it
+           draws a rule that stops halfway across the page. -->
       <header v-if="!titled" class="mb-8 border-b pb-8">
         <DuxtBreadcrumb
           v-if="duxt?.breadcrumb !== false"
