@@ -172,7 +172,10 @@ onMounted(() => {
       previewVisible.value = true;
       observer.disconnect();
     },
-    { rootMargin: '200px' }
+    // Far enough ahead that the frame has begun booting by the time the band
+    // is on screen: it is a second copy of the application, so the gap between
+    // "in view" and "usable" is a page load rather than a paint.
+    { rootMargin: '600px' }
   );
 
   observer.observe(root);
@@ -420,7 +423,12 @@ defineOgImage('Duxt', {
           <!-- The live one. Rendered only after the band scrolls into view, and
                never on the server: an iframe in the initial HTML is a second
                full page load competing with this one. The box keeps its height
-               either way, so nothing below it jumps when the frame arrives. -->
+               either way, so nothing below it jumps when the frame arrives.
+
+               NO `loading="lazy"`. The observer above has already decided this
+               frame should load, and the attribute then puts the browser's own
+               heuristic in front of that decision — a second gate on something
+               that is only mounted at all because it is about to be needed. -->
           <ClientOnly v-else>
             <iframe
               v-if="previewVisible"
@@ -431,7 +439,6 @@ defineOgImage('Duxt', {
                 readFrameLocation();
               "
               :title="previewTitle"
-              loading="lazy"
               class="h-[44rem] w-full max-lg:h-[36rem] max-sm:h-[28rem]"
               :style="{ height: preview.height }"
             />
