@@ -135,7 +135,7 @@ onMounted(() => {
     v-bind="$attrs"
     variant="outline"
     size="sm"
-    class="w-full justify-start gap-2 text-muted-foreground sm:w-56"
+    class="w-full justify-start gap-2 text-muted-foreground"
     @click="show"
   >
     <Icon name="lucide:search" class="size-4" />
