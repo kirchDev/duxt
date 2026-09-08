@@ -52,7 +52,22 @@ export default defineAppConfig({
         //
         // `en-GB` is the tree in `docs/` itself and takes no folder of its own,
         // which keeps every URL this site already serves where it is.
-        locales: ['en-GB', 'de', 'es', 'fr', 'pt']
+        locales: ['en-GB', 'de', 'es', 'fr', 'pt'],
+
+        // An artefact that is not Markdown, published as pages of the site.
+        //
+        // The path resolves against the SOURCE'S OWN ROOT — this repository's,
+        // because the source is read off disk — which is why it reads
+        // `www/CHANGELOG.md` and not `CHANGELOG.md`: the artefact belongs to
+        // the site rather than to the package, exactly the shape a monorepo
+        // has when `release-please-config.json` names a changelog per package.
+        //
+        // `label` is a plain string, not a record: it is also the URL segment,
+        // and a translated text is not a stable URL — the same pair a version's
+        // label makes. The entry appends itself to the section row above.
+        generated: [
+          { type: 'changelog', path: 'www/CHANGELOG.md', label: 'Releases' }
+        ]
       }
     ],
     sourceOptions: { defaultLocale: 'en-GB' },

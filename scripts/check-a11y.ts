@@ -38,8 +38,9 @@ const server = join(root, 'www', '.output', 'server', 'index.mjs');
  *
  * The chrome is what this checks, and the chrome differs by layout: the landing
  * page has no sidebar, a section root has no table of contents, a deep page has
- * everything, an embedded panel has an iframe, and the 404 has its own view. A
- * sixth page of the same shape would add runtime and no coverage.
+ * everything, an embedded panel has an iframe, a generated section's markup is
+ * a parser's output rather than a written page, and the 404 has its own view.
+ * Another page of a shape already here would add runtime and no coverage.
  *
  * WRITE THE ROUTES THE SITE ACTUALLY SERVES. Three of these carried a `/duxt/`
  * prefix and a `/workflows/v0.7.0` from a multi-source configuration `www` no
@@ -54,6 +55,10 @@ const ROUTES = [
   '/reference/mdc-components',
   // The one page with an iframe, so `frame-title` has something to judge.
   '/reference/devtools/sources',
+  // A GENERATED SECTION, which is a shape of its own: its pages are written by
+  // a type's parser rather than by hand, so their heading order and their links
+  // are the parser's output and nothing else here would check them.
+  '/releases',
   '/does-not-exist'
 ];
 

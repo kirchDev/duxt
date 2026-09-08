@@ -72,7 +72,7 @@ What that leaves as candidate value: the **ergonomics** (a compact `sources` lis
 | `pnpm build:app`    | `nuxt build` in `www/` — the gate's SSR check              |
 | `pnpm check`        | Runs `lint` + `format` + both typechecks + `test` + `check:policy` + `build:app` + `check:a11y` — the CI gate |
 | `pnpm check:policy` | Proves the two agent policy files ban the same commands    |
-| `pnpm check:a11y`   | axe-core over five rendered pages of the built site         |
+| `pnpm check:a11y`   | axe-core over six rendered pages of the built site          |
 | `pnpm lint:fix`     | Auto-fix lint                                              |
 | `pnpm format:fix`   | Auto-fix format                                            |
 | `pnpm check:fix`    | Auto-fix lint + format                                     |
