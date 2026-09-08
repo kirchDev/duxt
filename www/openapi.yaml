@@ -1,0 +1,403 @@
+# The development site's own OpenAPI document.
+#
+# Not a real API — this site serves no HTTP interface. It exists so the
+# `openapi` section type is exercised by `pnpm build:app` and `pnpm check:a11y`
+# against a document that carries the awkward parts rather than the easy ones:
+# every parameter location, several media types, `oneOf` with a discriminator,
+# an `allOf` that folds and one that cannot, a self-referential schema, a
+# deprecated operation, three authentication schemes, response links, a
+# callback and a webhook. The same argument `www/` makes everywhere else —
+# a development site wants edge cases, and a starter wants none of them.
+openapi: 3.1.0
+
+info:
+  title: Widgets
+  version: 2.1.0
+  summary: A small API, invented for this documentation site.
+  description: |
+    A **worked example**, and nothing more: no server behind it answers.
+
+    It exists so the reference pages have every construct of OpenAPI 3.1 to
+    render — including the ones that are easy to leave out.
+  contact:
+    name: Support
+    email: support@example.org
+  license:
+    name: MIT
+    identifier: MIT
+  termsOfService: https://example.org/terms
+
+servers:
+  - url: https://api.example.org/{stage}
+    description: The invented production host.
+    variables:
+      stage:
+        default: v2
+        enum: [v1, v2]
+        description: Which line of the API to talk to.
+  - url: http://localhost:8080
+    description: A local process, for trying things out.
+
+security:
+  - apiKey: []
+  - bearer: []
+
+tags:
+  - name: Widgets
+    description: |
+      Everything that is a widget. The nouns here are made up; the *shapes*
+      are the point.
+  - name: Batches
+    description: Operations that act on many widgets at once.
+    externalDocs:
+      url: https://example.org/batching
+      description: How batching works
+
+paths:
+  /widgets:
+    parameters:
+      - name: X-Request-Id
+        in: header
+        description: An identifier echoed back on every response.
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: listWidgets
+      summary: List widgets
+      tags: [Widgets]
+      description: |
+        Returns a page of widgets, newest first.
+
+        Paging is by `cursor`; the value comes from the previous response's
+        `next` field and is opaque.
+      parameters:
+        - name: limit
+          in: query
+          description: How many widgets to return.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: cursor
+          in: query
+          description: Where to continue from.
+          schema:
+            type: string
+        - name: session
+          in: cookie
+          description: An optional session, for a personalised order.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A page of widgets.
+          headers:
+            X-Request-Id:
+              required: true
+              schema:
+                type: string
+                format: uuid
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Widget'
+                  next:
+                    type: [string, 'null']
+                    description: The cursor for the following page, if any.
+          links:
+            NextPage:
+              operationId: listWidgets
+              description: The same call again, with `cursor` set from `next`.
+        '400':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+    post:
+      operationId: createWidget
+      summary: Create a widget
+      tags: [Widgets]
+      description: Creates one widget and tells you where it ended up.
+      requestBody:
+        required: true
+        description: The widget to create.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewWidget'
+            examples:
+              minimal:
+                summary: The smallest body that works
+                value:
+                  name: A widget
+                  kind: round
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                drawing:
+                  type: string
+                  format: binary
+            encoding:
+              drawing:
+                contentType: image/png
+      responses:
+        '201':
+          description: Created.
+          headers:
+            Location:
+              required: true
+              description: Where the new widget can be read.
+              schema:
+                type: string
+                format: uri
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Widget'
+        '422':
+          $ref: '#/components/responses/Problem'
+      callbacks:
+        widgetCreated:
+          '{$request.body#/callbackUrl}':
+            post:
+              summary: Sent once the widget has finished building.
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/Widget'
+              responses:
+                '204':
+                  description: Acknowledged.
+
+  /widgets/{widgetId}:
+    get:
+      operationId: getWidget
+      summary: Read a widget
+      tags: [Widgets]
+      parameters:
+        - name: widgetId
+          in: path
+          description: The widget's own identifier.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The widget.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Widget'
+        '404':
+          $ref: '#/components/responses/Problem'
+    delete:
+      operationId: deleteWidget
+      summary: Delete a widget
+      tags: [Widgets]
+      deprecated: true
+      description: |
+        Deprecated. Use the batch endpoint, which takes the same identifiers
+        and reports what it could not do.
+      parameters:
+        - name: widgetId
+          in: path
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Gone.
+
+  /batches:
+    post:
+      operationId: runBatch
+      summary: Run a batch
+      tags: [Batches]
+      security: []
+      description: |
+        Takes a list of instructions and applies them in order. This endpoint
+        needs no authentication, which is why it takes nothing destructive.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [instructions]
+              properties:
+                instructions:
+                  type: array
+                  minItems: 1
+                  maxItems: 50
+                  items:
+                    $ref: '#/components/schemas/Instruction'
+      responses:
+        '200':
+          description: What each instruction did.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  oneOf:
+                    - type: object
+                      properties:
+                        done: { type: boolean }
+                    - $ref: '#/components/schemas/Problem'
+
+webhooks:
+  widgetChanged:
+    post:
+      summary: A widget changed
+      description: |
+        Sent to the address registered for your account whenever a widget you
+        can see changes. Answer with any 2xx.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Widget'
+      responses:
+        '200':
+          description: Acknowledged.
+
+components:
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      name: X-Api-Key
+      in: header
+      description: A key from the account page.
+    bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: A token obtained from the authorisation server.
+    oauth:
+      type: oauth2
+      description: For applications acting on someone else's behalf.
+      flows:
+        authorizationCode:
+          authorizationUrl: https://auth.example.org/authorize
+          tokenUrl: https://auth.example.org/token
+          scopes:
+            'widgets:read': Read widgets
+            'widgets:write': Create and change widgets
+
+  responses:
+    Problem:
+      description: Something went wrong, described the same way every time.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+
+  schemas:
+    Problem:
+      type: object
+      required: [title, status]
+      properties:
+        title:
+          type: string
+          description: A short, human-readable summary.
+        status:
+          type: integer
+          minimum: 400
+          maximum: 599
+        detail:
+          type: [string, 'null']
+
+    Widget:
+      type: object
+      description: One widget, as the API sees it.
+      required: [id, name, kind]
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        kind:
+          type: string
+          enum: [round, square, other]
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+        parent:
+          # A schema that refers to itself, which is the ordinary shape of a
+          # tree and the one a naive renderer expands until the tab dies.
+          $ref: '#/components/schemas/Widget'
+        tags:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+
+    NewWidget:
+      # Folds into one object: a `$ref` plus the fields this endpoint adds is
+      # the commonest `allOf` there is.
+      allOf:
+        - $ref: '#/components/schemas/Widget'
+        - type: object
+          properties:
+            callbackUrl:
+              type: string
+              format: uri
+              description: Where to send the callback once the widget is built.
+
+    Instruction:
+      # Does NOT fold: the branches are alternatives, not additions, and a
+      # discriminator says which field tells them apart.
+      oneOf:
+        - $ref: '#/components/schemas/RenameInstruction'
+        - $ref: '#/components/schemas/RetagInstruction'
+      discriminator:
+        propertyName: op
+        mapping:
+          rename: '#/components/schemas/RenameInstruction'
+          retag: '#/components/schemas/RetagInstruction'
+
+    RenameInstruction:
+      type: object
+      required: [op, widgetId, name]
+      properties:
+        op:
+          const: rename
+        widgetId:
+          type: string
+          format: uuid
+        name:
+          type: string
+
+    RetagInstruction:
+      type: object
+      required: [op, widgetId, tags]
+      properties:
+        op:
+          const: retag
+        widgetId:
+          type: string
+          format: uuid
+        tags:
+          type: array
+          items:
+            type: string

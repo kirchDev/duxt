@@ -66,7 +66,17 @@ export default defineAppConfig({
         // and a translated text is not a stable URL — the same pair a version's
         // label makes. The entry appends itself to the section row above.
         generated: [
-          { type: 'changelog', path: 'www/CHANGELOG.md', label: 'Releases' }
+          { type: 'changelog', path: 'www/CHANGELOG.md', label: 'Releases' },
+          // An OpenAPI document, published as reference pages. `per-version`
+          // and `per-locale`, unlike the changelog above — the two policies the
+          // registry exists to make parameters, taking their opposite values.
+          //
+          // No `locales` map: this site translates its prose and not its
+          // (invented) API, so the reference is built once from the default
+          // language and every other locale falls through to it with the
+          // translation banner saying so. A site whose API description IS
+          // translated names the file per locale instead.
+          { type: 'openapi', path: 'www/openapi.yaml', label: 'API' }
         ]
       }
     ],

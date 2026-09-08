@@ -59,6 +59,13 @@ const ROUTES = [
   // a type's parser rather than by hand, so their heading order and their links
   // are the parser's output and nothing else here would check them.
   '/releases',
+  // The OTHER shape a generated section has: a type that names a layout draws
+  // its own page, so neither the docs header nor the docs sidebar is what is
+  // being checked here — the reference layout and a parser's operation page
+  // are, and nothing else on this list would catch a heading order or an
+  // unlabelled control in either.
+  '/api',
+  '/api/widgets/listwidgets',
   '/does-not-exist'
 ];
 
