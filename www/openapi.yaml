@@ -214,6 +214,38 @@ paths:
                 $ref: '#/components/schemas/Widget'
         '404':
           $ref: '#/components/responses/Problem'
+    patch:
+      operationId: updateWidget
+      summary: Update a widget
+      tags: [Widgets]
+      description: |
+        The one FLAT body in this document, and deliberately so: every other
+        request body here carries an array or a map, which the try-it client
+        cannot draw as a form. Without this endpoint the form view — and the
+        toggle between it and the JSON editor — would never render on this
+        site, and a view nothing renders is a view whose failures nobody sees.
+        Four properties, one of each kind of box: text, enum, boolean, number.
+      parameters:
+        - name: widgetId
+          in: path
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WidgetPatch'
+      responses:
+        '200':
+          description: The widget as it now stands.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Widget'
+        '404':
+          $ref: '#/components/responses/Problem'
     delete:
       operationId: deleteWidget
       summary: Delete a widget
@@ -364,6 +396,26 @@ components:
           type: object
           additionalProperties:
             type: string
+
+    WidgetPatch:
+      type: object
+      description: The fields of a widget that may be changed after it is made.
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        kind:
+          type: string
+          enum: [round, square, other]
+        active:
+          type: boolean
+          description: Whether the widget answers requests.
+        weight:
+          type: integer
+          minimum: 1
+          maximum: 100
+          description: How far up a list this widget sorts.
 
     NewWidget:
       # Folds into one object: a `$ref` plus the fields this endpoint adds is
