@@ -180,6 +180,23 @@ declare global {
     children?: DuxtLink[];
   }
 
+  interface DuxtSection extends DuxtLink {
+    /**
+     * The icon for pages in this section that carry none of their own.
+     *
+     * A page states its icon in frontmatter, and most do — the sidebar then
+     * shows ten pages with ten symbols that actually distinguish them. Some
+     * pages cannot: an ADR's frontmatter is fixed at `title`, `description`,
+     * `status` and `date`, so a decision log renders eight rows with nothing
+     * beside them while every other section has a column of icons.
+     *
+     * Set here, one symbol stands in for the whole section, which is what a set
+     * of like records wants anyway. Falls back to `duxt.pageIcon`, and a page's
+     * own icon always wins.
+     */
+    pageIcon?: string;
+  }
+
   interface DuxtAction extends DuxtLink {
     variant?:
       | 'default'
@@ -277,11 +294,38 @@ declare global {
      * served without a prefix.
      */
     locales?: string[];
+    /**
+     * Who publishes the site, for the `Organization` node schema.org readers
+     * look for — a knowledge panel, a rich result, an AI summary naming a
+     * source.
+     *
+     * Unset by default and unset in the layer: duxt does not know, and must not
+     * guess, whose documentation it is rendering (ADR 0005). Without it the
+     * site still describes itself as a `WebSite`; what it loses is the publisher
+     * behind it.
+     *
+     * `logo` wants an ABSOLUTE URL or a path from the site root, and schema.org
+     * wants it square-ish and at least 112px; `url` defaults to `site.url`.
+     */
+    organization?: {
+      name?: DuxtText;
+      url?: string;
+      logo?: string;
+    };
+    /**
+     * The icon for any page that carries none of its own, anywhere in the tree.
+     *
+     * A section's own `pageIcon` overrides it; a page's frontmatter overrides
+     * both. Unset, a page without an icon simply shows none — which is the right
+     * default, because an icon repeated down a whole sidebar carries no
+     * information.
+     */
+    pageIcon?: string;
     /** Shown as a badge beside the title. */
     version?: string;
     navigation?: DuxtLink[];
     /** The second navbar row: top-level parts of the documentation. */
-    sections?: DuxtLink[];
+    sections?: DuxtSection[];
     /** Fixed links under the table of contents. */
     aside?: {
       title?: DuxtText;

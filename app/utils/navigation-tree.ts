@@ -177,3 +177,30 @@ export function titleFoldersFromIndex(
     };
   });
 }
+
+/**
+ * The icon a navigation entry draws, if any.
+ *
+ * Three levels, most specific first: the page's own frontmatter, the `pageIcon`
+ * of the section it sits in, then `duxt.pageIcon` for the whole site. Absent at
+ * every level means no icon, which is the right default — one symbol repeated
+ * down a whole sidebar distinguishes nothing.
+ *
+ * The section is matched by path prefix, longest first, so a section nested
+ * under another wins over the one above it. Pure, and separated from the
+ * components that call it, because the precedence is the part worth testing —
+ * rendering an `<Icon>` is not.
+ */
+export function resolvePageIcon(
+  item: { icon?: unknown; path?: string },
+  sections: { to?: string; pageIcon?: string }[] | undefined,
+  fallback: string | undefined
+): string | undefined {
+  if (typeof item.icon === 'string' && item.icon) return item.icon;
+
+  const section = (sections ?? [])
+    .filter((entry) => entry.to && item.path?.startsWith(entry.to))
+    .sort((a, b) => (b.to?.length ?? 0) - (a.to?.length ?? 0))[0];
+
+  return section?.pageIcon ?? fallback;
+}

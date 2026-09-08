@@ -18,8 +18,11 @@ const props = defineProps<{
 
 const path = useDuxtPath();
 
+// A page's own icon, else the section's `pageIcon`, else the site's — see
+// `resolvePageIcon`.
+const duxt = useDuxtConfig();
 const iconOf = (item: ContentNavigationItem) =>
-  typeof item.icon === 'string' ? item.icon : undefined;
+  resolvePageIcon(item, duxt.sections, duxt.pageIcon);
 
 const contains = (item: ContentNavigationItem): boolean =>
   path.value === item.path ||
