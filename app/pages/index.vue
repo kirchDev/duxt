@@ -188,12 +188,24 @@ const previewLocation = computed(
 );
 
 /**
- * The same, as the address bar prints it. Before the frame is up there is no
- * origin to name — the server has no window — so the path stands in until the
- * first read, and the bar does not flicker between two spellings of one page.
+ * The same, as the address bar prints it.
+ *
+ * The origin comes from the REQUEST, which both halves can read: `window` on
+ * the client, the incoming headers on the server. That matters because every
+ * other source swaps the string once — the bare path swapped to a full URL at
+ * the frame's first load, and reading `window.location` on mount swapped it at
+ * hydration. Both are the flicker between two spellings of one page this
+ * fallback exists to avoid, and only a value the server can print too removes
+ * it. `i18n.baseUrl` would be the configured answer, but a site that has not
+ * set it would be back to the bare path.
  */
+const requestUrl = useRequestURL({
+  xForwardedHost: true,
+  xForwardedProto: true
+});
+
 const previewHref = computed(
-  () => previewCurrent.value?.href ?? previewTo.value
+  () => previewCurrent.value?.href ?? `${requestUrl.origin}${previewTo.value}`
 );
 
 useSeoMeta({
