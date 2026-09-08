@@ -196,6 +196,9 @@ importers:
       vue-sonner:
         specifier: ^2.0.9
         version: 2.0.9(774ca6450d54386f0a7ff025196aba0c)
+      yaml:
+        specifier: ^2.9.0
+        version: 2.9.0
       zod:
         specifier: ^4.5.4
         version: 4.5.4
