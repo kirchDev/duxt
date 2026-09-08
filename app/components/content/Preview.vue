@@ -127,7 +127,7 @@ const tabs = computed(() => [
       <!-- Right of the tabs, where every other card on the site puts it. Only
            on the source tab: a copy button beside a rendered example copies
            something the reader cannot see. -->
-      <Button
+      <UiButton
         v-if="active === 'code' && codeMeta.code"
         variant="ghost"
         size="icon"
@@ -139,7 +139,7 @@ const tabs = computed(() => [
           :name="copied ? 'lucide:check' : 'lucide:copy'"
           class="size-3.5"
         />
-      </Button>
+      </UiButton>
     </TabsList>
 
     <TabsContent value="preview" class="outline-none">

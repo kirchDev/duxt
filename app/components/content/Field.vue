@@ -31,9 +31,9 @@ defineProps<{
         type
       }}</code>
 
-      <Badge v-if="required" variant="secondary" class="text-[10px]">
+      <UiBadge v-if="required" variant="secondary" class="text-[10px]">
         required
-      </Badge>
+      </UiBadge>
 
       <code
         v-if="$props.default !== undefined"

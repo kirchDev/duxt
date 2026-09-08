@@ -59,7 +59,7 @@ async function copy() {
       <Icon :name="icon" class="size-4 shrink-0" />
       <span class="truncate font-mono">{{ label }}</span>
 
-      <Button
+      <UiButton
         variant="ghost"
         size="icon"
         class="ml-auto size-7 hover:bg-accent hover:text-foreground"
@@ -70,10 +70,10 @@ async function copy() {
           :name="copied ? 'lucide:check' : 'lucide:copy'"
           class="size-3.5"
         />
-      </Button>
+      </UiButton>
     </div>
 
-    <Button
+    <UiButton
       v-else
       variant="ghost"
       size="icon"
@@ -83,7 +83,7 @@ async function copy() {
       @click="copy"
     >
       <Icon :name="copied ? 'lucide:check' : 'lucide:copy'" class="size-3.5" />
-    </Button>
+    </UiButton>
 
     <div ref="root">
       <slot v-if="hasBody" />

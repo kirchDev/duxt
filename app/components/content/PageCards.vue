@@ -28,21 +28,21 @@ const iconOf = (item: ContentNavigationItem) =>
       :key="item.path"
       :to="localeLink(item.path)"
     >
-      <Card
+      <UiCard
         class="h-full transition-colors hover:border-foreground/20 hover:bg-accent/30"
       >
-        <CardHeader>
+        <UiCardHeader>
           <Icon
             v-if="iconOf(item)"
             :name="iconOf(item)!"
             class="size-5 text-muted-foreground"
           />
-          <CardTitle class="text-base">{{ item.title }}</CardTitle>
-          <CardDescription v-if="item.description">{{
+          <UiCardTitle class="text-base">{{ item.title }}</UiCardTitle>
+          <UiCardDescription v-if="item.description">{{
             item.description
-          }}</CardDescription>
-        </CardHeader>
-      </Card>
+          }}</UiCardDescription>
+        </UiCardHeader>
+      </UiCard>
     </NuxtLink>
   </div>
 </template>

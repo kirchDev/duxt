@@ -89,7 +89,7 @@ const elsewhere = computed(
           {{ $t('duxt.error.elsewhere') }}
         </p>
         <div class="flex flex-wrap justify-center gap-2">
-          <Button
+          <UiButton
             v-for="entry in elsewhere"
             :key="entry.path"
             as-child
@@ -99,7 +99,7 @@ const elsewhere = computed(
             <NuxtLink :to="localeLink(entry.path)" class="font-mono text-xs">
               {{ entry.version.label }}
             </NuxtLink>
-          </Button>
+          </UiButton>
         </div>
       </div>
 
@@ -122,12 +122,12 @@ const elsewhere = computed(
         </ul>
       </div>
 
-      <Button as-child class="mt-10">
+      <UiButton as-child class="mt-10">
         <NuxtLink :to="localeLink('/')">
           <Icon name="lucide:arrow-left" class="size-4" />
           {{ $t('duxt.error.back') }}
         </NuxtLink>
-      </Button>
+      </UiButton>
     </div>
   </NuxtLayout>
 </template>

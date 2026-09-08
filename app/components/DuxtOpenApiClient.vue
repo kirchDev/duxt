@@ -325,7 +325,7 @@ function pretty(text: string): string {
           >
             {{ variable.name }}
           </label>
-          <Input
+          <UiInput
             :id="`${id}-var-${variable.name}`"
             v-model="variables[variable.name]"
             class="font-mono text-sm"
@@ -364,7 +364,7 @@ function pretty(text: string): string {
             >
               {{ $t('duxt.openapi.client.username') }}
             </label>
-            <Input
+            <UiInput
               v-if="isBasic(scheme)"
               :id="`${id}-user-${scheme.key}`"
               v-model="usernames[scheme.key]"
@@ -378,7 +378,7 @@ function pretty(text: string): string {
             >
               {{ scheme.key }}
             </label>
-            <Input
+            <UiInput
               :id="`${id}-auth-${scheme.key}`"
               v-model="credentials[scheme.key]"
               type="password"
@@ -464,14 +464,14 @@ function pretty(text: string): string {
         />
       </div>
 
-      <Button type="submit" :disabled="sending" class="w-full">
+      <UiButton type="submit" :disabled="sending" class="w-full">
         <Icon
           :name="sending ? 'lucide:loader-circle' : 'lucide:send'"
           class="size-4"
           :class="{ 'animate-spin': sending }"
         />
         {{ $t('duxt.openapi.client.send') }}
-      </Button>
+      </UiButton>
 
       <p class="text-xs text-muted-foreground">
         {{ $t('duxt.openapi.client.direct') }}

@@ -71,7 +71,7 @@ const tone = computed(
   <!-- The icon belongs to the FIRST LINE of the text, not to a line of its own.
        As siblings of one flex row the sentence became its own item and wrapped
        below, leaving the icon stranded above it. -->
-  <Alert
+  <UiAlert
     v-if="shouldWarn"
     role="status"
     class="mb-6 flex items-start gap-2.5 rounded-md border border-l-2 bg-muted/30 px-3 py-2.5"
@@ -84,11 +84,11 @@ const tone = computed(
     />
 
     <div class="min-w-0 flex-1">
-      <AlertTitle class="mb-0.5 font-medium text-foreground">
+      <UiAlertTitle class="mb-0.5 font-medium text-foreground">
         {{ $t(`duxt.version.titles.${kind}`) }}
-      </AlertTitle>
+      </UiAlertTitle>
 
-      <AlertDescription class="text-muted-foreground">
+      <UiAlertDescription class="text-muted-foreground">
         {{
           $t(message, {
             version: current?.version ?? '',
@@ -103,7 +103,7 @@ const tone = computed(
         >
           {{ $t('duxt.version.goToCurrent', { preferred: preferred.version }) }}
         </NuxtLink>
-      </AlertDescription>
+      </UiAlertDescription>
     </div>
-  </Alert>
+  </UiAlert>
 </template>

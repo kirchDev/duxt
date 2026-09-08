@@ -19,19 +19,19 @@ const trail = await useDuxtBreadcrumb(() => props.path);
 </script>
 
 <template>
-  <Breadcrumb v-if="trail.length" :aria-label="$t('duxt.nav.breadcrumb')">
-    <BreadcrumbList>
+  <UiBreadcrumb v-if="trail.length" :aria-label="$t('duxt.nav.breadcrumb')">
+    <UiBreadcrumbList>
       <template v-for="(item, index) in trail" :key="item.path">
-        <BreadcrumbItem>
-          <BreadcrumbPage v-if="index === trail.length - 1">{{
+        <UiBreadcrumbItem>
+          <UiBreadcrumbPage v-if="index === trail.length - 1">{{
             item.title
-          }}</BreadcrumbPage>
-          <BreadcrumbLink v-else as-child>
+          }}</UiBreadcrumbPage>
+          <UiBreadcrumbLink v-else as-child>
             <NuxtLink :to="localeLink(item.path)">{{ item.title }}</NuxtLink>
-          </BreadcrumbLink>
-        </BreadcrumbItem>
-        <BreadcrumbSeparator v-if="index < trail.length - 1" />
+          </UiBreadcrumbLink>
+        </UiBreadcrumbItem>
+        <UiBreadcrumbSeparator v-if="index < trail.length - 1" />
       </template>
-    </BreadcrumbList>
-  </Breadcrumb>
+    </UiBreadcrumbList>
+  </UiBreadcrumb>
 </template>

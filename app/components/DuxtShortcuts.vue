@@ -14,14 +14,14 @@ onDuxtShortcut(
 </script>
 
 <template>
-  <Dialog v-model:open="open">
-    <DialogContent class="sm:max-w-sm">
-      <DialogHeader>
-        <DialogTitle>{{ $t('duxt.shortcuts.title') }}</DialogTitle>
-        <DialogDescription class="sr-only">
+  <UiDialog v-model:open="open">
+    <UiDialogContent class="sm:max-w-sm">
+      <UiDialogHeader>
+        <UiDialogTitle>{{ $t('duxt.shortcuts.title') }}</UiDialogTitle>
+        <UiDialogDescription class="sr-only">
           {{ $t('duxt.shortcuts.title') }}
-        </DialogDescription>
-      </DialogHeader>
+        </UiDialogDescription>
+      </UiDialogHeader>
 
       <ul class="flex flex-col gap-2 text-sm">
         <li
@@ -41,6 +41,6 @@ onDuxtShortcut(
           </span>
         </li>
       </ul>
-    </DialogContent>
-  </Dialog>
+    </UiDialogContent>
+  </UiDialog>
 </template>

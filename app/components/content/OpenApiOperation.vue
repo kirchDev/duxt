@@ -46,13 +46,13 @@ defineProps<{
 
         <!-- A webhook is the same object pointing the other way, and a reader
              who does not know that will try to call it. -->
-        <Badge v-if="operation.kind === 'webhook'" variant="secondary">
+        <UiBadge v-if="operation.kind === 'webhook'" variant="secondary">
           {{ $t('duxt.openapi.webhook') }}
-        </Badge>
+        </UiBadge>
 
-        <Badge v-if="operation.deprecated" variant="destructive">
+        <UiBadge v-if="operation.deprecated" variant="destructive">
           {{ $t('duxt.openapi.deprecated') }}
-        </Badge>
+        </UiBadge>
       </div>
 
       <p

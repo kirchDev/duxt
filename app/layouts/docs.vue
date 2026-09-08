@@ -57,6 +57,6 @@ const { chrome } = useDuxtSectionRow();
     <DuxtFooter />
 
     <!-- One toaster per layout: toast() needs a mounted target to draw into. -->
-    <Toaster position="bottom-right" />
+    <UiToaster position="bottom-right" />
   </div>
 </template>

@@ -42,7 +42,7 @@ const shown = computed(() => {
        bordered notice above the title means once, and a second style for a
        second kind of notice is one style too many. Sky, because this is
        information about the page rather than a warning about its content. -->
-  <Alert
+  <UiAlert
     role="status"
     class="mb-6 flex items-start gap-2.5 rounded-md border border-l-2 border-l-sky-500 bg-muted/30 px-3 py-2.5"
   >
@@ -52,13 +52,13 @@ const shown = computed(() => {
     />
 
     <div class="min-w-0 flex-1">
-      <AlertTitle class="mb-0.5 font-medium text-foreground">
+      <UiAlertTitle class="mb-0.5 font-medium text-foreground">
         {{ $t('duxt.page.untranslated.title') }}
-      </AlertTitle>
+      </UiAlertTitle>
 
-      <AlertDescription class="text-muted-foreground">
+      <UiAlertDescription class="text-muted-foreground">
         {{ $t('duxt.page.untranslated.description', { language: shown }) }}
-      </AlertDescription>
+      </UiAlertDescription>
     </div>
-  </Alert>
+  </UiAlert>
 </template>

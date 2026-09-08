@@ -158,8 +158,8 @@ const formatted = (value?: string) => {
           role="group"
           :aria-label="$t('duxt.changelog.filter')"
         >
-          <DropdownMenu>
-            <DropdownMenuTrigger as-child>
+          <UiDropdownMenu>
+            <UiDropdownMenuTrigger as-child>
               <button
                 type="button"
                 class="inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-1.5 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
@@ -171,17 +171,17 @@ const formatted = (value?: string) => {
                 </span>
                 <Icon name="lucide:chevron-down" class="size-3.5 opacity-60" />
               </button>
-            </DropdownMenuTrigger>
+            </UiDropdownMenuTrigger>
 
             <!-- Capped for the same reason the version menu is: a project with
                  twelve kinds is not the ceiling, and reka only stops the list
                  at the viewport edge. `end`, because the trigger sits at the
                  right edge of the reading column. -->
-            <DropdownMenuContent
+            <UiDropdownMenuContent
               align="end"
               class="max-h-[min(24rem,var(--reka-dropdown-menu-content-available-height))] w-64 overflow-y-auto"
             >
-              <DropdownMenuCheckboxItem
+              <UiDropdownMenuCheckboxItem
                 v-for="name in names"
                 :key="name"
                 :model-value="selected.includes(name)"
@@ -199,9 +199,9 @@ const formatted = (value?: string) => {
                 >
                   {{ totals[name] }}
                 </span>
-              </DropdownMenuCheckboxItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              </UiDropdownMenuCheckboxItem>
+            </UiDropdownMenuContent>
+          </UiDropdownMenu>
         </div>
       </div>
 

@@ -238,7 +238,7 @@ defineOgImage('Duxt', {
         <!-- `as-child` around a link when the badge points somewhere: a pill a
              reader can click has to BE the anchor, not sit inside one, or the
              hover and focus rings belong to two different boxes. -->
-        <Badge
+        <UiBadge
           v-if="badge"
           :variant="badge.variant ?? 'secondary'"
           class="mb-6"
@@ -258,7 +258,7 @@ defineOgImage('Duxt', {
             <Icon v-if="badge.icon" :name="badge.icon" class="size-3" />
             {{ badge.label }}
           </template>
-        </Badge>
+        </UiBadge>
 
         <h1
           class="text-4xl font-semibold tracking-tight text-balance sm:text-6xl"
@@ -274,7 +274,7 @@ defineOgImage('Duxt', {
         </p>
 
         <div class="mt-10 flex flex-wrap items-center justify-center gap-3">
-          <Button
+          <UiButton
             v-for="(action, index) in duxt.landing?.actions ?? []"
             :key="index"
             as-child
@@ -289,7 +289,7 @@ defineOgImage('Duxt', {
               <Icon v-if="action.icon" :name="action.icon" class="size-4" />
               {{ action.label }}
             </NuxtLink>
-          </Button>
+          </UiButton>
         </div>
 
         <!-- The command, if there is one. A <button> around the whole line
@@ -372,14 +372,14 @@ defineOgImage('Duxt', {
 
             <!-- The way out of the frame. A page read inside a 30 rem window is
                  a demonstration; at some point the reader wants the real one. -->
-            <Button as-child size="sm" variant="ghost" class="shrink-0">
+            <UiButton as-child size="sm" variant="ghost" class="shrink-0">
               <NuxtLink :to="previewLocation">
                 <Icon name="lucide:external-link" class="size-3.5" />
                 <span class="sr-only sm:not-sr-only">
                   {{ $t('duxt.defaults.landing.previewOpen') }}
                 </span>
               </NuxtLink>
-            </Button>
+            </UiButton>
           </div>
 
           <!-- Two <img>s rather than one: a screenshot of a light theme on a
@@ -466,7 +466,7 @@ defineOgImage('Duxt', {
           :rel="feature.external ? 'noopener' : undefined"
           class="group"
         >
-          <Card
+          <UiCard
             class="h-full transition-colors"
             :class="
               feature.to
@@ -474,7 +474,7 @@ defineOgImage('Duxt', {
                 : ''
             "
           >
-            <CardHeader>
+            <UiCardHeader>
               <span
                 v-if="feature.icon"
                 class="mb-1 flex size-9 items-center justify-center rounded-lg border bg-muted/50"
@@ -482,7 +482,7 @@ defineOgImage('Duxt', {
                 <Icon :name="feature.icon" class="size-4.5 text-primary" />
               </span>
 
-              <CardTitle class="flex items-center gap-1.5 text-base">
+              <UiCardTitle class="flex items-center gap-1.5 text-base">
                 {{ feature.title }}
                 <Icon
                   v-if="feature.to"
@@ -493,13 +493,13 @@ defineOgImage('Duxt', {
                   "
                   class="size-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5"
                 />
-              </CardTitle>
+              </UiCardTitle>
 
-              <CardDescription class="text-pretty">
+              <UiCardDescription class="text-pretty">
                 {{ feature.description }}
-              </CardDescription>
-            </CardHeader>
-          </Card>
+              </UiCardDescription>
+            </UiCardHeader>
+          </UiCard>
         </component>
       </div>
     </section>

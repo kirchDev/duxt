@@ -40,7 +40,7 @@ const localeLink = useDuxtLink();
 <template>
   <div>
     <div v-if="version" class="not-typeset mb-4">
-      <Badge variant="secondary" class="font-mono">{{ version }}</Badge>
+      <UiBadge variant="secondary" class="font-mono">{{ version }}</UiBadge>
     </div>
 
     <p v-if="summary" class="not-typeset mb-4 text-lg text-muted-foreground">

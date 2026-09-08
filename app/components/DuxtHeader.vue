@@ -125,20 +125,20 @@ function current(to?: string) {
       class="mx-auto grid h-14 max-w-[90rem] grid-cols-[auto_1fr_auto] items-center gap-4 px-4 lg:grid-cols-[1fr_auto_1fr] lg:px-8"
     >
       <div class="flex items-center gap-2">
-        <Sheet v-model:open="sheetOpen">
-          <SheetTrigger as-child>
-            <Button
+        <UiSheet v-model:open="sheetOpen">
+          <UiSheetTrigger as-child>
+            <UiButton
               variant="ghost"
               size="icon"
               class="lg:hidden"
               :aria-label="$t('duxt.nav.open')"
             >
               <Icon name="lucide:menu" class="size-5" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" class="flex w-80 flex-col gap-0 p-0">
-            <SheetHeader class="border-b pr-14">
-              <SheetTitle class="flex items-center gap-2">
+            </UiButton>
+          </UiSheetTrigger>
+          <UiSheetContent side="left" class="flex w-80 flex-col gap-0 p-0">
+            <UiSheetHeader class="border-b pr-14">
+              <UiSheetTitle class="flex items-center gap-2">
                 <DuxtBrand />
 
                 <!-- One version and no choice: a fact about the project, so it
@@ -148,8 +148,8 @@ function current(to?: string) {
                 <span v-if="!switchable" class="sm:hidden">
                   <DuxtVersion />
                 </span>
-              </SheetTitle>
-            </SheetHeader>
+              </UiSheetTitle>
+            </UiSheetHeader>
 
             <!-- Its own strip under the header rather than beside the brand:
                  the close button owns that corner, and the version is a control
@@ -175,12 +175,12 @@ function current(to?: string) {
                          parent's list: on the desktop it is a dropdown, and
                          spilling its five links between "Docs" and "Credits"
                          lost both the grouping and its name. -->
-                    <Collapsible
+                    <UiCollapsible
                       v-if="link.children?.length"
                       :open="groupOpen(link)"
                       @update:open="(value) => setGroupOpen(link, value)"
                     >
-                      <CollapsibleTrigger
+                      <UiCollapsibleTrigger
                         class="group flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors w-full cursor-pointer hover:bg-accent"
                         :class="
                           groupActive(link)
@@ -198,9 +198,9 @@ function current(to?: string) {
                           name="lucide:chevron-right"
                           class="ml-auto size-3.5 transition-transform group-data-[state=open]:rotate-90"
                         />
-                      </CollapsibleTrigger>
+                      </UiCollapsibleTrigger>
 
-                      <CollapsibleContent>
+                      <UiCollapsibleContent>
                         <ul class="mt-0.5 ml-3.5 space-y-0.5 border-l pl-2.5">
                           <li
                             v-for="child in link.children"
@@ -231,8 +231,8 @@ function current(to?: string) {
                             </NuxtLink>
                           </li>
                         </ul>
-                      </CollapsibleContent>
-                    </Collapsible>
+                      </UiCollapsibleContent>
+                    </UiCollapsible>
 
                     <NuxtLink
                       v-else
@@ -327,12 +327,12 @@ function current(to?: string) {
             <!-- Below sm the row keeps only the brand, the burger and the
                  search, so the two settings live here. `mt-auto` on SheetFooter
                  parks them at the bottom while the tree above scrolls. -->
-            <SheetFooter
+            <UiSheetFooter
               class="flex-row items-center justify-center gap-2 border-t sm:hidden"
             >
               <DuxtLocale />
 
-              <Button
+              <UiButton
                 variant="ghost"
                 size="icon"
                 :aria-label="$t('duxt.theme.toggle')"
@@ -344,10 +344,10 @@ function current(to?: string) {
                   "
                   class="size-4"
                 />
-              </Button>
-            </SheetFooter>
-          </SheetContent>
-        </Sheet>
+              </UiButton>
+            </UiSheetFooter>
+          </UiSheetContent>
+        </UiSheet>
 
         <NuxtLink
           :to="localeLink('/')"
@@ -367,9 +367,9 @@ function current(to?: string) {
           :aria-label="$t('duxt.nav.main')"
         >
           <template v-for="link in duxt.navigation" :key="link.label">
-            <DropdownMenu v-if="link.children?.length">
-              <DropdownMenuTrigger as-child>
-                <Button
+            <UiDropdownMenu v-if="link.children?.length">
+              <UiDropdownMenuTrigger as-child>
+                <UiButton
                   variant="ghost"
                   size="sm"
                   class="gap-1.5 font-medium text-muted-foreground"
@@ -379,10 +379,10 @@ function current(to?: string) {
                     name="lucide:chevron-down"
                     class="size-3.5 opacity-60"
                   />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="center" class="w-64">
-                <DropdownMenuItem
+                </UiButton>
+              </UiDropdownMenuTrigger>
+              <UiDropdownMenuContent align="center" class="w-64">
+                <UiDropdownMenuItem
                   v-for="child in link.children"
                   :key="child.to"
                   as-child
@@ -407,11 +407,11 @@ function current(to?: string) {
                       </span>
                     </span>
                   </NuxtLink>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                </UiDropdownMenuItem>
+              </UiDropdownMenuContent>
+            </UiDropdownMenu>
 
-            <Button
+            <UiButton
               v-else
               as-child
               variant="ghost"
@@ -427,7 +427,7 @@ function current(to?: string) {
               >
                 {{ link.label }}
               </NuxtLink>
-            </Button>
+            </UiButton>
           </template>
         </nav>
 
@@ -451,7 +451,7 @@ function current(to?: string) {
         <!-- The project links give way first: they are the only icons here the
              sheet can carry as ordinary rows, where the locale and the theme
              are controls that have to stay reachable in one tap. -->
-        <Button
+        <UiButton
           v-for="link in duxt.links ?? []"
           :key="link.to"
           as-child
@@ -463,13 +463,13 @@ function current(to?: string) {
           <a :href="link.to" target="_blank" rel="noopener">
             <Icon v-if="link.icon" :name="link.icon" class="size-4" />
           </a>
-        </Button>
+        </UiButton>
 
         <div class="hidden sm:block">
           <DuxtLocale />
         </div>
 
-        <Button
+        <UiButton
           variant="ghost"
           size="icon"
           class="hidden sm:inline-flex"
@@ -480,7 +480,7 @@ function current(to?: string) {
             :name="colorMode.value === 'dark' ? 'lucide:sun' : 'lucide:moon'"
             class="size-4"
           />
-        </Button>
+        </UiButton>
       </div>
     </div>
   </header>

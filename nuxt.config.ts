@@ -440,7 +440,13 @@ export default defineNuxtConfig({
   },
 
   shadcn: {
-    prefix: '',
+    // PREFIXED, and deliberately. Without one the layer auto-imports `Button`,
+    // `Input`, `Card` and a hundred more into every site that extends it —
+    // ordinary words a consumer is likely to want for a component of their own,
+    // and a collision resolves silently in favour of whichever Nuxt registered
+    // last. `Ui` says where a component comes from at the call site and keeps
+    // the plain names free for the site being built.
+    prefix: 'Ui',
     componentDir: layer('./app/components/ui')
   },
 

@@ -121,7 +121,7 @@ async function copy() {
         {{ manager }}
       </button>
 
-      <Button
+      <UiButton
         variant="ghost"
         size="icon"
         class="ml-auto size-7"
@@ -134,7 +134,7 @@ async function copy() {
           :name="copied ? 'lucide:check' : 'lucide:copy'"
           class="size-3.5"
         />
-      </Button>
+      </UiButton>
     </div>
 
     <!-- eslint-disable-next-line vue/no-v-html -- Shiki output, built on the

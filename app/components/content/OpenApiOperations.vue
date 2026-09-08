@@ -53,9 +53,9 @@ const localeLink = useDuxtLink();
             {{ entry.summary }}
           </span>
 
-          <Badge v-if="entry.deprecated" variant="destructive">
+          <UiBadge v-if="entry.deprecated" variant="destructive">
             {{ $t('duxt.openapi.deprecated') }}
-          </Badge>
+          </UiBadge>
         </NuxtLink>
       </li>
     </ul>

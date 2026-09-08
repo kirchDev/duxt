@@ -68,12 +68,12 @@ function pathIn(version: { to?: string }) {
 </script>
 
 <template>
-  <DropdownMenu v-if="versions.length > 1">
+  <UiDropdownMenu v-if="versions.length > 1">
     <!-- The trigger is a real <button>, with the Badge inside it. reka-ui puts
          `aria-haspopup` and `aria-expanded` on whatever element it is handed,
          and a <span> is allowed neither — which axe reports and a screen
          reader acts on. -->
-    <DropdownMenuTrigger as-child>
+    <UiDropdownMenuTrigger as-child>
       <button
         v-if="props.variant === 'block'"
         type="button"
@@ -94,21 +94,21 @@ function pathIn(version: { to?: string }) {
       </button>
 
       <button v-else type="button" class="cursor-pointer">
-        <Badge
+        <UiBadge
           variant="secondary"
           class="gap-1 font-mono text-[10px] hover:bg-accent"
         >
           {{ current?.label ?? duxt.version }}
           <Icon name="lucide:chevron-down" class="size-3 opacity-60" />
-        </Badge>
+        </UiBadge>
       </button>
-    </DropdownMenuTrigger>
+    </UiDropdownMenuTrigger>
 
     <!-- A project with thirty versions would otherwise open a menu the height
          of the window: reka's available-height only stops it at the viewport
          edge. `min()` keeps that cap and adds a shorter one, so the list
          scrolls at about ten entries instead of filling the screen. -->
-    <DropdownMenuContent
+    <UiDropdownMenuContent
       align="start"
       class="max-h-[min(20rem,var(--reka-dropdown-menu-content-available-height))]"
       :class="
@@ -117,7 +117,11 @@ function pathIn(version: { to?: string }) {
           : 'w-44'
       "
     >
-      <DropdownMenuItem v-for="version in versions" :key="version.to" as-child>
+      <UiDropdownMenuItem
+        v-for="version in versions"
+        :key="version.to"
+        as-child
+      >
         <NuxtLink :to="pathIn(version)" class="flex items-center gap-2">
           <Icon
             name="lucide:check"
@@ -132,19 +136,19 @@ function pathIn(version: { to?: string }) {
             {{ caption(version) }}
           </span>
         </NuxtLink>
-      </DropdownMenuItem>
-    </DropdownMenuContent>
-  </DropdownMenu>
+      </UiDropdownMenuItem>
+    </UiDropdownMenuContent>
+  </UiDropdownMenu>
 
   <!-- Nothing to choose: the project's own version, stated rather than offered.
        Always the badge, `block` included — a bordered box with a caption and no
        control in it looks like a select that has stopped working, and the sheet
        puts this one beside the brand rather than in the switcher's strip. -->
-  <Badge
+  <UiBadge
     v-else-if="duxt.version"
     variant="secondary"
     class="font-mono text-[10px]"
   >
     {{ duxt.version }}
-  </Badge>
+  </UiBadge>
 </template>

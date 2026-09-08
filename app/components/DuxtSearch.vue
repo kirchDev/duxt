@@ -131,7 +131,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <Button
+  <UiButton
     v-bind="$attrs"
     variant="outline"
     size="sm"
@@ -145,9 +145,9 @@ onMounted(() => {
     >
       ⌘K
     </kbd>
-  </Button>
+  </UiButton>
 
-  <CommandDialog v-model:open="open">
+  <UiCommandDialog v-model:open="open">
     <!-- The input is ours, not CommandInput: that one writes into Command's own
          filterState, and Command would then score the list a second time
          against rendered text — dropping entries that mounted after the term
@@ -170,13 +170,16 @@ onMounted(() => {
       />
     </div>
 
-    <CommandList class="max-h-[60vh]">
+    <UiCommandList class="max-h-[60vh]">
       <!-- An empty box is a dead end. Without a term the dialog offers the
            sections as entry points and, once there is any history, the pages
            this reader came from — which is what they are most likely after. -->
       <template v-if="!query.trim()">
-        <CommandGroup v-if="recent.length" :heading="$t('duxt.search.recent')">
-          <CommandItem
+        <UiCommandGroup
+          v-if="recent.length"
+          :heading="$t('duxt.search.recent')"
+        >
+          <UiCommandItem
             v-for="page in recent"
             :key="page.path"
             :value="`recent ${page.path}`"
@@ -191,11 +194,11 @@ onMounted(() => {
             <span class="ml-auto truncate pl-3 text-xs text-muted-foreground">
               {{ sectionOf(page.path) }}
             </span>
-          </CommandItem>
-        </CommandGroup>
+          </UiCommandItem>
+        </UiCommandGroup>
 
-        <CommandGroup :heading="$t('duxt.search.sections')">
-          <CommandItem
+        <UiCommandGroup :heading="$t('duxt.search.sections')">
+          <UiCommandItem
             v-for="section in duxt.sections ?? []"
             :key="section.to"
             :value="`section ${section.label}`"
@@ -207,8 +210,8 @@ onMounted(() => {
               class="size-3.5 shrink-0 text-muted-foreground"
             />
             <span class="truncate">{{ section.label }}</span>
-          </CommandItem>
-        </CommandGroup>
+          </UiCommandItem>
+        </UiCommandGroup>
       </template>
 
       <div
@@ -232,12 +235,12 @@ onMounted(() => {
 
       <!-- One line per hit, grouped by section: the page is context on the
            right, not a heading of its own. -->
-      <CommandGroup
+      <UiCommandGroup
         v-for="group in grouped"
         :key="group.label"
         :heading="group.label || undefined"
       >
-        <CommandItem
+        <UiCommandItem
           v-for="hit in group.hits"
           :key="hit.id"
           :value="hit.id"
@@ -254,15 +257,15 @@ onMounted(() => {
           </span>
           <!-- Which repository and version this came out of. Only drawn where
                there is more than one, so a single-source site sees nothing. -->
-          <Badge
+          <UiBadge
             v-if="hit.source"
             variant="secondary"
             class="shrink-0 font-mono text-[10px]"
           >
             {{ hit.source.label }}
-          </Badge>
-        </CommandItem>
-      </CommandGroup>
-    </CommandList>
-  </CommandDialog>
+          </UiBadge>
+        </UiCommandItem>
+      </UiCommandGroup>
+    </UiCommandList>
+  </UiCommandDialog>
 </template>
