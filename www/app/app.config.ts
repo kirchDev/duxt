@@ -230,6 +230,21 @@ export default defineAppConfig({
         },
         to: '/credits',
         icon: 'lucide:heart'
+      },
+      {
+        // Last, and deliberately so: the decision log is an appendix rather
+        // than reading order — which is what `99.` encodes in the folder name.
+        // It earns a row anyway, because a section the row omits falls back to
+        // the branch it is in, and a reader who lands there has no way back up.
+        label: {
+          'en-GB': 'Architecture decisions',
+          'de-DE': 'Architekturentscheidungen',
+          'es-ES': 'Decisiones de arquitectura',
+          'fr-FR': "Décisions d'architecture",
+          'pt-PT': 'Decisões de arquitetura'
+        },
+        to: '/adr',
+        icon: 'lucide:gavel'
       }
     ],
 
