@@ -39,10 +39,7 @@ const localeLink = useDuxtLink();
           :to="localeLink(entry.to) ?? entry.to"
           class="flex flex-wrap items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/50"
         >
-          <DuxtOpenApiMethod
-            :method="entry.method"
-            class="w-16 justify-center py-0.5"
-          />
+          <DuxtOpenApiMethod :method="entry.method" class="w-16" />
 
           <code class="font-mono text-sm break-all">{{ entry.path }}</code>
 

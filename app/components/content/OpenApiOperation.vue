@@ -40,7 +40,7 @@ defineProps<{
   <div class="grid gap-8 xl:grid-cols-[minmax(0,1fr)_23rem]">
     <div class="min-w-0">
       <div class="not-typeset flex flex-wrap items-center gap-2">
-        <DuxtOpenApiMethod :method="operation.method" class="px-2 py-1" />
+        <DuxtOpenApiMethod :method="operation.method" class="h-6 px-2" />
 
         <code class="font-mono text-sm break-all">{{ operation.path }}</code>
 

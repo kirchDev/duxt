@@ -34,9 +34,16 @@ const tone = computed(
 </script>
 
 <template>
+  <!-- A FIXED HEIGHT and `leading-none`, rather than vertical padding around a
+       line box. `items-center` centres the chip in its row correctly either
+       way, but the glyphs inside it were not centred in the chip: an uppercase
+       monospace face leaves more room under the caps than over them, so the
+       word sat visibly high. With no leading of its own the text box is the
+       glyphs, and centring it is exact. Callers set width and horizontal
+       padding; the height is the component's. -->
   <span
-    class="inline-flex shrink-0 items-center rounded font-mono text-[0.6875rem] font-semibold tracking-wide uppercase ring-1 ring-inset"
-    :class="[tone, props.class ?? 'px-1.5 py-0.5']"
+    class="inline-flex h-5 shrink-0 items-center justify-center rounded px-1.5 font-mono text-[0.6875rem] leading-none font-semibold tracking-wide uppercase ring-1 ring-inset"
+    :class="[tone, props.class]"
   >
     {{ method }}
   </span>
