@@ -21,3 +21,4 @@ anterior, nunca como una edición de este.
 | [ADR-0006](/adr/0006-rebuild-on-a-schedule-rather-than-refresh-at-runtime) | Recompilar según un calendario en vez de refrescar en tiempo de ejecución | accepted | 2026-09-06 |
 | [ADR-0007](/adr/0007-serve-translations-as-collections-of-their-own) | Servir las traducciones como colecciones propias | accepted | 2026-09-06 |
 | [ADR-0008](/adr/0008-build-the-theme-on-owned-shadcn-vue-components) | Construir el tema sobre componentes shadcn-vue propios | accepted | 2026-09-08 |
+| [ADR-0009](/adr/0009-take-the-seo-stack-from-the-nuxt-seo-bundle) | Tomar la base de SEO del paquete Nuxt SEO | accepted | 2026-09-08 |

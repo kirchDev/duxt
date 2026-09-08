@@ -21,3 +21,4 @@ ablöst, nie als Änderung daran.
 | [ADR-0006](/adr/0006-rebuild-on-a-schedule-rather-than-refresh-at-runtime) | Nach Zeitplan neu bauen statt zur Laufzeit aktualisieren | accepted | 2026-09-06 |
 | [ADR-0007](/adr/0007-serve-translations-as-collections-of-their-own) | Übersetzungen als eigene Collections ausliefern | accepted | 2026-09-06 |
 | [ADR-0008](/adr/0008-build-the-theme-on-owned-shadcn-vue-components) | Das Theme auf eigenen shadcn-vue-Komponenten bauen | accepted | 2026-09-08 |
+| [ADR-0009](/adr/0009-take-the-seo-stack-from-the-nuxt-seo-bundle) | Den SEO-Unterbau aus dem Nuxt-SEO-Bündel nehmen | accepted | 2026-09-08 |

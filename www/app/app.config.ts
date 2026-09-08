@@ -244,7 +244,14 @@ export default defineAppConfig({
           'pt-PT': 'Decisões de arquitetura'
         },
         to: '/adr',
-        icon: 'lucide:gavel'
+        icon: 'lucide:gavel',
+        // Also on every record inside. An ADR's frontmatter is fixed at
+        // `title`, `description`, `status` and `date`, so the records carry no
+        // icon of their own and the log rendered as eight bare rows beside
+        // sections that all have a column of them. One symbol for a set of like
+        // records is the honest answer anyway — eight different ones would
+        // distinguish nothing.
+        pageIcon: 'lucide:gavel'
       }
     ],
 
