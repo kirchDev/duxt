@@ -1,6 +1,9 @@
 <div align="center">
 
-# 📚 duxt
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/assets/wordmark-dark.svg">
+  <img src=".github/assets/wordmark-light.svg" alt="duxt" width="200" />
+</picture>
 
 **Versioned, multi-repo documentation for Nuxt — one line to extend, no collection boilerplate**
 
@@ -117,6 +120,18 @@ pnpm check     # lint + format + typecheck + tests + policy parity + build + a11
 ```
 
 The repo root **is** the layer — `nuxt.config.ts`, `content.config.ts`, `app/`, `modules/` and `server/` live there, and `package.json` points at them. `www/` beside it is the site that consumes the layer, and the development target: it deliberately carries the awkward cases — two repositories, four refs, one version of each lifecycle. It is not a template; the exemplary starting point lives in [`kirchDev/duxt-starter`](https://github.com/kirchDev/duxt-starter).
+
+## 🎨 Assets & branding
+
+The mark is the package name with its first letter bracketed — `[d]uxt` — because that is how the package is written where it is used: `extends: ['@kirchdev/duxt']`, an array with one entry. It is set in [IBM Plex Mono](https://github.com/IBM/plex) SemiBold and converted to outlines, so no asset depends on the font being installed anywhere.
+
+> [!NOTE]
+> The wordmark is **AI-assisted placeholder artwork** — a stand-in to be replaced at some point, with no fixed timeline. No image generator was involved: it is typeset, not drawn.
+
+Every asset, the colour values, why the icon's brackets are redrawn and the font licensing are in [Conventions → Branding](https://duxt.app/conventions/branding).
+
+> [!IMPORTANT]
+> The layer ships **no** branding. `duxt.logo` is unset by default, so `DuxtBrand` falls back to the consumer's own `duxt.title` beside a generic icon: a site extending duxt shows its own name in the header and footer and its own icon in the tab, never this one. These assets belong to this repository and to `www/`, not to the published package.
 
 ## 🤝 Contributing
 

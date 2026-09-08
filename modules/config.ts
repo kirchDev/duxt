@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type { Nuxt } from '@nuxt/schema';
+import { enableWriteAheadLog } from '../content-cache';
 import { readDuxtBuildConfig } from '../duxt-app-config';
 import { duxtSourceManifest } from '../sources-resolve';
 import { resolveLatestRefs } from '../sources-git';
@@ -25,6 +26,12 @@ import { resolveLatestRefs } from '../sources-git';
  * stays i18n's own key.
  */
 export default function duxtConfig(_options: unknown, nuxt: Nuxt) {
+  // FIRST, and before anything else touches the file: this is the earliest of
+  // duxt's modules, so it is the only one that runs while Content's cache
+  // database is still closed — and the journal mode can only be changed then.
+  // See `enableWriteAheadLog`.
+  enableWriteAheadLog(nuxt);
+
   const layerDir = fileURLToPath(new URL('..', import.meta.url));
 
   const dirs = [
@@ -54,9 +61,69 @@ export default function duxtConfig(_options: unknown, nuxt: Nuxt) {
     resolvedSources
   } as typeof nuxt.options.appConfig.duxt;
 
+  checkSourceLocales(nuxt, config, resolvedSources);
   restrictLocales(nuxt, config?.locales);
   shareSiteUrl(nuxt);
+  nameMcpServer(nuxt, config?.title);
   excludeOldVersionsFromSitemap(nuxt, resolvedSources);
+}
+
+/**
+ * The two ways a translated source can be configured into silence.
+ *
+ * NEITHER is caught by anything else. `content.config.ts` has no access to the
+ * Nuxt config — it is loaded by c12 in Content's own pass — so it resolves the
+ * default locale from `sourceOptions.defaultLocale` alone, and if that
+ * disagrees with `i18n.defaultLocale` the collections are named for one
+ * language while the theme queries for another. The result is not an error but
+ * an empty page, which is the failure mode this layer exists to stop.
+ *
+ * So the value is NOT injected from i18n here — injecting it would fix the
+ * manifest and leave `content.config.ts` computing the other answer, which is
+ * the same bug one layer deeper. It is checked instead.
+ */
+function checkSourceLocales(
+  nuxt: Nuxt,
+  config:
+    | { locales?: string[]; sourceOptions?: { defaultLocale?: string } }
+    | undefined,
+  resolved: ReturnType<typeof duxtSourceManifest>
+) {
+  const translated = resolved.filter((source) => source.locale);
+  if (!translated.length) return;
+
+  const defaultLocale = nuxt.options.i18n?.defaultLocale;
+  const assumed = resolved.find((source) => source.isDefaultLocale)?.locale;
+
+  if (defaultLocale && assumed && assumed !== defaultLocale) {
+    throw new Error(
+      `duxt: sources treat "${assumed}" as the untranslated original, but ` +
+        `i18n.defaultLocale is "${defaultLocale}". Content declares the ` +
+        'collections without access to the Nuxt config, so the two must agree: ' +
+        `set duxt.sourceOptions.defaultLocale to "${defaultLocale}".`
+    );
+  }
+
+  // A translation nobody can reach is a folder parsed, stored and served to no
+  // one — worth a message rather than a silently larger build.
+  const served = config?.locales;
+  if (!served?.length) return;
+
+  const stranded = [
+    ...new Set(
+      translated
+        .filter((source) => source.locale && !served.includes(source.locale))
+        .map((source) => source.locale!)
+    )
+  ];
+
+  if (stranded.length) {
+    console.warn(
+      `[duxt] sources are translated into ${stranded.join(', ')}, which ` +
+        `duxt.locales does not serve (${served.join(', ')}). Those ` +
+        'collections are built and never read.'
+    );
+  }
 }
 
 /**
@@ -106,6 +173,44 @@ function shareSiteUrl(nuxt: Nuxt) {
     ...site,
     url: baseUrl
   };
+}
+
+/**
+ * The MCP server's name, from the site's own title.
+ *
+ * `mcp.name` is a nuxt.config key, not an app.config one, so it is the single
+ * duxt-facing option a consumer cannot set beside the others. Left as a literal
+ * it published duxt's own name from every downstream site. Derived here
+ * instead: the title a consumer already writes in `app.config.ts` names the
+ * server too, and anyone wanting a different one still writes `mcp: { name }`
+ * in `nuxt.config.ts`, which defu keeps ahead of this.
+ *
+ * A record is resolved against `i18n.defaultLocale`, because the server has one
+ * name and no request to read a language from. A consumer who wrote an i18n KEY
+ * as their title gets that key — the build has no translator, which is why a
+ * literal or a record is the documented form.
+ *
+ * The module's own default is the empty string, so this must always answer.
+ */
+function nameMcpServer(
+  nuxt: Nuxt,
+  title: string | Record<string, string> | undefined
+) {
+  const options = nuxt.options as {
+    mcp?: { name?: string };
+    i18n?: { defaultLocale?: string };
+  };
+  if (!options.mcp || options.mcp.name) return;
+
+  const locale = options.i18n?.defaultLocale;
+  const name =
+    typeof title === 'string'
+      ? title
+      : title
+        ? ((locale && title[locale]) ?? Object.values(title)[0])
+        : undefined;
+
+  options.mcp.name = name ? `${name} documentation` : 'Documentation';
 }
 
 /**
@@ -194,6 +299,29 @@ function restrictLocales(nuxt: Nuxt, wanted: string[] | undefined) {
       `duxt: i18n.defaultLocale is "${defaultLocale}", which app.config ` +
         `duxt.locales does not list (${wanted.join(', ')}). ` +
         'Set i18n.defaultLocale to one of them.'
+    );
+  }
+
+  /**
+   * The same question, asked of the OTHER fallback — the one that decides where
+   * a visitor landing on `/` is sent.
+   *
+   * `detectBrowserLanguage.fallbackLocale` is nested, and defu merges nested
+   * objects key by key: a consumer setting `i18n: { defaultLocale: 'de-DE' }`
+   * does NOT displace the layer's `en-GB` here. Narrow `duxt.locales` to
+   * exclude it and the site stops serving that language while still redirecting
+   * root visitors to it — nothing throws, and the page is empty. Exactly the
+   * class of silent failure the check above exists to stop, one key over.
+   */
+  const browserFallback = (
+    nuxt.options.i18n as { detectBrowserLanguage?: { fallbackLocale?: string } }
+  )?.detectBrowserLanguage?.fallbackLocale;
+
+  if (browserFallback && !wanted.includes(browserFallback)) {
+    throw new Error(
+      `duxt: i18n.detectBrowserLanguage.fallbackLocale is "${browserFallback}", ` +
+        `which app.config duxt.locales does not list (${wanted.join(', ')}). ` +
+        'Set it to one of them, or widen duxt.locales.'
     );
   }
 

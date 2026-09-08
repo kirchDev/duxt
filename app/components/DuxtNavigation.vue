@@ -3,12 +3,26 @@ import type { ContentNavigationItem } from '@nuxt/content';
 
 // The docs tree. Groups collapse, and the group holding the current page opens
 // on every navigation — not only on first render.
-const props = defineProps<{ items: ContentNavigationItem[] }>();
+//
+// `label` decides whether this instance is a LANDMARK. Only the outermost one
+// is: the component recurses into itself for nested folders, and the mobile
+// sheet renders a second copy of the whole tree, so a `<nav>` on every instance
+// put several landmarks with one name on the page — an axe `landmark-unique`
+// failure, and a screen-reader landmark list with the same entry three times.
+// Without a label it renders the list alone, which is what a nested group and a
+// sheet that already names itself both want.
+const props = defineProps<{
+  items: ContentNavigationItem[];
+  label?: string;
+}>();
 
 const path = useDuxtPath();
 
+// A page's own icon, else the section's `pageIcon`, else the site's — see
+// `resolvePageIcon`.
+const duxt = useDuxtConfig();
 const iconOf = (item: ContentNavigationItem) =>
-  typeof item.icon === 'string' ? item.icon : undefined;
+  resolvePageIcon(item, duxt.sections, duxt.pageIcon);
 
 const contains = (item: ContentNavigationItem): boolean =>
   path.value === item.path ||
@@ -37,7 +51,11 @@ function setOpen(item: ContentNavigationItem, value: boolean) {
 </script>
 
 <template>
-  <nav class="text-[13px]" :aria-label="$t('duxt.nav.docs')">
+  <component
+    :is="label ? 'nav' : 'div'"
+    class="text-[13px]"
+    :aria-label="label || undefined"
+  >
     <ul class="space-y-0.5">
       <li v-for="item in items" :key="item.path">
         <Collapsible
@@ -72,5 +90,5 @@ function setOpen(item: ContentNavigationItem, value: boolean) {
         <DuxtNavigationLink v-else :item="item" />
       </li>
     </ul>
-  </nav>
+  </component>
 </template>

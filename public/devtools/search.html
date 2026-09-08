@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>duxt — Search</title><style>
+  :root {
+    color-scheme: light dark;
+    --bg: #fff;
+    --fg: #12141a;
+    --muted: #6b7280;
+    --faint: #9ca3af;
+    --line: #e8e8ea;
+    --raised: #f6f6f7;
+    --accent: #00a86b;
+    --accent-soft: #e6f7f0;
+    --warn: #b45309;
+    --error: #b91c1c;
+    --ok: #15803d;
+    --radius: 7px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) { 
+      --bg: #0f1115;
+      --fg: #e8e8ea;
+      --muted: #9099a8;
+      --faint: #5b6472;
+      --line: #23262d;
+      --raised: #171a20;
+      --accent: #00dc82;
+      --accent-soft: #10291f;
+      --warn: #f59e0b;
+      --error: #f87171;
+      --ok: #4ade80;
+ }
+  }
+  :root[data-theme='dark'] { 
+      --bg: #0f1115;
+      --fg: #e8e8ea;
+      --muted: #9099a8;
+      --faint: #5b6472;
+      --line: #23262d;
+      --raised: #171a20;
+      --accent: #00dc82;
+      --accent-soft: #10291f;
+      --warn: #f59e0b;
+      --error: #f87171;
+      --ok: #4ade80;
+ }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 0 40px;
+    font: 13px/1.55 ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+    color: var(--fg);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+  header.bar {
+    position: sticky; top: 0; z-index: 2;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--line);
+    padding: 10px 16px 0;
+  }
+  nav { display: flex; gap: 1px; flex-wrap: wrap; }
+  nav a {
+    padding: 5px 10px; border-radius: var(--radius) var(--radius) 0 0;
+    text-decoration: none; color: var(--muted); font-weight: 500;
+    border-bottom: 2px solid transparent; line-height: 1.4;
+  }
+  nav a:hover { color: var(--fg); background: var(--raised); }
+  nav a[aria-current] { color: var(--fg); border-bottom-color: var(--accent); font-weight: 600; }
+
+  main { padding: 18px 16px 0; max-width: 1400px; }
+  h1 { margin: 0 0 3px; font-size: 15px; font-weight: 650; letter-spacing: -0.01em; }
+  h2 {
+    margin: 26px 0 8px; font-size: 12px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .05em; color: var(--muted);
+  }
+  p.hint { margin: 0 0 16px; color: var(--muted); max-width: 78ch; }
+
+  .stats { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .stat {
+    display: flex; flex-direction: column; gap: 1px;
+    padding: 7px 12px; min-width: 78px;
+    border: 1px solid var(--line); border-radius: var(--radius); background: var(--raised);
+  }
+  .stat b { font-size: 16px; font-weight: 650; font-variant-numeric: tabular-nums; line-height: 1.2; }
+  .stat span { font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  .stat.ok b { color: var(--ok); }
+  .stat.warn b { color: var(--warn); }
+  .stat.error b { color: var(--error); }
+
+  .scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 10px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 7px 11px; text-align: left; vertical-align: top; }
+  /* Offset zero, not the height of the tab bar. .scroll sets overflow-x, which
+     computes overflow-y to auto as well, so the box — not the page — is what a
+     sticky heading offsets against. At 41px the heading sat 41px down from the
+     box's top edge, leaving a blank band above it AND covering the first row:
+     the Redirects panel counted eight rules and showed seven. */
+  thead th {
+    position: sticky; top: 0; z-index: 1;
+    background: var(--raised);
+    font-weight: 600; color: var(--muted);
+    font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em;
+    white-space: nowrap; border-bottom: 1px solid var(--line);
+  }
+  tbody tr { border-top: 1px solid var(--line); }
+  tbody tr:first-child { border-top: 0; }
+  tbody tr:hover { background: var(--raised); }
+  td.empty { color: var(--muted); padding: 16px 11px; text-align: center; }
+
+  code {
+    font: 11.5px/1.5 ui-monospace, 'SF Mono', Menlo, monospace;
+    background: var(--raised); border: 1px solid var(--line);
+    padding: 0 4px; border-radius: 4px; white-space: nowrap;
+  }
+  a.file { text-decoration: none; border-bottom: 1px dashed var(--faint); }
+  a.file:hover { border-bottom-style: solid; color: var(--accent); }
+  .dim { color: var(--faint); }
+  .trunc {
+    display: inline-block; max-width: 34ch; overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom;
+  }
+  td.wide { min-width: 32ch; }
+
+  .tag {
+    display: inline-block; border-radius: 999px; padding: 1px 7px;
+    font-size: 10px; font-weight: 600; white-space: nowrap;
+    background: var(--accent-soft); color: var(--accent);
+    border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+  .tag.warn { background: transparent; color: var(--warn); border-color: color-mix(in srgb, var(--warn) 40%, transparent); }
+  .tag.error { background: transparent; color: var(--error); border-color: color-mix(in srgb, var(--error) 40%, transparent); }
+  .tag.ok { background: transparent; color: var(--ok); border-color: color-mix(in srgb, var(--ok) 40%, transparent); }
+  .tag.muted { background: var(--raised); color: var(--muted); border-color: var(--line); }
+
+  form { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
+  input[type=text], input[type=search] {
+    flex: 1; min-width: 240px; padding: 6px 11px;
+    border: 1px solid var(--line); border-radius: var(--radius);
+    font: inherit; background: var(--bg); color: inherit;
+  }
+  .filterbar { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .filterbar .count {
+    color: var(--muted); font-size: 11.5px;
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  input.filter {
+    flex: 0 1 340px; min-width: 0; margin: 0; padding-left: 31px;
+    background: var(--bg) no-repeat 10px 50% / 14px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239099a8' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.6-3.6'/%3E%3C/svg%3E");
+  }
+  input.filter:focus { border-color: var(--accent); }
+  input.filter::-webkit-search-cancel-button { cursor: pointer; }
+  input::placeholder { color: var(--faint); }
+  button {
+    padding: 6px 14px; border: 1px solid var(--line); border-radius: var(--radius);
+    background: var(--raised); font: inherit; font-weight: 500; cursor: pointer; color: inherit;
+  }
+  button:hover { border-color: var(--accent); color: var(--accent); }
+
+  ol.steps { margin: 0 0 18px; padding: 0; list-style: none; counter-reset: step; }
+  ol.steps li {
+    position: relative; counter-increment: step;
+    padding: 8px 0 8px 30px; border-left: 2px solid var(--line); margin-left: 9px;
+  }
+  ol.steps li::before {
+    content: counter(step);
+    position: absolute; left: -10px; top: 8px;
+    width: 18px; height: 18px; border-radius: 999px;
+    background: var(--raised); border: 1px solid var(--line);
+    font-size: 10px; font-weight: 600; color: var(--muted);
+    display: flex; align-items: center; justify-content: center;
+  }
+  ol.steps li:last-child { border-left-color: transparent; }
+
+  .note {
+    padding: 10px 13px; border-radius: var(--radius);
+    background: var(--raised); border: 1px solid var(--line);
+    color: var(--muted); margin-bottom: 16px; max-width: 90ch;
+  }
+  .note code { background: var(--bg); }
+
+  details { margin-bottom: 10px; }
+  details > summary {
+    cursor: pointer; padding: 7px 11px; border-radius: var(--radius);
+    background: var(--raised); border: 1px solid var(--line);
+    font-weight: 600; list-style-position: inside;
+  }
+  details > summary:hover { border-color: var(--accent); }
+  details[open] > summary { border-radius: var(--radius) var(--radius) 0 0; margin-bottom: -1px; }
+  details[open] > summary + .scroll { border-radius: 0 0 var(--radius) var(--radius); }
+  details[open] > summary + .filterbar {
+    margin: 0; padding: 8px 11px;
+    background: var(--raised); border: 1px solid var(--line); border-top: 0;
+  }
+  details[open] > .filterbar + .scroll {
+    border-radius: 0 0 var(--radius) var(--radius); margin-top: -1px;
+  }
+
+  /* A disclosure inside a table cell is not the panel-sized one above: no bar,
+     no border, no weight — just a triangle in front of the preview. */
+  details.json { margin: 0; }
+  details.json > summary {
+    padding: 0; background: none; border: 0; border-radius: 0; font-weight: inherit;
+    list-style-position: outside; margin-left: 12px;
+  }
+  details.json > summary::marker { color: var(--faint); }
+  details.json > summary:hover { border: 0; }
+  details.json[open] > summary { margin-bottom: 6px; border-radius: 0; }
+  details.json[open] > summary .peek { display: none; }
+  pre.json {
+    margin: 0 0 2px; padding: 9px 11px; max-height: 320px; overflow: auto;
+    background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius);
+    font: 11.5px/1.6 ui-monospace, 'SF Mono', Menlo, monospace;
+    white-space: pre; tab-size: 2;
+  }
+  .j-key { color: var(--accent); }
+  .j-num { color: var(--warn); }
+  .j-word { color: var(--muted); font-style: italic; }
+
+  .matrix th:first-child, .matrix td:first-child {
+    position: sticky; left: 0; background: var(--bg);
+    border-right: 1px solid var(--line);
+  }
+  .matrix thead th:first-child { background: var(--raised); }
+  .matrix tbody tr:hover td:first-child { background: var(--raised); }
+  .matrix td.mark { text-align: center; }
+  .matrix td.yes { color: var(--ok); font-weight: 700; }
+  .matrix td.no { color: var(--faint); }
+</style></head><body>
+  
+  <main>
+    <h1>Search</h1>
+    <p class="hint">Ask the search index what it actually holds.</p>
+    <form method="get">
+    <input type="search" name="q" value="install" placeholder="A word as a reader would type it" autofocus>
+    <button type="submit">Search</button>
+  </form><div class="stats"><div class="stat "><b>5</b><span>sections indexed</span></div><div class="stat "><b>2</b><span>matching</span></div></div><div class="note">One row per heading — which is what the dialog groups back into pages. The text column is exactly what FTS5 matches against.</div><div class="scroll"><table>
+    <thead><tr><th scope="col">Collection</th><th scope="col">Id</th><th scope="col">Heading</th><th scope="col">Under</th><th scope="col">Indexed text</th></tr></thead>
+    <tbody><tr>
+      <td><code>docs_sdk</code></td>
+      <td><code class="trunc" title="docs_sdk/1.getting-started/1.install.md#install">docs_sdk/1.getting-started/1.install.md#install</code></td>
+      <td>Install</td>
+      <td>Getting started</td>
+      <td class="wide">Add the package with your package manager of choice. The SDK ships types, so nothing else is needed to get autocompletion in an editor.</td>
+    </tr><tr>
+      <td><code>docs_de_sdk</code></td>
+      <td><code class="trunc" title="docs_de_sdk/de/1.getting-started/1.install.md#installation">docs_de_sdk/de/1.getting-started/1.install.md#installation</code></td>
+      <td>Installation</td>
+      <td>Erste Schritte</td>
+      <td class="wide">Das Paket wird mit dem Paketmanager der Wahl hinzugefügt. Typen liegen bei, mehr braucht ein Editor nicht.</td>
+    </tr></tbody>
+  </table></div>
+  </main>
+  <script>
+  document.addEventListener('input', (event) => {
+    const input = event.target;
+    if (!input.matches('[data-filter]')) return;
+
+    const term = input.value.trim().toLowerCase();
+    const scope = input.closest('details') ?? document;
+    const rows = scope.querySelectorAll('tbody tr');
+    let shown = 0;
+
+    for (const row of rows) {
+      row.hidden = Boolean(term) && !row.textContent.toLowerCase().includes(term);
+      if (!row.hidden) shown += 1;
+    }
+
+    const count = input.parentElement.querySelector('[data-filter-count]');
+    if (count) {
+      count.textContent = term
+        ? shown ? shown + ' of ' + rows.length : 'no matches'
+        : '';
+    }
+  });
+
+  // EVERY link and button, with no exception for the tab row — a preview has
+  // no tab row. Embedded in a documentation page, a reader who clicked one
+  // would land on another panel inside the frame while the prose around it went
+  // on explaining this one.
+  document.addEventListener('click', (event) => {
+    if (event.target.closest('a, button')) event.preventDefault();
+  });
+  document.addEventListener('submit', (event) => event.preventDefault());
+
+  // The page that framed this one owns the theme and the height: it knows
+  // which mode the reader picked, and only this document knows how tall it
+  // turned out. Two messages, one each way.
+  const theme = new URLSearchParams(location.search).get('theme');
+  if (theme) document.documentElement.dataset.theme = theme;
+
+  // Only from the frame that embedded this one, and only from its own origin.
+  // Both halves are needed: the origin alone would still accept a message from
+  // a sibling frame on the same site, and `event.source` alone would accept one
+  // from a parent on another origin. This document is served from `public/`, so
+  // the page framing it is always same-origin — a message from anywhere else is
+  // not a theme change, it is somebody else talking.
+  addEventListener('message', (event) => {
+    if (event.origin !== location.origin || event.source !== parent) return;
+
+    if (event.data && typeof event.data.duxtTheme === 'string') {
+      document.documentElement.dataset.theme = event.data.duxtTheme;
+    }
+  });
+
+  // Addressed rather than broadcast, for the same reason. `'*'` hands the
+  // height to whatever ends up framing this page, which on a consumer's site is
+  // not necessarily the page that asked for it.
+  const measure = () => parent.postMessage(
+    { duxtHeight: document.documentElement.scrollHeight },
+    location.origin
+  );
+
+  addEventListener('load', measure);
+  addEventListener('resize', measure);
+  document.addEventListener('toggle', measure, true);
+  document.addEventListener('input', () => setTimeout(measure, 0));
+</script>
+</body></html>

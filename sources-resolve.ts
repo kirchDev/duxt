@@ -15,6 +15,20 @@ export interface DuxtSource {
    * build with "Could not find refs/heads/…".
    */
   refs?: DuxtRef[];
+  /**
+   * Languages this source is available in, beyond the one written in `path`.
+   *
+   * A string is the folder inside `path`: `'de-DE'` reads `docs/de-DE/`. An
+   * object overrides where that language lives — its own folder, its own
+   * repository, its own ref — which is what lets a translation be maintained by
+   * other people, at another pace, in a repository of their own.
+   *
+   * The DEFAULT locale is the exception: it is the tree in `path` itself, with
+   * no folder, so listing it changes nothing. That is what keeps this key
+   * additive — a site that adds `locales` does not move the pages it already
+   * serves. Which one is the default comes from `defaultLocale`.
+   */
+  locales?: DuxtSourceLocale[];
   /** Shown in the version switcher and used in the URL; defaults to the ref. */
   label?: string;
   /** Segment used in the URL for this repository; defaults to the repo name. */
@@ -82,7 +96,43 @@ interface DuxtRefOptions {
   label?: string;
   /** This one version's lifecycle, overriding the source's. */
   status?: DuxtSourceStatus;
+  /**
+   * The languages THIS version is available in, overriding the source's.
+   *
+   * Resolved exactly as `status` is (`ref.locales ?? source.locales`), because
+   * a translation is usually kept for the current version and not for the two
+   * behind it — and a version whose translation nobody maintains is better
+   * declared untranslated than served stale.
+   */
+  locales?: DuxtSourceLocale[];
 }
+
+/**
+ * One language of a source: the folder it lives in, or where else it lives.
+ *
+ * The string form is the whole of it for a repository that translates in
+ * place. The object form is what the big projects do instead — React keeps
+ * `de.react.dev` as its own repository, Vue an entire `vuejs-translations`
+ * org — because translators work at their own pace under their own review. A
+ * layer that already sources across repositories and refs can offer that as a
+ * source entry rather than as a second website.
+ */
+export type DuxtSourceLocale =
+  | string
+  | {
+      /** The locale code, matching one the site serves. */
+      locale: string;
+      /** Folder holding this language, relative to the repository root. */
+      path?: string;
+      /** A repository of its own — `owner/name` or a git URL. */
+      repo?: string;
+      /** A ref of its own, when the translation is versioned separately. */
+      ref?: DuxtRef;
+    };
+
+/** The code of a locale entry, whichever form it takes. */
+export const localeCode = (locale: DuxtSourceLocale): string =>
+  typeof locale === 'string' ? locale : locale.locale;
 
 /**
  * The tag shorthand: the newest one, resolved at build time.
@@ -113,6 +163,16 @@ export interface DuxtSourcesOptions {
   showVersion?: boolean;
   /** The ref served without a version prefix, by name. Defaults to the first. */
   defaultRef?: string;
+  /**
+   * The locale whose pages are the tree in `path` itself, with no folder.
+   *
+   * Defaults to the first entry of the first `locales` list, so a site that
+   * never sets it still resolves the same way on both sides. It has to be
+   * read from the config rather than from `i18n.defaultLocale`: the
+   * collections are declared in `content.config.ts`, which has no access to
+   * the Nuxt config, and the two halves must land on identical names.
+   */
+  defaultLocale?: string;
 }
 
 /** One resolved source: which collection serves which URL prefix. */
@@ -141,6 +201,15 @@ export interface DuxtResolvedSource {
   refKind?: 'branch' | 'tag';
   /** Folder inside the repository holding the Markdown. */
   path: string;
+  /**
+   * The locale this collection serves, when the site has translations.
+   *
+   * Absent on a site with none — which keeps every existing collection name,
+   * prefix and query exactly as it was.
+   */
+  locale?: string;
+  /** True for the locale served from `path` itself, without a folder. */
+  isDefaultLocale: boolean;
   /** Where this version sits in its life; `current` unless stated. */
   status: DuxtSourceStatus;
   /** Whether the build may read this source's git history. */
@@ -178,7 +247,46 @@ export const slugify = (value: string) => {
  * missing from the site, and nothing connecting the two. So the name is
  * derived separately from the prefix: dashes and dots become underscores.
  */
-const identifier = (value: string) =>
+/** The name a partial in the default language resolves against. */
+export const PARTIALS_COLLECTION = 'duxt_partials';
+
+/**
+ * The partials collection one language reads.
+ *
+ * Named exactly as the page collections are: the default language keeps the
+ * bare name a single-language site already had, and every other language
+ * appends its code. So a site that declares no `locales` gets the one
+ * collection it always got, under the name it always had.
+ *
+ * Takes the RESOLVED SOURCE rather than a code, because "the default language"
+ * is a property of the manifest and not of the string `en`: a site whose
+ * default is `de` still calls that collection `duxt_partials`. A bare string is
+ * accepted for the build's own grouping, where the default is already
+ * `undefined`.
+ */
+export function partialsCollection(
+  locale?: Pick<DuxtResolvedSource, 'locale' | 'isDefaultLocale'> | string
+): string {
+  const code =
+    typeof locale === 'string'
+      ? locale
+      : locale && !locale.isDefaultLocale
+        ? locale.locale
+        : undefined;
+
+  return code
+    ? `${PARTIALS_COLLECTION}_${identifier(code)}`
+    : PARTIALS_COLLECTION;
+}
+
+/**
+ * A collection name Content and TypeScript both accept.
+ *
+ * Exported because the partials collections are named from the same pieces the
+ * page collections are, and a second spelling of this rule is a name that
+ * drifts the first time a locale carries a character neither expected.
+ */
+export const identifier = (value: string) =>
   value.replace(/[^a-z0-9]+/gi, '_').replace(/^_|_$/g, '');
 
 export const repoSlug = (source: DuxtSource) =>
@@ -211,6 +319,76 @@ export const repoUrl = (repo: string) => {
 };
 
 /**
+ * The locales one source-and-ref combination expands into.
+ *
+ * `[undefined]` — one entry, no locale — is the shape every site had before
+ * this key existed, and the one every site without it still has. That is what
+ * keeps the whole feature additive: no `locales`, no second collection, no
+ * change to a single name.
+ */
+function localesOf(
+  source: DuxtSource,
+  ref: DuxtRef | undefined
+): (DuxtSourceLocale | undefined)[] {
+  const declared =
+    (ref && typeof ref === 'object' ? ref.locales : undefined) ??
+    source.locales;
+
+  return declared?.length ? declared : [undefined];
+}
+
+/** The first locale any source declares — the default when none is configured. */
+function firstLocale(sources: DuxtSource[]): string | undefined {
+  for (const source of sources) {
+    const declared =
+      source.locales ??
+      source.refs?.flatMap((ref) =>
+        typeof ref === 'object' && ref.locales ? ref.locales : []
+      );
+
+    if (declared?.length) return localeCode(declared[0]!);
+  }
+
+  return undefined;
+}
+
+/**
+ * Where one language of a source actually lives.
+ *
+ * The default locale is the tree in `path` itself; every other language is a
+ * folder inside it unless the entry says otherwise. An object may move the
+ * language wholesale — its own folder, repository and ref — which is the case
+ * a translation maintained by other people needs.
+ */
+function localeEntry(
+  source: DuxtSource,
+  locale: DuxtSourceLocale | undefined,
+  defaultLocale: string | undefined
+): { path: string; repo?: string; ref?: DuxtRef } {
+  const base = source.path ?? 'docs';
+  if (!locale) return { path: base, repo: source.repo };
+
+  const code = localeCode(locale);
+  const override = typeof locale === 'string' ? undefined : locale;
+
+  if (code === defaultLocale) {
+    return {
+      path: override?.path ?? base,
+      repo: override?.repo ?? source.repo,
+      ref: override?.ref
+    };
+  }
+
+  return {
+    // A folder INSIDE the source's own path, so one repository holds its
+    // translations beside the original — and an override escapes that.
+    path: override?.path ?? `${base}/${code}`,
+    repo: override?.repo ?? source.repo,
+    ref: override?.ref
+  };
+}
+
+/**
  * Resolve the list once: names, prefixes and labels.
  *
  * Both halves of the layer read this — `duxtSources` to declare the
@@ -224,16 +402,47 @@ export const repoUrl = (repo: string) => {
  * or versions exist at all — which is also what keeps the scheme routable,
  * since the shape is fixed before the first request.
  */
+/** One expanded combination: a source, at a ref, in a language. */
+export interface DuxtExpandedSource {
+  source: DuxtSource;
+  ref?: DuxtRef;
+  locale?: DuxtSourceLocale;
+  /** Where this combination's Markdown actually lives. */
+  effective: { path: string; repo?: string; ref?: DuxtRef };
+}
+
+/**
+ * The one expansion both halves of the layer read.
+ *
+ * `content.config.ts` declares the collections and the duxt module resolves
+ * the manifest, and the two MUST agree entry for entry — the manifest tells
+ * the theme which collection serves a route, and a name computed twice is a
+ * name that drifts once. Exported for exactly that reason.
+ */
+export function expandSources(
+  sources: DuxtSource[],
+  options: DuxtSourcesOptions = {}
+): DuxtExpandedSource[] {
+  const defaultLocale = options.defaultLocale ?? firstLocale(sources);
+
+  return sources.flatMap((source) =>
+    (source.refs?.length ? source.refs : [undefined]).flatMap((ref) =>
+      localesOf(source, ref).map((locale) => ({
+        source,
+        ref,
+        locale,
+        effective: localeEntry(source, locale, defaultLocale)
+      }))
+    )
+  );
+}
+
 export function resolveSources(
   sources: DuxtSource[],
   options: DuxtSourcesOptions = {}
 ): DuxtResolvedSource[] {
-  const expanded = sources.flatMap((source) =>
-    (source.refs?.length ? source.refs : [undefined]).map((ref) => ({
-      source,
-      ref
-    }))
-  );
+  const defaultLocale = options.defaultLocale ?? firstLocale(sources);
+  const expanded = expandSources(sources, options);
 
   const repos = new Set(sources.map((source) => source.repo ?? ''));
   const refs = new Set(
@@ -250,10 +459,13 @@ export function resolveSources(
   const resolved: DuxtResolvedSource[] = [];
   const taken = new Map<string, string>();
 
-  for (const { source, ref } of expanded) {
-    const name = ref ? refName(ref) : undefined;
+  for (const { source, ref, locale, effective: entry } of expanded) {
+    const effectiveRef = entry.ref ?? ref;
+    const name = effectiveRef ? refName(effectiveRef) : undefined;
     const label =
       (ref && typeof ref === 'object' ? ref.label : undefined) ?? source.label;
+    const code = locale ? localeCode(locale) : undefined;
+    const isDefaultLocale = !code || code === defaultLocale;
     const version = name ? slugify(label ?? name) : undefined;
     const isDefault = !name || name === defaultRef;
 
@@ -261,11 +473,22 @@ export function resolveSources(
     if (withRepo) segments.push(repoSlug(source));
     if (withVersion && version && !isDefault) segments.push(version);
 
+    // THE LOCALE IS NOT PART OF THE PREFIX. @nuxtjs/i18n already puts it in
+    // front of the path, so a collection carrying it too would spell it twice
+    // in one URL. Original and translation therefore live under IDENTICAL
+    // content paths in different collections — which leaves every path
+    // comparison in the theme untouched and makes the fallback a second query
+    // for the same path.
     const prefix = segments.length ? `/${segments.join('/')}` : '';
     const collection =
-      ['docs', ...segments].map(identifier).join('_') || 'docs';
+      ['docs', ...(isDefaultLocale ? [] : [code!]), ...segments]
+        .map(identifier)
+        .join('_') || 'docs';
 
-    const previous = taken.get(prefix);
+    // Claimed per locale: two languages serving one prefix is not a collision,
+    // it is the point.
+    const claim = `${code ?? ''}|${prefix}`;
+    const previous = taken.get(claim);
     if (previous) {
       // The one ambiguity the build-time decision leaves: a docs folder named
       // like a repository or a version. Rejected rather than resolved silently.
@@ -276,7 +499,7 @@ export function resolveSources(
       );
     }
     taken.set(
-      prefix,
+      claim,
       `${source.repo ?? 'this repository'}${name ? `@${name}` : ''}`
     );
 
@@ -286,26 +509,87 @@ export function resolveSources(
       repo: withRepo ? repoSlug(source) : undefined,
       version,
       isDefault,
-      repository: source.repo ?? source.origin?.repo,
-      repositoryUrl: source.repo
-        ? repoUrl(source.repo)
+      repository: entry.repo ?? source.origin?.repo,
+      repositoryUrl: entry.repo
+        ? repoUrl(entry.repo)
         : source.origin?.repo
           ? repoUrl(source.origin.repo)
           : undefined,
       ref: name ?? source.origin?.ref,
-      refKind: ref ? (refIsTag(ref) ? 'tag' : 'branch') : undefined,
-      path: source.path ?? 'docs',
+      refKind: effectiveRef
+        ? refIsTag(effectiveRef)
+          ? 'tag'
+          : 'branch'
+        : undefined,
+      path: entry.path,
+      locale: code,
+      isDefaultLocale,
       status:
         (ref && typeof ref === 'object' ? ref.status : undefined) ??
         source.status ??
         'current',
       // A local source is a full checkout already; a remote one has to be
       // unshallowed, which is why it has to be asked for.
-      history: source.repo ? (source.history ?? false) : true
+      history: entry.repo ? (source.history ?? false) : true
     });
   }
 
   return resolved;
+}
+
+/**
+ * The locales a page may be served from, best first.
+ *
+ * A translated Markdown file cannot be merged the way a locale FILE is: a page
+ * is translated whole or not at all, so this is a chain of choices rather than
+ * a deep merge. It follows the rule the layer already applies twice — the
+ * `files` arrays in `nuxt.config.ts` and `resolveDuxtText` both let the
+ * language carry the content and the region carry only its deviations:
+ *
+ *  1. the locale itself — `de-DE` reads `de-DE`;
+ *  2. its base language — `de-DE` reads a `de` tree, which is what lets one
+ *     `pt/` folder serve both `pt-PT` and `pt-BR`;
+ *  3. a sibling of the same language — `pt-BR` reads `pt-PT` before it gives
+ *     up on Portuguese and falls back to English;
+ *  4. `fallbackLocale`, the value vue-i18n already carries for missing keys,
+ *     so the interface and the pages agree on where they fall back to;
+ *  5. the default locale, which is the untranslated original.
+ *
+ * `undefined` closes every chain: it is the collection of a site that declares
+ * no locales at all, and the one a translation ultimately falls back to.
+ */
+export function localeChain(
+  locale: string | undefined,
+  available: (string | undefined)[],
+  fallbackLocale?: string | string[]
+): (string | undefined)[] {
+  const has = (code: string | undefined) => available.includes(code);
+  const chain: (string | undefined)[] = [];
+
+  const add = (code: string | undefined) => {
+    if (!chain.includes(code) && has(code)) chain.push(code);
+  };
+
+  if (locale) {
+    add(locale);
+
+    const base = locale.split('-')[0]!;
+    add(base);
+
+    // A sibling region of the same language, in the order the site declares
+    // them: `pt-BR` takes `pt-PT` over English, every time.
+    for (const code of available) {
+      if (code && code !== locale && code.split('-')[0] === base) add(code);
+    }
+  }
+
+  for (const code of [fallbackLocale ?? []].flat()) add(code);
+
+  // The original. Always last, and always reachable — a page that exists in no
+  // translation still has to render.
+  if (!chain.includes(undefined)) chain.push(undefined);
+
+  return chain;
 }
 
 /**
@@ -433,4 +717,90 @@ export function versionRelation(
   // `compareVersionTags` sorts newest FIRST, so a negative result means this
   // version leads the list — it is the newer of the two.
   return order === 0 ? 'same' : order < 0 ? 'newer' : 'older';
+}
+
+/**
+ * The collections that serve one route, best first.
+ *
+ * Two decisions in one, because neither is complete without the other: WHICH
+ * PREFIX claims the path, and WHICH LANGUAGE of that prefix the reader gets.
+ * The locale is deliberately not part of a prefix — `@nuxtjs/i18n` already puts
+ * it in front of the path — so original and translation are two collections
+ * behind one identical prefix, and a lookup handed only the path cannot tell
+ * them apart. Whichever sorted first won, which is the bug this exists to close.
+ *
+ * `path` is the DOCUMENTATION path, locale segment already stripped, and
+ * `locale` is what was stripped off it. The rest is `localeChain`, so the theme
+ * and every view that debugs it fall back through the same order.
+ *
+ * Never empty while `sources` is not: a route whose manifest has not arrived
+ * still has to query something, and an empty chain 404s a page that exists.
+ */
+export function sourcesForRoute(
+  path: string,
+  locale: string | undefined,
+  sources: DuxtResolvedSource[],
+  fallbackLocale?: string | string[]
+): DuxtResolvedSource[] {
+  if (!sources.length) return [];
+
+  // Read the prefix off the DEFAULT-language entries: every language of one
+  // source shares the prefix, so the pool only has to be free of duplicates.
+  const withDefaultLocale = sources.filter((source) => source.isDefaultLocale);
+  const pool = withDefaultLocale.length ? withDefaultLocale : sources;
+
+  const prefix =
+    (
+      [...pool]
+        .sort((a, b) => b.prefix.length - a.prefix.length)
+        .find(
+          (source) => !source.prefix || isInsidePrefix(path, source.prefix)
+        ) ??
+      pool.find((source) => !source.prefix) ??
+      // The landing page matches no prefix on a site whose every source has
+      // one. It still needs a real collection for the navigation the header
+      // draws, and a literal `docs` names one such a site does not have.
+      pool[0]
+    )?.prefix ?? '';
+
+  const candidates = sources.filter((source) => source.prefix === prefix);
+
+  // Deduplicated, because two links of the chain routinely land on ONE
+  // collection: `fallbackLocale` is usually the default locale, and the chain
+  // ends at the untranslated original regardless — so `en` and `undefined` both
+  // resolve to the same entry, and the panel printed "falls back to docs → docs".
+  const ordered = [
+    ...new Set(
+      localeChain(
+        locale,
+        candidates.map((source) => source.locale),
+        fallbackLocale
+      )
+        .map((code) =>
+          candidates.find((source) =>
+            code === undefined ? source.isDefaultLocale : source.locale === code
+          )
+        )
+        .filter(Boolean) as DuxtResolvedSource[]
+    )
+  ];
+
+  if (ordered.length) return ordered;
+  if (candidates.length) return candidates.slice(0, 1);
+
+  return sources.slice(0, 1);
+}
+
+/**
+ * Is `path` inside `prefix`? Segment-aware — `/workflows-old` is not inside
+ * `/workflows`, though it starts with it.
+ *
+ * The same rule as `isInside` in `app/utils/version-paths.ts`, and duplicated
+ * rather than imported: that file imports from THIS one, and a cycle between
+ * them is what `app.config.ts` reading this module cannot survive.
+ */
+function isInsidePrefix(path: string, prefix: string): boolean {
+  if (!prefix) return true;
+
+  return path === prefix || path.startsWith(`${prefix}/`);
 }

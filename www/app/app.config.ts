@@ -7,6 +7,30 @@
 export default defineAppConfig({
   duxt: {
     /**
+     * The site's own name. The layer ships no `title` of its own: a name is the
+     * one thing a documentation theme cannot guess, and "duxt" in every
+     * downstream header was exactly that mistake.
+     *
+     * A plain literal, not a record: the word is the same in every language —
+     * the rule that also keeps `'GitHub'` and `'shadcn-vue'` below unwrapped.
+     */
+    title: 'duxt',
+
+    /**
+     * This site's own wordmark, set exactly the way a consumer sets theirs.
+     *
+     * The layer ships no `logo` at all, so `DuxtBrand` falls back to a generic
+     * icon beside `title` for anyone who does not set one. Serving duxt's mark
+     * from the layer would put it in every downstream header, which is the one
+     * thing a documentation theme must not do.
+     */
+    logo: {
+      src: '/wordmark.svg',
+      srcDark: '/wordmark-dark.svg',
+      alt: 'duxt'
+    },
+
+    /**
      * One source, and therefore no prefixes: with a single repository and a
      * single ref the resolver serves `/getting-started` rather than
      * `/duxt/v1/getting-started`, because a segment that can only ever hold one
@@ -19,12 +43,129 @@ export default defineAppConfig({
       // what `repo` would do, and it would clone the checkout we stand in.
       {
         path: 'docs',
-        origin: { repo: 'kirchDev/duxt', ref: 'main' }
+        origin: { repo: 'kirchDev/duxt', ref: 'main' },
+
+        // FOUR languages over one tree, named by LANGUAGE rather than locale.
+        // `docs/pt/` serves both `pt-PT` and `pt-BR`, and `en-US` reads the
+        // original through `fallbackLocale` — the same rule the locale FILES in
+        // nuxt.config already follow, so seven locales need four folders.
+        //
+        // `en-GB` is the tree in `docs/` itself and takes no folder of its own,
+        // which keeps every URL this site already serves where it is.
+        locales: ['en-GB', 'de', 'es', 'fr', 'pt']
       }
     ],
+    sourceOptions: { defaultLocale: 'en-GB' },
     // The feed, pointed at a section that has dated entries. Off by default in
     // the layer; this site turns it on so the route is exercised.
     feed: { path: '/adr', title: 'duxt — decisions' },
+
+    // Written out in full, both entries: `mergeDuxtConfig` REPLACES an array
+    // rather than merging into it, so naming `navigation` at all means naming
+    // every entry. The layer ships only the generic Docs entry; the Resources
+    // dropdown below and the Credits link after it are duxt's own — five links
+    // to duxt's tech stack and the page that thanks them, which belong to this
+    // site and not to a stranger's header.
+    //
+    // The Docs entry carries no `to` on purpose. `DuxtHeader.linkTarget`
+    // resolves it to the first section, and `entryActive` lights it wherever
+    // ANY section is — giving it an explicit `to` would narrow the highlight
+    // back to one section.
+    navigation: [
+      { label: 'Docs', icon: 'lucide:book-open-text' },
+      {
+        label: {
+          'en-GB': 'Resources',
+          'de-DE': 'Ressourcen',
+          'es-ES': 'Recursos',
+          'fr-FR': 'Ressources',
+          'pt-PT': 'Recursos'
+        },
+        icon: 'lucide:library',
+        children: [
+          {
+            label: 'Nuxt',
+            to: 'https://nuxt.com',
+            icon: 'lucide:box',
+            description: {
+              'en-GB': 'The framework underneath',
+              'de-DE': 'Das Framework darunter',
+              'es-ES': 'El framework de base',
+              'fr-FR': 'Le framework sous-jacent',
+              'pt-PT': 'A framework subjacente'
+            },
+            external: true
+          },
+          {
+            label: 'Nuxt Content',
+            to: 'https://content.nuxt.com',
+            icon: 'lucide:file-text',
+            description: {
+              'en-GB': 'Sourcing, parsing and querying',
+              'de-DE': 'Beschaffen, parsen und abfragen',
+              'es-ES': 'Obtención, análisis y consulta',
+              'fr-FR': 'Récupération, analyse et requêtes',
+              'pt-PT': 'Obtenção, análise e consulta'
+            },
+            external: true
+          },
+          {
+            label: 'shadcn-vue',
+            to: 'https://www.shadcn-vue.com',
+            icon: 'lucide:palette',
+            description: {
+              'en-GB': 'The component base',
+              'de-DE': 'Die Komponentenbasis',
+              'es-ES': 'La base de componentes',
+              'fr-FR': 'La base de composants',
+              'pt-PT': 'A base de componentes'
+            },
+            external: true
+          },
+          {
+            label: 'Tailwind CSS',
+            to: 'https://tailwindcss.com',
+            icon: 'lucide:paintbrush',
+            description: {
+              'en-GB': 'The styling system',
+              'de-DE': 'Das Styling-System',
+              'es-ES': 'El sistema de estilos',
+              'fr-FR': 'Le système de styles',
+              'pt-PT': 'O sistema de estilos'
+            },
+            external: true
+          },
+          {
+            label: 'MDC syntax',
+            to: 'https://content.nuxt.com/docs/files/markdown',
+            icon: 'lucide:code',
+            description: {
+              'en-GB': 'Components inside Markdown',
+              'de-DE': 'Komponenten in Markdown',
+              'es-ES': 'Componentes dentro de Markdown',
+              'fr-FR': 'Des composants dans le Markdown',
+              'pt-PT': 'Componentes dentro do Markdown'
+            },
+            external: true
+          }
+        ]
+      },
+      // A navbar entry of its own rather than an item inside the dropdown: a
+      // link buried in a menu is a link nobody opens the menu for, and this one
+      // is a page of the site while the five above leave it. It sits after
+      // Resources because it is the smaller thing.
+      {
+        label: {
+          'en-GB': 'Credits',
+          'de-DE': 'Credits',
+          'es-ES': 'Créditos',
+          'fr-FR': 'Crédits',
+          'pt-PT': 'Créditos'
+        },
+        to: '/credits',
+        icon: 'lucide:heart'
+      }
+    ],
 
     // The source carries a slug, so every path has a repository segment and the
     // navigation the layer ships — which assumes a single unprefixed source —
@@ -86,14 +227,37 @@ export default defineAppConfig({
       },
       {
         label: {
-          'en-GB': 'Credits',
-          'de-DE': 'Credits',
-          'es-ES': 'Créditos',
-          'fr-FR': 'Crédits',
-          'pt-PT': 'Créditos'
+          'en-GB': 'Conventions',
+          'de-DE': 'Konventionen',
+          'es-ES': 'Convenciones',
+          'fr-FR': 'Conventions',
+          'pt-PT': 'Convenções'
         },
-        to: '/credits',
-        icon: 'lucide:heart'
+        to: '/conventions',
+        icon: 'lucide:ruler'
+      },
+      {
+        // Last, and deliberately so: the decision log is an appendix rather
+        // than reading order — which is what `99.` encodes in the folder name.
+        // It earns a row anyway, because a section the row omits falls back to
+        // the branch it is in, and a reader who lands there has no way back up.
+        label: {
+          'en-GB': 'Architecture decisions',
+          'de-DE': 'Architekturentscheidungen',
+          'es-ES': 'Decisiones de arquitectura',
+          'fr-FR': "Décisions d'architecture",
+          'pt-PT': 'Decisões de arquitetura'
+        },
+        to: '/adr',
+        icon: 'lucide:gavel',
+        // A document, not a second gavel. An ADR's frontmatter is fixed at
+        // `title`, `description`, `status` and `date`, so the records carry no
+        // icon of their own and the log rendered as eight bare rows beside
+        // sections that all have a column of them. The section is the decision
+        // log — the gavel above says so; each row in it is one written record,
+        // and repeating the section's own symbol on every child would say
+        // nothing the heading has not already said.
+        pageIcon: 'lucide:file-text'
       }
     ],
 
@@ -168,13 +332,16 @@ export default defineAppConfig({
           icon: 'lucide:message-circle',
           external: true
         },
-        // An internal link, deliberately beside three external ones: `to` is
-        // run through `useDuxtLink`, so it picks up the locale prefix while
-        // the absolute URLs above pass through untouched. `external` only
-        // decides the new tab and the arrow, never the routing.
+        // duxt's published documentation, by its own domain rather than by a
+        // path on whatever site is rendering this. That is what makes the entry
+        // mean anything in the row it sits in: the three links above take the
+        // reader to duxt's repository, its tracker and its community, and a
+        // relative `/getting-started` took them back to the page they were
+        // already on.
         //
-        // TODO: point at duxt's own published documentation once it is
-        // deployed. It links to this same site today, which is circular.
+        // Absolute, so `useDuxtLink` passes it through untouched instead of
+        // prefixing a locale onto it. `external` only decides the new tab and
+        // the arrow, never the routing.
         {
           label: {
             'en-GB': 'Documentation',
@@ -183,17 +350,17 @@ export default defineAppConfig({
             'fr-FR': 'Documentation',
             'pt-PT': 'Documentação'
           },
-          to: '/getting-started',
-          icon: 'lucide:book-open-text'
+          to: 'https://duxt.app/',
+          icon: 'lucide:book-open-text',
+          external: true
         }
       ]
     },
 
     landing: {
-      // `{version}` reads `duxt.version`, so the number is never typed twice:
-      // release-please bumps `package.json`, and a copy written out here would
-      // be wrong from the next release onwards. The pill links to the release
-      // it names.
+      // `{version}` reads this site's `version`, which `nuxt.config.ts` reads
+      // out of duxt's own `package.json` — see the note there. Nothing to bump
+      // in either file. The pill links to the release it names.
       badge: {
         label: {
           'en-GB': '{version} released',
@@ -203,9 +370,50 @@ export default defineAppConfig({
           'pt-PT': '{version} publicada'
         },
         icon: 'lucide:rocket',
-        variant: 'success',
+        // The accent, not the success colour: this pill announces a release,
+        // it does not report that something went well. Green reads as a status
+        // and pulls harder than the headline underneath it.
+        variant: 'default',
         to: 'https://github.com/kirchDev/duxt/releases/latest',
         external: true
+      },
+
+      /**
+       * The hero copy, written out here rather than inherited.
+       *
+       * The layer used to ship both as `duxt.defaults.landing.*` keys, which
+       * made duxt's own marketing the default headline of every site that
+       * extended it. `duxt.defaults.*` translates the interface the layer
+       * draws, never content a site writes.
+       *
+       * The record form rather than a locale file, for the reason the sections
+       * above give — and for one more: `llms.txt`, `llms-full.txt` and the feed
+       * are Nitro routes with no i18n, and `resolveServerTexts` reads only the
+       * LAYER's English messages. A key in a `www/i18n/` file would be printed
+       * to a model verbatim; a record resolves to its `en-GB` entry there.
+       */
+      headline: {
+        'en-GB': 'Documentation for Nuxt, versioned and multi-repo',
+        'de-DE':
+          'Dokumentation für Nuxt, versioniert und über mehrere Repositories',
+        'es-ES': 'Documentación para Nuxt, versionada y multirrepositorio',
+        'fr-FR': 'Documentation pour Nuxt, versionnée et multidépôt',
+        'pt-PT': 'Documentação para Nuxt, com versões e vários repositórios'
+      },
+
+      // Also the `<meta name="description">`, the llms.txt blurb and the RSS
+      // channel description — one sentence, four readers.
+      description: {
+        'en-GB':
+          'Extend one layer and your docs/ folder becomes a site. Point it at other repositories, or at tags of the same one, and those become versions.',
+        'de-DE':
+          'Einen Layer erweitern, und dein docs/-Ordner wird zur Website. Zeig damit auf andere Repositories oder auf Tags desselben, und daraus werden Versionen.',
+        'es-ES':
+          'Extiende una capa y tu carpeta docs/ se convierte en un sitio. Apúntala a otros repositorios, o a etiquetas del mismo, y estos se convierten en versiones.',
+        'fr-FR':
+          "Étendez une couche et votre dossier docs/ devient un site. Pointez-la vers d'autres dépôts, ou vers des tags du même, et ceux-ci deviennent des versions.",
+        'pt-PT':
+          'Estenda uma camada e a sua pasta docs/ torna-se um site. Aponte-a para outros repositórios, ou para tags do mesmo, e estes tornam-se versões.'
       },
 
       // The window under the hero: this site's own getting-started page,

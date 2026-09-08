@@ -1,161 +1,40 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { duxtDefaults, mergeDuxtConfig } from '../../app/utils/duxt-config';
+import { context } from './context';
+import type { CacheEntry, LocaleFile, RedirectRule } from './render/system';
 import {
-  code,
-  context,
-  dim,
-  escape,
-  filter,
-  row,
-  stat,
-  stats,
-  table,
-  tag
-} from './shell';
+  renderCache,
+  renderConfig,
+  renderI18n,
+  renderRedirects
+} from './render/system';
 
 /**
- * The panels about the machinery around the content: the merged config, the
- * message catalogues, Content's download cache and the redirects that shipped.
+ * What the panels about the machinery read: the merged config, the message
+ * catalogues, Content's download cache and the redirects that shipped.
  *
  * Each answers a question whose answer exists only as a side effect somewhere —
  * inside a defu call, across seven JSON files, in a directory nobody opens, in
- * a route-rule table generated at build time.
+ * a route-rule table generated at build time. This half does the reading;
+ * `render/system.ts` turns it into tables.
  */
 
 /* -------------------------------------------------------------------------- */
 /* Config                                                                     */
 /* -------------------------------------------------------------------------- */
 
-/**
- * The merged config, with the side of the merge each value came from.
- *
- * `mergeDuxtConfig` replaces arrays and merges objects, which is the subtlest
- * rule in the layer: a consumer's `navigation` is the navigation, but its
- * `footer.note` leaves `footer.columns` alone. "Why is duxt's entry still in my
- * navbar" takes one look here instead of a session.
- */
+/** The merged config, with the side of the merge each value came from. */
 export function configPanel(): string {
   const { duxt } = useAppConfig() as { duxt?: Partial<DuxtConfig> };
-  const consumer = (duxt ?? {}) as unknown as Record<string, unknown>;
-  const merged = mergeDuxtConfig(consumer, duxtDefaults) as unknown as Record<
-    string,
-    unknown
-  >;
 
-  const rows: string[] = [];
-  const counted: Origins = { consumer: 0, layer: 0, build: 0 };
-  collect(
-    merged,
-    consumer,
-    duxtDefaults as unknown as Record<string, unknown>,
-    '',
-    rows,
-    counted
-  );
-
-  const summary = stats([
-    stat(rows.length, 'keys'),
-    stat(counted.consumer, 'from the site', 'ok'),
-    stat(counted.layer, 'from the layer'),
-    stat(counted.build, 'computed')
-  ]);
-
-  return `${summary}<div class="note">Arrays are replaced whole, objects merge key by key. A row marked ${tag(
-    'build'
-  )} was computed by <code>modules/config.ts</code> and is written nowhere.</div>${filter(
-    'Filter keys'
-  )}${table(['Key', 'From', 'Value'], rows)}`;
+  return renderConfig((duxt ?? {}) as unknown as Record<string, unknown>);
 }
-
-const BUILT = new Set(['resolvedSources']);
-
-/**
- * Tallied while the rows are built, not counted back out of them.
- *
- * The first version of this figure filtered the rendered rows for the string
- * `>consumer<`, which is a search of the config's own VALUES as much as of its
- * origin badges — a label reading "consumer" would have counted itself.
- */
-interface Origins {
-  consumer: number;
-  layer: number;
-  build: number;
-}
-
-function collect(
-  merged: Record<string, unknown>,
-  consumer: Record<string, unknown> | undefined,
-  defaults: Record<string, unknown> | undefined,
-  prefix: string,
-  rows: string[],
-  counted: Origins
-): void {
-  for (const [key, value] of Object.entries(merged)) {
-    const path = prefix ? `${prefix}.${key}` : key;
-    const inConsumer = consumer ? key in consumer : false;
-    const inDefaults = defaults ? key in defaults : false;
-
-    // Recurse only through plain objects: an array is a single value here, by
-    // the same rule the merge itself follows.
-    if (
-      value &&
-      typeof value === 'object' &&
-      !Array.isArray(value) &&
-      inDefaults &&
-      inConsumer
-    ) {
-      collect(
-        value as Record<string, unknown>,
-        consumer?.[key] as Record<string, unknown>,
-        defaults?.[key] as Record<string, unknown>,
-        path,
-        rows,
-        counted
-      );
-      continue;
-    }
-
-    const kind = BUILT.has(key) ? 'build' : inConsumer ? 'consumer' : 'layer';
-    counted[kind] += 1;
-
-    const origin =
-      kind === 'build'
-        ? tag('build')
-        : kind === 'consumer'
-          ? tag('consumer', 'ok')
-          : tag('layer', 'muted');
-
-    rows.push(row([code(path), origin, preview(value)]));
-  }
-}
-
-function preview(value: unknown): string {
-  if (Array.isArray(value)) {
-    return `${dim(`${value.length} entries`)} ${code(truncate(JSON.stringify(value)))}`;
-  }
-
-  if (value && typeof value === 'object') {
-    return code(truncate(JSON.stringify(value)));
-  }
-
-  return code(String(value));
-}
-
-const truncate = (value: string, length = 160) =>
-  value.length > length ? `${value.slice(0, length)}…` : value;
 
 /* -------------------------------------------------------------------------- */
 /* i18n                                                                       */
 /* -------------------------------------------------------------------------- */
 
-/**
- * Message keys per locale, against the base language.
- *
- * Seven locales and one JSON file per namespace make drift a matter of time,
- * and i18n answers a missing key by printing the key — so a gap shows up as a
- * label reading `duxt.nav.open` on a page nobody opened in that language.
- */
+/** Every message key of every locale file the layer ships. */
 export function i18nPanel(): string {
   const root = join(context.layerDir, 'i18n/locales');
 
@@ -169,81 +48,41 @@ export function i18nPanel(): string {
     return '<div class="note">No <code>i18n/locales</code> directory in the layer.</div>';
   }
 
-  const keysOf = (dir: string) => {
-    const keys = new Set<string>();
-    const namespaces = join(root, dir, 'duxt');
+  const files: LocaleFile[] = dirs.map((dir) => ({
+    dir,
+    keys: [...keysOf(join(root, dir, 'duxt'))]
+  }));
 
-    let files: string[];
-    try {
-      files = readdirSync(namespaces).filter((file) => file.endsWith('.json'));
-    } catch {
-      return keys;
-    }
-
-    for (const file of files) {
-      try {
-        flatten(
-          JSON.parse(readFileSync(join(namespaces, file), 'utf8')) as unknown,
-          '',
-          keys
-        );
-      } catch {
-        keys.add(`${file}: unreadable`);
-      }
-    }
-
-    return keys;
-  };
-
-  const base = dirs.includes('en') ? 'en' : dirs[0];
-  if (!base) return '<div class="note">No locales found.</div>';
-
-  const baseKeys = keysOf(base);
-
-  const compared = dirs.map((dir) => {
-    const keys = dir === base ? baseKeys : keysOf(dir);
-
-    return {
-      dir,
-      keys,
-      missing: [...baseKeys].filter((key) => !keys.has(key)),
-      extra: [...keys].filter((key) => !baseKeys.has(key))
-    };
+  return renderI18n({
+    files,
+    locales: context.locales,
+    defaultLocale: context.defaultLocale
   });
+}
 
-  const rows = compared.map(({ dir, keys, missing, extra }) =>
-    // A locale file may deliberately hold only its overrides — pt-BR against
-    // pt-PT is the case in this repo — so "missing" is a fact, not a verdict.
-    row([
-      code(dir) + (dir === base ? ` ${tag('base')}` : ''),
-      String(keys.size),
-      missing.length
-        ? `${tag(String(missing.length), 'warn')} ${dim(truncate(missing.join(', '), 120))}`
-        : tag('complete', 'ok'),
-      extra.length
-        ? `${tag(String(extra.length), 'warn')} ${dim(truncate(extra.join(', '), 120))}`
-        : dim('—')
-    ])
-  );
+function keysOf(namespaces: string): Set<string> {
+  const keys = new Set<string>();
 
-  const served = context.locales.length
-    ? `<p class="hint">Served locales: ${context.locales.map((locale) => code(locale)).join(' ')}${context.defaultLocale ? `, default ${code(context.defaultLocale)}` : ''}.</p>`
-    : '';
+  let files: string[];
+  try {
+    files = readdirSync(namespaces).filter((file) => file.endsWith('.json'));
+  } catch {
+    return keys;
+  }
 
-  const gaps = compared.filter(
-    (entry) => entry.missing.length || entry.extra.length
-  ).length;
+  for (const file of files) {
+    try {
+      flatten(
+        JSON.parse(readFileSync(join(namespaces, file), 'utf8')) as unknown,
+        '',
+        keys
+      );
+    } catch {
+      keys.add(`${file}: unreadable`);
+    }
+  }
 
-  const summary = stats([
-    stat(dirs.length, 'locale files'),
-    stat(baseKeys.size, `keys in ${base}`),
-    stat(gaps, 'with a gap', gaps ? 'warn' : 'ok')
-  ]);
-
-  return `${summary}${served}${table(
-    ['Directory', 'Keys', 'Missing vs base', 'Not in base'],
-    rows
-  )}`;
+  return keys;
 }
 
 function flatten(node: unknown, prefix: string, out: Set<string>): void {
@@ -261,16 +100,9 @@ function flatten(node: unknown, prefix: string, out: Set<string>): void {
 /* Cache                                                                      */
 /* -------------------------------------------------------------------------- */
 
-/**
- * Content's download cache, and a way to drop one entry.
- *
- * A stale directory here cost real time once: a tag was fetched as a branch,
- * failed, and the half-written `github.com-<owner>-<repo>-<ref>` folder kept
- * answering for the fixed config until it was deleted by hand. Nothing in the
- * build mentions this directory, so nothing suggests the fix.
- */
+/** Content's download cache, and a way to drop one entry. */
 export function cachePanel(message?: string): string {
-  let entries: { name: string; size: number; modified: Date }[];
+  let entries: CacheEntry[] | undefined;
 
   try {
     entries = readdirSync(context.dataDir, { withFileTypes: true })
@@ -285,36 +117,10 @@ export function cachePanel(message?: string): string {
       })
       .sort((a, b) => a.name.localeCompare(b.name));
   } catch {
-    return '<div class="note">Nothing downloaded yet — <code>.data/content</code> does not exist.</div>';
+    entries = undefined;
   }
 
-  const rows = entries.map((entry) =>
-    row([
-      code(entry.name),
-      megabytes(entry.size),
-      entry.modified.toISOString().replace('T', ' ').slice(0, 16),
-      `<form method="post" style="margin:0">
-        <input type="hidden" name="drop" value="${escape(entry.name)}">
-        <button type="submit">Drop</button>
-      </form>`
-    ])
-  );
-
-  const note = message ? `<div class="note">${escape(message)}</div>` : '';
-
-  const summary = stats([
-    stat(entries.length, 'cached sources'),
-    stat(
-      megabytes(entries.reduce((sum, entry) => sum + entry.size, 0)),
-      'on disk'
-    )
-  ]);
-
-  return `${note}${summary}<p class="hint">${escape(context.dataDir)}</p>${table(
-    ['Entry', 'Size', 'Modified', ''],
-    rows,
-    'The cache directory exists but holds no source. Nothing remote has been downloaded yet.'
-  )}<div class="note">Dropping an entry makes the next build download it again. Content keys a directory by repository <em>and</em> ref, so an entry for a ref you have renamed is never reused and never cleaned up either.</div>`;
+  return renderCache({ dataDir: context.dataDir, entries, message });
 }
 
 function sizeOf(path: string): number {
@@ -328,51 +134,45 @@ function sizeOf(path: string): number {
   return total;
 }
 
-const megabytes = (bytes: number) =>
-  bytes > 1024 * 1024
-    ? `${(bytes / 1024 / 1024).toFixed(1)} MB`
-    : `${Math.max(1, Math.round(bytes / 1024))} kB`;
-
 /* -------------------------------------------------------------------------- */
 /* Redirects                                                                  */
 /* -------------------------------------------------------------------------- */
 
 /**
- * The route rules `redirectFrom` produced, read back out of the running server.
+ * Every redirect the server ships, and which of them the layer wrote.
  *
  * Read rather than recomputed on purpose: a rule that was generated and a rule
  * that shipped are different claims, and only the second one redirects anybody.
+ * Reading them back means reading EVERY module's, so `modules/redirects.ts`
+ * records which paths are its own beside them — nothing in a route rule says
+ * who wrote it.
  */
 export function redirectsPanel(): string {
-  const rules = (
-    useRuntimeConfig() as {
-      nitro?: { routeRules?: Record<string, { redirect?: unknown }> };
-    }
-  ).nitro?.routeRules;
+  const config = useRuntimeConfig() as {
+    nitro?: { routeRules?: Record<string, { redirect?: unknown }> };
+    duxt?: { redirects?: string[] };
+  };
 
-  if (!rules) {
-    return '<div class="note">Nitro exposed no route rules to read.</div>';
-  }
+  const rules = config.nitro?.routeRules;
+  if (!rules) return renderRedirects();
 
-  const rows = Object.entries(rules)
+  const ours = new Set(config.duxt?.redirects ?? []);
+
+  const redirects: RedirectRule[] = Object.entries(rules)
     .filter(([, rule]) => rule?.redirect)
     .map(([from, rule]) => {
       const redirect = rule.redirect as
         | string
         | { to?: string; statusCode?: number };
 
-      return row([
-        code(from),
-        code(typeof redirect === 'string' ? redirect : (redirect.to ?? '?')),
-        typeof redirect === 'string'
-          ? dim('302')
-          : escape(String(redirect.statusCode ?? 302))
-      ]);
+      return {
+        from,
+        to: typeof redirect === 'string' ? redirect : (redirect.to ?? '?'),
+        status:
+          typeof redirect === 'string' ? '302' : (redirect.statusCode ?? 302),
+        mine: ours.has(from)
+      };
     });
 
-  return `${stats([stat(rows.length, 'redirects')])}${table(
-    ['From', 'To', 'Status'],
-    rows,
-    'No page carries `redirectFrom`, so no rule was generated.'
-  )}<div class="note">One rule per prefix a page is served under — the repository segment, the version segment and every locale — because an old URL was bookmarked under exactly one of them and nothing says which.</div>`;
+  return renderRedirects(redirects);
 }

@@ -11,54 +11,30 @@
  * `footer.note` leaves `footer.columns` alone.
  */
 export const duxtDefaults: DuxtConfig = {
-  title: 'duxt',
-  version: 'v0.0.0',
+  // A placeholder, not a name. The layer cannot know what a site is called,
+  // and `title` is read by thirteen call sites — the title template, the 404,
+  // the brand, the OG card, schema.org, llms.txt and the feed — several of
+  // which interpolate it into a template literal and would print the word
+  // `undefined` rather than degrade. So a neutral, translated word stands in
+  // until a consumer sets its own. It names nobody, which is the whole test.
+  title: 'duxt.defaults.title',
+
+  // No `version`. The layer knows nothing about the state of somebody else's
+  // project, and a default made every site that extended it wear a number it
+  // had never set — in the hero pill and, for a site with at most one source,
+  // in the header badge beside the search. A site that has a version says so
+  // in its own `app.config.ts`; `DuxtVersion` draws nothing until it does.
 
   navigation: [
     // No `to`: the header resolves it to the first section, so the entry works
     // whether or not the consumer's URLs carry a prefix.
-    { label: 'duxt.defaults.navigation.docs', icon: 'lucide:book-open-text' },
-    {
-      label: 'duxt.defaults.navigation.resources',
-      icon: 'lucide:library',
-      children: [
-        {
-          label: 'Nuxt',
-          to: 'https://nuxt.com',
-          icon: 'lucide:box',
-          description: 'duxt.defaults.resources.nuxt',
-          external: true
-        },
-        {
-          label: 'Nuxt Content',
-          to: 'https://content.nuxt.com',
-          icon: 'lucide:file-text',
-          description: 'duxt.defaults.resources.content',
-          external: true
-        },
-        {
-          label: 'shadcn-vue',
-          to: 'https://www.shadcn-vue.com',
-          icon: 'lucide:palette',
-          description: 'duxt.defaults.resources.shadcn',
-          external: true
-        },
-        {
-          label: 'Tailwind CSS',
-          to: 'https://tailwindcss.com',
-          icon: 'lucide:paintbrush',
-          description: 'duxt.defaults.resources.tailwind',
-          external: true
-        },
-        {
-          label: 'MDC syntax',
-          to: 'https://content.nuxt.com/docs/files/markdown',
-          icon: 'lucide:code',
-          description: 'duxt.defaults.resources.mdc',
-          external: true
-        }
-      ]
-    }
+    //
+    // One entry where `sections` and `links` ship empty, because "Docs" names
+    // the INTERFACE and not a tree or a repository. The dropdown that used to
+    // sit beside it pointed at duxt's own tech stack — five links belonging to
+    // this project and to no site that extends it. It lives in
+    // `www/app/app.config.ts` now.
+    { label: 'duxt.defaults.navigation.docs', icon: 'lucide:book-open-text' }
   ],
 
   /**
@@ -107,11 +83,18 @@ export const duxtDefaults: DuxtConfig = {
   breadcrumb: true,
 
   landing: {
-    // No badge. A pill above the headline says something about the state of a
-    // project — "beta", "v2 is out" — and the layer knows nothing about the
-    // state of yours. Set `landing.badge` and it appears.
-    headline: 'duxt.defaults.landing.headline',
-    description: 'duxt.defaults.landing.description',
+    // No badge, no headline, no description. A pill above the headline says
+    // something about the state of a project — "beta", "v2 is out" — and the
+    // headline and the paragraph under it say what the project IS. The layer
+    // knows none of the three. Those two were duxt's OWN marketing showing
+    // through every site that extended it; they live in `www/app/app.config.ts`
+    // now, in the record form, because the Nitro routes that read them have no
+    // i18n — see `server/utils/duxt-server-text.ts`.
+    //
+    // Unset, the h1 falls back to `title` and the paragraph does not render at
+    // all. Set `landing.badge`, `landing.headline` or `landing.description`
+    // and each appears.
+
     // One action, and a generic one: "read the docs" is true of every site
     // built on this layer. A second button pointing at duxt's own repository
     // was not — see `links` above.
@@ -124,38 +107,23 @@ export const duxtDefaults: DuxtConfig = {
         icon: 'lucide:arrow-right'
       }
     ],
-    features: [
-      {
-        title: 'duxt.defaults.landing.features.extend.title',
-        description: 'duxt.defaults.landing.features.extend.description',
-        icon: 'lucide:package'
-      },
-      {
-        title: 'duxt.defaults.landing.features.sources.title',
-        description: 'duxt.defaults.landing.features.sources.description',
-        icon: 'lucide:git-branch'
-      },
-      {
-        title: 'duxt.defaults.landing.features.git.title',
-        description: 'duxt.defaults.landing.features.git.description',
-        icon: 'lucide:git-merge'
-      },
-      {
-        title: 'duxt.defaults.landing.features.shadcn.title',
-        description: 'duxt.defaults.landing.features.shadcn.description',
-        icon: 'lucide:palette'
-      },
-      {
-        title: 'duxt.defaults.landing.features.mdc.title',
-        description: 'duxt.defaults.landing.features.mdc.description',
-        icon: 'lucide:code'
-      },
-      {
-        title: 'duxt.defaults.landing.features.machine.title',
-        description: 'duxt.defaults.landing.features.machine.description',
-        icon: 'lucide:bot'
-      }
-    ]
+    /**
+     * Empty, like `sections` and `links` above.
+     *
+     * The six cards that used to sit here described duxt — its source list, its
+     * git-native sourcing, its shadcn-vue base. That is duxt's own marketing
+     * copy, not a default another site would keep: a stranger extending the
+     * layer got a landing page selling somebody else's project.
+     *
+     * Their translations left with them — `duxt.defaults.*` translates the
+     * interface the layer draws, never content a site writes. duxt's own cards
+     * live in `www/app/app.config.ts`, where each one POINTS at the page that
+     * explains it, which the layer could never know.
+     *
+     * Left empty, the band does not render: the landing gates the whole section
+     * on `duxt.landing?.features?.length`.
+     */
+    features: []
   },
 
   /**

@@ -21,7 +21,11 @@
         "claude": "Ouvrir dans Claude",
         "prompt": "Lis {url} afin que je puisse te poser des questions dessus."
       },
-      "view": "Voir la source"
+      "view": "Voir la source",
+      "untranslated": {
+        "title": "Cette page n’est pas encore disponible dans votre langue",
+        "description": "Vous la lisez en {language}."
+      }
     }
   }
 }

@@ -38,15 +38,23 @@ const server = join(root, 'www', '.output', 'server', 'index.mjs');
  *
  * The chrome is what this checks, and the chrome differs by layout: the landing
  * page has no sidebar, a section root has no table of contents, a deep page has
- * everything, and the 404 has its own view. A sixth page of the same shape
- * would add runtime and no coverage.
+ * everything, an embedded panel has an iframe, and the 404 has its own view. A
+ * sixth page of the same shape would add runtime and no coverage.
+ *
+ * WRITE THE ROUTES THE SITE ACTUALLY SERVES. Three of these carried a `/duxt/`
+ * prefix and a `/workflows/v0.7.0` from a multi-source configuration `www` no
+ * longer has, so they 404'd — and a 404 renders the error view, which passes.
+ * The gate reported five pages while checking the same error page three times.
+ * A route that moves must move here too; `curl -o /dev/null -w '%{http_code}'`
+ * over this list against the built server is the whole check.
  */
 const ROUTES = [
   '/',
-  '/duxt/getting-started',
-  '/duxt/reference/mdc-components',
-  '/workflows/v0.7.0',
-  '/duxt/does-not-exist'
+  '/getting-started',
+  '/reference/mdc-components',
+  // The one page with an iframe, so `frame-title` has something to judge.
+  '/reference/devtools/sources',
+  '/does-not-exist'
 ];
 
 const PORT = 3123;

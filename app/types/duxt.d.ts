@@ -70,8 +70,30 @@ declare global {
    */
   type DuxtRefInput =
     | string
-    | { branch: string; label?: string; status?: DuxtSourceStatusInput }
-    | { tag: string; label?: string; status?: DuxtSourceStatusInput };
+    | {
+        branch: string;
+        label?: string;
+        status?: DuxtSourceStatusInput;
+        locales?: DuxtSourceLocaleInput[];
+      }
+    | {
+        tag: string;
+        label?: string;
+        status?: DuxtSourceStatusInput;
+        locales?: DuxtSourceLocaleInput[];
+      };
+
+  /**
+   * One language of a source: the folder it lives in, or where else it lives.
+   *
+   * A string is a folder inside the source's `path`. The object form moves the
+   * language wholesale — its own folder, repository or ref — which is how a
+   * translation kept by other people at their own pace becomes a source rather
+   * than a second website.
+   */
+  type DuxtSourceLocaleInput =
+    | string
+    | { locale: string; path?: string; repo?: string; ref?: DuxtRefInput };
 
   /**
    * A documentation source, as a consumer declares it in `app.config.ts`.
@@ -86,6 +108,15 @@ declare global {
     repo?: string;
     /** Refs to publish as versions. Omitted means the current checkout. */
     refs?: DuxtRefInput[];
+    /**
+     * Languages this source is available in, beyond the one in `path`.
+     *
+     * The default locale is the tree in `path` itself, so listing it changes
+     * nothing and a site that adds this key does not move the pages it already
+     * serves. A ref may override the list, because a translation is usually
+     * kept for the current version and not for the two behind it.
+     */
+    locales?: DuxtSourceLocaleInput[];
     /** Shown in the version switcher and used in the URL; defaults to the ref. */
     label?: DuxtText;
     /** Segment used in the URL for this repository; defaults to the repo name. */
@@ -112,6 +143,11 @@ declare global {
     showVersion?: boolean;
     /** The ref served without a version prefix, by name. Defaults to the first. */
     defaultRef?: string;
+    /**
+     * The locale whose pages are the tree in `path` itself, without a folder.
+     * Defaults to the first locale any source declares.
+     */
+    defaultLocale?: string;
   }
 
   /** One entry of the resolved source manifest — see `duxtSourceManifest()`. */
@@ -127,6 +163,10 @@ declare global {
     ref?: string;
     refKind?: 'branch' | 'tag';
     path: string;
+    /** The locale this collection serves; absent on a site with no translations. */
+    locale?: string;
+    /** True for the locale served from `path` itself, without a folder. */
+    isDefaultLocale: boolean;
     status: DuxtSourceStatusInput;
     history: boolean;
   }
@@ -138,6 +178,23 @@ declare global {
     description?: DuxtText;
     external?: boolean;
     children?: DuxtLink[];
+  }
+
+  interface DuxtSection extends DuxtLink {
+    /**
+     * The icon for pages in this section that carry none of their own.
+     *
+     * A page states its icon in frontmatter, and most do — the sidebar then
+     * shows ten pages with ten symbols that actually distinguish them. Some
+     * pages cannot: an ADR's frontmatter is fixed at `title`, `description`,
+     * `status` and `date`, so a decision log renders eight rows with nothing
+     * beside them while every other section has a column of icons.
+     *
+     * Set here, one symbol stands in for the whole section, which is what a set
+     * of like records wants anyway. Falls back to `duxt.pageIcon`, and a page's
+     * own icon always wins.
+     */
+    pageIcon?: string;
   }
 
   interface DuxtAction extends DuxtLink {
@@ -215,6 +272,20 @@ declare global {
   interface DuxtConfig {
     title: DuxtText;
     /**
+     * A wordmark shown in the header and footer instead of the icon-and-title
+     * pair. Unset by default, and deliberately so: the layer ships no branding,
+     * because a site extending duxt has its own.
+     *
+     * `srcDark` is swapped in by CSS, not by reading the colour mode — see
+     * `DuxtBrand`. The image is drawn at a fixed height with the width left to
+     * follow, so any aspect ratio works. `alt` falls back to `title`.
+     */
+    logo?: {
+      src?: string;
+      srcDark?: string;
+      alt?: DuxtText;
+    };
+    /**
      * Which of the layer's locales this site serves. Omitted means all of them.
      *
      * Read at BUILD time — locales decide routes and hreflang, not just what a
@@ -223,11 +294,38 @@ declare global {
      * served without a prefix.
      */
     locales?: string[];
+    /**
+     * Who publishes the site, for the `Organization` node schema.org readers
+     * look for — a knowledge panel, a rich result, an AI summary naming a
+     * source.
+     *
+     * Unset by default and unset in the layer: duxt does not know, and must not
+     * guess, whose documentation it is rendering (ADR 0005). Without it the
+     * site still describes itself as a `WebSite`; what it loses is the publisher
+     * behind it.
+     *
+     * `logo` wants an ABSOLUTE URL or a path from the site root, and schema.org
+     * wants it square-ish and at least 112px; `url` defaults to `site.url`.
+     */
+    organization?: {
+      name?: DuxtText;
+      url?: string;
+      logo?: string;
+    };
+    /**
+     * The icon for any page that carries none of its own, anywhere in the tree.
+     *
+     * A section's own `pageIcon` overrides it; a page's frontmatter overrides
+     * both. Unset, a page without an icon simply shows none — which is the right
+     * default, because an icon repeated down a whole sidebar carries no
+     * information.
+     */
+    pageIcon?: string;
     /** Shown as a badge beside the title. */
     version?: string;
     navigation?: DuxtLink[];
     /** The second navbar row: top-level parts of the documentation. */
-    sections?: DuxtLink[];
+    sections?: DuxtSection[];
     /** Fixed links under the table of contents. */
     aside?: {
       title?: DuxtText;

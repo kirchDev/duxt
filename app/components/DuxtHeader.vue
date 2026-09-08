@@ -31,6 +31,22 @@ function isActive(to?: string) {
   return Boolean(to && to !== '/' && path.value.startsWith(to));
 }
 
+/**
+ * Whether a navbar entry owns the page — which for "the documentation" is not
+ * the same question as whether its href matches.
+ *
+ * A `to`-less entry resolves to the FIRST section so the link goes somewhere,
+ * and reusing that resolved href for the highlight was wrong: it lit "Docs"
+ * only inside section one and left the navbar showing nothing at all on every
+ * other section, which is exactly where a reader most needs to see where they
+ * are. Such an entry stands for the whole documentation, so it is active
+ * wherever ANY section is.
+ */
+function entryActive(link: DuxtLink) {
+  if (link.to) return isActive(link.to);
+  return (duxt.sections ?? []).some((section) => isActive(section.to));
+}
+
 /** `page` for the page itself, `true` for the branch holding it. */
 function current(to?: string) {
   if (path.value === to) return 'page';
@@ -40,7 +56,7 @@ function current(to?: string) {
 
 <template>
   <header
-    class="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-sm"
+    class="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur-md"
   >
     <!-- Row one: identity and global links. Row two carries the sections, the
          way nuxt.com splits them — the docs tree never reaches this far up. -->
@@ -65,11 +81,7 @@ function current(to?: string) {
           >
             <SheetHeader class="border-b">
               <SheetTitle class="flex items-center gap-2">
-                <Icon
-                  name="lucide:book-open-text"
-                  class="size-5 text-primary"
-                />
-                {{ duxt.title }}
+                <DuxtBrand />
               </SheetTitle>
             </SheetHeader>
 
@@ -106,6 +118,9 @@ function current(to?: string) {
                 </li>
               </ul>
 
+              <!-- No `label`, so no second "Documentation" landmark: the
+                   sheet is a dialog with its own name, and the sidebar copy of
+                   this tree already carries the one on the page. -->
               <DuxtNavigation :items="items" />
 
               <div class="mt-6 border-t pt-4">
@@ -147,8 +162,7 @@ function current(to?: string) {
           :to="localeLink('/')"
           class="flex items-center gap-2 text-[15px] font-semibold tracking-tight"
         >
-          <Icon name="lucide:book-open-text" class="size-5 text-primary" />
-          {{ duxt.title }}
+          <DuxtBrand />
         </NuxtLink>
       </div>
 
@@ -205,9 +219,7 @@ function current(to?: string) {
             size="sm"
             class="font-medium"
             :class="
-              isActive(linkTarget(link))
-                ? 'text-foreground'
-                : 'text-muted-foreground'
+              entryActive(link) ? 'text-foreground' : 'text-muted-foreground'
             "
           >
             <NuxtLink
