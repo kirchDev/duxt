@@ -27,6 +27,7 @@ import {
   slugify
 } from './sources-resolve';
 import { changelogSectionType } from './sections-changelog';
+import { openapiSectionType } from './sections-openapi';
 
 /**
  * One artefact beside a source's Markdown, published as pages of the site.
@@ -60,6 +61,22 @@ export interface DuxtGeneratedSection {
   label: string;
   /** URL segment for this section; defaults to the slugified label. */
   slug?: string;
+  /**
+   * The artefact a LOCALE reads, where that locale ships one of its own.
+   *
+   * Only a `per-locale` type reads this — a `changelog` is written once by the
+   * release tool and says so through the translation banner instead. Keyed by
+   * the locale code the source declares, with the language alone accepted as
+   * well, so `pt` answers for `pt-BR`.
+   *
+   * A locale absent from this map builds NO collection of its own, which is
+   * the point: the existing `fallbackLocale` chain then resolves it to the
+   * default language's section and `DuxtTranslationBanner` says the reader is
+   * looking at the original. Declaring an artefact for every locale and
+   * quietly serving the same file under each would leave that banner silent
+   * and the reader unaware.
+   */
+  locales?: Record<string, string>;
   /**
    * Where its navbar entry goes.
    *
@@ -120,9 +137,16 @@ export interface DuxtSectionType {
   /**
    * What a localised site shows when the artefact has one language.
    *
-   * `original` builds one collection from the default locale and lets the
-   * existing translation banner say so; `per-locale` follows the source's own
-   * languages.
+   * `original` builds ONE collection from the default locale and lets the
+   * existing translation banner say so — a release log is written once by the
+   * release tool, and there is nothing per-locale about it.
+   *
+   * `per-locale` follows the source's own languages, as far as the declaration
+   * reaches: a collection for the default language, and one for every locale
+   * `DuxtGeneratedSection.locales` names an artefact for. A locale it does not
+   * name builds NOTHING rather than a copy of the original — which is what
+   * leaves `sourcesForRoute` free to fall through to the default entry and
+   * `DuxtTranslationBanner` free to say the reader is looking at the original.
    */
   localisation: 'original' | 'per-locale';
   /**
@@ -141,7 +165,8 @@ export type DuxtSectionTypes = Record<string, DuxtSectionType>;
 
 /** The types the layer ships. */
 export const duxtBuiltinSectionTypes: DuxtSectionTypes = {
-  changelog: changelogSectionType
+  changelog: changelogSectionType,
+  openapi: openapiSectionType
 };
 
 /**
@@ -240,7 +265,7 @@ export function resolveGeneratedSections(
         );
       }
 
-      for (const base of basesFor(source, resolved, expanded, type)) {
+      for (const base of basesFor(source, resolved, expanded, type, declared)) {
         const prefix = `${base.entry.prefix}/${slug}`;
         const claim = `${base.entry.locale ?? ''}|${prefix}`;
         const previous = taken.get(claim);
@@ -271,8 +296,9 @@ export function resolveGeneratedSections(
           refKind: base.entry.refKind,
           // The ARTEFACT, not a folder: `DuxtPageInfo` links back to the file a
           // page was written in, and for a generated section every page in it
-          // was written in this one.
-          path: declared.path,
+          // was written in this one. Per LOCALE where the declaration names one
+          // — see `artefactFor`.
+          path: base.path,
           locale: base.entry.locale,
           isDefaultLocale: base.entry.isDefaultLocale,
           status: base.entry.status,
@@ -311,9 +337,11 @@ function basesFor(
   source: DuxtSource,
   resolved: DuxtResolvedSource[],
   expanded: ReturnType<typeof expandSources>,
-  type: DuxtSectionType
-): { entry: DuxtResolvedSource; remote: boolean }[] {
-  const bases: { entry: DuxtResolvedSource; remote: boolean }[] = [];
+  type: DuxtSectionType,
+  declared: DuxtGeneratedSection
+): { entry: DuxtResolvedSource; path: string; remote: boolean }[] {
+  const bases: { entry: DuxtResolvedSource; path: string; remote: boolean }[] =
+    [];
 
   resolved.forEach((entry, index) => {
     const combination = expanded[index]!;
@@ -322,10 +350,34 @@ function basesFor(
     if (type.localisation === 'original' && !entry.isDefaultLocale) return;
     if (type.versioning === 'global' && !entry.isDefault) return;
 
-    bases.push({ entry, remote: Boolean(combination.effective.repo) });
+    const path = artefactFor(declared, entry);
+    if (!path) return;
+
+    bases.push({ entry, path, remote: Boolean(combination.effective.repo) });
   });
 
   return bases;
+}
+
+/**
+ * The artefact one entry reads, or nothing where it reads none.
+ *
+ * The default language always reads the declared `path`; every other language
+ * reads what `locales` names for it, and builds no collection at all when that
+ * map is silent — see `DuxtGeneratedSection.locales` for why the silence is the
+ * useful answer rather than a gap to paper over.
+ */
+function artefactFor(
+  declared: DuxtGeneratedSection,
+  entry: DuxtResolvedSource
+): string | undefined {
+  if (entry.isDefaultLocale || !entry.locale) return declared.path;
+
+  const locales = declared.locales ?? {};
+
+  // The language alone answers for a region, exactly as the locale FILES do:
+  // one `pt` artefact serves `pt-PT` and `pt-BR`.
+  return locales[entry.locale] ?? locales[entry.locale.split('-')[0]!];
 }
 
 /**

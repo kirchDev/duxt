@@ -171,6 +171,16 @@ declare global {
     /** URL segment for this section; defaults to the slugified label. */
     slug?: string;
     /**
+     * The artefact a LOCALE reads, where that locale ships one of its own.
+     *
+     * Only a `per-locale` type reads it. Keyed by the locale code the source
+     * declares, with the language alone accepted too, so `pt` answers for
+     * `pt-BR`. A locale absent from the map builds no collection at all, and
+     * the existing fallback chain then serves it the default language's
+     * section with the translation banner saying so.
+     */
+    locales?: Record<string, string>;
+    /**
      * Where its navbar entry goes. The second navbar row unless stated, so a
      * declared section is findable without further config.
      */
@@ -201,7 +211,10 @@ declare global {
     ) => DuxtSectionPageInput[];
     /** `global` is one history at a version-neutral URL; `per-version` is not. */
     versioning: 'global' | 'per-version';
-    /** `original` builds one collection and lets the translation banner say so. */
+    /**
+     * `original` builds one collection and lets the translation banner say so;
+     * `per-locale` builds one per language that declares an artefact of its own.
+     */
     localisation: 'original' | 'per-locale';
     /** The layout its pages render in. A name bound here is public surface. */
     layout?: string;

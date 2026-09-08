@@ -109,7 +109,13 @@ describe('resolveGeneratedSections', () => {
 
   it('follows the source languages when the type is per-locale', () => {
     const generated = resolveGeneratedSections(
-      [{ path: 'docs', locales: ['en-GB', 'de'], generated: [section] }],
+      [
+        {
+          path: 'docs',
+          locales: ['en-GB', 'de'],
+          generated: [{ ...section, locales: { de: 'CHANGELOG.de.md' } }]
+        }
+      ],
       {},
       types({ localisation: 'per-locale' })
     );
@@ -124,6 +130,47 @@ describe('resolveGeneratedSections', () => {
     expect(generated.map((entry) => entry.collection)).toEqual([
       'docs_releases',
       'docs_de_releases'
+    ]);
+    // Each reads ITS OWN artefact — which is the whole reason a per-locale
+    // type is per-locale rather than one collection copied per language.
+    expect(generated.map((entry) => entry.path)).toEqual([
+      'CHANGELOG.md',
+      'CHANGELOG.de.md'
+    ]);
+  });
+
+  it('builds nothing for a language that declares no artefact', () => {
+    const generated = resolveGeneratedSections(
+      [{ path: 'docs', locales: ['en-GB', 'de'], generated: [section] }],
+      {},
+      types({ localisation: 'per-locale' })
+    );
+
+    // The DEFAULT language only. A collection per language all reading the one
+    // file would serve the original under a German URL with nothing saying so
+    // — `sourcesForRoute` instead falls through to the default entry, and
+    // `DuxtTranslationBanner` says the reader is looking at the original.
+    expect(generated.map((entry) => entry.locale)).toEqual(['en-GB']);
+  });
+
+  it('lets a language answer for its regions', () => {
+    const generated = resolveGeneratedSections(
+      [
+        {
+          path: 'docs',
+          locales: ['en-GB', 'pt-BR'],
+          generated: [{ ...section, locales: { pt: 'CHANGELOG.pt.md' } }]
+        }
+      ],
+      {},
+      types({ localisation: 'per-locale' })
+    );
+
+    // One `pt` artefact serves `pt-PT` and `pt-BR`, exactly as one `pt` locale
+    // FILE does.
+    expect(generated.map((entry) => entry.path)).toEqual([
+      'CHANGELOG.md',
+      'CHANGELOG.pt.md'
     ]);
   });
 
@@ -250,10 +297,14 @@ describe('duxtManifest', () => {
 });
 
 describe('duxtSectionTypes', () => {
-  it('ships changelog and lets a consumer add to it', () => {
+  it('ships the layer`s own types and lets a consumer add to it', () => {
     const registry = duxtSectionTypes({ stub: stub() });
 
-    expect(Object.keys(registry).sort()).toEqual(['changelog', 'stub']);
+    expect(Object.keys(registry).sort()).toEqual([
+      'changelog',
+      'openapi',
+      'stub'
+    ]);
   });
 
   it('lets a consumer replace a type the layer ships', () => {
