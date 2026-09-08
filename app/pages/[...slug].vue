@@ -272,7 +272,7 @@ useSchemaOrg([
          the landmarks, and both are labelled. -->
     <div class="hidden w-56 shrink-0 xl:block">
       <div
-        class="sticky top-[6.5rem] max-h-[calc(100vh-8rem)] overflow-y-auto py-8"
+        class="sticky top-[var(--duxt-chrome)] max-h-[calc(100vh-var(--duxt-chrome)-1.5rem)] overflow-y-auto py-8"
       >
         <DuxtToc :links="page?.body?.toc?.links ?? []" />
 

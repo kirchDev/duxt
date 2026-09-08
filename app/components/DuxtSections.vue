@@ -19,6 +19,10 @@ function current(to?: string) {
   if (path.value === to) return 'page';
   return isActive(to) ? 'true' : undefined;
 }
+
+// Whether the row shows at all is shared with the layouts, which offset their
+// sticky columns by the chrome this row is part of — see `useDuxtSectionRow`.
+const { visible } = useDuxtSectionRow();
 </script>
 
 <template>
@@ -28,7 +32,7 @@ function current(to?: string) {
        so the row parked over that border and the two swapped places by a pixel
        as the browser rounded the scroll offset. -->
   <div
-    v-if="duxt.sections?.length"
+    v-if="visible"
     class="sticky top-[calc(3.5rem_+_1px)] z-40 hidden border-b bg-background/95 backdrop-blur-md lg:block"
   >
     <nav

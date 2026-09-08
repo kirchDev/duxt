@@ -21,10 +21,18 @@
 const { data: navigation } = await useDuxtNavigation();
 
 const { items } = useDuxtSection(navigation);
+
+// The chrome the sticky columns hang under — `6.5rem` with the section row,
+// less without it. Handed down as a variable so the columns here and the
+// contents column `pages/[...slug].vue` draws all read one value.
+const { chrome } = useDuxtSectionRow();
 </script>
 
 <template>
-  <div class="flex min-h-[100dvh] flex-col bg-background text-foreground">
+  <div
+    class="flex min-h-[100dvh] flex-col bg-background text-foreground"
+    :style="{ '--duxt-chrome': chrome }"
+  >
     <DuxtSkipLink />
 
     <DuxtProgress />
@@ -38,7 +46,7 @@ const { items } = useDuxtSection(navigation);
            docs layout: the column would list the page the reader is on. -->
       <div v-if="items.length > 1" class="hidden w-64 shrink-0 lg:block">
         <div
-          class="sticky top-[6.5rem] max-h-[calc(100vh-8rem)] overflow-y-auto py-8 pr-2"
+          class="sticky top-[var(--duxt-chrome)] max-h-[calc(100vh-var(--duxt-chrome)-1.5rem)] overflow-y-auto py-8 pr-2"
         >
           <DuxtNavigation
             :items="items"
