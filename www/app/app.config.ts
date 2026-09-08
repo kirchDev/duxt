@@ -66,7 +66,28 @@ export default defineAppConfig({
         // and a translated text is not a stable URL — the same pair a version's
         // label makes. The entry appends itself to the section row above.
         generated: [
-          { type: 'changelog', path: 'www/CHANGELOG.md', label: 'Releases' },
+          // TO BE REPOINTED AT THE PACKAGE'S OWN CHANGELOG once release-please
+          // cuts the first version: `path: 'CHANGELOG.md'`, the file at the
+          // repository root. It cannot be that today — the manifest stands at
+          // `0.0.0`, the file does not exist, and a generated section whose
+          // artefact is missing fails the build at config load, by design.
+          //
+          // The site's own log stays the fixture either way: it is the one file
+          // in the repository carrying every section release-please writes and
+          // a patch release at `###`, which is what puts both of the parser's
+          // heading rules on the build's path.
+          //
+          // `navigation: 'navigation'` puts the entry in the TOP row rather
+          // than in the section row: a release log is not a part of the
+          // documentation the way "Guides" is, it is a thing the project has
+          // beside its documentation. The entry itself is written by hand up in
+          // `navigation`, between Resources and Credits — see there.
+          {
+            type: 'changelog',
+            path: 'www/CHANGELOG.md',
+            label: 'Releases',
+            navigation: 'navigation'
+          },
           // The SAME artefact at the other granularity, which is what puts the
           // second rendering path on the build's own path: `flat` is one page
           // holding the file as it was written, and a page that nothing renders
@@ -190,10 +211,21 @@ export default defineAppConfig({
           }
         ]
       },
+      // The generated changelog, PLACED BY HAND — which is the whole reason
+      // `withGeneratedSections` leaves a section it already finds in the row
+      // alone. The declaration below says `navigation: 'navigation'`, so the
+      // entry belongs in this row rather than in the section row; appending it
+      // would put it last, and after Credits is not where a release log goes.
+      //
+      // The label is a plain string for the reason the declaration's is: it is
+      // the same word the section itself is labelled with, and the two saying
+      // different things in the same language is worse than not translating a
+      // word most languages have borrowed anyway.
+      { label: 'Releases', to: '/releases', icon: 'lucide:tag' },
       // A navbar entry of its own rather than an item inside the dropdown: a
       // link buried in a menu is a link nobody opens the menu for, and this one
       // is a page of the site while the five above leave it. It sits after
-      // Resources because it is the smaller thing.
+      // Resources and after the releases because it is the smallest thing.
       {
         label: {
           'en-GB': 'Credits',
