@@ -8,8 +8,10 @@
  * from a middleware is the one place the choice can be made before the route
  * resolves, so the layout stays where it is and only its name changes.
  *
- * Inert until a type names a layout: `generatedLayout` filters to the sections
- * that do, and a site with none never reaches the path lookup.
+ * Cheap where no type names a layout: `generatedLayout` filters to the sections
+ * that do and answers before matching a single prefix. The path it is handed is
+ * still computed either way — arguments are evaluated first — which is one
+ * `stripLocalePrefix` per navigation and nothing else.
  */
 export default defineNuxtRouteMiddleware((to) => {
   const sources =
