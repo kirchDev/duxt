@@ -57,8 +57,19 @@ const ROUTES = [
   '/reference/devtools/sources',
   // A GENERATED SECTION, which is a shape of its own: its pages are written by
   // a type's parser rather than by hand, so their heading order and their links
-  // are the parser's output and nothing else here would check them.
+  // are the parser's output and nothing else here would check them. This one is
+  // the changelog overview — a filter row of toggle buttons over a timeline,
+  // and the only page here whose controls carry `aria-pressed`.
   '/releases',
+  // One release, which is where the group components draw their own headings:
+  // an `<h2>` a component renders is outside the outline Content builds, so
+  // nothing but a rendered page can say whether the order still holds.
+  '/releases/v0.4.0',
+  // The same changelog at the other granularity — one page, in the ordinary
+  // docs chrome. A type that names no layout for the options it was given is a
+  // decision only a rendered page proves, and its headings run three levels
+  // deep where the split pages run two.
+  '/changelog',
   // The OTHER shape a generated section has: a type that names a layout draws
   // its own page, so neither the docs header nor the docs sidebar is what is
   // being checked here — the reference layout and a parser's operation page

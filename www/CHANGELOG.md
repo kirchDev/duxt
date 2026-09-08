@@ -6,8 +6,10 @@ numbers below mark this site's milestones rather than releases of the
 repository root once the first version is cut.
 
 It is also the fixture that keeps a generated section on the build's path: the
-site declares it under `duxt.sources[].generated`, so `pnpm check` renders the
-`changelog` type end to end rather than trusting a registry with nothing in it.
+site declares it under `duxt.sources[].generated` twice — once split into a page
+per release at `/releases`, once whole at `/changelog` — so `pnpm check` renders
+both of the `changelog` type's granularities end to end rather than trusting a
+registry with nothing in it.
 
 ## 0.4.0 (2026-09-08)
 

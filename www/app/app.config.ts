@@ -67,6 +67,21 @@ export default defineAppConfig({
         // label makes. The entry appends itself to the section row above.
         generated: [
           { type: 'changelog', path: 'www/CHANGELOG.md', label: 'Releases' },
+          // The SAME artefact at the other granularity, which is what puts the
+          // second rendering path on the build's own path: `flat` is one page
+          // holding the file as it was written, and a page that nothing renders
+          // is a page whose failures nobody sees.
+          //
+          // `navigation: false` keeps it out of the section row — one changelog
+          // belongs in a navbar, and this is a fixture standing beside the real
+          // entry rather than a second thing to read.
+          {
+            type: 'changelog',
+            path: 'www/CHANGELOG.md',
+            label: 'Changelog',
+            navigation: false,
+            options: { granularity: 'flat' }
+          },
           // An OpenAPI document, published as reference pages. `per-version`
           // and `per-locale`, unlike the changelog above — the two policies the
           // registry exists to make parameters, taking their opposite values.
