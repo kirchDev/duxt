@@ -279,15 +279,26 @@
   const theme = new URLSearchParams(location.search).get('theme');
   if (theme) document.documentElement.dataset.theme = theme;
 
+  // Only from the frame that embedded this one, and only from its own origin.
+  // Both halves are needed: the origin alone would still accept a message from
+  // a sibling frame on the same site, and `event.source` alone would accept one
+  // from a parent on another origin. This document is served from `public/`, so
+  // the page framing it is always same-origin — a message from anywhere else is
+  // not a theme change, it is somebody else talking.
   addEventListener('message', (event) => {
-    if (event.data && event.data.duxtTheme) {
+    if (event.origin !== location.origin || event.source !== parent) return;
+
+    if (event.data && typeof event.data.duxtTheme === 'string') {
       document.documentElement.dataset.theme = event.data.duxtTheme;
     }
   });
 
+  // Addressed rather than broadcast, for the same reason. `'*'` hands the
+  // height to whatever ends up framing this page, which on a consumer's site is
+  // not necessarily the page that asked for it.
   const measure = () => parent.postMessage(
     { duxtHeight: document.documentElement.scrollHeight },
-    '*'
+    location.origin
   );
 
   addEventListener('load', measure);
