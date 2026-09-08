@@ -5,6 +5,7 @@ import {
   openApiCurl,
   openApiExampleValue,
   openApiFillPath,
+  openApiParameterKey,
   openApiQueryString,
   openApiRequest,
   openApiServerUrl,
@@ -171,12 +172,26 @@ describe('the request a reader is about to send', () => {
 
   it('leaves an unanswered path parameter visible rather than blank', () => {
     expect(openApiFillPath('/pets/{id}')).toBe('/pets/{id}');
-    expect(openApiFillPath('/pets/{id}', { id: 'a b' })).toBe('/pets/a%20b');
+    expect(openApiFillPath('/pets/{id}', { 'path-id': 'a b' })).toBe(
+      '/pets/a%20b'
+    );
+  });
+
+  it('never fills a path template from a parameter of another location', () => {
+    // A `{id}` template can only ever be the PATH parameter called `id`; a
+    // query parameter sharing the name is a different parameter, and putting
+    // its value in the URL's path sends the request somewhere else entirely.
+    expect(openApiFillPath('/pets/{id}', { 'query-id': '7' })).toBe(
+      '/pets/{id}'
+    );
   });
 
   it('omits an empty query parameter, because absent is what was meant', () => {
     expect(
-      openApiQueryString(operation.parameters, { limit: '10', empty: '' })
+      openApiQueryString(operation.parameters, {
+        'query-limit': '10',
+        'query-empty': ''
+      })
     ).toBe('?limit=10');
   });
 
@@ -184,7 +199,7 @@ describe('the request a reader is about to send', () => {
     expect(
       openApiQueryString(
         [{ name: 'flag', in: 'query', required: false, allowEmptyValue: true }],
-        { flag: '' }
+        { 'query-flag': '' }
       )
     ).toBe('?flag=');
   });
@@ -193,7 +208,12 @@ describe('the request a reader is about to send', () => {
     const request = openApiRequest(
       operation,
       'https://api.test/',
-      { id: '7', limit: '10', 'X-Trace': 'abc', session: 'xyz' },
+      {
+        'path-id': '7',
+        'query-limit': '10',
+        'header-X-Trace': 'abc',
+        'cookie-session': 'xyz'
+      },
       { Accept: 'application/json' }
     );
 
@@ -206,6 +226,28 @@ describe('the request a reader is about to send', () => {
     });
   });
 
+  it('keeps two parameters that share a name in different places apart', () => {
+    // OpenAPI identifies a parameter by `(name, in)`, so a document may declare
+    // `id` in the path AND `id` in the query. Keyed on the name alone, one box
+    // answered for both and the query value landed in the path.
+    const request = openApiRequest(
+      {
+        method: 'get',
+        path: '/pets/{id}',
+        parameters: [
+          { name: 'id', in: 'path', required: true },
+          { name: 'id', in: 'query', required: false },
+          { name: 'id', in: 'header', required: false }
+        ]
+      },
+      'https://api.test',
+      { 'path-id': '7', 'query-id': '9', 'header-id': '11' }
+    );
+
+    expect(request.url).toBe('https://api.test/pets/7?id=9');
+    expect(request.headers).toEqual({ id: '11' });
+  });
+
   it('writes a curl a shell cannot be talked out of', () => {
     const curl = openApiCurl({
       method: 'POST',
@@ -216,6 +258,22 @@ describe('the request a reader is about to send', () => {
 
     expect(curl).toContain(`'https://api.test/pets?q=it'\\''s'`);
     expect(curl).toContain(`'X-Key: a'\\''b'`);
+  });
+});
+
+describe('openApiParameterKey', () => {
+  it('tells two parameters that share a name in different places apart', () => {
+    // OpenAPI identifies a parameter by the pair, so `id` in the path and `id`
+    // in the query are two parameters and must be two boxes.
+    expect(openApiParameterKey({ name: 'id', in: 'path' })).not.toBe(
+      openApiParameterKey({ name: 'id', in: 'query' })
+    );
+  });
+
+  it('cannot be talked into a collision by a name that looks like a location', () => {
+    expect(openApiParameterKey({ name: 'x', in: 'header' })).not.toBe(
+      openApiParameterKey({ name: 'header-x', in: 'query' })
+    );
   });
 });
 

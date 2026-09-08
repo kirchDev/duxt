@@ -219,13 +219,40 @@ export function openApiServerUrl(
   });
 }
 
-/** The path with its path parameters substituted, unanswered ones left visible. */
+/**
+ * The one key a parameter's answer is filed under.
+ *
+ * OpenAPI identifies a parameter by the PAIR `(name, in)`, not by its name:
+ * `id` in the path and `id` in the query are two parameters, and a document is
+ * allowed to declare both. Keying the try-it client's boxes on the name alone
+ * therefore sent one answer to both places, substituted a query parameter into
+ * a path template, and emitted duplicate `v-for` keys — so the state, the
+ * request builder and the form's own `label`/`id` pairs all key on this.
+ *
+ * The join is unambiguous because `in` is a closed set of four words and none
+ * of them is a prefix of another: no `(name, in)` pair can spell the string
+ * another pair spells.
+ */
+export function openApiParameterKey(
+  parameter: Pick<DuxtOpenApiParameter, 'name' | 'in'>
+): string {
+  return `${parameter.in}-${parameter.name}`;
+}
+
+/**
+ * The path with its path parameters substituted, unanswered ones left visible.
+ *
+ * A `{…}` template in a path can only ever be the PATH parameter of that name —
+ * so the lookup names that location rather than trusting the name alone, and a
+ * query parameter called `id` can no longer substitute itself into `/pets/{id}`
+ * and send the request somewhere else.
+ */
 export function openApiFillPath(
   path: string,
   values: Record<string, string> = {}
 ): string {
   return path.replaceAll(/\{([^{}]+)\}/g, (whole, name: string) => {
-    const value = values[name];
+    const value = values[openApiParameterKey({ name, in: 'path' })];
 
     return value ? encodeURIComponent(value) : whole;
   });
@@ -247,7 +274,7 @@ export function openApiQueryString(
   for (const parameter of parameters) {
     if (parameter.in !== 'query') continue;
 
-    const value = values[parameter.name] ?? '';
+    const value = values[openApiParameterKey(parameter)] ?? '';
     if (!value && !parameter.allowEmptyValue) continue;
 
     query.append(parameter.name, value);
@@ -283,15 +310,18 @@ export function openApiRequest(
   for (const parameter of parameters) {
     if (parameter.in !== 'header') continue;
 
-    const value = values[parameter.name];
+    const value = values[openApiParameterKey(parameter)];
     if (value) sent[parameter.name] = value;
   }
 
   const cookies = parameters
-    .filter((parameter) => parameter.in === 'cookie' && values[parameter.name])
+    .filter(
+      (parameter) =>
+        parameter.in === 'cookie' && values[openApiParameterKey(parameter)]
+    )
     .map(
       (parameter) =>
-        `${parameter.name}=${encodeURIComponent(values[parameter.name]!)}`
+        `${parameter.name}=${encodeURIComponent(values[openApiParameterKey(parameter)]!)}`
     );
 
   if (cookies.length) sent.Cookie = cookies.join('; ');

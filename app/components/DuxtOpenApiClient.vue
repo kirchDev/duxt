@@ -71,7 +71,7 @@ const values = ref<Record<string, string>>(
       const example = parameter.examples?.[0]?.value ?? derived;
 
       return [
-        parameter.name,
+        openApiParameterKey(parameter),
         example === null || example === undefined
           ? ''
           : typeof example === 'string'
@@ -382,17 +382,20 @@ function pretty(text: string): string {
           {{ $t('duxt.openapi.parameters') }}
         </legend>
 
-        <div v-for="parameter in parameters" :key="parameter.name">
+        <div
+          v-for="parameter in parameters"
+          :key="openApiParameterKey(parameter)"
+        >
           <label
-            :for="`${id}-p-${parameter.in}-${parameter.name}`"
+            :for="`${id}-p-${openApiParameterKey(parameter)}`"
             class="mb-1 block font-mono text-xs text-muted-foreground"
           >
             {{ parameter.name }}
             <span v-if="parameter.required" class="text-destructive">*</span>
           </label>
           <Input
-            :id="`${id}-p-${parameter.in}-${parameter.name}`"
-            v-model="values[parameter.name]"
+            :id="`${id}-p-${openApiParameterKey(parameter)}`"
+            v-model="values[openApiParameterKey(parameter)]"
             class="font-mono text-sm"
             autocomplete="off"
           />

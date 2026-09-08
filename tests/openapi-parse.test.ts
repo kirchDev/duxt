@@ -139,6 +139,29 @@ paths:
     );
   });
 
+  it('keeps both members of a pair that share a name in different places', () => {
+    // The contract the try-it client's compound key rests on: `(name, in)` is
+    // what identifies a parameter, so these are two and the merge must not
+    // treat the second as an override of the first.
+    const parameters = operationParameters(`
+openapi: 3.1.0
+info: { title: Pets, version: '1' }
+paths:
+  /pets/{id}:
+    parameters:
+      - { name: id, in: path, schema: { type: string } }
+    get:
+      parameters:
+        - { name: id, in: query, schema: { type: string } }
+      responses: { '200': { description: ok } }
+`);
+
+    expect(parameters.map((entry) => entry.in).sort()).toEqual([
+      'path',
+      'query'
+    ]);
+  });
+
   it('marks a path parameter required whether or not the document said so', () => {
     const parameters = operationParameters(`
 openapi: 3.1.0

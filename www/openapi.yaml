@@ -90,6 +90,19 @@ paths:
           description: An optional session, for a personalised order.
           schema:
             type: string
+        - name: session
+          in: query
+          description: |
+            The same session, for callers that cannot set the cookie — a page
+            cannot, because `Cookie` is a header the browser refuses to let a
+            script write.
+
+            Deliberately the same *name* in a second location: OpenAPI
+            identifies a parameter by the pair `(name, in)`, so these are two
+            parameters, and a reference that keyed its try-it form on the name
+            alone would send one box's answer to both.
+          schema:
+            type: string
       responses:
         '200':
           description: A page of widgets.
