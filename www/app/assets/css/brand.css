@@ -11,14 +11,10 @@
  * bracket colour from `.github/assets/wordmark-light.svg` and its lifted twin
  * from the dark one. Logo and interface therefore cannot drift apart.
  *
- * DOUBLED SELECTORS, not a typo. The layer's stylesheet is linked twice — Vite
- * resolves its absolute path along two routes (`/_nuxt/@fs/<abs>` and
- * `/_nuxt/<abs>`) and deduplicates neither — and the second copy lands AFTER
- * this file. At equal specificity the layer's neutral `--primary` therefore won
- * on source order, and which value painted first came down to which response
- * arrived first: buttons and badges flashed grey before turning branded, and
- * differently on every reload. `:root:root` outranks `:root`, so the order stops
- * mattering. Drop the repetition once the layer links its stylesheet once.
+ * A PLAIN `:root` is enough, and that is the layer's doing rather than luck:
+ * `duxt.css` puts its palette in an anonymous cascade layer, and unlayered CSS
+ * beats layered CSS whatever the source order. So this file wins even though
+ * the layer's stylesheet is linked after it — which it is, twice over.
  *
  * MEASURED, because nothing here checks it. `tests/contrast.test.ts` reads the
  * LAYER's palette, and `check:a11y` runs axe over jsdom, which has no computed
@@ -30,13 +26,13 @@
  *
  * All four clear AA for body text. Anyone changing a value here re-measures it.
  */
-:root:root {
+:root {
   --primary: oklch(0.511 0.23 277);
   --primary-foreground: oklch(1 0 0);
   --ring: oklch(0.511 0.23 277);
 }
 
-.dark.dark {
+.dark {
   /* Lifted rather than reused: the same indigo that reads on white is too dark
      to carry a label on a near-black surface, and shadcn's dark mode expects a
      LIGHT `--primary` with dark text on it. */

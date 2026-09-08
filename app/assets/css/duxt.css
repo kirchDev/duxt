@@ -15,78 +15,101 @@
    sets it with classSuffix: '' so the two agree. */
 @custom-variant dark (&:is(.dark *));
 
-/* The neutral base palette, in oklch. A consumer overrides a token by
-   redefining it in its own stylesheet — no fork of this file needed. */
-:root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  /* shadcn's own value is oklch(0.556 0 0). Measured, that is 4.73:1 on the
-     page background — and 4.34:1 on --muted / --accent, which is where this
-     token actually lands: a hovered sidebar link, a badge, the sheet. So the
-     default fails AA on exactly the surfaces it is used on. 0.52 gives 5.51:1
-     and 5.05:1, and this token carries the page descriptions, the table of
-     contents and the breadcrumb — too much text to leave borderline. */
-  --muted-foreground: oklch(0.52 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  /* THE FOREGROUND FOLLOWS THE BACKGROUND'S LIGHTNESS, not the mode's. A pale
-     green with white on it reads as a badge and measures 3.12:1, which is a
-     badge nobody with low vision can read. Above roughly L 0.6 the pair takes
-     dark text, below it white — `--warning` already did, and success, info and
-     dark-mode destructive were simply missed. Enforced in
-     `tests/contrast.test.ts`; see the note on `--muted-foreground` above for
-     why the browser check cannot answer this. */
-  --success: oklch(0.63 0.17 149);
-  --success-foreground: oklch(0.145 0 0);
-  --warning: oklch(0.75 0.16 70);
-  --warning-foreground: oklch(0.145 0 0);
-  --info: oklch(0.62 0.16 244);
-  --info-foreground: oklch(0.145 0 0);
-}
+/*
+ * The neutral base palette, in oklch. A consumer overrides a token by
+ * redefining it in its own stylesheet — no fork of this file needed.
+ *
+ * IN A CASCADE LAYER, so that override cannot lose a race. Unlayered CSS beats
+ * layered CSS whatever the source order — and source order is not something
+ * this file controls. Vite resolves the stylesheet's absolute path along two
+ * routes at once, `/_nuxt/@fs/<abs>` and `/_nuxt/<abs>`, and deduplicates
+ * neither, so a second copy of this file lands AFTER the consumer's own `css`
+ * entry. At equal specificity the values below then won on order alone, and
+ * which one painted first came down to which 313 kB response arrived first: a
+ * consumer's buttons and badges flashed neutral before turning branded, and
+ * differently on every reload.
+ *
+ * The layer is ANONYMOUS on purpose. A named one can be reordered by a consumer
+ * writing `@layer` itself, which would hand the race straight back; an
+ * anonymous layer cannot be named again, so nothing downstream can move its own
+ * rules below these.
+ *
+ * Only the tokens go in here. Everything further down this file styles the
+ * layer's own components, where a consumer overriding by name is meant to need
+ * the specificity it already takes.
+ */
+@layer {
+  :root {
+    --radius: 0.625rem;
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.145 0 0);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.145 0 0);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.145 0 0);
+    --primary: oklch(0.205 0 0);
+    --primary-foreground: oklch(0.985 0 0);
+    --secondary: oklch(0.97 0 0);
+    --secondary-foreground: oklch(0.205 0 0);
+    --muted: oklch(0.97 0 0);
+    /* shadcn's own value is oklch(0.556 0 0). Measured, that is 4.73:1 on the
+       page background — and 4.34:1 on --muted / --accent, which is where this
+       token actually lands: a hovered sidebar link, a badge, the sheet. So the
+       default fails AA on exactly the surfaces it is used on. 0.52 gives 5.51:1
+       and 5.05:1, and this token carries the page descriptions, the table of
+       contents and the breadcrumb — too much text to leave borderline. */
+    --muted-foreground: oklch(0.52 0 0);
+    --accent: oklch(0.97 0 0);
+    --accent-foreground: oklch(0.205 0 0);
+    --destructive: oklch(0.577 0.245 27.325);
+    --destructive-foreground: oklch(0.985 0 0);
+    --border: oklch(0.922 0 0);
+    --input: oklch(0.922 0 0);
+    --ring: oklch(0.708 0 0);
+    /* THE FOREGROUND FOLLOWS THE BACKGROUND'S LIGHTNESS, not the mode's. A pale
+       green with white on it reads as a badge and measures 3.12:1, which is a
+       badge nobody with low vision can read. Above roughly L 0.6 the pair takes
+       dark text, below it white — `--warning` already did, and success, info and
+       dark-mode destructive were simply missed. Enforced in
+       `tests/contrast.test.ts`; see the note on `--muted-foreground` above for
+       why the browser check cannot answer this. */
+    --success: oklch(0.63 0.17 149);
+    --success-foreground: oklch(0.145 0 0);
+    --warning: oklch(0.75 0.16 70);
+    --warning-foreground: oklch(0.145 0 0);
+    --info: oklch(0.62 0.16 244);
+    --info-foreground: oklch(0.145 0 0);
+  }
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  /* Same measurement in the dark: 7.63:1 on the background but 5.83:1 on
-     --muted. Lifted for the same reason, by less, because it starts higher. */
-  --muted-foreground: oklch(0.72 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.145 0 0);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --success: oklch(0.7 0.16 149);
-  --success-foreground: oklch(0.145 0 0);
-  --warning: oklch(0.8 0.15 70);
-  --warning-foreground: oklch(0.145 0 0);
-  --info: oklch(0.7 0.14 244);
-  --info-foreground: oklch(0.145 0 0);
+  .dark {
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.205 0 0);
+    --card-foreground: oklch(0.985 0 0);
+    --popover: oklch(0.205 0 0);
+    --popover-foreground: oklch(0.985 0 0);
+    --primary: oklch(0.922 0 0);
+    --primary-foreground: oklch(0.205 0 0);
+    --secondary: oklch(0.269 0 0);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.269 0 0);
+    /* Same measurement in the dark: 7.63:1 on the background but 5.83:1 on
+       --muted. Lifted for the same reason, by less, because it starts higher. */
+    --muted-foreground: oklch(0.72 0 0);
+    --accent: oklch(0.269 0 0);
+    --accent-foreground: oklch(0.985 0 0);
+    --destructive: oklch(0.704 0.191 22.216);
+    --destructive-foreground: oklch(0.145 0 0);
+    --border: oklch(1 0 0 / 10%);
+    --input: oklch(1 0 0 / 15%);
+    --ring: oklch(0.556 0 0);
+    --success: oklch(0.7 0.16 149);
+    --success-foreground: oklch(0.145 0 0);
+    --warning: oklch(0.8 0.15 70);
+    --warning-foreground: oklch(0.145 0 0);
+    --info: oklch(0.7 0.14 244);
+    --info-foreground: oklch(0.145 0 0);
+  }
 }
 
 @theme inline {
