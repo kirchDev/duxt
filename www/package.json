@@ -1,7 +1,7 @@
 {
   "$schema": "https://www.schemastore.org/package.json",
   "name": "www",
-  "version": "0.0.0",
+  "version": "0.4.0",
   "private": true,
   "description": "The duxt documentation site — consumes the layer exactly as a downstream repo does.",
   "type": "module",
