@@ -197,7 +197,25 @@ const previewHref = computed(
 
 useSeoMeta({
   title: duxt.title,
-  description: duxt.landing?.description
+  description: duxt.landing?.description,
+  // The landing page is the site, not an article under it.
+  ogType: 'website'
+});
+
+/**
+ * The one page most likely to be shared, and the one that had no card.
+ *
+ * Every documentation page renders an OG image and this did not, so a link to
+ * the site's front door came back as a bare URL while a link to any page under
+ * it came back with a picture. Same template, same arguments — the version is
+ * the site's own rather than a page's, because a landing page belongs to no
+ * version.
+ */
+defineOgImage('Duxt', {
+  title: duxt.landing?.headline ?? duxt.title,
+  description: duxt.landing?.description,
+  site: duxt.title,
+  version: duxt.version ?? ''
 });
 </script>
 

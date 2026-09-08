@@ -59,6 +59,56 @@ if (baseUrl) {
   const localeHead = useLocaleHead({ dir: false, lang: false, seo: true });
   useHead(() => localeHead.value);
 }
+
+/**
+ * `og:locale`, which nuxt-seo-utils does not derive from i18n.
+ *
+ * Open Graph spells a locale with an underscore — `de_DE`, not `de-DE` — and
+ * the alternates are the OTHER locales this site serves, so a share card comes
+ * back in the reader's language where the network offers the choice. Only where
+ * the site has more than one; a single-locale site listing no alternates is
+ * correct, not incomplete.
+ */
+const ogLocale = (code: string) => code.replace('-', '_');
+
+useSeoMeta({
+  ogSiteName: () => duxt.title,
+  ogLocale: () => ogLocale(locale.value),
+  ogLocaleAlternate: () =>
+    locales.value
+      .map((entry) => (typeof entry === 'string' ? entry : entry.code))
+      .filter((code) => code !== locale.value)
+      .map(ogLocale)
+});
+
+/**
+ * WHAT THE SITE IS, once, for every page under it.
+ *
+ * nuxt-schema-org keeps one `@graph` per document and merges into it, so this
+ * node and the per-page `Article` in `[...slug].vue` end up in the same script
+ * tag with the references between them resolved — which is the whole reason the
+ * hand-written JSON-LD that used to live there could go.
+ *
+ * The `Organization` is conditional and stays that way: duxt renders somebody
+ * else's documentation and must not name a publisher it invented. A consumer
+ * fills in `duxt.organization`; until then the site describes itself and no
+ * more.
+ */
+useSchemaOrg([
+  defineWebSite({
+    name: duxt.title,
+    inLanguage: locale.value
+  }),
+  ...(duxt.organization?.name
+    ? [
+        defineOrganization({
+          name: duxt.organization.name,
+          url: duxt.organization.url,
+          logo: duxt.organization.logo
+        })
+      ]
+    : [])
+]);
 </script>
 
 <template>

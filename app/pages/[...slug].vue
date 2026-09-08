@@ -99,75 +99,83 @@ defineOgImage('Duxt', {
 const trail = await useDuxtBreadcrumb(() => path.value);
 
 /**
- * The full head, not the two fields `useSeoMeta` was called with before.
+ * The half nuxt-seo-utils cannot infer.
  *
- * `canonical` and `robots` are the version half: an older or dead version of a
- * page points at the current one and asks not to be indexed itself, so a search
- * engine stops offering v0.7.0 where the reader wanted today's docs. The Open
- * Graph and Twitter fields are the social half — every one of them is already
- * on the page object, so leaving them unset was only ever an omission.
+ * It derives `og:title`, `og:description` and the Twitter pair from the title
+ * and description below, so those are gone from here — what is left is what
+ * only this page knows. `og:url` is THIS page; the canonical below is the page
+ * a crawler should keep, and on an old version those are deliberately not the
+ * same URL.
+ *
+ * `robots` is the version half: an older or dead version of a page asks not to
+ * be indexed, so a search engine stops offering v0.7.0 where the reader wanted
+ * today's docs. An untranslated page is the SAME page under another URL, and
+ * indexing it once per locale is duplicate content.
  */
 useSeoMeta({
   title: () => page.value?.title,
   description: () => page.value?.description,
-  ogTitle: () => page.value?.title,
-  ogDescription: () => page.value?.description,
   ogType: 'article',
   ogUrl: () => absolute(localeLink(path.value) ?? path.value),
-  twitterCard: 'summary_large_image',
-  twitterTitle: () => page.value?.title,
-  twitterDescription: () => page.value?.description,
-  // An untranslated page is the SAME page in another URL: indexing it once per
-  // locale is duplicate content, and the canonical below points at the version
-  // that actually carries the language.
   robots: () =>
     shouldIndex.value && !untranslated.value ? undefined : 'noindex, follow'
 });
 
+/**
+ * THE CANONICAL IS OURS, not the module's.
+ *
+ * nuxt-seo-utils writes a canonical pointing at the page being rendered, which
+ * is right for every site that has one version of a page and wrong for this
+ * one: an old version has to point at the current one, or a search engine keeps
+ * serving v0.7.0. unhead deduplicates `link[rel=canonical]`, and this call runs
+ * after the module's, so this is the tag that ships — asserted over the built
+ * HTML by `scripts/check-seo.ts`, because it is a rule that would break
+ * silently.
+ */
 useHead(() => ({
   link: [
     {
       rel: 'canonical',
       href: absolute(localeLink(preferredPath.value) ?? preferredPath.value)
     }
-  ],
-
-  /**
-   * TechArticle plus BreadcrumbList. The trail is the one the breadcrumb draws,
-   * taken from the same composable so the two cannot disagree; the article
-   * fields are the ones already in the head above.
-   */
-  script: [
-    {
-      type: 'application/ld+json',
-      innerHTML: JSON.stringify({
-        '@context': 'https://schema.org',
-        '@graph': [
-          {
-            '@type': 'TechArticle',
-            headline: page.value?.title,
-            description: page.value?.description,
-            inLanguage: locale.value,
-            url: absolute(localeLink(path.value) ?? path.value),
-            isPartOf: {
-              '@type': 'WebSite',
-              name: duxt.title
-            }
-          },
-          {
-            '@type': 'BreadcrumbList',
-            itemListElement: trail.value.map((item, index) => ({
-              '@type': 'ListItem',
-              position: index + 1,
-              name: item.title,
-              item: absolute(localeLink(item.path ?? '/') ?? '/')
-            }))
-          }
-        ]
-      })
-    }
   ]
 }));
+
+/**
+ * The page, as schema.org — a `TechArticle` and the trail that reaches it.
+ *
+ * This used to be a hand-written `@graph` in a script tag. nuxt-schema-org
+ * keeps one graph per document and resolves the references inside it, so the
+ * `WebSite` and `Organization` declared once in `app.vue` are what these nodes
+ * hang off, rather than a second copy of the site inlined per page.
+ *
+ * The trail comes from the same composable the breadcrumb draws, so the two
+ * cannot disagree.
+ */
+useSchemaOrg([
+  defineArticle({
+    '@type': 'TechArticle',
+    headline: () => page.value?.title,
+    description: () => page.value?.description,
+    inLanguage: () => locale.value
+  }),
+  /**
+   * The WHOLE NODE is the computed, not the field inside it.
+   *
+   * `DeepResolvableProperties` makes a string field resolvable but maps an
+   * array by its own keys, so `itemListElement` takes a plain array and neither
+   * a ref nor a getter. Wrapping the definer instead keeps the trail reactive
+   * across a client-side navigation, which is the only reason it has to be.
+   */
+  computed(() =>
+    defineBreadcrumb({
+      itemListElement: trail.value.map((item) => ({
+        name: item.title,
+        item: absolute(localeLink(item.path ?? '/') ?? '/')
+      }))
+    })
+  )
+]);
 </script>
 
 <template>
