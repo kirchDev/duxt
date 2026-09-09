@@ -30,7 +30,10 @@ const { data: highlighted } = await useAsyncData(
 
     return !hasBody.value && props.code && lang
       ? highlightCode(props.code, lang)
-      : Promise.resolve(undefined);
+      : // `null`, not `undefined`: Nuxt reads a handler that resolves to
+        // nothing as one that failed to return, warns, and repeats the request
+        // on the client. Here nothing to highlight is a real answer.
+        Promise.resolve(null);
   },
   { watch: [() => props.code, () => props.language] }
 );
