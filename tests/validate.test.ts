@@ -224,3 +224,39 @@ describe('the translation report', () => {
     expect(notes).toEqual(['de: 1/1 pages']);
   });
 });
+
+/**
+ * The command blocks, whose two faults are both silent without this.
+ *
+ * A dropped tab looks like a site that offers three managers, and a mistyped verb
+ * looks like four working commands. Neither shows up in a diff, a lint or a build.
+ */
+describe('report — package manager commands', () => {
+  const sources = [{ collection: 'docs', prefix: '' }];
+
+  it('says which manager cannot express a command', () => {
+    const { warnings } = report(sources, [page({ commands: ['outdated'] })]);
+
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toMatch(/no equivalent in yarn/);
+    expect(warnings[0]).toMatch(/docs\/guide\.md/);
+  });
+
+  it('names a verb it does not translate', () => {
+    const { warnings } = report(sources, [
+      page({ commands: ['outdatd --long'] })
+    ]);
+
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toMatch(/"outdatd"/);
+    expect(warnings[0]).toMatch(/shows it as written/);
+  });
+
+  it('says nothing about a command every manager has', () => {
+    const { warnings } = report(sources, [
+      page({ commands: ['add -D pkg', 'run build', 'dlx create-nuxt'] })
+    ]);
+
+    expect(warnings).toEqual([]);
+  });
+});

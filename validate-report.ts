@@ -9,6 +9,7 @@
  * rather than reprinting a build log that has already scrolled away.
  */
 import { reservedSegments } from './sources-resolve';
+import { packageCommandIssues } from './app/utils/package-command';
 
 export interface PageRecord {
   collection: string;
@@ -26,6 +27,13 @@ export interface PageRecord {
    * translation report is skipped rather than guessed when it is missing.
    */
   lastUpdated?: string;
+  /**
+   * The `command` of every `::package-managers` block on the page.
+   *
+   * Read off the parsed body rather than the source, because that is where the
+   * prop has already been resolved — see `walk`.
+   */
+  commands?: string[];
 }
 
 /** The manifest, as much of it as the checks read. */
@@ -46,30 +54,44 @@ export interface SourceRecord {
   generated?: unknown;
 }
 
-/** Collect anchor ids and internal links out of a parsed MDC body. */
-export function walk(
-  node: unknown,
-  anchors: Set<string>,
-  links: { href: string }[]
-): void {
+/** What one pass over a parsed MDC body picks up. */
+export interface Collected {
+  anchors: Set<string>;
+  links: { href: string }[];
+  commands: string[];
+}
+
+/**
+ * Collect anchor ids, internal links and command blocks out of a parsed MDC
+ * body.
+ *
+ * ONE ACCUMULATOR rather than a parameter per kind: the third thing to collect
+ * is the point at which a positional list stops reading as a signature and
+ * starts reading as an argument order to get wrong.
+ */
+export function walk(node: unknown, into: Collected): void {
   if (Array.isArray(node)) {
     const [tag, props] = node as [unknown, Record<string, unknown> | undefined];
 
     if (typeof tag === 'string' && props && typeof props === 'object') {
-      if (typeof props.id === 'string') anchors.add(props.id);
+      if (typeof props.id === 'string') into.anchors.add(props.id);
 
       if (tag === 'a' && typeof props.href === 'string') {
-        links.push({ href: props.href });
+        into.links.push({ href: props.href });
+      }
+
+      if (tag === 'package-managers' && typeof props.command === 'string') {
+        into.commands.push(props.command);
       }
     }
 
-    for (const child of node) walk(child, anchors, links);
+    for (const child of node) walk(child, into);
     return;
   }
 
   if (node && typeof node === 'object') {
     for (const value of Object.values(node as Record<string, unknown>)) {
-      walk(value, anchors, links);
+      walk(value, into);
     }
   }
 }
@@ -224,7 +246,45 @@ export function report(
     }
   }
 
+  commandWarnings(pages, warnings);
+
   return { errors, warnings, notes: translationNotes(sources, byCollection) };
+}
+
+/**
+ * What a `::package-managers` block asks for that a manager cannot say.
+ *
+ * NEITHER FAULT FAILS ANYTHING, and both are otherwise invisible. A manager with
+ * no equivalent silently loses its tab, so a page written as
+ * `command="outdated"` shows three tabs where the site offers four and nothing
+ * anywhere says why. An unknown verb is printed as written for all four, which is
+ * usually right and occasionally a typo — `outdatd` renders four plausible
+ * commands that none of them accept.
+ *
+ * Warnings rather than errors, because both are legitimate: a command only three
+ * managers have is a fine thing to document, and this table will always be behind
+ * some manager's newest subcommand.
+ */
+function commandWarnings(pages: PageRecord[], warnings: string[]): void {
+  for (const page of pages) {
+    for (const command of page.commands ?? []) {
+      const { unknownVerb, unavailable } = packageCommandIssues(command);
+
+      if (unknownVerb) {
+        warnings.push(
+          `"${page.file}": "${command}" starts with "${unknownVerb}", which duxt ` +
+            'does not translate — every manager shows it as written.'
+        );
+      }
+
+      if (unavailable.length) {
+        warnings.push(
+          `"${page.file}": "${command}" has no equivalent in ` +
+            `${unavailable.join(' and ')}, so that tab is not drawn.`
+        );
+      }
+    }
+  }
 }
 
 const stripTrailingSlash = (path: string) =>

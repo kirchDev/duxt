@@ -4,7 +4,7 @@ import { readDuxtBuildConfig } from '../duxt-app-config';
 import { duxtManifest, duxtSectionTypes } from '../sections-resolve';
 import { resolveLatestRefs } from '../sources-git';
 import { readContentCache } from '../content-cache';
-import type { PageRecord } from '../validate-report';
+import type { Collected, PageRecord } from '../validate-report';
 import { report, walk } from '../validate-report';
 
 /**
@@ -62,9 +62,12 @@ export default function duxtValidate(_options: unknown, nuxt: Nuxt) {
     if (!cached) return;
 
     const pages: PageRecord[] = cached.map((entry) => {
-      const anchors = new Set<string>();
-      const links: { href: string }[] = [];
-      walk(entry.content.body, anchors, links);
+      const collected: Collected = {
+        anchors: new Set<string>(),
+        links: [],
+        commands: []
+      };
+      walk(entry.content.body, collected);
 
       return {
         collection: entry.collection,
@@ -78,8 +81,9 @@ export default function duxtValidate(_options: unknown, nuxt: Nuxt) {
           typeof entry.content.description === 'string'
             ? entry.content.description
             : undefined,
-        anchors,
-        links,
+        anchors: collected.anchors,
+        links: collected.links,
+        commands: collected.commands,
         lastUpdated:
           typeof entry.content.lastUpdated === 'string'
             ? entry.content.lastUpdated
