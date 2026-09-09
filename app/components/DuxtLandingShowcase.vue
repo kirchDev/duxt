@@ -216,8 +216,23 @@ const operation = computed(() =>
               <DuxtLandingProse :prose="showcase" :heading-id="headingId" />
             </template>
 
-            <template v-if="demo.samples" #beside-samples>
-              <DuxtLandingProse :prose="demo.samples" :level="3" />
+            <!-- THE `v-if` IS ON THE CONTENT, NOT ON THE SLOT. A
+                 `<template v-if>` around a named slot means the slot is not
+                 PASSED at all when the condition is false — and the server and
+                 the client disagree about what stands in its place, which is
+                 the hydration mismatch this produced:
+
+                   rendered on server: (start of fragment)
+                   expected on client: Symbol(v-cmt)
+
+                 Passed always, with the condition inside, both render the same
+                 comment node when there is nothing to show. -->
+            <template #beside-samples>
+              <DuxtLandingProse
+                v-if="demo.samples"
+                :prose="demo.samples"
+                :level="3"
+              />
             </template>
           </DuxtOpenApiClient>
         </div>
