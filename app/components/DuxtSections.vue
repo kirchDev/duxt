@@ -21,7 +21,7 @@ function current(to?: string) {
 }
 
 // Whether the row shows at all is shared with the layouts, which offset their
-// sticky columns by the chrome this row is part of — see `useDuxtSectionRow`.
+// sticky columns by the header this row is part of — see `useDuxtSectionRow`.
 const { visible } = useDuxtSectionRow();
 </script>
 

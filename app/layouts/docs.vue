@@ -3,16 +3,16 @@ const { data: navigation } = await useDuxtNavigation();
 
 const { items } = useDuxtSection(navigation);
 
-// The chrome the sticky columns hang under — `6.5rem` with the section row,
+// The header the sticky columns hang under — `6.5rem` with the section row,
 // less without it. Handed down as a variable so the columns here and the
 // contents column `pages/[...slug].vue` draws all read one value.
-const { chrome } = useDuxtSectionRow();
+const { headerOffset } = useDuxtSectionRow();
 </script>
 
 <template>
   <div
     class="flex min-h-[100dvh] flex-col bg-background text-foreground"
-    :style="{ '--duxt-chrome': chrome }"
+    :style="{ '--duxt-header-offset': headerOffset }"
   >
     <DuxtSkipLink />
 
@@ -39,7 +39,7 @@ const { chrome } = useDuxtSectionRow();
            the content takes the width. -->
       <div v-if="items.length > 1" class="hidden w-56 shrink-0 lg:block">
         <div
-          class="sticky top-[var(--duxt-chrome)] max-h-[calc(100vh-var(--duxt-chrome)-1.5rem)] overflow-y-auto py-8 pr-2"
+          class="sticky top-[var(--duxt-header-offset)] max-h-[calc(100vh-var(--duxt-header-offset)-1.5rem)] overflow-y-auto py-8 pr-2"
         >
           <DuxtNavigation :items="items" :label="$t('duxt.nav.docs')" />
         </div>

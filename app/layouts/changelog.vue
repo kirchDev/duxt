@@ -1,14 +1,15 @@
 <script setup lang="ts">
 /**
- * The chrome a release history gets: the releases beside it, and a reading
+ * The shell a release history gets: the releases beside it, and a reading
  * column for the entries.
  *
  * THE SECOND NAME THROUGH THE SHARED SLOT (`DuxtSectionType.layout`), and the
  * shape a changelog needs — which is not the shape the API reference needed.
- * `reference` takes the whole window because parameter tables and a request
- * client want it; a release note is prose, and prose set across a 90rem window
- * is unreadable. So the column is capped at a measure and the releases take the
- * sidebar.
+ * `reference` hands its page the whole column it has, because parameter tables
+ * and a request client want it; a release note is prose, and prose set across
+ * that column is unreadable. So the column is capped at a measure and the
+ * releases take the sidebar. Both shells stop at the same 90rem the header and
+ * the footer do — the difference is what each gives its page inside that.
  *
  * Two differences from `docs`, and both follow from what the pages ARE. The
  * sidebar is the release list rather than a prose tree — same navigation, same
@@ -23,7 +24,7 @@
  * outline is read back off the page's own AST — see `generated-toc.ts`.
  *
  * Bound only by the SPLIT granularity. A changelog asked for as the one file it
- * was written as is an ordinary docs page and renders in the docs chrome — see
+ * was written as is an ordinary docs page and renders in the docs shell — see
  * `changelogSectionType.layout`.
  *
  * A page rendered here draws its own header: see the `owned` computed in
@@ -33,16 +34,16 @@ const { data: navigation } = await useDuxtNavigation();
 
 const { items } = useDuxtSection(navigation);
 
-// The chrome the sticky columns hang under — `6.5rem` with the section row,
+// The header the sticky columns hang under — `6.5rem` with the section row,
 // less without it. Handed down as a variable so the columns here and the
 // contents column `pages/[...slug].vue` draws all read one value.
-const { chrome } = useDuxtSectionRow();
+const { headerOffset } = useDuxtSectionRow();
 </script>
 
 <template>
   <div
     class="flex min-h-[100dvh] flex-col bg-background text-foreground"
-    :style="{ '--duxt-chrome': chrome }"
+    :style="{ '--duxt-header-offset': headerOffset }"
   >
     <DuxtSkipLink />
 
@@ -58,7 +59,7 @@ const { chrome } = useDuxtSectionRow();
            the whole overview of a changelog with a single release. -->
       <div v-if="items.length > 1" class="hidden w-56 shrink-0 lg:block">
         <div
-          class="sticky top-[var(--duxt-chrome)] max-h-[calc(100vh-var(--duxt-chrome)-1.5rem)] overflow-y-auto py-8 pr-2"
+          class="sticky top-[var(--duxt-header-offset)] max-h-[calc(100vh-var(--duxt-header-offset)-1.5rem)] overflow-y-auto py-8 pr-2"
         >
           <DuxtNavigation
             :items="items"

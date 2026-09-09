@@ -93,7 +93,7 @@ const heading = useDuxtPageFocus();
 const { current, shouldIndex, preferredPath } = useDuxtVersion();
 
 /**
- * Does the page draw its own chrome?
+ * Does the page draw its own header?
  *
  * A generated section whose TYPE NAMES A LAYOUT has replaced the docs shell
  * around this page, and the two halves cannot both draw a header: an API
@@ -331,7 +331,7 @@ useSchemaOrg([
            it, which is how a history is read. -->
       <DuxtPageNav :path="path" />
 
-      <!-- Provenance survives the chrome, because it is the one part of it that
+      <!-- Provenance survives the header, because it is the one part of it that
            is still true: every page of a generated section came out of one
            artefact, and `DuxtPageInfo` already links at that artefact rather
            than at a file named after the URL. It moves into the column beside
@@ -344,7 +344,7 @@ useSchemaOrg([
 
     <div v-if="aside" class="hidden w-56 shrink-0 xl:block">
       <div
-        class="sticky top-[var(--duxt-chrome)] max-h-[calc(100vh-var(--duxt-chrome)-1.5rem)] overflow-y-auto py-8"
+        class="sticky top-[var(--duxt-header-offset)] max-h-[calc(100vh-var(--duxt-header-offset)-1.5rem)] overflow-y-auto py-8"
       >
         <DuxtToc :links="generated" />
 
@@ -405,7 +405,7 @@ useSchemaOrg([
          the landmarks, and both are labelled. -->
     <div class="hidden w-56 shrink-0 xl:block">
       <div
-        class="sticky top-[var(--duxt-chrome)] max-h-[calc(100vh-var(--duxt-chrome)-1.5rem)] overflow-y-auto py-8"
+        class="sticky top-[var(--duxt-header-offset)] max-h-[calc(100vh-var(--duxt-header-offset)-1.5rem)] overflow-y-auto py-8"
       >
         <DuxtToc :links="page?.body?.toc?.links ?? []" />
 
