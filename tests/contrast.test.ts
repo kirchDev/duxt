@@ -94,7 +94,16 @@ const PAIRS: [string, string][] = [
   ['destructive-foreground', 'destructive'],
   ['success-foreground', 'success'],
   ['warning-foreground', 'warning'],
-  ['info-foreground', 'info']
+  ['info-foreground', 'info'],
+  // Badges tint their surface and set the colour itself as TEXT, which is a use
+  // these two did not have while every variant was a fill with a paired
+  // foreground. `--success`, `--warning` and `--info` are deliberately absent:
+  // they do not clear AA as text on the page, which is why the success badge
+  // stays filled.
+  ['primary', 'background'],
+  ['primary', 'card'],
+  ['destructive', 'background'],
+  ['destructive', 'card']
 ];
 
 /** WCAG AA for body text. */
