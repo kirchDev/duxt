@@ -153,13 +153,19 @@ const clientAnchor = computed(() =>
 
          Bounded and scrollable only at `xl`, because below it the client is in
          normal flow and a second scrollbar inside the page would be one nobody
-         asked for. -->
+         asked for.
+
+         AND IT KEEPS A REM OFF THE HEADER. Pinned at exactly the offset above,
+         the card's top border sat against the navbar's bottom border, so the two
+         read as one thick line and the panel looked attached to the header
+         rather than floating under it. The `max-h` gives the same rem back at
+         the bottom, so the panel still ends clear of the viewport edge. -->
     <div
       :id="clientAnchor"
       class="not-typeset min-w-0 scroll-mt-[var(--duxt-chrome)]"
     >
       <div
-        class="xl:sticky xl:top-[var(--duxt-chrome)] xl:max-h-[calc(100vh-var(--duxt-chrome)-1.5rem)] xl:overflow-y-auto xl:pr-1"
+        class="xl:sticky xl:top-[calc(var(--duxt-chrome)+1rem)] xl:max-h-[calc(100vh-var(--duxt-chrome)-2.5rem)] xl:overflow-y-auto xl:pr-1"
       >
         <DuxtOpenApiClient
           :operation="operation"
