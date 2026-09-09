@@ -2,7 +2,9 @@
   "duxt": {
     "page": {
       "edit": "Editar esta página",
+      "compare": "Comparar alterações",
       "lastUpdated": "Última atualização a {date}",
+      "released": "Publicada a {date}",
       "contributors": "Escrito por",
       "copyFailed": "Não foi possível copiar a página.",
       "helpful": {
@@ -25,7 +27,8 @@
       "untranslated": {
         "title": "Esta página ainda não está disponível no seu idioma",
         "description": "Está a lê-la em {language}."
-      }
+      },
+      "anchor": "Ligação para esta secção"
     }
   }
 }

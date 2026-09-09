@@ -43,6 +43,13 @@ duas páginas que a tradução ainda não alcançou, uma página sem frontmatter
 porque um painel sem nada a comunicar não ensina a ninguém o aspecto que tem quando
 algo corre mal.
 
+## Sem servidor de desenvolvimento
+
+`pnpm exec duxt-report` imprime as fontes, as verificações e os
+redireccionamentos em Markdown — os mesmos dados que estes painéis desenham,
+numa forma que podes colar num ticket ou entregar a um modelo. `--json` dá-os
+sem desenhar. Vê [O que a compilação verifica](/concepts/build-checks).
+
 As pré-visualizações são inertes: os seus separadores mudam de painel, e tudo o
 resto — as ligações para o editor, o botão de eliminação, o formulário de pesquisa
 — não faz nada.

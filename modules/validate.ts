@@ -1,10 +1,10 @@
 import { fileURLToPath } from 'node:url';
 import type { Nuxt } from '@nuxt/schema';
 import { readDuxtBuildConfig } from '../duxt-app-config';
-import { duxtSourceManifest } from '../sources-resolve';
+import { duxtManifest, duxtSectionTypes } from '../sections-resolve';
 import { resolveLatestRefs } from '../sources-git';
 import { readContentCache } from '../content-cache';
-import type { PageRecord } from '../validate-report';
+import type { Collected, PageRecord } from '../validate-report';
 import { report, walk } from '../validate-report';
 
 /**
@@ -43,9 +43,10 @@ export default function duxtValidate(_options: unknown, nuxt: Nuxt) {
   ].filter(Boolean) as string[];
 
   const config = readDuxtBuildConfig(dirs);
-  const sources = duxtSourceManifest(
+  const sources = duxtManifest(
     resolveLatestRefs(config?.sources ?? [{ path: 'docs' }]),
-    config?.sourceOptions ?? {}
+    config?.sourceOptions ?? {},
+    duxtSectionTypes(config?.sectionTypes)
   );
 
   // `build:done` rather than `modules:done`: Content fills the cache in a
@@ -60,10 +61,36 @@ export default function duxtValidate(_options: unknown, nuxt: Nuxt) {
 
     if (!cached) return;
 
+    // The reports come from `modules/config.ts`, which read the artefacts once
+    // and left them on the manifest it wrote into `appConfig`. Merged rather
+    // than read again: a second parse of the same OpenAPI document, to reach
+    // the same answer, is a cost this build does not need — and two parses are
+    // two chances to disagree.
+    const reported = new Map(
+      (
+        (
+          nuxt.options.appConfig.duxt as
+            | { resolvedSources?: typeof sources }
+            | undefined
+        )?.resolvedSources ?? []
+      )
+        .filter((source) => source.generated?.report)
+        .map((source) => [source.collection, source.generated!.report] as const)
+    );
+
+    for (const source of sources) {
+      if (source.generated && reported.has(source.collection)) {
+        source.generated.report = reported.get(source.collection);
+      }
+    }
+
     const pages: PageRecord[] = cached.map((entry) => {
-      const anchors = new Set<string>();
-      const links: { href: string }[] = [];
-      walk(entry.content.body, anchors, links);
+      const collected: Collected = {
+        anchors: new Set<string>(),
+        links: [],
+        commands: []
+      };
+      walk(entry.content.body, collected);
 
       return {
         collection: entry.collection,
@@ -77,8 +104,9 @@ export default function duxtValidate(_options: unknown, nuxt: Nuxt) {
           typeof entry.content.description === 'string'
             ? entry.content.description
             : undefined,
-        anchors,
-        links,
+        anchors: collected.anchors,
+        links: collected.links,
+        commands: collected.commands,
         lastUpdated:
           typeof entry.content.lastUpdated === 'string'
             ? entry.content.lastUpdated

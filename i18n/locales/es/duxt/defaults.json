@@ -11,7 +11,8 @@
         },
         "preview": "Vista previa en vivo de la documentación",
         "previewOpen": "Abrir",
-        "featuresTitle": "Funcionalidades"
+        "featuresTitle": "Funcionalidades",
+        "demoTitle": "Demo en vivo"
       },
       "aside": {
         "title": "Comunidad"

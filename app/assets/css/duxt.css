@@ -171,25 +171,45 @@
   }
 }
 
-/* A brand colour that follows the theme. Set --brand and --brand-dark on the
-   element; the class picks the one the current theme needs. */
-.duxt-brand {
-  color: var(--brand);
+/* The editor's own syntax colours, taken from the two Shiki themes the fences
+   use — `github-light` and `github-dark`, read off their token settings rather
+   than eyeballed: string `#032f62`/`#9ecbff`, every constant (number, boolean,
+   null) and every `support` scope (which is where a JSON property name lands)
+   `#005cc5`/`#79b8ff`, keyword `#d73a49`/`#f97583`.
+
+   Variables rather than two CodeMirror themes, for the reason the palette above
+   is variables: the editor is built once and would otherwise freeze whichever
+   mode was current when it mounted, and a consumer who wants other colours
+   redefines four names instead of forking a component. */
+:root {
+  --duxt-cm-key: #005cc5;
+  --duxt-cm-string: #032f62;
+  --duxt-cm-value: #005cc5;
+  --duxt-cm-keyword: #d73a49;
+  --duxt-cm-comment: #6a737d;
 }
 
-:root:is(.dark) .duxt-brand,
-.dark .duxt-brand {
-  color: var(--brand-dark);
+:root:is(.dark),
+.dark {
+  --duxt-cm-key: #79b8ff;
+  --duxt-cm-string: #9ecbff;
+  --duxt-cm-value: #79b8ff;
+  --duxt-cm-keyword: #f97583;
 }
 
-/* Shiki with `defaultColor: false` writes both themes as custom properties per
-   token and leaves the choice to CSS — the same arrangement Content uses for
-   Markdown fences, applied to the command block. */
-.duxt-shell span {
+/* `defaultColor: false` emits BOTH themes as custom properties and sets no
+   colour at all, so a block highlighted that way renders flat until something
+   picks one. Content's own fences do not need this — they carry the light
+   colour inline and Content injects the dark rule — but every block this site
+   highlights itself does, which is why the two classes are named together:
+   forgetting the second is a box of grey text beside a coloured one. */
+.duxt-shell span,
+.duxt-code-body span {
   color: var(--shiki-light);
 }
 
-.dark .duxt-shell span {
+.dark .duxt-shell span,
+.dark .duxt-code-body span {
   color: var(--shiki-dark);
 }
 
@@ -229,12 +249,133 @@
   @apply absolute -left-5 font-normal text-muted-foreground opacity-0 transition-opacity;
 }
 
+/* THE MARKER AS THE LINK ITSELF, where the heading already contains one and
+   cannot be wrapped in a second — see `headingHasLink`. It sits in the flow
+   rather than out in the margin, and it is always visible: a control revealed
+   only on hover is a control no touch device can reach, which is tolerable
+   while the words beside it are the same link and not at all once they are
+   somebody else's. */
+.typeset :where(.duxt-anchor-only) {
+  @apply relative left-auto mr-2 inline no-underline opacity-60 transition-opacity;
+}
+
+.typeset :where(.duxt-anchor-only:hover, .duxt-anchor-only:focus-visible) {
+  @apply opacity-100;
+}
+
 /* Revealed by hovering the heading, not the marker: the marker is 1.25rem
    outside the text and nobody hunts for it. Focus does the same for the
    keyboard, where the link is reached without a pointer at all. */
 .typeset :where(h2:hover, h3:hover, h4:hover) .duxt-anchor,
 .typeset :where(.duxt-heading-link:focus-visible) .duxt-anchor {
   @apply opacity-100;
+}
+
+/* A SCHEMA ROW THAT OPENS. The whole row is the target and the tile is the
+   sign, because a 16-pixel box is under the size a fingertip can aim at — so
+   the click area is the summary and the tile only says that there is one.
+   
+   The marker `details` draws itself is removed in both spellings browsers
+   still need. */
+.duxt-schema-row {
+  @apply -mx-1.5 cursor-pointer rounded-lg px-1.5 py-0.5 transition-colors;
+  list-style: none;
+}
+
+.duxt-schema-row::-webkit-details-marker {
+  display: none;
+}
+
+.duxt-schema-row:hover {
+  background: color-mix(in oklch, var(--muted) 50%, transparent);
+}
+
+.duxt-schema-row:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+
+/* A `+` that becomes a `−`, drawn by the icon set rather than by two
+   pseudo-elements: at this size the percentage insets that placed them rounded
+   to different thicknesses, so the cross had one heavy stroke and one thin.
+   Both icons ship in the markup and the state picks one — the alternative is a
+   `content` swap, which cannot draw an SVG. */
+.duxt-schema-tile {
+  @apply relative inline-flex size-4 shrink-0 items-center justify-center rounded border bg-muted/40 text-muted-foreground transition-colors;
+  align-self: center;
+}
+
+.duxt-schema-tile .duxt-schema-minus,
+details[open] > .duxt-schema-row .duxt-schema-tile .duxt-schema-plus {
+  display: none;
+}
+
+details[open] > .duxt-schema-row .duxt-schema-tile .duxt-schema-minus {
+  display: block;
+}
+
+/* The tile answers the hover of the ROW, not of itself: the row is what is
+   being aimed at, and a tile that lit only under the pointer would go dark
+   exactly when the reader is about to click the line beside it. */
+.duxt-schema-row:hover .duxt-schema-tile {
+  @apply border-foreground/20 bg-muted text-foreground;
+}
+
+/* The label a section of generated furniture is headed with — the release
+   page's groups, the reference's "parameters" and "responses", the overview's
+   "servers".
+   
+   ONE CLASS because there are six of them and they were six copies of five
+   utilities, which is exactly how the reference came to be set in
+   `text-sm font-semibold uppercase` at full strength while the changelog was
+   set at 0.6875rem in `muted-foreground`: the same idea, two sizes, two
+   weights, two colours, on pages a reader moves between.
+   
+   The colour is the DEFAULT and not the rule: a caller that has a tone of its
+   own — a changelog group — sets it after this class and wins. */
+.duxt-label {
+  @apply text-[0.6875rem] font-semibold tracking-[0.12em] text-muted-foreground uppercase;
+}
+
+/* A release group's ENTRIES, which arrive as ordinary Markdown in
+   `ChangelogGroup`'s slot and were therefore set as prose: 1.7 leading with a
+   paragraph's flow between them, so six one-line facts filled a screen and a
+   half and a release with twelve groups read as a document rather than as a
+   list. They are a list, and are set as one.
+
+   The MARKER IS MUTED, not the group's tone. The colour is already stated in
+   the label directly above these lines; stated again on every line it stops
+   being a signal — the same hint, repeated, is confetti. Drawn as a box rather
+   than through `::marker`, which takes a colour but not a size or a position.
+
+   Only the TOP level: a list nested inside an entry keeps the prose treatment,
+   because there the indent is what says it is nested. */
+.typeset :where(.duxt-release > ul) {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.typeset :where(.duxt-release > ul > li) {
+  position: relative;
+  margin: 0;
+  padding-left: 1.05rem;
+  line-height: 1.55;
+}
+
+.typeset :where(.duxt-release > ul > li + li) {
+  margin-top: 0.35rem;
+}
+
+.typeset :where(.duxt-release > ul > li)::before {
+  content: '';
+  position: absolute;
+  top: 0.6em;
+  left: 0;
+  height: 0.3125rem;
+  width: 0.3125rem;
+  border-radius: 999px;
+  background: var(--muted-foreground);
 }
 
 pre.shiki,
@@ -262,6 +403,23 @@ pre.shiki,
    header and the first line. */
 .typeset :where(.duxt-code pre) {
   margin: 0;
+}
+
+/* Code this site highlighted itself rather than Content — a derived example, a
+   response, a `curl` sample — arrives as Shiki's own `<pre class="shiki">` with
+   no padding of its own. Content's fences get theirs from the MDC renderer, so
+   this is the same rule stated for the blocks that never went through it. Not
+   scoped to `.typeset`: the try-it client draws these outside a rendered
+   page. */
+.duxt-code-body pre {
+  margin: 0;
+  overflow-x: auto;
+  padding: 1rem;
+  font-size: 0.875rem;
+}
+
+.duxt-code-body pre code {
+  font-family: inherit;
 }
 
 /* A long unbroken token — a URL, a package name, a path — is the other way a
@@ -378,4 +536,20 @@ pre.shiki,
   text-align: right;
   color: var(--color-muted-foreground);
   user-select: none;
+}
+
+/* A page whose LAST band carries a background of its own runs straight into the
+   footer.
+
+   `DuxtFooter` sets `mt-16`, which is right for a documentation page: the prose
+   ends and the footer needs air under it. It is wrong after a tinted, bordered
+   section — the tint stops, four rems of page colour follow, and then the
+   footer's own rule draws a second line under the first. Three edges where the
+   design has one.
+
+   Written as a rule rather than as a margin the page removes, because the two
+   elements are siblings of the layout and neither can reach the other: the
+   section is inside `main`, and `main` is what stands next to the footer. */
+main:has(.duxt-flush-footer) + footer {
+  margin-top: 0;
 }

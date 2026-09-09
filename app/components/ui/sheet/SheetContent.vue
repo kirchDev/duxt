@@ -53,10 +53,14 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
     >
       <slot />
 
+      <!-- A button, not a bare glyph: shadcn's default is a 16px icon with an
+           opacity fade, which on a touch screen is both hard to see and under
+           the 24px target size axe asks for. Same ghost treatment as every
+           other icon button in the header, so it reads as one. -->
       <DialogClose
-        class="ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none"
+        class="ring-offset-background focus:ring-ring absolute top-3 right-3 flex size-8 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none"
       >
-        <Icon name="lucide:x" class="size-4" />
+        <Icon name="lucide:x" class="size-5" />
         <span class="sr-only">Close</span>
       </DialogClose>
     </DialogContent>

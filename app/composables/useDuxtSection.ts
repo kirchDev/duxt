@@ -13,9 +13,26 @@ export function useDuxtSection(
   const path = useDuxtPath();
   const duxt = useDuxtConfig();
 
+  /**
+   * BOTH ROWS, sections first.
+   *
+   * A generated section can declare that its entry belongs in the top navbar
+   * rather than in the section row (`navigation: 'navigation'`), and a site can
+   * put an ordinary page there by hand. Neither stops being the branch its
+   * pages sit in — but reading only `sections` said it did: the sidebar fell
+   * back to the whole tree, and the breadcrumb lost its head, so a release page
+   * printed its own version and nothing above it.
+   */
+  /**
+   * LONGEST MATCH, not the first one written. `/demo` and `/demo/api` both
+   * prefix a page under the reference, and taking the first said the reader was
+   * in the prose beside it — so the sidebar drew that tree instead of the
+   * endpoints. Same rule, and the same bug, as `sourceForPath`.
+   */
   const section = computed(() =>
-    duxt.sections?.find(
-      (candidate) => candidate.to && path.value.startsWith(candidate.to)
+    currentSection(
+      [...(duxt.sections ?? []), ...(duxt.navigation ?? [])],
+      path.value
     )
   );
 

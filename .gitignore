@@ -106,3 +106,8 @@ $RECYCLE.BIN/
 # endregion
 
 # endregion
+
+# wrangler's local state — the build cache and the miniflare data `wrangler dev`
+# writes beside the config. No stack in gitignore-sync carries it, so it lives
+# here in the free zone rather than inside the managed region above.
+.wrangler

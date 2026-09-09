@@ -159,3 +159,27 @@ export function mergeDuxtConfig<T>(over: unknown, base: T): T {
 
   return result as T;
 }
+
+/**
+ * How many ROWS a band draws, which is not always one.
+ *
+ * The bands alternate — prose left, prose right, prose left — and the side is
+ * decided by position. A split try-it client is two rows inside one band, so
+ * counting bands puts every band after it on the side it just used. Counting
+ * rows is what keeps the page alternating across it.
+ *
+ * Pure, and here rather than in the component, because the page needs the
+ * answer BEFORE it renders the band: the offset of band four depends on how
+ * many rows bands one to three drew.
+ */
+export function duxtShowcaseRows(showcase: {
+  full?: boolean;
+  demo?: { type?: string; layout?: string };
+}): number {
+  const demo = showcase.demo;
+  if (demo?.type !== 'operation') return 1;
+
+  const layout = demo.layout ?? (showcase.full ? 'split' : 'panel');
+
+  return layout === 'split' ? 2 : 1;
+}

@@ -9,7 +9,9 @@
       "main": "Navigation principale",
       "docs": "Documentation",
       "pagination": "Navigation entre les pages",
-      "breadcrumb": "Fil d’Ariane"
+      "breadcrumb": "Fil d’Ariane",
+      "menu": "Navigation",
+      "pages": "Pages"
     }
   }
 }

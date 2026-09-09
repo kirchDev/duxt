@@ -38,14 +38,14 @@ function answer(helpful: boolean) {
       <span>{{ $t('duxt.page.helpful.question') }}</span>
 
       <template v-if="answered === undefined">
-        <Button size="sm" variant="outline" @click="answer(true)">
+        <UiButton size="sm" variant="outline" @click="answer(true)">
           <Icon name="lucide:thumbs-up" class="size-3.5" />
           {{ $t('duxt.page.helpful.yes') }}
-        </Button>
-        <Button size="sm" variant="outline" @click="answer(false)">
+        </UiButton>
+        <UiButton size="sm" variant="outline" @click="answer(false)">
           <Icon name="lucide:thumbs-down" class="size-3.5" />
           {{ $t('duxt.page.helpful.no') }}
-        </Button>
+        </UiButton>
       </template>
 
       <span v-else role="status" class="text-muted-foreground">

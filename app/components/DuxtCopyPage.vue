@@ -64,7 +64,7 @@ function open(base: string) {
 
 <template>
   <div v-if="rawbody" class="flex shrink-0 items-stretch">
-    <Button
+    <UiButton
       variant="outline"
       size="sm"
       class="gap-1.5 rounded-r-none border-r-0"
@@ -72,46 +72,46 @@ function open(base: string) {
     >
       <Icon :name="copied ? 'lucide:check' : 'lucide:copy'" class="size-3.5" />
       {{ copied ? $t('duxt.code.copied') : $t('duxt.page.copy.label') }}
-    </Button>
+    </UiButton>
 
-    <DropdownMenu>
-      <DropdownMenuTrigger as-child>
-        <Button
+    <UiDropdownMenu>
+      <UiDropdownMenuTrigger as-child>
+        <UiButton
           variant="outline"
           size="sm"
           class="rounded-l-none px-1.5"
           :aria-label="$t('duxt.page.copy.more')"
         >
           <Icon name="lucide:chevron-down" class="size-3.5 opacity-60" />
-        </Button>
-      </DropdownMenuTrigger>
+        </UiButton>
+      </UiDropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" class="w-56">
-        <DropdownMenuItem as-child>
+      <UiDropdownMenuContent align="end" class="w-56">
+        <UiDropdownMenuItem as-child>
           <a :href="markdownPath" target="_blank" rel="noopener" class="gap-2">
             <Icon name="lucide:file-code-2" class="size-4" />
             {{ $t('duxt.page.copy.view') }}
           </a>
-        </DropdownMenuItem>
+        </UiDropdownMenuItem>
 
-        <DropdownMenuSeparator />
+        <UiDropdownMenuSeparator />
 
-        <DropdownMenuItem
+        <UiDropdownMenuItem
           class="gap-2"
           @select="open('https://chatgpt.com/?q=')"
         >
           <Icon name="simple-icons:openai" class="size-4" />
           {{ $t('duxt.page.copy.chatgpt') }}
-        </DropdownMenuItem>
+        </UiDropdownMenuItem>
 
-        <DropdownMenuItem
+        <UiDropdownMenuItem
           class="gap-2"
           @select="open('https://claude.ai/new?q=')"
         >
           <Icon name="simple-icons:claude" class="size-4" />
           {{ $t('duxt.page.copy.claude') }}
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+        </UiDropdownMenuItem>
+      </UiDropdownMenuContent>
+    </UiDropdownMenu>
   </div>
 </template>

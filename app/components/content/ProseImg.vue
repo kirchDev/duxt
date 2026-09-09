@@ -66,9 +66,9 @@ const zoomable = computed(() => props.zoom !== false && props.zoom !== 'false');
       />
     </component>
 
-    <Dialog v-if="zoomable" v-model:open="open">
-      <DialogContent class="max-w-[min(96vw,80rem)] p-2">
-        <DialogTitle class="sr-only">{{ alt }}</DialogTitle>
+    <UiDialog v-if="zoomable" v-model:open="open">
+      <UiDialogContent class="max-w-[min(96vw,80rem)] p-2">
+        <UiDialogTitle class="sr-only">{{ alt }}</UiDialogTitle>
         <NuxtImg
           :src="src"
           :alt="alt"
@@ -81,7 +81,7 @@ const zoomable = computed(() => props.zoom !== false && props.zoom !== 'false');
           :alt="alt"
           class="hidden max-h-[85vh] w-full rounded-md object-contain dark:block"
         />
-      </DialogContent>
-    </Dialog>
+      </UiDialogContent>
+    </UiDialog>
   </span>
 </template>

@@ -11,7 +11,8 @@
         },
         "preview": "Live-Vorschau der Dokumentation",
         "previewOpen": "Öffnen",
-        "featuresTitle": "Funktionen"
+        "featuresTitle": "Funktionen",
+        "demoTitle": "Live-Demo"
       },
       "aside": {
         "title": "Community"

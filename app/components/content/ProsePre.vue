@@ -11,6 +11,14 @@ const props = defineProps<{
   filename?: string;
   highlights?: number[];
   meta?: string;
+  /**
+   * The block's own header bar. Passed through rather than left to fall into
+   * `$attrs`, which `inheritAttrs: false` binds to the <pre> — where it would
+   * become an HTML attribute nobody reads instead of a prop.
+   *
+   * `::code-group` switches it off: the tab already names the file.
+   */
+  header?: boolean;
 }>();
 
 /**
@@ -34,7 +42,13 @@ const lineNumbers = computed(() =>
        already hands every fence to and the language is already a prop. -->
   <Mermaid v-if="language === 'mermaid'" :code="code" />
 
-  <DuxtCodeBlock v-else :code="code" :language="language" :filename="filename">
+  <DuxtCodeBlock
+    v-else
+    :code="code"
+    :language="language"
+    :filename="filename"
+    :header="header ?? true"
+  >
     <pre
       v-bind="$attrs"
       class="overflow-x-auto p-4 text-sm"

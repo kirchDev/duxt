@@ -1,3 +1,10 @@
+// Type-only, and therefore erased: the section resolver imports the functions
+// below, so a value import here would be a cycle between the two files.
+import type {
+  DuxtGeneratedMeta,
+  DuxtGeneratedSection
+} from './sections-resolve';
+
 /**
  * A documentation source: a folder, in this repository or another, at the
  * current checkout or at named refs.
@@ -29,9 +36,35 @@ export interface DuxtSource {
    * serves. Which one is the default comes from `defaultLocale`.
    */
   locales?: DuxtSourceLocale[];
+  /**
+   * The version THIS source is, where no ref names one.
+   *
+   * A version is normally a checkout — list `refs` and each becomes one. An API
+   * is usually not versioned that way: `openapi/v1.yaml` sits beside
+   * `openapi/v2.yaml` in one repository, and without this key the two are two
+   * unrelated sections rather than two versions of one document.
+   *
+   * Named here, everything else follows the ref path exactly: the URL segment,
+   * the switcher entry (scoped to the same artefact), the banner and the
+   * canonical. `sourceOptions.defaultRef` names which of them is served without
+   * a prefix, whether it is a ref or one of these.
+   *
+   * Never beside `refs` — a source with both would have to be served at two
+   * prefixes at once, and the resolver says so rather than picking one.
+   */
+  version?: string;
   /** Shown in the version switcher and used in the URL; defaults to the ref. */
   label?: string;
-  /** Segment used in the URL for this repository; defaults to the repo name. */
+  /**
+   * Segment used in the URL for this source; defaults to the repository name.
+   *
+   * NAMING ONE IS A CLAIM ON A SEGMENT, and that is what makes it more than a
+   * spelling: the automatic rule adds a segment to every source once the list
+   * holds more than one repository, which cannot express "the documentation at
+   * the root, one thing beside it". A source that names a slug gets its segment
+   * whether or not the rule fires, and the sources that name none are untouched
+   * — so a site adding a second source keeps every URL it already serves.
+   */
   slug?: string;
   /**
    * Lifecycle of every version this entry publishes, unless a ref says
@@ -62,6 +95,13 @@ export interface DuxtSource {
    * whether or not this is set.
    */
   history?: boolean;
+  /**
+   * Artefacts beside this source's Markdown, published as pages of the site.
+   *
+   * Off until declared, the same rule as `feed.path`. A changelog, an OpenAPI
+   * document, whatever a registered type can read — see `DuxtGeneratedSection`.
+   */
+  generated?: DuxtGeneratedSection[];
 }
 
 /**
@@ -157,7 +197,12 @@ export const refIsTag = (ref: DuxtRef): boolean =>
   typeof ref !== 'string' && 'tag' in ref;
 
 export interface DuxtSourcesOptions {
-  /** Force a repository segment even with a single repository. */
+  /**
+   * Force a repository segment even with a single repository.
+   *
+   * All or nothing, and deliberately: it answers "does this site have prefixes
+   * at all". A single source that wants one uses `slug` instead.
+   */
   showRepo?: boolean;
   /** Force a version segment even with a single version. */
   showVersion?: boolean;
@@ -181,7 +226,14 @@ export interface DuxtResolvedSource {
   collection: string;
   /** URL prefix it serves; '' for the root. */
   prefix: string;
-  /** Repository segment, when the list has more than one repository. */
+  /**
+   * The source's own segment, where it has one — because the list holds more
+   * than one repository, or because the source named a `slug`.
+   *
+   * Read as an IDENTITY as much as a segment: the version switcher and the
+   * search grouping both scope themselves by it, so two sources with different
+   * segments never offer each other's versions.
+   */
   repo?: string;
   /** Version label, when the list has more than one version. */
   version?: string;
@@ -214,6 +266,15 @@ export interface DuxtResolvedSource {
   status: DuxtSourceStatus;
   /** Whether the build may read this source's git history. */
   history: boolean;
+  /**
+   * Present when this collection is a GENERATED SECTION rather than a docs
+   * tree — see `resolveGeneratedSections`.
+   *
+   * The one question anything downstream asks: the version switcher to know it
+   * has nothing to offer here, the layout slot to know which layout to set, and
+   * "edit this page" to link at the artefact instead of at a file per page.
+   */
+  generated?: DuxtGeneratedMeta;
 }
 
 /**
@@ -445,23 +506,59 @@ export function resolveSources(
   const expanded = expandSources(sources, options);
 
   const repos = new Set(sources.map((source) => source.repo ?? ''));
-  const refs = new Set(
+
+  /**
+   * What NAMES a version — a ref, or a source that declares one.
+   *
+   * A ref is the usual answer and the only one this resolver had: a version was
+   * a checkout, so a repository that does not tag its API had no versions at
+   * all. That is the common shape for an API — `openapi/v1.yaml` beside
+   * `openapi/v2.yaml` in one checkout, versioned by FILE — and it produced two
+   * unrelated sections rather than two versions of one document.
+   *
+   * So a source may name its own version. Everything downstream is unchanged,
+   * because everything downstream reads this name: the URL segment, the
+   * switcher entry, the banner, the canonical.
+   */
+  const names = new Set(
     expanded
-      .map((entry) => entry.ref)
-      .filter(Boolean)
-      .map((ref) => refName(ref!))
+      .map((entry) => (entry.ref ? refName(entry.ref) : entry.source.version))
+      .filter(Boolean) as string[]
   );
 
   const withRepo = options.showRepo ?? repos.size > 1;
-  const withVersion = options.showVersion ?? refs.size > 1;
-  const defaultRef = options.defaultRef ?? [...refs][0];
+  const withVersion = options.showVersion ?? names.size > 1;
+  const defaultRef = options.defaultRef ?? [...names][0];
+
+  /**
+   * Does THIS source get a segment of its own?
+   *
+   * The list-wide rule above, or the source's own `slug` — see there for why a
+   * slug is a claim rather than a spelling. Per source rather than per list,
+   * which is the whole difference: a site whose docs sit at the root can hang
+   * one prefixed source beside them without moving a single existing URL.
+   */
+  const segmented = (source: DuxtSource) => withRepo || Boolean(source.slug);
 
   const resolved: DuxtResolvedSource[] = [];
   const taken = new Map<string, string>();
 
   for (const { source, ref, locale, effective: entry } of expanded) {
     const effectiveRef = entry.ref ?? ref;
-    const name = effectiveRef ? refName(effectiveRef) : undefined;
+
+    // TWO TRUTHS ABOUT ONE SOURCE is not a state this resolver can be in: a
+    // source that both lists refs and names a version would have to be served
+    // at two prefixes at once, and the reader would meet the same document
+    // twice in the switcher.
+    if (effectiveRef && source.version) {
+      throw new Error(
+        `duxt: the source "${source.path ?? source.repo ?? ''}" names the ` +
+          `version "${source.version}" and lists refs. A version comes from ` +
+          'a ref or from this key, never from both.'
+      );
+    }
+
+    const name = effectiveRef ? refName(effectiveRef) : source.version;
     const label =
       (ref && typeof ref === 'object' ? ref.label : undefined) ?? source.label;
     const code = locale ? localeCode(locale) : undefined;
@@ -470,7 +567,7 @@ export function resolveSources(
     const isDefault = !name || name === defaultRef;
 
     const segments: string[] = [];
-    if (withRepo) segments.push(repoSlug(source));
+    if (segmented(source)) segments.push(repoSlug(source));
     if (withVersion && version && !isDefault) segments.push(version);
 
     // THE LOCALE IS NOT PART OF THE PREFIX. @nuxtjs/i18n already puts it in
@@ -506,7 +603,7 @@ export function resolveSources(
     resolved.push({
       collection,
       prefix,
-      repo: withRepo ? repoSlug(source) : undefined,
+      repo: segmented(source) ? repoSlug(source) : undefined,
       version,
       isDefault,
       repository: entry.repo ?? source.origin?.repo,
@@ -599,6 +696,11 @@ export function localeChain(
  * declare collections, and importing a module's entry point from client code is
  * rejected by the bundler. This file is plain logic, so `app.config.ts` can read
  * it and both halves still resolve the list exactly once.
+ *
+ * THE DOCUMENTATION HALF ONLY. `duxtSources` walks this list index-for-index
+ * against `expandSources`, so a generated section appended here would put the
+ * two out of step; `duxtManifest` in `sections-resolve.ts` is the whole
+ * manifest, and what everything serving a site reads.
  */
 export function duxtSourceManifest(
   sources: DuxtSource[],

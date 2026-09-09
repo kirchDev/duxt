@@ -30,7 +30,13 @@ const TEXT_KEYS = new Set([
   'badge',
   'copyright',
   'description',
+  'group',
   'headline',
+  // A heading whose list is a sibling rather than a child, so it cannot be
+  // spelled `title` and be resolved by the entry above. A prose key added
+  // WITHOUT a line here does not fail — it renders its own locale record as
+  // JSON on the page, which is exactly how this one was found.
+  'highlightsTitle',
   'label',
   'title'
 ]);

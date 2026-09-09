@@ -267,13 +267,20 @@
       <span class="j-str">&quot;en&quot;</span>,
       <span class="j-str">&quot;de&quot;</span>
     ],
-    <span class="j-key">&quot;history&quot;</span>: <span class="j-word">true</span>
+    <span class="j-key">&quot;history&quot;</span>: <span class="j-word">true</span>,
+    <span class="j-key">&quot;generated&quot;</span>: [
+      {
+        <span class="j-key">&quot;type&quot;</span>: <span class="j-str">&quot;changelog&quot;</span>,
+        <span class="j-key">&quot;path&quot;</span>: <span class="j-str">&quot;CHANGELOG.md&quot;</span>,
+        <span class="j-key">&quot;label&quot;</span>: <span class="j-str">&quot;Releases&quot;</span>
+      }
+    ]
   },
   {
     <span class="j-key">&quot;path&quot;</span>: <span class="j-str">&quot;docs&quot;</span>,
     <span class="j-key">&quot;repo&quot;</span>: <span class="j-str">&quot;acme/cli&quot;</span>
   }
-]</pre></details></td></tr><tr><td><code>resolvedSources</code></td><td><span class="tag">build</span></td><td><details class="json"><summary><span class="dim">5 entries</span> <code class="peek">[{&quot;collection&quot;:&quot;docs_sdk&quot;,&quot;prefix&quot;:&quot;/sdk&quot;,&quot;repo&quot;:&quot;sdk&quot;,&quot;version&quot;:&quot;v2&quot;,&quot;isDefault&quot;:true,&quot;reposito…</code></summary><pre class="json">[
+]</pre></details></td></tr><tr><td><code>resolvedSources</code></td><td><span class="tag">build</span></td><td><details class="json"><summary><span class="dim">6 entries</span> <code class="peek">[{&quot;collection&quot;:&quot;docs_sdk&quot;,&quot;prefix&quot;:&quot;/sdk&quot;,&quot;repo&quot;:&quot;sdk&quot;,&quot;version&quot;:&quot;v2&quot;,&quot;isDefault&quot;:true,&quot;reposito…</code></summary><pre class="json">[
   {
     <span class="j-key">&quot;collection&quot;</span>: <span class="j-str">&quot;docs_sdk&quot;</span>,
     <span class="j-key">&quot;prefix&quot;</span>: <span class="j-str">&quot;/sdk&quot;</span>,
@@ -349,6 +356,39 @@
     <span class="j-key">&quot;isDefaultLocale&quot;</span>: <span class="j-word">true</span>,
     <span class="j-key">&quot;status&quot;</span>: <span class="j-str">&quot;current&quot;</span>,
     <span class="j-key">&quot;history&quot;</span>: <span class="j-word">false</span>
+  },
+  {
+    <span class="j-key">&quot;collection&quot;</span>: <span class="j-str">&quot;docs_sdk_releases&quot;</span>,
+    <span class="j-key">&quot;prefix&quot;</span>: <span class="j-str">&quot;/sdk/releases&quot;</span>,
+    <span class="j-key">&quot;repo&quot;</span>: <span class="j-str">&quot;sdk&quot;</span>,
+    <span class="j-key">&quot;isDefault&quot;</span>: <span class="j-word">true</span>,
+    <span class="j-key">&quot;repository&quot;</span>: <span class="j-str">&quot;acme/sdk&quot;</span>,
+    <span class="j-key">&quot;repositoryUrl&quot;</span>: <span class="j-str">&quot;https://github.com/acme/sdk&quot;</span>,
+    <span class="j-key">&quot;ref&quot;</span>: <span class="j-str">&quot;main&quot;</span>,
+    <span class="j-key">&quot;refKind&quot;</span>: <span class="j-str">&quot;branch&quot;</span>,
+    <span class="j-key">&quot;path&quot;</span>: <span class="j-str">&quot;CHANGELOG.md&quot;</span>,
+    <span class="j-key">&quot;locale&quot;</span>: <span class="j-str">&quot;en&quot;</span>,
+    <span class="j-key">&quot;isDefaultLocale&quot;</span>: <span class="j-word">true</span>,
+    <span class="j-key">&quot;status&quot;</span>: <span class="j-str">&quot;current&quot;</span>,
+    <span class="j-key">&quot;history&quot;</span>: <span class="j-word">false</span>,
+    <span class="j-key">&quot;generated&quot;</span>: {
+      <span class="j-key">&quot;type&quot;</span>: <span class="j-str">&quot;changelog&quot;</span>,
+      <span class="j-key">&quot;label&quot;</span>: <span class="j-str">&quot;Releases&quot;</span>,
+      <span class="j-key">&quot;slug&quot;</span>: <span class="j-str">&quot;releases&quot;</span>,
+      <span class="j-key">&quot;declaration&quot;</span>: <span class="j-num">0</span>,
+      <span class="j-key">&quot;navigation&quot;</span>: <span class="j-str">&quot;sections&quot;</span>,
+      <span class="j-key">&quot;icon&quot;</span>: <span class="j-str">&quot;lucide:tag&quot;</span>,
+      <span class="j-key">&quot;layout&quot;</span>: <span class="j-str">&quot;changelog&quot;</span>,
+      <span class="j-key">&quot;versioning&quot;</span>: <span class="j-str">&quot;global&quot;</span>,
+      <span class="j-key">&quot;localisation&quot;</span>: <span class="j-str">&quot;original&quot;</span>,
+      <span class="j-key">&quot;remote&quot;</span>: <span class="j-word">true</span>,
+      <span class="j-key">&quot;report&quot;</span>: {
+        <span class="j-key">&quot;pages&quot;</span>: <span class="j-num">4</span>,
+        <span class="j-key">&quot;warnings&quot;</span>: [
+          <span class="j-str">&quot;the heading \&quot;1.3 (Feb 2026)\&quot; on line 41 reads like a release but does not parse as one, so it became part of the release above it instead of a page of its own. A release heading is a version, optionally followed by a date in parentheses: `## 1.4.0 (2024-02-01)`.&quot;</span>
+        ]
+      }
+    }
   }
 ]</pre></details></td></tr><tr><td><code>footer</code></td><td><span class="tag ok">consumer</span></td><td><span class="dim">1 keys</span> <code>{&quot;note&quot;:&quot;© Acme Inc.&quot;}</code></td></tr></tbody>
   </table></div>

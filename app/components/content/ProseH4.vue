@@ -20,14 +20,34 @@
  * headings.
  */
 defineProps<{ id?: string }>();
+
+const slots = useSlots();
+
+/**
+ * A heading that IS a link cannot be wrapped in one — see `headingHasLink`.
+ * The marker beside it becomes the anchor instead, and stops being decorative:
+ * it is the only thing left to announce, so it takes a name.
+ */
+const nested = computed(() => headingHasLink(slots.default?.()));
 </script>
 
 <template>
   <h4 :id="id" class="group scroll-mt-28">
-    <a v-if="id" :href="`#${id}`" class="duxt-heading-link">
+    <a v-if="id && !nested" :href="`#${id}`" class="duxt-heading-link">
       <span class="duxt-anchor" aria-hidden="true">#</span>
       <slot />
     </a>
+
+    <template v-else-if="id">
+      <a
+        :href="`#${id}`"
+        class="duxt-anchor duxt-anchor-only"
+        :aria-label="$t('duxt.page.anchor')"
+        >#</a
+      >
+      <slot />
+    </template>
+
     <slot v-else />
   </h4>
 </template>

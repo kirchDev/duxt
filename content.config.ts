@@ -1,6 +1,8 @@
 import { fileURLToPath } from 'node:url';
 import { defineContentConfig } from '@nuxt/content';
 import { readDuxtBuildConfig } from './duxt-app-config';
+import { duxtSectionTypes } from './sections-resolve';
+import { duxtGeneratedCollections } from './sections';
 import { duxtSources } from './sources';
 
 /**
@@ -22,9 +24,15 @@ import { duxtSources } from './sources';
 const layerDir = fileURLToPath(new URL('.', import.meta.url));
 const config = readDuxtBuildConfig([process.cwd(), layerDir]);
 
+const sources = config?.sources ?? [{ path: 'docs' }];
+const options = config?.sourceOptions ?? {};
+const types = duxtSectionTypes(config?.sectionTypes);
+
 export default defineContentConfig({
-  collections: duxtSources(
-    config?.sources ?? [{ path: 'docs' }],
-    config?.sourceOptions ?? {}
-  )
+  collections: {
+    ...duxtSources(sources, options),
+    // Off until a source declares one, so a site that generates nothing gets
+    // exactly the collections it always got, under the names it always had.
+    ...duxtGeneratedCollections(sources, options, types)
+  }
 });

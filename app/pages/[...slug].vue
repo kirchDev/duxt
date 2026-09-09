@@ -42,7 +42,14 @@ const { data: found } = await useAsyncData(
       // translate at all has the original as its first entry, and a reader
       // asking for Spanish and getting English has to be told so even though
       // nothing fell back.
-      if (hit) return { page: hit, from: entry!.locale };
+      //
+      // `asked` travels WITH the hit. `locale` changes the instant the reader
+      // picks a language, while this query — and therefore `from` — is still
+      // the previous language's result, so comparing the delivered language
+      // against the LIVE locale reports every switch as untranslated for the
+      // tick between the two. Freezing the language that was asked for into
+      // the same object keeps the pair consistent at every moment.
+      if (hit) return { page: hit, from: entry!.locale, asked: locale.value };
     }
 
     return undefined;
@@ -62,7 +69,7 @@ const untranslated = computed(() => {
   const delivered = found.value.from;
   if (!delivered) return true;
 
-  return delivered.split('-')[0] !== locale.value.split('-')[0];
+  return delivered.split('-')[0] !== found.value.asked.split('-')[0];
 });
 
 if (!page.value) {
@@ -84,6 +91,77 @@ onMounted(() =>
 const heading = useDuxtPageFocus();
 
 const { current, shouldIndex, preferredPath } = useDuxtVersion();
+
+/**
+ * Does the page draw its own header?
+ *
+ * A generated section whose TYPE NAMES A LAYOUT has replaced the docs shell
+ * around this page, and the two halves cannot both draw a header: an API
+ * reference wants its title beside a method chip and its right-hand column
+ * filled with a request client, not with a table of contents. So the rule is
+ * one line — a type that names a layout owns its page — and everything below
+ * that belongs to the docs shell drops out: the breadcrumb, the title block,
+ * the article's reading width and the prev/next pair. The contents column is
+ * the one part that stayed, because it is the one part a generated page still
+ * has an outline for — see `generated` below.
+ *
+ * The BANNERS stay. "You are reading an old version" and "this page is not
+ * translated" are true of a generated page exactly as they are of a written
+ * one, and a type cannot be expected to redraw them.
+ *
+ * `generatedLayout` is the same lookup `middleware/duxt-section-layout.global`
+ * makes to choose the layout, so the two cannot disagree about which pages are
+ * in one.
+ */
+const owned = computed(() =>
+  Boolean(generatedLayout(path.value, duxt?.resolvedSources ?? []))
+);
+
+/**
+ * The contents of a page whose headings a component draws.
+ *
+ * `body.toc` is Content's outline of the MARKDOWN it parsed, and a generated
+ * page's headings are not in it: a release page's are the group names
+ * `ChangelogGroup` renders from a prop, so Content saw a component call and
+ * found nothing to list. Reading them back off the AST the page ships anyway is
+ * what gives a generated section the same right-hand column every written page
+ * has — and it stays empty, so the column drops out, for a type whose pages
+ * genuinely have no outline.
+ */
+const generated = computed(() =>
+  owned.value ? generatedToc(page.value?.body) : []
+);
+
+/**
+ * A layout can refuse the column outright — see `DUXT_ASIDE`. The reference
+ * does, because an operation fills that side with its request client.
+ */
+const allowed = inject(DUXT_ASIDE, true);
+
+/**
+ * Is there a right-hand column to draw at all?
+ *
+ * The outline is not the only thing in it: `DuxtToc` also carries the aside's
+ * fixed links, and `DuxtPageInfo` sits underneath. So the release OVERVIEW —
+ * which deliberately contributes no outline, because its versions are the
+ * visible page — still gets the column every other page has, rather than
+ * losing the community links and the provenance with it.
+ */
+/**
+ * Does the type draw its own title, or does the shell?
+ *
+ * See `generatedTitle`. A changelog writes no `<h1>`, so its pages take the
+ * same header every written page has; an API reference writes one, and keeps
+ * the compact row — the breadcrumb and the copy control, which are facts about
+ * the URL and the source rather than about the type.
+ */
+const titled = computed(() => owned.value && generatedTitle(page.value?.body));
+
+const aside = computed(
+  () =>
+    allowed &&
+    (generated.value.length > 0 || (duxt.aside?.links?.length ?? 0) > 0)
+);
 
 // The social card. Rendered from the layer's own template unless the consumer
 // ships a component of the same name — see `OgImage/Duxt.satori.vue`.
@@ -179,7 +257,103 @@ useSchemaOrg([
 </script>
 
 <template>
-  <div class="flex min-w-0 flex-1 justify-center gap-10">
+  <!-- The type's own layout owns the page: no reading width and no header of
+       ours — see `owned`. The CONTENTS COLUMN is drawn here rather than left to
+       the layout, because only the page holds the body it is read from. -->
+  <div v-if="owned" class="flex min-w-0 flex-1 gap-10">
+    <div class="min-w-0 flex-1 py-8">
+      <DuxtVersionBanner />
+
+      <DuxtTranslationBanner v-if="untranslated" :from="found?.from" />
+
+      <!-- THE SAME HEADER A WRITTEN PAGE GETS, for a type that draws no title
+           of its own. A release page has a title, a description and a trail
+           like any other, and the only reason it ever drew its own heading was
+           that the layout drew none — which left the copy control floating in a
+           row above a title it belongs beside. -->
+      <!-- As wide as the page below it. The reading measure is the LAYOUT's
+           to set — `changelog` caps its own column, `reference` deliberately
+           does not — and a header narrower than the parameter tables under it
+           draws a rule that stops halfway across the page. -->
+      <header v-if="!titled" class="mb-8 border-b pb-8">
+        <DuxtBreadcrumb
+          v-if="duxt?.breadcrumb !== false"
+          :path="path"
+          class="mb-3"
+        />
+
+        <div class="flex items-start justify-between gap-4">
+          <h1
+            ref="heading"
+            tabindex="-1"
+            class="text-4xl font-semibold tracking-tight text-balance outline-none"
+          >
+            {{ page?.title }}
+          </h1>
+
+          <DuxtCopyPage
+            class="mt-1"
+            :path="path"
+            :title="page?.title"
+            :rawbody="(page as { rawbody?: string })?.rawbody"
+          />
+        </div>
+
+        <!-- NO DESCRIPTION LINE, and that is not an omission. A generated page
+             carries no `description` in its frontmatter, so Content derives one
+             from the body's first paragraph — which the body then renders
+             again, three lines below. The lead of a generated page is in its
+             body; the derived value still feeds the meta tags and the card. -->
+      </header>
+
+      <!-- A type that DOES draw its own title keeps the compact row: where the
+           reader is, and what they can do with the page. -->
+      <div v-else class="mb-6 flex items-start justify-between gap-4">
+        <DuxtBreadcrumb v-if="duxt?.breadcrumb !== false" :path="path" />
+
+        <DuxtCopyPage
+          class="-mt-1 ml-auto"
+          :path="path"
+          :title="page?.title"
+          :rawbody="(page as { rawbody?: string })?.rawbody"
+        />
+      </div>
+
+      <div class="typeset typeset-docs">
+        <ContentRenderer v-if="page" :value="page" />
+      </div>
+
+      <!-- The SECTION's own order, which is what a generated section has: the
+           releases newest to oldest, the endpoints as the artefact listed them.
+           `DuxtPageNav` walks the same navigation the sidebar draws and stops
+           at the section's edge, so the links can only be siblings — and a
+           release page that ended in whitespace now ends in the release before
+           it, which is how a history is read. -->
+      <DuxtPageNav :path="path" />
+
+      <!-- Provenance survives the header, because it is the one part of it that
+           is still true: every page of a generated section came out of one
+           artefact, and `DuxtPageInfo` already links at that artefact rather
+           than at a file named after the URL. It moves into the column beside
+           the contents wherever there is one, exactly as in the docs shell. -->
+      <!-- As a row, and as wide as the page: with no column to sit in it is a
+           footer, and a rule that stopped at the reading measure under a page
+           set wider than that ended halfway across. -->
+      <DuxtPageInfo v-if="!aside" row :page="page" />
+    </div>
+
+    <div v-if="aside" class="hidden w-56 shrink-0 xl:block">
+      <div
+        class="sticky top-[var(--duxt-header-offset)] max-h-[calc(100vh-var(--duxt-header-offset)-1.5rem)] overflow-y-auto py-8"
+      >
+        <DuxtToc :links="generated" />
+
+        <DuxtPageInfo :page="page" />
+      </div>
+    </div>
+  </div>
+
+  <div v-else class="flex min-w-0 flex-1 justify-center gap-10">
     <article class="min-w-0 max-w-3xl flex-1 py-8">
       <DuxtVersionBanner />
 
@@ -231,7 +405,7 @@ useSchemaOrg([
          the landmarks, and both are labelled. -->
     <div class="hidden w-56 shrink-0 xl:block">
       <div
-        class="sticky top-[6.5rem] max-h-[calc(100vh-8rem)] overflow-y-auto py-8"
+        class="sticky top-[var(--duxt-header-offset)] max-h-[calc(100vh-var(--duxt-header-offset)-1.5rem)] overflow-y-auto py-8"
       >
         <DuxtToc :links="page?.body?.toc?.links ?? []" />
 

@@ -1,10 +1,27 @@
 <script setup lang="ts">
-const props = defineProps<{
-  /** Raw source, used for the copy button and as the body when no slot is given. */
-  code?: string;
-  language?: string;
-  filename?: string;
-}>();
+const props = withDefaults(
+  defineProps<{
+    /** Raw source, used for the copy button and as the body when no slot is given. */
+    code?: string;
+    language?: string;
+    filename?: string;
+    /**
+     * The block's own controls — the header bar AND the copy button.
+     *
+     * `false` says a CONTAINER draws them instead: `CodeGroup` puts the file
+     * names in a tab bar and the copy button beside them, the way
+     * `PackageManagers` does, and a block that kept its own would print the
+     * language under the file name and offer a second button for the same
+     * text.
+     *
+     * Both together, deliberately. Switching off only the bar left the copy
+     * button in its floating position, where it appears on hover — so a group
+     * of fences lost the visible control the same block outside a group has.
+     */
+    header?: boolean;
+  }>(),
+  { header: true }
+);
 
 const slots = useSlots();
 
@@ -13,8 +30,31 @@ const slots = useSlots();
 // which is exactly what happened, and looked like Shiki being switched off.
 const hasBody = computed(() => Boolean(slots.default));
 
-// The filename wins over the language: `nuxt.config.ts` gets Nuxt's icon, a
-// bare ```ts fence gets TypeScript's.
+/**
+ * The other half of that: a block with NO slot never passed through Content at
+ * all — it is code this site derived at runtime, an example body off a schema
+ * or a response the client just received — and it used to render as flat text
+ * beside fences that were coloured, which reads as the highlighter being off
+ * for that one box. Highlighted here instead, with the same themes.
+ *
+ * Skipped where there is a slot, because Content already did it, and where the
+ * language is not one this site generates — see `duxtCodeLang`.
+ */
+const { data: highlighted } = await useAsyncData(
+  () => `duxt-code-${props.language ?? 'text'}-${props.code ?? ''}`,
+  () => {
+    const lang = duxtCodeLang(props.language);
+
+    return !hasBody.value && props.code && lang
+      ? highlightCode(props.code, lang)
+      : // `null`, not `undefined`: Nuxt reads a handler that resolves to
+        // nothing as one that failed to return, warns, and repeats the request
+        // on the client. Here nothing to highlight is a real answer.
+        Promise.resolve(null);
+  },
+  { watch: [() => props.code, () => props.language] }
+);
+
 const icon = computed(() =>
   fileIcon(
     props.filename ?? props.language,
@@ -53,13 +93,13 @@ async function copy() {
     class="duxt-code group relative my-6 overflow-hidden rounded-lg border bg-card"
   >
     <div
-      v-if="label"
+      v-if="header && label"
       class="duxt-code-header flex min-h-11 items-center gap-2 border-b bg-muted/40 px-3 py-2 text-xs text-muted-foreground"
     >
       <Icon :name="icon" class="size-4 shrink-0" />
       <span class="truncate font-mono">{{ label }}</span>
 
-      <Button
+      <UiButton
         variant="ghost"
         size="icon"
         class="ml-auto size-7 hover:bg-accent hover:text-foreground"
@@ -70,11 +110,11 @@ async function copy() {
           :name="copied ? 'lucide:check' : 'lucide:copy'"
           class="size-3.5"
         />
-      </Button>
+      </UiButton>
     </div>
 
-    <Button
-      v-else
+    <UiButton
+      v-else-if="header"
       variant="ghost"
       size="icon"
       class="duxt-code-copy absolute top-2 right-2 size-7 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-accent focus-visible:opacity-100"
@@ -83,10 +123,17 @@ async function copy() {
       @click="copy"
     >
       <Icon :name="copied ? 'lucide:check' : 'lucide:copy'" class="size-3.5" />
-    </Button>
+    </UiButton>
 
     <div ref="root">
       <slot v-if="hasBody" />
+      <!-- eslint-disable-next-line vue/no-v-html -- Shiki's own output, from
+           this site's own string; nothing a reader typed reaches it. -->
+      <div
+        v-else-if="highlighted"
+        class="duxt-code-body"
+        v-html="highlighted"
+      />
       <pre
         v-else
         class="overflow-x-auto p-4 text-sm"

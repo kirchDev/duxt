@@ -9,7 +9,9 @@
       "main": "Navegação principal",
       "docs": "Documentação",
       "pagination": "Navegação de páginas",
-      "breadcrumb": "Trilho de navegação"
+      "breadcrumb": "Trilho de navegação",
+      "menu": "Navegação",
+      "pages": "Páginas"
     }
   }
 }

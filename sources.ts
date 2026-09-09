@@ -1,5 +1,4 @@
-import { existsSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 import { defineCollection, z } from '@nuxt/content';
 import { defineSitemapSchema } from '@nuxtjs/sitemap/content';
 import type { DuxtSource, DuxtSourcesOptions } from './sources-resolve';
@@ -11,6 +10,10 @@ import {
   resolveSources
 } from './sources-resolve';
 import { resolveLatestRefs } from './sources-git';
+// Re-exported under the name it has always had here: it moved out so a Nuxt
+// module could reach it without this file's imports coming with it.
+import { repositoryRoot } from './repository-root';
+export { repositoryRoot };
 export type {
   DuxtResolvedSource,
   DuxtSource,
@@ -24,29 +27,12 @@ import { PARTIALS_COLLECTION, partialsCollection } from './sources-resolve';
 export { PARTIALS_COLLECTION, partialsCollection };
 
 /**
- * Walk up to the repository root, so `docs/` resolves there and not in a
- * subfolder. Node-only, and kept here rather than beside the resolver: that
- * file is read by app.config.ts and therefore bundled for the browser.
- */
-function repositoryRoot(): string {
-  let dir = process.cwd();
-
-  for (;;) {
-    if (existsSync(join(dir, '.git'))) return dir;
-
-    const parent = dirname(dir);
-    if (parent === dir) return process.cwd();
-    dir = parent;
-  }
-}
-
-/**
  * Frontmatter the theme reads beyond Content's own fields.
  *
  * Without a schema Content neither stores these nor types them, so `icon:` in a
  * page's frontmatter was silently dropped before the sidebar ever saw it.
  */
-const pageSchema = z.object({
+export const pageSchema = z.object({
   /** Shown beside the entry in the sidebar, the section row and page cards. */
   icon: z.string().optional(),
   /** `landing` renders the page without the docs chrome. */
@@ -72,6 +58,15 @@ const pageSchema = z.object({
    * reference page does not, and falls back to its last commit.
    */
   date: z.string().optional(),
+  /**
+   * The diff this page was cut from — a changelog release links the commits it
+   * carries, taken off the heading release-please wrapped the version in.
+   *
+   * Beside `date` because it answers the other half of the same question, and
+   * it is drawn in the same place: the provenance block under the contents,
+   * where "Edit this page" already sends a reader at the repository.
+   */
+  compare: z.string().optional(),
   /** Filled in by `modules/git-meta.ts`; not written by hand. */
   lastUpdated: z.string().optional(),
   /** Filled in by `modules/git-meta.ts`; not written by hand. */

@@ -43,6 +43,13 @@ antigua, dos páginas que la traducción no ha alcanzado, una página sin
 frontmatter — porque un panel sin nada que informar no le enseña a nadie qué
 aspecto tiene cuando algo va mal.
 
+## Sin servidor de desarrollo
+
+`pnpm exec duxt-report` imprime las fuentes, las comprobaciones y las
+redirecciones como Markdown — los mismos datos que dibujan estos paneles, en una
+forma que puedes pegar en un ticket o entregarle a un modelo. `--json` los da sin
+representar. Véase [Qué comprueba la compilación](/concepts/build-checks).
+
 Las vistas previas son inertes: sus pestañas se mueven entre paneles, y todo lo
 demás — los enlaces al editor, el botón de borrado, el formulario de búsqueda —
 no hace nada.

@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineNuxtConfig } from 'nuxt/config';
 import tailwindcss from '@tailwindcss/vite';
+import { highlightLangs } from './highlight-langs';
 
 /** Resolve against this layer, not the project extending it. */
 const layer = (path: string) => fileURLToPath(new URL(path, import.meta.url));
@@ -60,6 +61,7 @@ const locales = [
     language: 'en-GB',
     name: 'English (UK)',
     files: [
+      'en/duxt/changelog.json',
       'en/duxt/code.json',
       'en/duxt/devtools.json',
       'en/duxt/defaults.json',
@@ -67,6 +69,7 @@ const locales = [
       'en/duxt/footer.json',
       'en/duxt/locale.json',
       'en/duxt/nav.json',
+      'en/duxt/openapi.json',
       'en/duxt/page.json',
       'en/duxt/search.json',
       'en/duxt/shortcuts.json',
@@ -80,6 +83,7 @@ const locales = [
     language: 'en-US',
     name: 'English (US)',
     files: [
+      'en/duxt/changelog.json',
       'en/duxt/code.json',
       'en/duxt/devtools.json',
       'en/duxt/defaults.json',
@@ -87,6 +91,7 @@ const locales = [
       'en/duxt/footer.json',
       'en/duxt/locale.json',
       'en/duxt/nav.json',
+      'en/duxt/openapi.json',
       'en/duxt/page.json',
       'en/duxt/search.json',
       'en/duxt/shortcuts.json',
@@ -100,6 +105,7 @@ const locales = [
     language: 'de-DE',
     name: 'Deutsch',
     files: [
+      'de/duxt/changelog.json',
       'de/duxt/code.json',
       'de/duxt/devtools.json',
       'de/duxt/defaults.json',
@@ -107,6 +113,7 @@ const locales = [
       'de/duxt/footer.json',
       'de/duxt/locale.json',
       'de/duxt/nav.json',
+      'de/duxt/openapi.json',
       'de/duxt/page.json',
       'de/duxt/search.json',
       'de/duxt/shortcuts.json',
@@ -120,6 +127,7 @@ const locales = [
     language: 'es-ES',
     name: 'Español',
     files: [
+      'es/duxt/changelog.json',
       'es/duxt/code.json',
       'es/duxt/devtools.json',
       'es/duxt/defaults.json',
@@ -127,6 +135,7 @@ const locales = [
       'es/duxt/footer.json',
       'es/duxt/locale.json',
       'es/duxt/nav.json',
+      'es/duxt/openapi.json',
       'es/duxt/page.json',
       'es/duxt/search.json',
       'es/duxt/shortcuts.json',
@@ -140,6 +149,7 @@ const locales = [
     language: 'fr-FR',
     name: 'Français',
     files: [
+      'fr/duxt/changelog.json',
       'fr/duxt/code.json',
       'fr/duxt/devtools.json',
       'fr/duxt/defaults.json',
@@ -147,6 +157,7 @@ const locales = [
       'fr/duxt/footer.json',
       'fr/duxt/locale.json',
       'fr/duxt/nav.json',
+      'fr/duxt/openapi.json',
       'fr/duxt/page.json',
       'fr/duxt/search.json',
       'fr/duxt/shortcuts.json',
@@ -160,6 +171,7 @@ const locales = [
     language: 'pt-PT',
     name: 'Português',
     files: [
+      'pt/duxt/changelog.json',
       'pt/duxt/code.json',
       'pt/duxt/devtools.json',
       'pt/duxt/defaults.json',
@@ -167,6 +179,7 @@ const locales = [
       'pt/duxt/footer.json',
       'pt/duxt/locale.json',
       'pt/duxt/nav.json',
+      'pt/duxt/openapi.json',
       'pt/duxt/page.json',
       'pt/duxt/search.json',
       'pt/duxt/shortcuts.json',
@@ -180,6 +193,7 @@ const locales = [
     language: 'pt-BR',
     name: 'Português (Brasil)',
     files: [
+      'pt/duxt/changelog.json',
       'pt/duxt/code.json',
       'pt/duxt/devtools.json',
       'pt/duxt/defaults.json',
@@ -187,6 +201,7 @@ const locales = [
       'pt/duxt/footer.json',
       'pt/duxt/locale.json',
       'pt/duxt/nav.json',
+      'pt/duxt/openapi.json',
       'pt/duxt/page.json',
       'pt/duxt/search.json',
       'pt/duxt/shortcuts.json',
@@ -315,22 +330,7 @@ export default defineNuxtConfig({
             default: 'github-light',
             dark: 'github-dark'
           },
-          langs: [
-            'bash',
-            'css',
-            'diff',
-            'html',
-            'json',
-            'js',
-            'jsonc',
-            'md',
-            'mdc',
-            'php',
-            'sh',
-            'ts',
-            'vue',
-            'yaml'
-          ]
+          langs: highlightLangs
         }
       }
     },
@@ -426,7 +426,13 @@ export default defineNuxtConfig({
   },
 
   shadcn: {
-    prefix: '',
+    // PREFIXED, and deliberately. Without one the layer auto-imports `Button`,
+    // `Input`, `Card` and a hundred more into every site that extends it —
+    // ordinary words a consumer is likely to want for a component of their own,
+    // and a collision resolves silently in favour of whichever Nuxt registered
+    // last. `Ui` says where a component comes from at the call site and keeps
+    // the plain names free for the site being built.
+    prefix: 'Ui',
     componentDir: layer('./app/components/ui')
   },
 

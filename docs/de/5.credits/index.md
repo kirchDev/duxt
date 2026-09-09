@@ -21,12 +21,34 @@ Handvoll Meinungen.
 | [reka-ui](https://reka-ui.com)                       | Die Primitive darunter: Fokus, roving tabindex, ARIA                    |
 | [Tailwind CSS](https://tailwindcss.com)              | Das Styling-System und die Token-Ebene                                  |
 | [Shiki](https://shiki.style)                         | Syntax-Hervorhebung, zur Build-Zeit                                     |
-| [Lucide](https://lucide.dev)                         | Der Icon-Satz                                                           |
+| [Die Icon-Sätze](#icons)                             | Vier Sammlungen, eine je Art von Zeichen                                |
 | [MDC](https://content.nuxt.com/docs/files/markdown)  | Aus Markdown aufrufbare Komponenten                                     |
 
 Die Version von jedem steht in `package.json`, wo eine Zahl hingehört — eine
 zweite Kopie in Prosa ist eine, die stillschweigend veraltet.
 
+
+## Icons
+
+Vier Sammlungen, weil einfarbig und selbstfarbig verschiedene Aufgaben sind — die
+Regel, die entscheidet, welche was zeichnet, steht unter
+[Konventionen](/conventions/icons).
+
+| Satz                                                         | Zeichnet                                  | Lizenz  |
+| :------------------------------------------------------------ | :---------------------------------------- | :------ |
+| [Lucide](https://lucide.dev)                                  | die Oberfläche                             | ISC     |
+| [vscode-icons](https://github.com/vscode-icons/vscode-icons)  | Dateien, Fence-Sprachen, die Werkzeuge     | MIT     |
+| [Simple Icons](https://simpleicons.org)                       | die Zeichen, die vscode-icons nicht führt  | CC0-1.0 |
+| [flag-icons](https://github.com/lipis/flag-icons)             | die Flagge neben jedem Locale              | MIT     |
+
+Die Lizenz steht hier und nicht nur in `package.json`, weil der Build diese SVGs
+in das Ausgelieferte inlined: das Paket transportiert die Werke, also
+transportiert es die Hinweise.
+
+Eine Lizenz auf einer Datei ist keine Lizenz auf eine Marke. Die Package Manager,
+GitHub, Discord, Claude und OpenAI sind Marken ihrer Inhaber; sie werden hier
+gezeichnet, um die Sache zu benennen, die sie identifizieren, und für nichts
+sonst.
 ## Nachempfunden
 
 Ideen, die duxt aus Projekten übernommen hat, auf denen es nicht aufbaut.

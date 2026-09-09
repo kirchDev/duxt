@@ -153,7 +153,16 @@ function walk(dir: string): string[] {
 const COMPUTED = [
   'duxt.version.',
   'duxt.version.status.',
-  'duxt.version.titles.'
+  'duxt.version.titles.',
+  // `duxt.openapi.in.${parameter.in}` — where a parameter goes, which the
+  // document names and the interface translates.
+  'duxt.openapi.in.',
+  // `duxt.openapi.composition.${kind}` — the four JSON Schema combinators, read
+  // off the schema rather than branched on in the template.
+  'duxt.openapi.composition.',
+  // `duxt.openapi.constraints.${key}` — one key per constraint keyword, and the
+  // keywords come from the document.
+  'duxt.openapi.constraints.'
 ];
 
 describe('every key is reachable', () => {
@@ -181,11 +190,12 @@ describe('every key is reachable', () => {
       ...strings(duxtDefaults)
         .map(([, value]) => value)
         .filter(isKey),
-      // `index.vue` calls these three through `$t()` with no config field behind
+      // The landing pages call these through `$t()` with no config field behind
       // them, so they are named rather than derived.
       'duxt.defaults.landing.preview',
       'duxt.defaults.landing.previewOpen',
-      'duxt.defaults.landing.featuresTitle'
+      'duxt.defaults.landing.featuresTitle',
+      'duxt.defaults.landing.demoTitle'
     ];
 
     expect(named.filter((key) => !shipped.includes(key))).toEqual([]);
@@ -210,6 +220,7 @@ const INVENTORY = [
   'landing.preview', // The embedded window's accessible name
   'landing.previewOpen', // The button on it
   'landing.featuresTitle', // The heading over a grid the SITE fills
+  'landing.demoTitle', // Names the tabbed window, and labels its tablist
   'aside.title' // "Community" heads a block that draws nothing until filled
 ];
 

@@ -1,9 +1,16 @@
 import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Nuxt } from '@nuxt/schema';
 import { enableWriteAheadLog } from '../content-cache';
+import type { DuxtBuildConfig } from '../duxt-app-config';
 import { readDuxtBuildConfig } from '../duxt-app-config';
-import { duxtSourceManifest } from '../sources-resolve';
+import {
+  duxtDefaultRequestSamples,
+  duxtRequestSamples
+} from '../app/utils/request-samples';
+import { duxtManifest, duxtSectionTypes } from '../sections-resolve';
+import { readSectionReports } from '../section-reports';
 import { resolveLatestRefs } from '../sources-git';
 
 /**
@@ -44,9 +51,18 @@ export default function duxtConfig(_options: unknown, nuxt: Nuxt) {
 
   const config = readDuxtBuildConfig(dirs);
 
-  const resolvedSources = duxtSourceManifest(
-    resolveLatestRefs(config?.sources ?? [{ path: 'docs' }]),
-    config?.sourceOptions ?? {}
+  const sectionTypes = duxtSectionTypes(config?.sectionTypes);
+
+  // Read here, and the reports travel with the manifest into `appConfig` — the
+  // only route by which what an artefact said reaches the running server, and
+  // therefore the Checks panel. See `readSectionReports`.
+  const resolvedSources = readSectionReports(
+    duxtManifest(
+      resolveLatestRefs(config?.sources ?? [{ path: 'docs' }]),
+      config?.sourceOptions ?? {},
+      sectionTypes
+    ),
+    sectionTypes
   );
 
   // Written into `appConfig`, which the generated template merges LAST — behind
@@ -61,6 +77,7 @@ export default function duxtConfig(_options: unknown, nuxt: Nuxt) {
     resolvedSources
   } as typeof nuxt.options.appConfig.duxt;
 
+  writeGrammars(nuxt, config);
   checkSourceLocales(nuxt, config, resolvedSources);
   restrictLocales(nuxt, config?.locales);
   shareSiteUrl(nuxt);
@@ -87,7 +104,7 @@ function checkSourceLocales(
   config:
     | { locales?: string[]; sourceOptions?: { defaultLocale?: string } }
     | undefined,
-  resolved: ReturnType<typeof duxtSourceManifest>
+  resolved: ReturnType<typeof duxtManifest>
 ) {
   const translated = resolved.filter((source) => source.locale);
   if (!translated.length) return;
@@ -134,6 +151,84 @@ function checkSourceLocales(
  * goes stale on the first release. Both are absent rather than guessed if the
  * file cannot be read — the footer then draws nothing.
  */
+/**
+ * The grammars the RUNTIME highlighter loads, written from the configured
+ * samples.
+ *
+ * The samples beside the try-it client are coloured in the browser, because the
+ * request changes as the reader types and the server cannot re-render it. So
+ * unlike a Markdown fence — whose grammar is a build-time cost and never a
+ * client byte, see `highlight-langs.ts` — every language here IS bytes a reader
+ * downloads: python is 9 KB gzip, php 28 KB.
+ *
+ * WRITTEN, NOT LOOKED UP. Shiki's own `shiki/langs` is a lazy map of all 242,
+ * which would let any language load on demand for 3 KB — and make every
+ * consumer's build emit 242 grammar chunks. Generating the map from the resolved
+ * list instead means a site gets exactly the languages its samples name, and the
+ * `import()` calls are literal, so Vite can see them.
+ *
+ * The three at the bottom are not samples: the package-manager block, the
+ * response body and the example bodies are highlighted at runtime too, and they
+ * are the same three whatever a site configures.
+ */
+function writeGrammars(nuxt: Nuxt, config?: DuxtBuildConfig): void {
+  const shipped = new Map(
+    duxtRequestSamples.map((sample) => [sample.id, sample.language])
+  );
+
+  const wanted = config?.requestSamples ?? duxtDefaultRequestSamples;
+
+  const languages = new Set([
+    'bash',
+    'json',
+    'typescript',
+    ...(config?.sampleLanguages ?? [])
+  ]);
+
+  for (const entry of wanted) {
+    const language =
+      typeof entry === 'string' ? shipped.get(entry) : entry?.language;
+
+    if (language) languages.add(language);
+  }
+
+  const loaders = [...languages]
+    .sort()
+    .map(
+      (language) =>
+        `  ${JSON.stringify(language)}: () => import('shiki/langs/${language}.mjs')`
+    )
+    .join(',\n');
+
+  // `nuxt.options.build.templates` rather than `addTemplate`: `@nuxt/kit` is not
+  // a dependency of this layer and none of its five modules imports one, which
+  // keeps the layer's install free of a package that has to track `nuxt`'s own
+  // version. This is what the helper does anyway.
+  nuxt.options.build.templates.push(
+    {
+      filename: 'duxt-grammars.mjs',
+      getContents: () => `export const grammars = {\n${loaders}\n};\n`
+    },
+    {
+      filename: 'types/duxt-grammars.d.ts',
+      write: true,
+      getContents: () =>
+        [
+          "declare module '#build/duxt-grammars.mjs' {",
+          '  export const grammars: Record<string, () => Promise<unknown>>;',
+          '}',
+          ''
+        ].join('\n')
+    }
+  );
+
+  nuxt.hook('prepare:types', ({ references }) => {
+    references.push({
+      path: join(nuxt.options.buildDir, 'types/duxt-grammars.d.ts')
+    });
+  });
+}
+
 function layerIdentity(layerDir: string) {
   try {
     const pkg = JSON.parse(
@@ -227,7 +322,7 @@ function nameMcpServer(
  */
 function excludeOldVersionsFromSitemap(
   nuxt: Nuxt,
-  sources: ReturnType<typeof duxtSourceManifest>
+  sources: ReturnType<typeof duxtManifest>
 ) {
   const hidden = sources.filter(
     (source) => source.prefix && (!source.isDefault || source.status === 'eol')

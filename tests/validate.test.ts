@@ -224,3 +224,182 @@ describe('the translation report', () => {
     expect(notes).toEqual(['de: 1/1 pages']);
   });
 });
+
+/**
+ * The command blocks, whose two faults are both silent without this.
+ *
+ * A dropped tab looks like a site that offers three managers, and a mistyped verb
+ * looks like four working commands. Neither shows up in a diff, a lint or a build.
+ */
+describe('report — package manager commands', () => {
+  const sources = [{ collection: 'docs', prefix: '' }];
+
+  it('says which manager cannot express a command', () => {
+    const { warnings } = report(sources, [page({ commands: ['outdated'] })]);
+
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toMatch(/no equivalent in yarn/);
+    expect(warnings[0]).toMatch(/docs\/guide\.md/);
+  });
+
+  it('names a verb it does not translate', () => {
+    const { warnings } = report(sources, [
+      page({ commands: ['outdatd --long'] })
+    ]);
+
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toMatch(/"outdatd"/);
+    expect(warnings[0]).toMatch(/shows it as written/);
+  });
+
+  it('says nothing about a command every manager has', () => {
+    const { warnings } = report(sources, [
+      page({ commands: ['add -D pkg', 'run build', 'dlx create-nuxt'] })
+    ]);
+
+    expect(warnings).toEqual([]);
+  });
+});
+
+describe('report — generated sections', () => {
+  const section = (
+    over: Partial<Parameters<typeof report>[0][number]> = {},
+    generated: Partial<
+      NonNullable<Parameters<typeof report>[0][number]['generated']>
+    > = {}
+  ) => ({
+    collection: 'releases',
+    prefix: '/releases',
+    path: 'CHANGELOG.md',
+    ...over,
+    generated: {
+      type: 'changelog',
+      label: 'Releases',
+      ...generated
+    }
+  });
+
+  it('never fails the build over one', () => {
+    // Everything a LOCAL artefact can get wrong has already thrown while the
+    // config was loading. What reaches this report is a remote artefact or a
+    // page that rendered with something missing — neither is an error.
+    const { errors, warnings } = report([section()], []);
+
+    expect(errors).toEqual([]);
+    expect(warnings).toHaveLength(1);
+  });
+
+  it('says a declared artefact was not there, and where it looked', () => {
+    const { warnings } = report(
+      [
+        section(
+          { repository: 'acme/sdk', ref: 'v1.9' },
+          { remote: true, report: { pages: 0, warnings: [], missing: true } }
+        )
+      ],
+      []
+    );
+
+    expect(warnings[0]).toMatch(/acme\/sdk@v1\.9/);
+    expect(warnings[0]).toMatch(/not built/);
+  });
+
+  it('says an artefact the type could read nothing in', () => {
+    const { warnings } = report(
+      [section({}, { report: { pages: 0, warnings: [] } })],
+      []
+    );
+
+    expect(warnings[0]).toMatch(/holds nothing the "changelog" type can read/);
+  });
+
+  it('reports what the type warned about, naming the artefact', () => {
+    const { warnings } = report(
+      [
+        section(
+          { path: 'openapi.yaml', collection: 'reference' },
+          {
+            type: 'openapi',
+            report: {
+              pages: 3,
+              warnings: ['the reference "#/x" points at nothing.']
+            }
+          }
+        )
+      ],
+      [page({ collection: 'reference', path: '/reference/one' })]
+    );
+
+    expect(warnings).toEqual([
+      'the generated section "Releases" ("openapi.yaml"): the reference ' +
+        '"#/x" points at nothing.'
+    ]);
+  });
+
+  it('quotes the artefact only where it is in this checkout', () => {
+    // The Checks panel turns the first quoted `.md` in a finding into an editor
+    // link, and a remote CHANGELOG.md resolved against the local root links to
+    // nothing.
+    const { warnings } = report(
+      [
+        section(
+          { repository: 'acme/sdk' },
+          { remote: true, report: { pages: 1, warnings: ['something.'] } }
+        )
+      ],
+      [page({ collection: 'releases', path: '/releases/one' })]
+    );
+
+    expect(warnings[0]).not.toMatch(/"CHANGELOG\.md"/);
+    expect(warnings[0]).toMatch(/CHANGELOG\.md/);
+  });
+
+  it('falls back to the page count when nobody read the artefact', () => {
+    // A remote artefact sits wherever Content's hash-cached checkout put it, so
+    // the manifest a module holds carries no report for it at all. The empty
+    // collection is still visible; only the reason for it is not.
+    const { warnings } = report(
+      [section({ repository: 'acme/sdk' }, { remote: true })],
+      []
+    );
+
+    expect(warnings[0]).toMatch(/produced no pages/);
+    expect(warnings[0]).toMatch(/acme\/sdk/);
+  });
+
+  it('says nothing about a section that is serving its pages', () => {
+    const { errors, warnings } = report(
+      [section({}, { report: { pages: 2, warnings: [] } })],
+      [page({ collection: 'releases', path: '/releases/one' })]
+    );
+
+    expect(errors).toEqual([]);
+    expect(warnings).toEqual([]);
+  });
+
+  it('reports pages that were produced but are not being served', () => {
+    // Content dropping a collection is the failure this whole file exists for,
+    // and a generated one used to be exempt from the rule that caught it.
+    const { warnings } = report(
+      [section({}, { report: { pages: 4, warnings: [] } })],
+      []
+    );
+
+    expect(warnings[0]).toMatch(/Content dropped it/);
+  });
+
+  it('does not ask a generated page for a description', () => {
+    const { warnings } = report(
+      [section({}, { report: { pages: 1, warnings: [] } })],
+      [
+        page({
+          collection: 'releases',
+          path: '/releases/one',
+          description: undefined
+        })
+      ]
+    );
+
+    expect(warnings).toEqual([]);
+  });
+});

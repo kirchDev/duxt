@@ -8,7 +8,7 @@ This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.
 
 ## Reporting issues
 
-- **Questions & ideas, or something that might be a bug**: start in the [Discord forum](https://discord.kirch.dev/) — that's where the low-friction, unconfirmed stuff lives.
+- **Questions & ideas, or something that might be a bug**: start in the [Discord forum](https://discord.duxt.app/) — that's where the low-friction, unconfirmed stuff lives.
 - **Confirmed bugs**: open a [Bug report](https://github.com/kirchDev/duxt/issues/new?template=bug_report.yml) with a minimal reproduction if at all possible.
 - **Feature requests**: open a [Feature request](https://github.com/kirchDev/duxt/issues/new?template=feature_request.yml).
 - **Security vulnerabilities**: **do not** open a public issue. Follow [SECURITY.md](SECURITY.md).

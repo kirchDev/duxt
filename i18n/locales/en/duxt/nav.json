@@ -9,7 +9,9 @@
       "main": "Main navigation",
       "docs": "Documentation",
       "pagination": "Page navigation",
-      "breadcrumb": "Breadcrumb"
+      "breadcrumb": "Breadcrumb",
+      "menu": "Navigation",
+      "pages": "Pages"
     }
   }
 }

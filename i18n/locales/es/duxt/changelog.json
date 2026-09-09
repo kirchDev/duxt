@@ -1,0 +1,17 @@
+{
+  "duxt": {
+    "changelog": {
+      "releases": "Versiones",
+      "filter": "Filtrar por tipo de cambio",
+      "latest": "Más reciente",
+      "changes": "Cambios",
+      "kinds": "Tipos de cambio",
+      "last": "Última versión",
+      "more": "y {count} más",
+      "kind": "Tipo de cambio",
+      "reset": "Restablecer",
+      "history": "Historial de versiones",
+      "selected": "Tipos de cambio seleccionados"
+    }
+  }
+}

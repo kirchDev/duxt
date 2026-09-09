@@ -58,12 +58,12 @@ function setOpen(item: ContentNavigationItem, value: boolean) {
   >
     <ul class="space-y-0.5">
       <li v-for="item in items" :key="item.path">
-        <Collapsible
+        <UiCollapsible
           v-if="item.children?.length"
           :open="isOpen(item)"
           @update:open="(value) => setOpen(item, value)"
         >
-          <CollapsibleTrigger
+          <UiCollapsibleTrigger
             class="group flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 font-medium text-foreground transition-colors hover:bg-accent"
           >
             <Icon
@@ -76,16 +76,16 @@ function setOpen(item: ContentNavigationItem, value: boolean) {
               name="lucide:chevron-right"
               class="ml-auto size-3.5 text-muted-foreground transition-transform group-data-[state=open]:rotate-90"
             />
-          </CollapsibleTrigger>
+          </UiCollapsibleTrigger>
 
-          <CollapsibleContent>
+          <UiCollapsibleContent>
             <ul class="mt-0.5 ml-3.5 space-y-0.5 border-l pl-2.5">
               <li v-for="child in item.children" :key="child.path">
                 <DuxtNavigationLink :item="child" />
               </li>
             </ul>
-          </CollapsibleContent>
-        </Collapsible>
+          </UiCollapsibleContent>
+        </UiCollapsible>
 
         <DuxtNavigationLink v-else :item="item" />
       </li>

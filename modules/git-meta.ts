@@ -1,9 +1,9 @@
 import { execFileSync } from 'node:child_process';
-import { dirname } from 'node:path';
+import { dirname, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Nuxt } from '@nuxt/schema';
 import { readDuxtBuildConfig } from '../duxt-app-config';
-import { duxtSourceManifest } from '../sources-resolve';
+import { duxtManifest, duxtSectionTypes } from '../sections-resolve';
 import { resolveLatestRefs } from '../sources-git';
 
 /**
@@ -48,9 +48,10 @@ export default function duxtGitMeta(_options: unknown, nuxt: Nuxt) {
   ].filter(Boolean) as string[];
 
   const config = readDuxtBuildConfig(dirs);
-  const sources = duxtSourceManifest(
+  const sources = duxtManifest(
     resolveLatestRefs(config?.sources ?? [{ path: 'docs' }]),
-    config?.sourceOptions ?? {}
+    config?.sourceOptions ?? {},
+    duxtSectionTypes(config?.sectionTypes)
   );
 
   const wanted = new Map(
@@ -138,34 +139,174 @@ function unshallow(dir: string) {
  */
 const SEPARATOR = '\u001f';
 
-function gitLog(file: string): Commit[] {
-  try {
-    const output = execFileSync(
-      'git',
-      [
-        '-C',
-        dirname(file),
-        'log',
-        '--follow',
-        '--format=%aI%x1f%an%x1f%ae',
-        '--',
-        file
-      ],
-      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }
-    );
+/**
+ * The record separator, marking where one commit's header begins.
+ *
+ * `--name-status -z` already ends every path with NUL, so the header needs a
+ * byte of its own to be told apart from one — and `%x01` is a byte no path and
+ * no author name can contain.
+ */
+const RECORD = '\u0001';
 
-    return output
-      .split('\n')
-      .filter(Boolean)
-      .map((line) => {
-        const [date, name, email] = line.split(SEPARATOR);
-        return { date: date ?? '', name: name ?? '', email: email ?? '' };
-      });
-  } catch {
-    // Not a checkout, no git, or a file git has never seen. All three mean the
-    // same thing here: nothing to show, which is not an error.
-    return [];
+/** What `-z` writes between the fields `--name-status` emits. */
+const NUL = '\0';
+
+/**
+ * ONE `git log` PER REPOSITORY, NOT ONE PER PAGE.
+ *
+ * This used to run `git log --follow` against each file as it was parsed. It
+ * was correct, and it cost 40 of the 55 seconds a cold content build took. The
+ * work is not the history — this repository's entire log reads in 70ms — it is
+ * spawning six hundred processes, which on a Linux that is really a virtual
+ * machine costs about 50ms each no matter how little the process then does.
+ *
+ * So the log is read once, whole, and indexed by path. Every page after the
+ * first is a map lookup.
+ *
+ * `--follow` is what that gives up, and it is bought back rather than dropped:
+ * `--name-status -M` reports a rename as `R100 <old> <new>`, so walking the log
+ * newest-first and remembering that `<old>` is now `<new>` lets a file keep the
+ * commits it earned under its former name. It is in fact the wider answer —
+ * git's own documentation calls `--follow` a single-file heuristic, and a file
+ * renamed twice defeats it.
+ */
+export function parseGitLog(output: string): Map<string, Commit[]> {
+  const history = new Map<string, Commit[]>();
+
+  /**
+   * Where a path that no longer exists lives today.
+   *
+   * Filled walking backwards through time, so by the moment an older commit
+   * names `docs/old.md` the rename that made it `docs/new.md` has already been
+   * read, and the commit lands on the file the site actually serves.
+   */
+  const renamedTo = new Map<string, string>();
+  const today = (path: string) => renamedTo.get(path) ?? path;
+
+  for (const record of output.split(RECORD)) {
+    if (!record) continue;
+
+    const header = record.indexOf(NUL);
+    if (header === -1) continue;
+
+    const [date, name, email] = record.slice(0, header).split(SEPARATOR);
+    const commit: Commit = {
+      date: date ?? '',
+      name: name ?? '',
+      email: email ?? ''
+    };
+
+    // The newline git writes after the header belongs to the first token, not
+    // to a path — so every token is trimmed rather than the string patched.
+    const tokens = record
+      .slice(header + 1)
+      .split(NUL)
+      .map((token) => token.trim())
+      .filter(Boolean);
+
+    for (let index = 0; index < tokens.length;) {
+      const status = tokens[index]!;
+
+      // A status is a letter and an optional similarity score. Anything else
+      // means the walk has lost its place, and the rest of this commit is not
+      // worth guessing at.
+      if (!/^[A-Z]\d*$/.test(status)) break;
+
+      // R and C carry two paths; every other status carries one.
+      const pair = status.startsWith('R') || status.startsWith('C');
+      const from = tokens[index + 1];
+      const to = pair ? tokens[index + 2] : from;
+      index += pair ? 3 : 2;
+
+      if (!to) break;
+
+      const path = today(to);
+      const commits = history.get(path);
+
+      if (commits) commits.push(commit);
+      else history.set(path, [commit]);
+
+      // Only a rename carries a name forward. A copy leaves the original where
+      // it was, and that file's history stays its own.
+      if (pair && status.startsWith('R') && from) renamedTo.set(from, path);
+    }
   }
+
+  return history;
+}
+
+/** One index per repository, built the first time a page asks for it. */
+const histories = new Map<string, Map<string, Commit[]>>();
+
+function historyOf(root: string): Map<string, Commit[]> {
+  const cached = histories.get(root);
+  if (cached) return cached;
+
+  let history: Map<string, Commit[]>;
+
+  try {
+    history = parseGitLog(
+      execFileSync(
+        'git',
+        [
+          '-C',
+          root,
+          'log',
+          `--format=${RECORD}%aI%x1f%an%x1f%ae`,
+          '--name-status',
+          '-M',
+          '-z'
+        ],
+        {
+          encoding: 'utf8',
+          stdio: ['ignore', 'pipe', 'ignore'],
+          // A documentation repository's whole log against execFileSync's
+          // 1 MB default is a truncated history reported as a git failure.
+          maxBuffer: Number.POSITIVE_INFINITY
+        }
+      )
+    );
+  } catch {
+    // Not a checkout, no git, or a history that cannot be read. All three mean
+    // the same thing here: nothing to show, which is not an error.
+    history = new Map();
+  }
+
+  histories.set(root, history);
+  return history;
+}
+
+/** The repository a directory belongs to, asked once per directory. */
+const roots = new Map<string, string | undefined>();
+
+function rootOf(dir: string): string | undefined {
+  if (roots.has(dir)) return roots.get(dir);
+
+  let root: string | undefined;
+
+  try {
+    root =
+      execFileSync('git', ['-C', dir, 'rev-parse', '--show-toplevel'], {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore']
+      }).trim() || undefined;
+  } catch {
+    root = undefined;
+  }
+
+  roots.set(dir, root);
+  return root;
+}
+
+function gitLog(file: string): Commit[] {
+  const root = rootOf(dirname(file));
+  if (!root) return [];
+
+  // git speaks repository-relative paths with forward slashes, whatever the
+  // platform's own separator is.
+  const path = relative(root, file).split(sep).join('/');
+
+  return historyOf(root).get(path) ?? [];
 }
 
 /**

@@ -31,7 +31,14 @@ export function renderSources(
   const rows = sources.map((source) =>
     row([
       code(source.prefix || '/'),
-      code(source.collection),
+      // A generated section is a collection like any other, which is what makes
+      // the rest of the layer work on it unchanged — and what made it
+      // indistinguishable here from a docs tree whose folder happens to be
+      // called CHANGELOG.md. The type is the one thing that tells them apart,
+      // so it is said rather than left to be inferred from the Folder column.
+      source.generated
+        ? `${code(source.collection)} ${tag(source.generated.type)}`
+        : code(source.collection),
       source.repositoryUrl
         ? `<a class="file" href="${escape(source.repositoryUrl)}" target="_blank">${escape(source.repository)}</a>`
         : (escape(source.repository) ?? dim('this repository')),
@@ -59,13 +66,27 @@ export function renderSources(
   const repos = new Set(
     sources.map((source) => source.repository ?? 'this repository')
   );
-  const versioned = sources.filter((source) => source.version);
+  const generated = sources.filter((source) => source.generated);
+  // DISTINCT versions, not entries carrying one. A version is a collection per
+  // language and per generated section, so counting rows told a site with two
+  // versions in two languages that it had four — and eight once it declared a
+  // reference beside them. Keyed with the repository, because two projects may
+  // both call a version `v2`.
+  const versioned = new Set(
+    sources
+      .filter((source) => source.version)
+      .map((source) => `${repoKey(source)}\u0000${source.version}`)
+  );
   const notCurrent = sources.filter((source) => source.status !== 'current');
 
   const summary = stats([
     stat(sources.length, sources.length === 1 ? 'collection' : 'collections'),
     stat(repos.size, repos.size === 1 ? 'repository' : 'repositories'),
-    stat(versioned.length, 'versions'),
+    stat(versioned.size, 'versions'),
+    stat(
+      generated.length,
+      generated.length === 1 ? 'generated section' : 'generated sections'
+    ),
     // Not "the default version": with two repositories there are two defaults,
     // and the figure worth seeing is how many versions carry a warning the
     // reader will meet — deprecated, eol, or a branch still moving.
@@ -77,7 +98,7 @@ export function renderSources(
       'Prefix',
       'Collection',
       'Repository',
-      'Folder',
+      'Folder / artefact',
       'Ref',
       'Version',
       'Status',
@@ -260,13 +281,23 @@ export function renderVersions(
   // comparing them as versions drew a matrix of identical columns whose
   // headings were all empty, because a translation carries neither a version
   // nor a prefix of its own. Each axis therefore holds the other fixed.
+  //
+  // A GENERATED SECTION is the same argument a third time, and the one that
+  // reads worst when it is got wrong. A docs page and an endpoint page are
+  // never the same page — they share no path — so a grid holding both drew a
+  // column per collection rather than per version (`v2 | v1.9 | v2 | v1.9`,
+  // with nothing saying which pair was the reference) and filled every
+  // cross-quadrant cell with the `·` that means MISSING, for pages that were
+  // never meant to be there. Each declaration therefore gets a grid of its own.
   const versions = groupBy(
     sources,
-    (source) => `${repoKey(source)}\u0000${source.locale ?? ''}`
+    (source) =>
+      `${repoKey(source)}\u0000${source.locale ?? ''}\u0000${sectionKey(source)}`
   );
   const locales = groupBy(
     sources,
-    (source) => `${repoKey(source)}\u0000${source.version ?? ''}`
+    (source) =>
+      `${repoKey(source)}\u0000${source.version ?? ''}\u0000${sectionKey(source)}`
   );
 
   const sections = [
@@ -276,7 +307,7 @@ export function renderVersions(
         byCollection,
         (source) =>
           `${escape(source.version || source.ref || source.prefix || '—')}${source.isDefault ? ' *' : ''}`,
-        group[0]!.locale ? tag(group[0]!.locale, 'muted') : '',
+        badges(group[0]!, group[0]!.locale),
         '* the version served without a version segment.'
       )
     ),
@@ -286,7 +317,7 @@ export function renderVersions(
         byCollection,
         (source) =>
           `${escape(source.locale ?? '—')}${source.isDefaultLocale ? ' *' : ''}`,
-        group[0]!.version ? tag(group[0]!.version, 'muted') : '',
+        badges(group[0]!, group[0]!.version),
         '* the language served from the source path itself, without a folder.'
       )
     )
@@ -300,6 +331,22 @@ export function renderVersions(
 
 const repoKey = (source: DuxtResolvedSource) =>
   source.repo ?? source.repository ?? '';
+
+/**
+ * Which grid a source belongs in: the docs tree, or one named declaration.
+ *
+ * The DECLARATION rather than the label or the type, because that is the
+ * identity `resolveGeneratedSections` recorded for exactly this question — two
+ * sections of one repository may share both of the others.
+ */
+const sectionKey = (source: DuxtResolvedSource) =>
+  source.generated ? String(source.generated.declaration) : '';
+
+/** What this grid holds, beside the repository it is named after. */
+const badges = (source: DuxtResolvedSource, held?: string) =>
+  `${held ? tag(held, 'muted') : ''}${
+    source.generated ? ` ${tag(source.generated.label, 'muted')}` : ''
+  }`.trim();
 
 /** The groups worth a table: a single column compares nothing. */
 function groupBy(

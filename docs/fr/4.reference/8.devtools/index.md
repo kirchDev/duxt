@@ -43,6 +43,13 @@ version précède, deux pages que la traduction n’a pas rattrapées, une page 
 frontmatter — car un panneau qui n’a rien à signaler n’apprend à personne de quoi
 il a l’air quand quelque chose cloche.
 
+## Sans serveur de développement
+
+`pnpm exec duxt-report` affiche les sources, les vérifications et les
+redirections en Markdown — les mêmes données que dessinent ces panneaux, sous une
+forme que vous pouvez coller dans un ticket ou passer à un modèle. `--json` les
+donne non rendues. Voir [Ce que la compilation vérifie](/concepts/build-checks).
+
 Les aperçus sont inertes : leurs onglets passent d’un panneau à l’autre, et tout le
 reste — les liens vers l’éditeur, le bouton de suppression, le formulaire de
 recherche — ne fait rien.

@@ -110,24 +110,32 @@ const tabs = computed(() => [
     v-model="active"
     class="my-6 overflow-hidden rounded-lg border bg-card"
   >
-    <TabsList
+    <!-- The header row is the flex container, and the strip is one child of
+         it: a `tablist` may hold tabs and nothing else, and a button inside one
+         is an `aria-required-children` failure — latent here only because it
+         renders on the source tab, which is not the tab a page loads on. -->
+    <div
       class="flex min-h-11 items-center gap-1 border-b bg-muted/40 px-2 py-1.5"
-      :aria-label="$t('duxt.code.previewTabs') as string"
     >
-      <TabsTrigger
-        v-for="tab in tabs"
-        :key="tab.value"
-        :value="tab.value"
-        class="flex cursor-pointer items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+      <TabsList
+        class="flex items-center gap-1"
+        :aria-label="$t('duxt.code.previewTabs') as string"
       >
-        <Icon :name="tab.icon" class="size-3.5" />
-        {{ tab.label }}
-      </TabsTrigger>
+        <TabsTrigger
+          v-for="tab in tabs"
+          :key="tab.value"
+          :value="tab.value"
+          class="flex cursor-pointer items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+        >
+          <Icon :name="tab.icon" class="size-3.5" />
+          {{ tab.label }}
+        </TabsTrigger>
+      </TabsList>
 
       <!-- Right of the tabs, where every other card on the site puts it. Only
            on the source tab: a copy button beside a rendered example copies
            something the reader cannot see. -->
-      <Button
+      <UiButton
         v-if="active === 'code' && codeMeta.code"
         variant="ghost"
         size="icon"
@@ -139,8 +147,8 @@ const tabs = computed(() => [
           :name="copied ? 'lucide:check' : 'lucide:copy'"
           class="size-3.5"
         />
-      </Button>
-    </TabsList>
+      </UiButton>
+    </div>
 
     <TabsContent value="preview" class="outline-none">
       <!-- The example on the card's own surface, its outer margins taken off:

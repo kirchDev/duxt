@@ -4,12 +4,19 @@
  * wants a different one drops an `index.vue` of its own — Nuxt's layer
  * override, no configuration.
  *
- * Three bands, each of which draws nothing when its config is absent: the hero,
- * a picture of the site, and the features. A site that sets only a headline gets
- * a headline and a button, not six empty cards.
+ * SIX BANDS, each of which draws nothing when its config is absent: the hero,
+ * its numbers, the window, a band per feature, the grid, the closing list. A
+ * site that sets only a headline gets a headline and a button, not five empty
+ * sections.
+ *
+ * The middle of that is what the page is for. A grid of cards states four claims
+ * in four words each; the bands between the window and the grid take one feature
+ * at a time and put the feature ITSELF beside the sentence — a live page of the
+ * API reference, the config that produced it. A reader who never leaves this
+ * page has still seen the thing work.
  *
  * No closing call to action: the hero's buttons ARE the call, and repeating them
- * under six feature cards asks a reader who just arrived to decide twice.
+ * at the bottom asks a reader who just arrived to decide twice.
  */
 const duxt = useDuxtConfig();
 const localeLink = useDuxtLink();
@@ -17,26 +24,27 @@ const { t } = useI18n();
 const notify = useDuxtToast();
 
 /**
- * Where a hero button goes when the config did not say.
- *
- * The layer's own "read the docs" action names no path — it cannot know what a
- * consumer called its first page — so it resolves to the first section, the
- * same fallback `DuxtHeader` uses for the navbar's docs entry.
+ * Where a hero button goes when the config did not say — the same fallback
+ * `index.vue` and `DuxtHeader` use, because the layer cannot know what a
+ * consumer called its first page.
  */
 const firstSection = computed(() => duxt.sections?.[0]?.to ?? '/');
 const actionTarget = (action: DuxtResolved<DuxtAction>) =>
   action.to ?? firstSection.value;
 
+const landing = computed(() => duxt.landing);
+
 /**
- * The install command, highlighted on the server for the same reason the
+ * The install command, highlighted on the SERVER for the reason the
  * package-manager block does it there: Shiki is the single biggest thing that
  * could end up in the client bundle, and a line of shell does not need it
  * twice.
  */
-const command = computed(() => duxt.landing?.command);
+const command = computed(() => landing.value?.command);
 const { data: highlightedCommand } = await useAsyncData(
   () => `landing-command-${command.value ?? ''}`,
-  () => (command.value ? highlightShell(command.value) : Promise.resolve('')),
+  () =>
+    command.value ? highlightCode(command.value, 'bash') : Promise.resolve(''),
   { watch: [command] }
 );
 
@@ -59,11 +67,10 @@ async function copyCommand() {
 
 /**
  * The badge, in either of its two shapes. A string is the label and nothing
- * else; an object may carry an icon, a colour and a link. Resolving it here
- * keeps the template from asking which one it got three times over.
+ * else; an object may carry an icon, a colour and a link.
  */
 const badge = computed(() => {
-  const value = duxt.landing?.badge as
+  const value = landing.value?.badge as
     | string
     | DuxtResolved<DuxtBadge>
     | undefined;
@@ -91,129 +98,72 @@ const badge = computed(() => {
  */
 const linkComponent = resolveComponent('NuxtLink');
 
-const preview = computed(() => duxt.landing?.preview);
-
 /**
- * What the window shows. A page of this same site, embedded and operable —
- * `to` never points outward, because a landing page that frames somebody else's
- * site is an advert, and one that frames its own root would nest itself.
- */
-const previewTo = computed(() => {
-  const to = preview.value?.to ?? firstSection.value;
-  return localeLink(to === '/' ? firstSection.value : to);
-});
-
-const previewTitle = computed(
-  () => preview.value?.alt ?? t('duxt.defaults.landing.preview')
-);
-
-/**
- * The frame is mounted only once the reader has scrolled it into view. It is a
- * second copy of the application: loading it with the landing page would double
- * the work of the first paint for a band most readers never reach.
- */
-const previewRoot = ref<HTMLElement>();
-const previewVisible = ref(false);
-
-/**
- * What the address bar shows, and where "Open" goes: the page the reader has
- * navigated to INSIDE the frame, not the one it started on.
+ * The tabs of the big window.
  *
- * Polled rather than listened for. The frame is same-origin, so its location is
- * readable — but the site inside it is a Nuxt app, and a client-side route
- * change fires no `load` on the iframe element. The alternative is a plugin
- * that posts a message out on every navigation, which is a piece of layer that
- * exists for one band of one page. Half a second is below the threshold at
- * which an address bar looks stuck, and the timer stops with the component.
+ * `demo` is the tabbed form and wins where it is set; `preview` is the same
+ * idea with one page, and is what a site that has already configured
+ * `index.vue` still has. Neither: the first section, framed — the window is the
+ * one band worth drawing on a claim as thin as "there is a site behind this".
  */
-const previewFrame = ref<HTMLIFrameElement>();
+const demoTabs = computed<DuxtResolved<DuxtDemoTab>[]>(() => {
+  const tabs = landing.value?.demo?.tabs;
+  if (tabs?.length) return tabs;
 
-/**
- * True until the framed page has loaded once. Only the FIRST load: a route
- * change inside the frame is the app's own navigation, which draws its own
- * progress bar — a second spinner in the frame would report it twice.
- */
-const previewLoading = ref(true);
-const previewCurrent = ref<{ href: string; path: string }>();
+  const preview = landing.value?.preview;
+  // A preview pointed at the root would frame this very page, which nests the
+  // landing page inside itself.
+  const to =
+    preview?.to && preview.to !== '/' ? preview.to : firstSection.value;
 
-function readFrameLocation() {
-  try {
-    const frame = previewFrame.value?.contentWindow;
-    if (!frame) return;
-
-    const { href, pathname, search, hash } = frame.location;
-    // The bar shows the whole URL, the way a browser's does — origin included,
-    // which is only knowable in the browser. The link keeps the path, because
-    // that is what the router routes on.
-    previewCurrent.value = { href, path: `${pathname}${search}${hash}` };
-  } catch {
-    // A cross-origin document: nothing to read, and nothing to report — the
-    // bar keeps showing the page the frame was pointed at.
-  }
-}
-
-onMounted(() => {
-  if (!preview.value || preview.value.src) return;
-
-  const root = previewRoot.value;
-  if (!root) return;
-
-  // No IntersectionObserver (an old browser, a test environment): show it
-  // rather than leave an empty box on the page.
-  if (!('IntersectionObserver' in window)) {
-    previewVisible.value = true;
-    return;
-  }
-
-  const observer = new IntersectionObserver(
-    (entries) => {
-      if (!entries.some((entry) => entry.isIntersecting)) return;
-      previewVisible.value = true;
-      observer.disconnect();
-    },
-    { rootMargin: '200px' }
-  );
-
-  observer.observe(root);
-  onBeforeUnmount(() => observer.disconnect());
-
-  const timer = setInterval(readFrameLocation, 500);
-  onBeforeUnmount(() => clearInterval(timer));
+  return [{ label: t('duxt.defaults.landing.preview'), to }];
 });
 
-/** The frame's current page, falling back to the one it was pointed at. */
-const previewLocation = computed(
-  () => previewCurrent.value?.path ?? previewTo.value
+const demoHeight = computed(
+  () => landing.value?.demo?.height ?? landing.value?.preview?.height
 );
 
 /**
- * The same, as the address bar prints it. Before the frame is up there is no
- * origin to name — the server has no window — so the path stands in until the
- * first read, and the bar does not flicker between two spellings of one page.
+ * The screenshot half of `preview`, which only the single-page form has.
+ *
+ * A poster is a picture of ONE page, so a tab bar cannot carry one: it would be
+ * right for the first tab and a lie for the other three. A site that configured
+ * `demo` has said it wants the live thing anyway.
  */
-const previewHref = computed(
-  () => previewCurrent.value?.href ?? previewTo.value
+const poster = computed(() =>
+  landing.value?.demo?.tabs?.length ? undefined : landing.value?.preview
 );
+
+/**
+ * The bands, each carrying the ROW it starts at rather than its own position.
+ *
+ * The sides alternate down the page, and a band decides its side from the
+ * number it is handed. A split try-it client draws two rows inside one band, so
+ * a count of bands puts every band after it back on the side the row above just
+ * used — the alternation stops halfway down the page, which is exactly what it
+ * did. Counting rows carries it across.
+ */
+const bands = computed(() => {
+  let row = 0;
+
+  return (landing.value?.showcase ?? []).map((showcase) => {
+    const at = row;
+    row += duxtShowcaseRows(showcase);
+
+    return { showcase, index: at };
+  });
+});
 
 useSeoMeta({
   title: duxt.title,
-  description: duxt.landing?.description,
+  description: landing.value?.description,
   // The landing page is the site, not an article under it.
   ogType: 'website'
 });
 
-/**
- * The one page most likely to be shared, and the one that had no card.
- *
- * Every documentation page renders an OG image and this did not, so a link to
- * the site's front door came back as a bare URL while a link to any page under
- * it came back with a picture. Same template, same arguments — the version is
- * the site's own rather than a page's, because a landing page belongs to no
- * version.
- */
 defineOgImage('Duxt', {
-  title: duxt.landing?.headline ?? duxt.title,
-  description: duxt.landing?.description,
+  title: landing.value?.headline ?? duxt.title,
+  description: landing.value?.description,
   site: duxt.title,
   version: duxt.version ?? ''
 });
@@ -221,24 +171,41 @@ defineOgImage('Duxt', {
 
 <template>
   <div>
-    <!-- HERO. The grid behind it is a background, not content: `aria-hidden`
-         and pointer-events off, so it neither reads aloud nor eats a click. -->
-    <!-- No rule under the hero: the bands are separated by the space between
-         them, and a line across the page in the middle of one continuous
-         thought only cuts the hero off from the window it introduces. -->
+    <!-- HERO. Three layers behind the words, all of them `aria-hidden` and
+         none of them able to take a click: the grid, two colour washes and a
+         fade into the page below. They are a background, not content.
+         
+         The washes are `blur-3xl` circles rather than an image: they are
+         right in both themes because they are the theme's own primary colour
+         at 20% over the theme's own background, and they cost no request. -->
     <section class="relative isolate overflow-hidden">
       <div
         aria-hidden="true"
-        class="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(to_right,var(--color-border)_1px,transparent_1px),linear-gradient(to_bottom,var(--color-border)_1px,transparent_1px)] bg-[size:3rem_3rem] opacity-40 [mask-image:radial-gradient(ellipse_at_center,black,transparent_70%)]"
-      />
+        class="pointer-events-none absolute inset-0 -z-10"
+      >
+        <div
+          class="absolute inset-0 bg-[linear-gradient(to_right,var(--color-border)_1px,transparent_1px),linear-gradient(to_bottom,var(--color-border)_1px,transparent_1px)] bg-[size:3rem_3rem] opacity-40 [mask-image:radial-gradient(ellipse_at_center,black,transparent_70%)]"
+        />
+        <div
+          class="absolute -top-40 left-1/2 size-[36rem] -translate-x-1/2 rounded-full bg-primary/20 blur-3xl"
+        />
+        <div
+          class="absolute top-20 -right-32 size-[28rem] rounded-full bg-primary/10 blur-3xl"
+        />
+        <!-- The bottom edge. Without it the grid stops on a hard line across
+             the page, which reads as a section border nobody drew. -->
+        <div
+          class="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-b from-transparent to-background"
+        />
+      </div>
 
       <div
-        class="mx-auto max-w-5xl px-4 pt-24 pb-16 text-center sm:pt-32 sm:pb-20"
+        class="mx-auto max-w-5xl px-4 pt-24 pb-12 text-center sm:pt-32 sm:pb-16"
       >
-        <!-- `as-child` around a link when the badge points somewhere: a pill a
-             reader can click has to BE the anchor, not sit inside one, or the
-             hover and focus rings belong to two different boxes. -->
-        <Badge
+        <!-- `as-child` around a link when the badge points somewhere: a pill
+             a reader can click has to BE the anchor, not sit inside one, or
+             the hover and focus rings belong to two different boxes. -->
+        <UiBadge
           v-if="badge"
           :variant="badge.variant ?? 'secondary'"
           class="mb-6"
@@ -258,24 +225,24 @@ defineOgImage('Duxt', {
             <Icon v-if="badge.icon" :name="badge.icon" class="size-3" />
             {{ badge.label }}
           </template>
-        </Badge>
+        </UiBadge>
 
         <h1
-          class="text-4xl font-semibold tracking-tight text-balance sm:text-6xl"
+          class="text-4xl font-semibold tracking-tight text-balance sm:text-6xl lg:text-7xl"
         >
-          {{ duxt.landing?.headline ?? duxt.title }}
+          {{ landing?.headline ?? duxt.title }}
         </h1>
 
         <p
-          v-if="duxt.landing?.description"
-          class="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground text-pretty"
+          v-if="landing?.description"
+          class="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground text-pretty sm:text-xl"
         >
-          {{ duxt.landing.description }}
+          {{ landing.description }}
         </p>
 
         <div class="mt-10 flex flex-wrap items-center justify-center gap-3">
-          <Button
-            v-for="(action, index) in duxt.landing?.actions ?? []"
+          <UiButton
+            v-for="(action, index) in landing?.actions ?? []"
             :key="index"
             as-child
             size="lg"
@@ -289,7 +256,7 @@ defineOgImage('Duxt', {
               <Icon v-if="action.icon" :name="action.icon" class="size-4" />
               {{ action.label }}
             </NuxtLink>
-          </Button>
+          </UiButton>
         </div>
 
         <!-- The command, if there is one. A <button> around the whole line
@@ -322,132 +289,87 @@ defineOgImage('Duxt', {
             />
           </button>
         </div>
-      </div>
-    </section>
 
-    <!-- PREVIEW. Not a picture of the documentation — the documentation, in a
-         frame, operable: the reader scrolls it, opens its sidebar and flips its
-         theme without leaving this page. A screenshot is what `src` falls back
-         to for a site that would rather not load itself twice. -->
-    <!-- No background and no rule of its own: the window is the thing being
-         shown, and a band around it only draws a second box around a box. -->
-    <section v-if="preview" ref="previewRoot">
-      <div class="mx-auto max-w-[90rem] px-4 py-12 sm:py-16 lg:px-8">
-        <div class="overflow-hidden rounded-xl border bg-background shadow-sm">
-          <!-- The window's own frame. The address bar is a <div>, not an
-               input: it says which page is inside, and a text field a reader
-               can type into but not submit is a control that lies. -->
-          <div class="flex items-center gap-3 border-b bg-muted/60 px-4 py-2.5">
-            <div aria-hidden="true" class="flex shrink-0 items-center gap-1.5">
-              <span class="size-2.5 rounded-full bg-muted-foreground/30" />
-              <span class="size-2.5 rounded-full bg-muted-foreground/30" />
-              <span class="size-2.5 rounded-full bg-muted-foreground/30" />
-            </div>
+        <!-- THE NUMBERS. A <dl>, because that is what a value and the words
+             naming it are — and it is what puts "7" and "locales" in one entry
+             for a screen reader rather than two adjacent strings.
 
-            <!-- One fixed width, centred: a bar sized to its text grows and
-                 shrinks on every navigation inside the frame, which reads as
-                 the frame jittering rather than as a URL changing. The status
-                 icon sits where a browser puts its padlock — leftmost, always
-                 there, so the URL never shifts when it changes. -->
-            <div class="flex min-w-0 flex-1 justify-center">
-              <div
-                class="flex w-full max-w-md items-center gap-2 rounded-md bg-background/70 px-3 py-1 font-mono text-xs text-muted-foreground"
+             WRAPPED, not gridded. A grid needs its column count written down,
+             and the count is the SITE's: three true numbers beat four with a
+             filler in the fourth, and the next site along may have two or five.
+             A row that wraps and centres is right for all of them;
+             `sm:grid-cols-4` was right for exactly one and left a hole
+             otherwise. -->
+        <dl
+          v-if="landing?.stats?.length"
+          class="mx-auto mt-14 flex max-w-3xl flex-wrap items-start justify-center gap-x-14 gap-y-8"
+        >
+          <div
+            v-for="stat in landing.stats"
+            :key="stat.value"
+            class="min-w-28 text-center"
+          >
+            <dt class="sr-only">{{ stat.label }}</dt>
+            <dd>
+              <span
+                class="block text-2xl font-semibold tracking-tight sm:text-3xl"
               >
-                <Icon
-                  :name="
-                    previewLoading ? 'lucide:loader-circle' : 'lucide:globe'
-                  "
-                  class="size-3 shrink-0"
-                  :class="previewLoading ? 'animate-spin' : 'opacity-60'"
-                  role="status"
-                  :aria-label="
-                    previewLoading
-                      ? $t('duxt.defaults.landing.preview')
-                      : undefined
-                  "
-                />
-                <span class="truncate">{{ previewHref }}</span>
-              </div>
-            </div>
-
-            <!-- The way out of the frame. A page read inside a 30 rem window is
-                 a demonstration; at some point the reader wants the real one. -->
-            <Button as-child size="sm" variant="ghost" class="shrink-0">
-              <NuxtLink :to="previewLocation">
-                <Icon name="lucide:external-link" class="size-3.5" />
-                <span class="sr-only sm:not-sr-only">
-                  {{ $t('duxt.defaults.landing.previewOpen') }}
-                </span>
-              </NuxtLink>
-            </Button>
+                {{ stat.value }}
+              </span>
+              <span
+                aria-hidden="true"
+                class="mt-1 flex items-center justify-center gap-1.5 text-xs text-muted-foreground"
+              >
+                <Icon v-if="stat.icon" :name="stat.icon" class="size-3.5" />
+                {{ stat.label }}
+              </span>
+            </dd>
           </div>
-
-          <!-- Two <img>s rather than one: a screenshot of a light theme on a
-               dark page is a torch, and `srcDark` is how a site hands over the
-               other file. Without one, `src` serves both. -->
-          <template v-if="preview.src">
-            <img
-              :src="preview.src"
-              :alt="preview.alt ?? ''"
-              loading="lazy"
-              decoding="async"
-              class="w-full"
-              :class="preview.srcDark ? 'dark:hidden' : ''"
-            />
-            <img
-              v-if="preview.srcDark"
-              :src="preview.srcDark"
-              alt=""
-              loading="lazy"
-              decoding="async"
-              class="hidden w-full dark:block"
-            />
-          </template>
-
-          <!-- The live one. Rendered only after the band scrolls into view, and
-               never on the server: an iframe in the initial HTML is a second
-               full page load competing with this one. The box keeps its height
-               either way, so nothing below it jumps when the frame arrives. -->
-          <ClientOnly v-else>
-            <iframe
-              v-if="previewVisible"
-              ref="previewFrame"
-              :src="previewTo"
-              @load="
-                previewLoading = false;
-                readFrameLocation();
-              "
-              :title="previewTitle"
-              loading="lazy"
-              class="h-[44rem] w-full max-lg:h-[36rem] max-sm:h-[28rem]"
-              :style="{ height: preview.height }"
-            />
-            <div
-              v-else
-              class="h-[44rem] max-lg:h-[36rem] max-sm:h-[28rem]"
-              :style="{ height: preview.height }"
-            />
-
-            <template #fallback>
-              <div
-                class="h-[44rem] max-lg:h-[36rem] max-sm:h-[28rem]"
-                :style="{ height: preview.height }"
-              />
-            </template>
-          </ClientOnly>
-        </div>
+        </dl>
       </div>
     </section>
+
+    <!-- THE LIVE DEMO. Not a picture of the documentation — the
+         documentation, in a frame, operable, with a tab bar over it: the
+         reader flips between the guide, the API reference and the changelog
+         without leaving this page. -->
+    <section
+      class="mx-auto max-w-[90rem] px-4 pb-12 sm:pb-16 lg:px-8"
+      aria-labelledby="duxt-demo"
+    >
+      <h2 id="duxt-demo" class="sr-only">
+        {{ $t('duxt.defaults.landing.demoTitle') }}
+      </h2>
+
+      <DuxtLiveWindow
+        :tabs="demoTabs"
+        :height="demoHeight"
+        :poster="poster?.src"
+        :poster-dark="poster?.srcDark"
+        :poster-alt="poster?.alt"
+        :live="poster?.live ?? true"
+        prefetch
+      />
+    </section>
+
+    <!-- THE BANDS. Separated by their own spacing rather than by a rule: a
+         line across the page between two halves of one argument cuts the
+         argument up. -->
+    <DuxtLandingShowcase
+      v-for="band in bands"
+      :key="band.showcase.title"
+      :showcase="band.showcase"
+      :index="band.index"
+    />
 
     <section
-      v-if="duxt.landing?.features?.length"
+      v-if="landing?.features?.length"
       class="mx-auto max-w-[90rem] px-4 py-12 sm:py-16 lg:px-8"
       aria-labelledby="duxt-features"
     >
-      <!-- The cards are h3s, and the hero above them is the h1: without a
+      <!-- The cards are h3s and the hero above them is the h1: without a
            heading here the document skips a level, which is what a screen
-           reader's heading list reads as a missing section. Visually hidden
-           because the cards say what they are. -->
+           reader's heading list reads as a missing section. -->
       <h2 id="duxt-features" class="sr-only">
         {{ $t('duxt.defaults.landing.featuresTitle') }}
       </h2>
@@ -455,18 +377,17 @@ defineOgImage('Duxt', {
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <!-- A card with a `to` is a LINK, not a card containing one: a reader
              aims at the card, and a hit area that is only the title is a hit
-             area that gets missed. `component :is` keeps the one without a
-             destination an ordinary div rather than an anchor to nowhere. -->
+             area that gets missed. -->
         <component
           :is="feature.to ? linkComponent : 'div'"
-          v-for="feature in duxt.landing.features"
+          v-for="feature in landing.features"
           :key="feature.title"
           :to="feature.to ? localeLink(feature.to) : undefined"
           :target="feature.external ? '_blank' : undefined"
           :rel="feature.external ? 'noopener' : undefined"
           class="group"
         >
-          <Card
+          <UiCard
             class="h-full transition-colors"
             :class="
               feature.to
@@ -474,7 +395,7 @@ defineOgImage('Duxt', {
                 : ''
             "
           >
-            <CardHeader>
+            <UiCardHeader>
               <span
                 v-if="feature.icon"
                 class="mb-1 flex size-9 items-center justify-center rounded-lg border bg-muted/50"
@@ -482,7 +403,7 @@ defineOgImage('Duxt', {
                 <Icon :name="feature.icon" class="size-4.5 text-primary" />
               </span>
 
-              <CardTitle class="flex items-center gap-1.5 text-base">
+              <UiCardTitle class="flex items-center gap-1.5 text-base">
                 {{ feature.title }}
                 <Icon
                   v-if="feature.to"
@@ -493,14 +414,65 @@ defineOgImage('Duxt', {
                   "
                   class="size-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5"
                 />
-              </CardTitle>
+              </UiCardTitle>
 
-              <CardDescription class="text-pretty">
+              <UiCardDescription class="text-pretty">
                 {{ feature.description }}
-              </CardDescription>
-            </CardHeader>
-          </Card>
+              </UiCardDescription>
+            </UiCardHeader>
+          </UiCard>
         </component>
+      </div>
+    </section>
+
+    <!-- THE REST. One line each, no cards and no links: these are real and
+         worth naming, and a card apiece would say they matter as much as the
+         four above.
+         
+         A <ul>, and the entries are paragraphs rather than headings: this is a
+         list of things, not a part of the document with sections under it — and
+         where the site names no heading for it, an outline entry per item would
+         be six sections a reader cannot navigate to. -->
+    <!-- `duxt-flush-footer`: the tint runs into the footer instead of stopping
+         four rems above it — see the rule in `duxt.css`. -->
+    <section
+      v-if="landing?.highlights?.length"
+      class="duxt-flush-footer border-t bg-muted/20"
+      :aria-labelledby="landing.highlightsTitle ? 'duxt-highlights' : undefined"
+    >
+      <div class="mx-auto max-w-[90rem] px-4 py-12 sm:py-16 lg:px-8">
+        <h2
+          v-if="landing.highlightsTitle"
+          id="duxt-highlights"
+          class="text-center text-2xl font-semibold tracking-tight"
+        >
+          {{ landing.highlightsTitle }}
+        </h2>
+
+        <ul
+          class="grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-3"
+          :class="landing.highlightsTitle ? 'mt-10' : ''"
+        >
+          <li
+            v-for="item in landing.highlights"
+            :key="item.title"
+            class="flex items-start gap-3"
+          >
+            <Icon
+              :name="item.icon ?? 'lucide:check'"
+              class="mt-0.5 size-4.5 shrink-0 text-primary"
+            />
+            <div>
+              <p class="text-sm font-medium">{{ item.title }}</p>
+              <p
+                v-if="item.description"
+                class="mt-1 text-sm text-muted-foreground text-pretty"
+              >
+                {{ item.description }}
+              </p>
+            </div>
+          </li>
+        </ul>
       </div>
     </section>
   </div>

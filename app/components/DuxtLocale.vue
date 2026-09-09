@@ -43,9 +43,9 @@ function flagFor(code: string): string | null {
 </script>
 
 <template>
-  <DropdownMenu v-if="available.length > 1">
-    <DropdownMenuTrigger as-child>
-      <Button
+  <UiDropdownMenu v-if="available.length > 1">
+    <UiDropdownMenuTrigger as-child>
+      <UiButton
         variant="ghost"
         size="icon"
         :aria-label="$t('duxt.locale.switch')"
@@ -56,14 +56,14 @@ function flagFor(code: string): string | null {
           class="size-4 rounded-[2px]"
         />
         <Icon v-else name="lucide:languages" class="size-4" />
-      </Button>
-    </DropdownMenuTrigger>
+      </UiButton>
+    </UiDropdownMenuTrigger>
 
-    <DropdownMenuContent
+    <UiDropdownMenuContent
       align="end"
       class="max-h-[min(20rem,var(--reka-dropdown-menu-content-available-height))] w-48"
     >
-      <DropdownMenuItem v-for="entry in available" :key="entry.code" as-child>
+      <UiDropdownMenuItem v-for="entry in available" :key="entry.code" as-child>
         <NuxtLink
           :to="switchLocalePath(entry.code)"
           class="flex items-center gap-2"
@@ -80,7 +80,7 @@ function flagFor(code: string): string | null {
             :class="entry.code === locale ? '' : 'opacity-0'"
           />
         </NuxtLink>
-      </DropdownMenuItem>
-    </DropdownMenuContent>
-  </DropdownMenu>
+      </UiDropdownMenuItem>
+    </UiDropdownMenuContent>
+  </UiDropdownMenu>
 </template>

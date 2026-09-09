@@ -1,0 +1,228 @@
+# The demo API at the version that is DEPRECATED.
+#
+# The middle of the four, and the one that carries the upgrade story: it is
+# where `shipments` became `consignments` and a page number became a cursor, so
+# a reader who lands here from a search result is shown a document that works
+# and a banner telling them it is not the one to build against.
+#
+# Larger than `v1.yaml` and much smaller than `v3.yaml`, which is what makes the
+# switcher worth pressing: the same endpoint at two versions has to differ in
+# more than a heading for the difference to be visible at all.
+openapi: 3.1.0
+
+info:
+  title: Harbour
+  version: 2.6.1
+  summary: The previous Harbour API, kept for readers who have not moved yet.
+  description: |
+    Superseded by **3.x**, which added berths, batches and the webhook.
+
+    Still answered, and no longer changed. Everything here exists in 3.x under
+    the same name.
+  contact:
+    name: Support
+    email: support@example.org
+  license:
+    name: MIT
+    identifier: MIT
+
+servers:
+  - url: https://api.example.org/v2
+    description: The invented production host.
+
+security:
+  - apiKey: []
+  - bearer: []
+
+tags:
+  - name: Consignments
+    description: |
+      Everything that is a consignment — called a shipment until 1.x, and
+      renamed here.
+
+paths:
+  /consignments:
+    get:
+      operationId: listConsignments
+      summary: List consignments
+      tags: [Consignments]
+      description: |
+        Returns a page of consignments, newest first.
+
+        **Changed in 2.0.** Paging is by `cursor` rather than by page number;
+        the value comes from the previous response's `next` field.
+      parameters:
+        - name: limit
+          in: query
+          description: How many consignments to return.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: cursor
+          in: query
+          description: Where to continue from.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A page of consignments.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Consignment'
+                  next:
+                    type: [string, 'null']
+                    description: The cursor for the following page, if any.
+        '400':
+          $ref: '#/components/responses/Problem'
+    post:
+      operationId: createConsignment
+      summary: Book a consignment
+      tags: [Consignments]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Consignment'
+            examples:
+              minimal:
+                summary: The smallest body that works
+                value:
+                  reference: HB-1042
+                  status: booked
+      responses:
+        '201':
+          description: Booked.
+          headers:
+            Location:
+              required: true
+              schema:
+                type: string
+                format: uri
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Consignment'
+        '422':
+          $ref: '#/components/responses/Problem'
+
+  /consignments/{consignmentId}:
+    get:
+      operationId: getConsignment
+      summary: Read a consignment
+      tags: [Consignments]
+      parameters:
+        - name: consignmentId
+          in: path
+          description: The consignment's own identifier.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The consignment.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Consignment'
+        '404':
+          $ref: '#/components/responses/Problem'
+    patch:
+      operationId: updateConsignment
+      summary: Update a consignment
+      tags: [Consignments]
+      parameters:
+        - name: consignmentId
+          in: path
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reference:
+                  type: string
+                  minLength: 1
+                  maxLength: 120
+                status:
+                  type: string
+                  enum: [booked, sailing, landed]
+      responses:
+        '200':
+          description: The consignment as it now stands.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Consignment'
+        '404':
+          $ref: '#/components/responses/Problem'
+
+components:
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-Api-Key
+      description: A key from the account page.
+    bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: A token obtained from the authorisation server.
+
+  responses:
+    Problem:
+      description: Something went wrong, described the same way every time.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+
+  schemas:
+    Problem:
+      type: object
+      required: [title, status]
+      properties:
+        title:
+          type: string
+        status:
+          type: integer
+          minimum: 400
+          maximum: 599
+
+    Consignment:
+      type: object
+      title: Consignment
+      description: One consignment, as 2.x sees it.
+      required: [id, reference, status]
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        reference:
+          type: string
+          description: Called `label` in 1.x.
+          minLength: 1
+          maxLength: 120
+        status:
+          type: string
+          description: Called `state` in 1.x. `cancelled` is new in 3.x.
+          enum: [booked, sailing, landed]
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true

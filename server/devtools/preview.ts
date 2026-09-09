@@ -1,5 +1,5 @@
 import type { DuxtSource } from '../../sources-resolve';
-import { resolveSources } from '../../sources-resolve';
+import { duxtManifest } from '../../sections-resolve';
 import type { PageRecord } from '../../validate-report';
 import { page, PANELS } from './shell';
 import type { Doc, DocGroup, IndexedSection } from './render/content';
@@ -42,12 +42,17 @@ const SOURCES: DuxtSource[] = [
       { tag: 'v1.9.4', label: 'v1.9', status: 'deprecated' }
     ],
     locales: ['en', 'de'],
-    history: true
+    history: true,
+    // A generated section, because a fixture without one shows a Sources table
+    // that cannot be told apart from the one this layer had before sections
+    // existed — and a Checks panel that never demonstrates the findings an
+    // artefact produces.
+    generated: [{ type: 'changelog', path: 'CHANGELOG.md', label: 'Releases' }]
   },
   { path: 'docs', repo: 'acme/cli' }
 ];
 
-const RESOLVED = resolveSources(SOURCES, { defaultLocale: 'en' });
+const RESOLVED = duxtManifest(SOURCES, { defaultLocale: 'en' });
 
 const ROOT = '/srv/acme-docs';
 
@@ -201,7 +206,46 @@ const MISSING: Record<string, string[]> = {
   docs_de_sdk_v1_9: ['/guides/caching', '/changelog', '/reference/errors']
 };
 
+/**
+ * The pages a changelog becomes: an overview, then one release each.
+ *
+ * Declared beside the docs seeds rather than inside them because they are not
+ * a docs tree — no `description`, no history of their own, and a name this
+ * layer invented rather than one anybody wrote.
+ */
+const RELEASES: { path: string; title: string; file: string }[] = [
+  { path: '', title: 'Releases', file: 'index.md' },
+  { path: '/0.2.0', title: '0.2.0', file: '1.0.2.0.md' },
+  { path: '/0.1.1', title: '0.1.1', file: '2.0.1.1.md' },
+  { path: '/0.1.0', title: '0.1.0', file: '3.0.1.0.md' }
+];
+
+// What reading that CHANGELOG said about it. A near miss rather than a clean
+// read, for the same reason the docs tree has a stale link in it: the panel is
+// documented by what it looks like when something is wrong.
+for (const source of RESOLVED) {
+  if (!source.generated) continue;
+
+  source.generated.report = {
+    pages: RELEASES.length,
+    warnings: [
+      'the heading "1.3 (Feb 2026)" on line 41 reads like a release but does ' +
+        'not parse as one, so it became part of the release above it instead ' +
+        'of a page of its own. A release heading is a version, optionally ' +
+        'followed by a date in parentheses: `## 1.4.0 (2024-02-01)`.'
+    ]
+  };
+}
+
 function docsOf(source: DuxtResolvedSource): Doc[] {
+  if (source.generated) {
+    return RELEASES.map((release) => ({
+      path: `${source.prefix}${release.path}`,
+      title: release.title,
+      id: `${source.collection}/${release.file}`
+    }));
+  }
+
   const seeds = source.repo === 'cli' ? CLI_PAGES : SDK_PAGES;
   const skip = new Set(MISSING[source.collection] ?? []);
   const german = source.locale === 'de';

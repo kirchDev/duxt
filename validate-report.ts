@@ -9,6 +9,7 @@
  * rather than reprinting a build log that has already scrolled away.
  */
 import { reservedSegments } from './sources-resolve';
+import { packageCommandIssues } from './app/utils/package-command';
 
 export interface PageRecord {
   collection: string;
@@ -26,6 +27,13 @@ export interface PageRecord {
    * translation report is skipped rather than guessed when it is missing.
    */
   lastUpdated?: string;
+  /**
+   * The `command` of every `::package-managers` block on the page.
+   *
+   * Read off the parsed body rather than the source, because that is where the
+   * prop has already been resolved — see `walk`.
+   */
+  commands?: string[];
 }
 
 /** The manifest, as much of it as the checks read. */
@@ -34,32 +42,75 @@ export interface SourceRecord {
   prefix: string;
   locale?: string;
   isDefaultLocale?: boolean;
+  /** The artefact a generated section was read from, for its findings. */
+  path?: string;
+  /** Where that artefact lives, for a finding that has to name it. */
+  repository?: string;
+  repositoryUrl?: string;
+  ref?: string;
+  /**
+   * Set when this collection is a GENERATED SECTION rather than a docs tree.
+   *
+   * Checked DIFFERENTLY rather than skipped. An empty section is a finding
+   * about the artefact and not about a docs folder, so it is worded and graded
+   * from `report` instead of from the collection rule; a page split out of a
+   * changelog has no field a `description` could come from, so it is not asked
+   * for one; and what the type could not read is a finding no other check could
+   * ever have produced.
+   */
+  generated?: GeneratedRecord;
 }
 
-/** Collect anchor ids and internal links out of a parsed MDC body. */
-export function walk(
-  node: unknown,
-  anchors: Set<string>,
-  links: { href: string }[]
-): void {
+/** What a generated section carries into the checks. */
+export interface GeneratedRecord {
+  type: string;
+  label: string;
+  remote?: boolean;
+  report?: {
+    pages: number;
+    warnings: string[];
+    missing?: boolean;
+  };
+}
+
+/** What one pass over a parsed MDC body picks up. */
+export interface Collected {
+  anchors: Set<string>;
+  links: { href: string }[];
+  commands: string[];
+}
+
+/**
+ * Collect anchor ids, internal links and command blocks out of a parsed MDC
+ * body.
+ *
+ * ONE ACCUMULATOR rather than a parameter per kind: the third thing to collect
+ * is the point at which a positional list stops reading as a signature and
+ * starts reading as an argument order to get wrong.
+ */
+export function walk(node: unknown, into: Collected): void {
   if (Array.isArray(node)) {
     const [tag, props] = node as [unknown, Record<string, unknown> | undefined];
 
     if (typeof tag === 'string' && props && typeof props === 'object') {
-      if (typeof props.id === 'string') anchors.add(props.id);
+      if (typeof props.id === 'string') into.anchors.add(props.id);
 
       if (tag === 'a' && typeof props.href === 'string') {
-        links.push({ href: props.href });
+        into.links.push({ href: props.href });
+      }
+
+      if (tag === 'package-managers' && typeof props.command === 'string') {
+        into.commands.push(props.command);
       }
     }
 
-    for (const child of node) walk(child, anchors, links);
+    for (const child of node) walk(child, into);
     return;
   }
 
   if (node && typeof node === 'object') {
     for (const value of Object.values(node as Record<string, unknown>)) {
-      walk(value, anchors, links);
+      walk(value, into);
     }
   }
 }
@@ -80,7 +131,20 @@ export function report(
 
   // 1. A collection with nothing in it. The symptom is an empty sidebar and a
   //    404 on every page of one version — never a message.
+  //
+  //    A GENERATED SECTION answers the same question from its own artefact, at
+  //    its own severity and in its own words — see `sectionFindings`. It used
+  //    to be skipped here and reported by a `console.warn` where the file is
+  //    read, which put half of this layer's findings in a channel that has
+  //    scrolled away by the time anyone looks at the other half.
   for (const source of sources) {
+    if (source.generated) {
+      warnings.push(
+        ...sectionFindings(source, byCollection.get(source.collection)?.length)
+      );
+      continue;
+    }
+
     if (!byCollection.get(source.collection)?.length) {
       errors.push(
         `collection "${source.collection}" (serving "${source.prefix || '/'}") ` +
@@ -115,10 +179,19 @@ export function report(
 
   // 3. Frontmatter. Neither field breaks a page; both quietly degrade the
   //    table of contents, the OG image and llms.txt.
+  //
+  //    A generated page is asked for a title and not for a description: the
+  //    title is the type's to produce and a missing one is a bug in the parser,
+  //    where a description would have to be invented — a changelog entry has no
+  //    field that could carry one.
+  const isGenerated = new Set(
+    sources.filter((source) => source.generated).map((s) => s.collection)
+  );
+
   for (const page of pages) {
     const missing = [
       !page.title && 'title',
-      !page.description && 'description'
+      !page.description && !isGenerated.has(page.collection) && 'description'
     ].filter(Boolean);
 
     if (missing.length) {
@@ -197,11 +270,119 @@ export function report(
     }
   }
 
+  commandWarnings(pages, warnings);
+
   return { errors, warnings, notes: translationNotes(sources, byCollection) };
+}
+
+/**
+ * What a `::package-managers` block asks for that a manager cannot say.
+ *
+ * NEITHER FAULT FAILS ANYTHING, and both are otherwise invisible. A manager with
+ * no equivalent silently loses its tab, so a page written as
+ * `command="outdated"` shows three tabs where the site offers four and nothing
+ * anywhere says why. An unknown verb is printed as written for all four, which is
+ * usually right and occasionally a typo — `outdatd` renders four plausible
+ * commands that none of them accept.
+ *
+ * Warnings rather than errors, because both are legitimate: a command only three
+ * managers have is a fine thing to document, and this table will always be behind
+ * some manager's newest subcommand.
+ */
+function commandWarnings(pages: PageRecord[], warnings: string[]): void {
+  for (const page of pages) {
+    for (const command of page.commands ?? []) {
+      const { unknownVerb, unavailable } = packageCommandIssues(command);
+
+      if (unknownVerb) {
+        warnings.push(
+          `"${page.file}": "${command}" starts with "${unknownVerb}", which duxt ` +
+            'does not translate — every manager shows it as written.'
+        );
+      }
+
+      if (unavailable.length) {
+        warnings.push(
+          `"${page.file}": "${command}" has no equivalent in ` +
+            `${unavailable.join(' and ')}, so that tab is not drawn.`
+        );
+      }
+    }
+  }
 }
 
 const stripTrailingSlash = (path: string) =>
   path.length > 1 ? path.replace(/\/+$/, '') : path;
+
+/** The repository and ref an artefact was looked for in. */
+const sectionOrigin = (source: SourceRecord) =>
+  `${source.repository ?? source.repositoryUrl ?? 'the source'}${
+    source.ref ? `@${source.ref}` : ''
+  }`;
+
+/**
+ * What reading one generated section's artefact had to say.
+ *
+ * WARNINGS, all of them, and the severity is not a compromise. Everything a
+ * local artefact can get wrong — a path that is not there, a file the type
+ * cannot read at all, an option it does not know — has already thrown while the
+ * config was loading, long before this report exists: the site's own
+ * configuration is a mistake the build must not carry. What is left to report
+ * here is therefore either a REMOTE artefact, which may legitimately have gone
+ * stale between releases and is not this build's to reject, or a page that
+ * rendered with something missing from it. Neither is an error.
+ *
+ * `report` absent is not "nothing to report" — it is "nobody read the artefact
+ * on this side". A remote one is read where Content put the checkout, which is
+ * a directory only the config loader knows, so the manifest a module holds
+ * carries no report for it at all. The page count answers for that case, and
+ * says less because less is known: a section serving nothing is still visible
+ * from the collection, only the reason for it is not.
+ */
+function sectionFindings(
+  source: SourceRecord,
+  pages: number | undefined
+): string[] {
+  const meta = source.generated!;
+  const report = meta.report;
+  const where = `the generated section "${meta.label}"`;
+  const findings: string[] = [];
+
+  // Quoted only where the file is actually in this checkout. The Checks panel
+  // turns the first quoted `.md` in a finding into an editor link, and a remote
+  // `CHANGELOG.md` resolved against the local root is a link to nothing.
+  const artefact = meta.remote ? source.path : `"${source.path}"`;
+
+  if (report?.missing) {
+    findings.push(
+      `${where} declares ${artefact}, which ${sectionOrigin(source)} does not ` +
+        'have. The section is not built.'
+    );
+  } else if (report && !report.pages) {
+    findings.push(
+      `${where} holds nothing the "${meta.type}" type can read in ` +
+        `${artefact}, so it has no pages.`
+    );
+  } else if (!pages) {
+    findings.push(
+      report
+        ? `${where} produced ${report.pages} pages out of ${artefact}, but the ` +
+            `collection "${source.collection}" serves none — Content dropped it.`
+        : `${where} produced no pages out of ${artefact} in ` +
+            `${sectionOrigin(source)}. Either the artefact is not there at that ` +
+            `ref, or it holds nothing the "${meta.type}" type can read.`
+    );
+  }
+
+  // Prefixed with the section, never with a page: a generated page's name is
+  // this layer's own invention, so pointing at one would send a reader to a
+  // file that does not exist. The artefact is the thing to open.
+  for (const warning of report?.warnings ?? []) {
+    findings.push(`${where} (${artefact}): ${warning}`);
+  }
+
+  return findings;
+}
 
 /**
  * What each language carries, and what has stood still.

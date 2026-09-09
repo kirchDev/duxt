@@ -20,12 +20,33 @@ this repository is the glue between them plus a handful of opinions.
 | [reka-ui](https://reka-ui.com)                       | The primitives underneath them: focus, roving tabindex, ARIA         |
 | [Tailwind CSS](https://tailwindcss.com)              | The styling system and the token layer                               |
 | [Shiki](https://shiki.style)                         | Syntax highlighting, at build time                                   |
-| [Lucide](https://lucide.dev)                         | The icon set                                                         |
+| [The icon sets](#icons)                              | Four collections, one per kind of mark                               |
 | [MDC](https://content.nuxt.com/docs/files/markdown)  | Components callable from Markdown                                    |
 
 The version of each is in `package.json`, which is where a number belongs — a
 second copy in prose is one that goes stale silently.
 
+
+## Icons
+
+Four collections, because monochrome and self-coloured are different jobs — the
+rule that decides which draws what is written down under
+[Conventions](/conventions/icons).
+
+| Set                                                          | Draws                                     | Licence |
+| :------------------------------------------------------------ | :---------------------------------------- | :------ |
+| [Lucide](https://lucide.dev)                                  | the interface                              | ISC     |
+| [vscode-icons](https://github.com/vscode-icons/vscode-icons)  | files, fence languages, the tools          | MIT     |
+| [Simple Icons](https://simpleicons.org)                       | the marks vscode-icons does not carry      | CC0-1.0 |
+| [flag-icons](https://github.com/lipis/flag-icons)             | the flag beside each locale                | MIT     |
+
+The licence is named here rather than left to `package.json` because the build
+inlines these SVGs into what ships: the package carries the works, so it carries
+the notices.
+
+A licence on a file is not a licence on a mark. The package managers, GitHub,
+Discord, Claude and OpenAI are trademarks of their owners; they are drawn here to
+name the thing they identify, and for nothing else.
 ## Built after
 
 Ideas duxt took from projects it is not built on. What it *is* built on is the

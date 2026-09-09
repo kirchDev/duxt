@@ -71,6 +71,19 @@ describe('resolveSources', () => {
     expect(only!.prefix).toBe('/app');
   });
 
+  it('gives a source that names a slug its segment, and only that one', () => {
+    // The shape this exists for: one repository, documentation at the root, and
+    // something published beside it. The automatic rule cannot see a difference
+    // between the two — both are this checkout — so the slug is the difference.
+    const resolved = resolveSources([
+      { path: 'docs' },
+      { path: 'www/demo', slug: 'demo' }
+    ]);
+
+    expect(resolved.map((source) => source.prefix)).toEqual(['', '/demo']);
+    expect(resolved.map((source) => source.repo)).toEqual([undefined, 'demo']);
+  });
+
   it('combines repository and version segments in that order', () => {
     const resolved = resolveSources([
       { repo: 'kirchDev/app', path: 'docs', refs: ['main', 'v1.x'] },

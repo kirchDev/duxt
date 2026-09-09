@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { createJiti } from 'jiti';
 import type { DuxtSource, DuxtSourcesOptions } from './sources-resolve';
+import type { DuxtSectionTypes } from './sections-resolve';
 
 /** The build-time half of `app.config`'s `duxt` key. */
 export interface DuxtBuildConfig {
@@ -9,6 +10,15 @@ export interface DuxtBuildConfig {
   sources?: DuxtSource[];
   /** How those sources become URL prefixes. */
   sourceOptions?: DuxtSourcesOptions;
+  /**
+   * Types a source's `generated` sections may name, beyond the layer's own.
+   *
+   * The registry is open, and this is the whole of it: a map rather than a
+   * registration call, because `content.config.ts` and the duxt module are
+   * loaded by two different loaders and a mutable registry each of them wrote
+   * into would be two registries.
+   */
+  sectionTypes?: DuxtSectionTypes;
   /** Which of the layer's locales this site serves. */
   locales?: string[];
   /**
@@ -20,6 +30,30 @@ export interface DuxtBuildConfig {
    * shape instead of importing it.
    */
   title?: string | Record<string, string>;
+  /**
+   * The try-it client's code samples — read here for their LANGUAGES only.
+   *
+   * `modules/config.ts` turns the ids into the grammar set the runtime
+   * highlighter loads, so a site pays for the languages its samples use and no
+   * others. The generator functions are irrelevant to the build and are left
+   * alone; only `language` and `id` are looked at.
+   *
+   * Typed structurally rather than as `DuxtRequestSample[]` for the same reason
+   * `title` is not a `DuxtText`: this file is loaded by the build, outside the
+   * Nuxt runtime whose generated types carry that global.
+   */
+  requestSamples?: (string | { id?: string; language?: string })[];
+  /**
+   * Extra grammars to load into the runtime highlighter.
+   *
+   * For `x-codeSamples`: a hand-written sample in the OpenAPI document is
+   * highlighted in the browser like a generated one, but its language cannot be
+   * known here — a remote source has not been cloned yet when this runs, and
+   * `parse` is synchronous, so the samples cannot be coloured at build time
+   * either. A document carrying Ruby samples therefore names `ruby` here, and
+   * pays for that one grammar.
+   */
+  sampleLanguages?: string[];
 }
 
 /**

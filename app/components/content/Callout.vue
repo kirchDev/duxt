@@ -34,7 +34,7 @@ const variant = computed(() => variants[props.type]);
 </script>
 
 <template>
-  <Alert
+  <UiAlert
     class="my-5 flex items-start gap-2.5 rounded-md border border-l-2 bg-muted/30 px-3 py-2.5"
     :class="variant.rule"
   >
@@ -45,14 +45,14 @@ const variant = computed(() => variants[props.type]);
     />
 
     <div class="min-w-0 flex-1">
-      <AlertTitle v-if="title" class="mb-0.5 font-medium text-foreground">
+      <UiAlertTitle v-if="title" class="mb-0.5 font-medium text-foreground">
         {{ title }}
-      </AlertTitle>
-      <AlertDescription
+      </UiAlertTitle>
+      <UiAlertDescription
         class="text-muted-foreground [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_a]:text-foreground [&_code]:text-foreground [&_p]:my-1.5"
       >
         <slot />
-      </AlertDescription>
+      </UiAlertDescription>
     </div>
-  </Alert>
+  </UiAlert>
 </template>
