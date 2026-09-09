@@ -329,6 +329,15 @@ components:
       scheme: bearer
       bearerFormat: JWT
       description: A token obtained from the authorisation server.
+      # A value the try-it client fills the field with. duxt's own extension —
+      # OpenAPI has no field for it, because a security scheme describes where a
+      # credential goes and never what one looks like.
+      #
+      # Here it is the difference between "I see a client" and "I saw it work":
+      # `/echo` answers to any bearer token, and without this a reader has to
+      # invent one before the button does anything. It is a demo value in a
+      # published file, which is the only kind that belongs in a spec.
+      x-duxt-example: demo-token
     oauth:
       type: oauth2
       description: For applications acting on someone else's behalf.

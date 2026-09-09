@@ -549,6 +549,10 @@ function read(document: Node, dialect: '3.0' | '3.1'): DuxtOpenApiSpec {
             name: str(value.name),
             in: str(value.in) as DuxtOpenApiSecurityScheme['in'],
             scheme: str(value.scheme),
+            // `x-duxt-example`, not `example`: OpenAPI defines no such field on
+            // a security scheme, so writing one would be inventing a meaning
+            // for a name the specification may yet give another.
+            example: str(value['x-duxt-example']),
             bearerFormat: str(value.bearerFormat),
             openIdConnectUrl: str(value.openIdConnectUrl),
             flows: isObject(value.flows)

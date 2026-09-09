@@ -214,6 +214,18 @@ export interface DuxtOpenApiSecurityScheme {
   in?: 'query' | 'header' | 'cookie';
   /** `http`: the authentication scheme, e.g. `bearer` or `basic`. */
   scheme?: string;
+  /**
+   * A value the try-it client fills the field with, from `x-duxt-example`.
+   *
+   * An EXTENSION, because OpenAPI has no field for it: a security scheme
+   * describes where a credential goes, never what one looks like. A demo
+   * endpoint that answers to any token — or to one known token — can say so
+   * here, and a reader presses Send without first inventing a value.
+   *
+   * A published document, so this is a value that may be public and nothing
+   * else. Real credentials belong nowhere near a spec file.
+   */
+  example?: string;
   bearerFormat?: string;
   flows?: DuxtOpenApiOAuthFlow[];
   openIdConnectUrl?: string;
