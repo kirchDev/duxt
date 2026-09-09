@@ -55,6 +55,33 @@ export default defineNuxtConfig({
 
   appConfig: { duxt: { version } },
 
+  /**
+   * The origin, stated once.
+   *
+   * `i18n.baseUrl` is the one place a Nuxt site already has to name its domain,
+   * and the layer's own module reads it to fill in `site.url` — which is what
+   * the sitemap, the canonical links, robots.txt and the absolute OG image URLs
+   * are all built from. Without it the sitemap does not degrade: it fails the
+   * prerender outright with "You must provide a site URL".
+   */
+  i18n: { baseUrl: 'https://duxt.app' },
+
+  /**
+   * THE SAME ORIGIN AGAIN, AND IT IS NOT A DUPLICATE. `@nuxtjs/i18n` copies its
+   * `baseUrl` into this key with `defu`, which keeps whatever is already there
+   * — and something in the SEO chain seeds it first, so the module option
+   * above never reaches the runtime. What the runtime then has is an empty
+   * string, which falls back to the request's own origin, and every page
+   * rendered at build time is rendered against `localhost:3000`: nuxt-site-config
+   * pushes that over the site url, and the prerendered HTML ships
+   * `<link rel="canonical" href="http://localhost:3000">`.
+   *
+   * A site that is served rather than prerendered never shows this — the
+   * fallback resolves to the real host — which is exactly why it survived
+   * until the first prerendered build.
+   */
+  runtimeConfig: { public: { i18n: { baseUrl: 'https://duxt.app' } } },
+
   // Appended to the layer's own entry, never replacing it: Nuxt concatenates
   // `css` with the extending app's last, which is exactly the order these
   // overrides need — same specificity, later wins.
