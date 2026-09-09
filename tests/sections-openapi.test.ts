@@ -1,5 +1,5 @@
 import { parse as parseYaml } from 'yaml';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { DUXT_OPENAPI_LAYOUT, openapiSectionType } from '../sections-openapi';
 
 const context = { label: 'API', prefix: '/api' };
@@ -219,5 +219,54 @@ paths:
     expect(
       parse(`openapi: 3.1.0\ninfo: { title: Pets, version: '1' }`)
     ).toEqual([]);
+  });
+});
+
+describe('what the document could not be read for', () => {
+  const BROKEN = `
+openapi: 3.1.0
+info: { title: Pet Store, version: 1.0.0 }
+tags: [{ name: Pets }]
+paths:
+  /pets:
+    get:
+      operationId: listPets
+      tags: [Pets]
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Nope' }
+`;
+
+  it('hands an unresolvable reference to the report, not the console', () => {
+    // A document is parsed while the config is loading, so a printed warning
+    // about a dropped `$ref` has scrolled away before the dev server has
+    // finished starting — and what it reports is content silently missing from
+    // the reference.
+    const warnings: string[] = [];
+    const printed = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    openapiSectionType.parse(BROKEN, {
+      ...context,
+      options: {},
+      warn: (message) => warnings.push(message)
+    });
+
+    expect(warnings).toEqual([
+      'the reference "#/components/schemas/Nope" points at nothing in this document.'
+    ]);
+    expect(printed).not.toHaveBeenCalled();
+
+    printed.mockRestore();
+  });
+
+  it('still parses when nothing is listening', () => {
+    // `warn` is optional: a type is called with a bare context in a test, and
+    // an artefact with a finding must not become an artefact that throws.
+    expect(() =>
+      openapiSectionType.parse(BROKEN, { ...context, options: {} })
+    ).not.toThrow();
   });
 });

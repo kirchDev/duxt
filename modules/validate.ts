@@ -61,6 +61,29 @@ export default function duxtValidate(_options: unknown, nuxt: Nuxt) {
 
     if (!cached) return;
 
+    // The reports come from `modules/config.ts`, which read the artefacts once
+    // and left them on the manifest it wrote into `appConfig`. Merged rather
+    // than read again: a second parse of the same OpenAPI document, to reach
+    // the same answer, is a cost this build does not need — and two parses are
+    // two chances to disagree.
+    const reported = new Map(
+      (
+        (
+          nuxt.options.appConfig.duxt as
+            | { resolvedSources?: typeof sources }
+            | undefined
+        )?.resolvedSources ?? []
+      )
+        .filter((source) => source.generated?.report)
+        .map((source) => [source.collection, source.generated!.report] as const)
+    );
+
+    for (const source of sources) {
+      if (source.generated && reported.has(source.collection)) {
+        source.generated.report = reported.get(source.collection);
+      }
+    }
+
     const pages: PageRecord[] = cached.map((entry) => {
       const collected: Collected = {
         anchors: new Set<string>(),

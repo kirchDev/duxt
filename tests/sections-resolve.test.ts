@@ -447,19 +447,30 @@ describe('the severity of a section that produces nothing', () => {
     );
   });
 
-  it('warns and builds nothing when a REMOTE source has not the file', () => {
+  it('records and builds nothing when a REMOTE source has not the file', () => {
     // A remote source can go stale between releases without that being this
-    // build's fault, so it names the source and the ref and carries on.
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    // build's fault, so it carries on — and the finding goes into the report
+    // rather than onto the console, which is what puts it in the same list as
+    // every other finding this layer produces.
+    const source = entry({ remote: true });
 
-    expect(
-      missingSectionArtefact(entry({ remote: true }), '/cache/CHANGELOG.md')
-    ).toEqual([]);
-    expect(warn).toHaveBeenCalledWith(
-      expect.stringContaining('kirchDev/duxt@v1.0.0')
-    );
+    expect(missingSectionArtefact(source, '/cache/CHANGELOG.md')).toEqual([]);
+    expect(source.generated!.report).toEqual({
+      pages: 0,
+      warnings: [],
+      missing: true
+    });
+  });
 
-    warn.mockRestore();
+  it('records the missing artefact for a LOCAL source before it throws', () => {
+    // The throw is the severity; the report is what a reader sees if anything
+    // catches it. Both, in that order.
+    const source = entry();
+
+    expect(() =>
+      missingSectionArtefact(source, '/repo/CHANGELOG.md')
+    ).toThrow();
+    expect(source.generated!.report?.missing).toBe(true);
   });
 
   it('hands the type the label, the prefix and the declared options', () => {
@@ -476,7 +487,8 @@ describe('the severity of a section that produces nothing', () => {
     expect(parse).toHaveBeenCalledWith('anything', {
       label: 'Releases',
       prefix: '/releases',
-      options: { granularity: 'flat' }
+      options: { granularity: 'flat' },
+      warn: expect.any(Function)
     });
   });
 
@@ -495,17 +507,36 @@ describe('the severity of a section that produces nothing', () => {
     // An empty collection is a 404 on every URL the section claims, with
     // nothing said about why — the same outcome as a file that is not there.
     const empty = stub({ parse: () => [] });
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const remote = entry({ remote: true });
 
     expect(() => sectionPages(entry(), empty, 'anything')).toThrow(
       /holds nothing the "stub" type can read/
     );
-    expect(sectionPages(entry({ remote: true }), empty, 'anything')).toEqual(
-      []
-    );
-    expect(warn).toHaveBeenCalledOnce();
+    expect(sectionPages(remote, empty, 'anything')).toEqual([]);
+    expect(remote.generated!.report).toEqual({ pages: 0, warnings: [] });
+  });
 
-    warn.mockRestore();
+  it('collects what the type warned about, once per message', () => {
+    // Deduplicated in the scaffold rather than in each type: one unresolvable
+    // `$ref` is reached from every operation that uses it.
+    const source = entry();
+
+    sectionPages(
+      source,
+      stub({
+        parse: (_artefact, context) => {
+          context.warn?.('the reference "#/x" points at nothing.');
+          context.warn?.('the reference "#/x" points at nothing.');
+          return [{ file: 'index.md', body: '' }];
+        }
+      }),
+      'anything'
+    );
+
+    expect(source.generated!.report).toEqual({
+      pages: 1,
+      warnings: ['the reference "#/x" points at nothing.']
+    });
   });
 });
 

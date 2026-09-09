@@ -42,16 +42,35 @@ export interface SourceRecord {
   prefix: string;
   locale?: string;
   isDefaultLocale?: boolean;
+  /** The artefact a generated section was read from, for its findings. */
+  path?: string;
+  /** Where that artefact lives, for a finding that has to name it. */
+  repository?: string;
+  repositoryUrl?: string;
+  ref?: string;
   /**
    * Set when this collection is a GENERATED SECTION rather than a docs tree.
    *
-   * Two of the checks below mean something different for one: an empty section
-   * is already reported where the artefact is read, with the severity the
-   * source's kind asks for, and a page split out of a changelog has no field a
-   * `description` could come from. Both are properties of the artefact rather
-   * than defects in it.
+   * Checked DIFFERENTLY rather than skipped. An empty section is a finding
+   * about the artefact and not about a docs folder, so it is worded and graded
+   * from `report` instead of from the collection rule; a page split out of a
+   * changelog has no field a `description` could come from, so it is not asked
+   * for one; and what the type could not read is a finding no other check could
+   * ever have produced.
    */
-  generated?: unknown;
+  generated?: GeneratedRecord;
+}
+
+/** What a generated section carries into the checks. */
+export interface GeneratedRecord {
+  type: string;
+  label: string;
+  remote?: boolean;
+  report?: {
+    pages: number;
+    warnings: string[];
+    missing?: boolean;
+  };
 }
 
 /** What one pass over a parsed MDC body picks up. */
@@ -113,13 +132,18 @@ export function report(
   // 1. A collection with nothing in it. The symptom is an empty sidebar and a
   //    404 on every page of one version — never a message.
   //
-  //    A generated section is exempt: `sections.ts` already reports an artefact
-  //    that is missing or unreadable, and it does so at the severity the
-  //    source's kind asks for — an error for a local file, a warning for a
-  //    remote one that may legitimately not have existed at an older tag.
-  //    Repeating it here as an error would overrule that decision.
+  //    A GENERATED SECTION answers the same question from its own artefact, at
+  //    its own severity and in its own words — see `sectionFindings`. It used
+  //    to be skipped here and reported by a `console.warn` where the file is
+  //    read, which put half of this layer's findings in a channel that has
+  //    scrolled away by the time anyone looks at the other half.
   for (const source of sources) {
-    if (source.generated) continue;
+    if (source.generated) {
+      warnings.push(
+        ...sectionFindings(source, byCollection.get(source.collection)?.length)
+      );
+      continue;
+    }
 
     if (!byCollection.get(source.collection)?.length) {
       errors.push(
@@ -289,6 +313,76 @@ function commandWarnings(pages: PageRecord[], warnings: string[]): void {
 
 const stripTrailingSlash = (path: string) =>
   path.length > 1 ? path.replace(/\/+$/, '') : path;
+
+/** The repository and ref an artefact was looked for in. */
+const sectionOrigin = (source: SourceRecord) =>
+  `${source.repository ?? source.repositoryUrl ?? 'the source'}${
+    source.ref ? `@${source.ref}` : ''
+  }`;
+
+/**
+ * What reading one generated section's artefact had to say.
+ *
+ * WARNINGS, all of them, and the severity is not a compromise. Everything a
+ * local artefact can get wrong — a path that is not there, a file the type
+ * cannot read at all, an option it does not know — has already thrown while the
+ * config was loading, long before this report exists: the site's own
+ * configuration is a mistake the build must not carry. What is left to report
+ * here is therefore either a REMOTE artefact, which may legitimately have gone
+ * stale between releases and is not this build's to reject, or a page that
+ * rendered with something missing from it. Neither is an error.
+ *
+ * `report` absent is not "nothing to report" — it is "nobody read the artefact
+ * on this side". A remote one is read where Content put the checkout, which is
+ * a directory only the config loader knows, so the manifest a module holds
+ * carries no report for it at all. The page count answers for that case, and
+ * says less because less is known: a section serving nothing is still visible
+ * from the collection, only the reason for it is not.
+ */
+function sectionFindings(
+  source: SourceRecord,
+  pages: number | undefined
+): string[] {
+  const meta = source.generated!;
+  const report = meta.report;
+  const where = `the generated section "${meta.label}"`;
+  const findings: string[] = [];
+
+  // Quoted only where the file is actually in this checkout. The Checks panel
+  // turns the first quoted `.md` in a finding into an editor link, and a remote
+  // `CHANGELOG.md` resolved against the local root is a link to nothing.
+  const artefact = meta.remote ? source.path : `"${source.path}"`;
+
+  if (report?.missing) {
+    findings.push(
+      `${where} declares ${artefact}, which ${sectionOrigin(source)} does not ` +
+        'have. The section is not built.'
+    );
+  } else if (report && !report.pages) {
+    findings.push(
+      `${where} holds nothing the "${meta.type}" type can read in ` +
+        `${artefact}, so it has no pages.`
+    );
+  } else if (!pages) {
+    findings.push(
+      report
+        ? `${where} produced ${report.pages} pages out of ${artefact}, but the ` +
+            `collection "${source.collection}" serves none — Content dropped it.`
+        : `${where} produced no pages out of ${artefact} in ` +
+            `${sectionOrigin(source)}. Either the artefact is not there at that ` +
+            `ref, or it holds nothing the "${meta.type}" type can read.`
+    );
+  }
+
+  // Prefixed with the section, never with a page: a generated page's name is
+  // this layer's own invention, so pointing at one would send a reader to a
+  // file that does not exist. The artefact is the thing to open.
+  for (const warning of report?.warnings ?? []) {
+    findings.push(`${where} (${artefact}): ${warning}`);
+  }
+
+  return findings;
+}
 
 /**
  * What each language carries, and what has stood still.

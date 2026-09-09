@@ -10,6 +10,7 @@ import {
   duxtRequestSamples
 } from '../app/utils/request-samples';
 import { duxtManifest, duxtSectionTypes } from '../sections-resolve';
+import { readSectionReports } from '../section-reports';
 import { resolveLatestRefs } from '../sources-git';
 
 /**
@@ -50,10 +51,18 @@ export default function duxtConfig(_options: unknown, nuxt: Nuxt) {
 
   const config = readDuxtBuildConfig(dirs);
 
-  const resolvedSources = duxtManifest(
-    resolveLatestRefs(config?.sources ?? [{ path: 'docs' }]),
-    config?.sourceOptions ?? {},
-    duxtSectionTypes(config?.sectionTypes)
+  const sectionTypes = duxtSectionTypes(config?.sectionTypes);
+
+  // Read here, and the reports travel with the manifest into `appConfig` — the
+  // only route by which what an artefact said reaches the running server, and
+  // therefore the Checks panel. See `readSectionReports`.
+  const resolvedSources = readSectionReports(
+    duxtManifest(
+      resolveLatestRefs(config?.sources ?? [{ path: 'docs' }]),
+      config?.sourceOptions ?? {},
+      sectionTypes
+    ),
+    sectionTypes
   );
 
   // Written into `appConfig`, which the generated template merges LAST — behind

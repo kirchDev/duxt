@@ -92,9 +92,12 @@ function parseOpenApiSection(
     );
   }
 
-  for (const warning of spec.warnings) {
-    console.warn(`[duxt] ${context.label}: ${warning}`);
-  }
+  // Into the report rather than onto the console: a document is parsed while
+  // the config is loading, so a printed warning about a dropped `$ref` has
+  // scrolled away before the dev server has finished starting — and what it
+  // reports is content silently missing from the reference. See
+  // `DuxtSectionContext.warn`.
+  for (const warning of spec.warnings) context.warn?.(warning);
 
   if (!spec.tags?.length) return [];
 

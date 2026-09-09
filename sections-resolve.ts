@@ -133,6 +133,42 @@ export interface DuxtSectionContext {
   prefix: string;
   /** The declaration's own `options`, empty where it named none. */
   options: DuxtSectionOptions;
+  /**
+   * What the type could not make sense of, but carried on past.
+   *
+   * NOT `console.warn`, which is what both built-in types did: an artefact is
+   * parsed while the config is being loaded, so a warning printed there has
+   * scrolled away long before anyone looks — the same failure the Checks panel
+   * exists to fix. Collected here instead, the finding reaches
+   * `DuxtSectionReport` and from there the ONE report this layer has: the build
+   * validator prints it and the Checks panel keeps it.
+   *
+   * For findings the parser survives. What it cannot read at all it throws on,
+   * and a section that produced no pages is reported by the scaffold rather
+   * than by the type — neither needs this.
+   *
+   * Optional, because a type is called with a bare context in a test.
+   */
+  warn?: (message: string) => void;
+}
+
+/**
+ * What reading one artefact said about it, for the report.
+ *
+ * On the manifest entry rather than in a registry of its own, and that is the
+ * same decision `duxtSectionTypes` documents above: `content.config.ts` and the
+ * duxt module are loaded through two different loaders, so a module-level
+ * collector written by one of them is invisible to the other. A field on the
+ * entry travels with the manifest that is already handed around — into
+ * `app.config`, which is how the Checks panel sees it at all.
+ */
+export interface DuxtSectionReport {
+  /** How many pages the type produced. */
+  pages: number;
+  /** What the type carried on past — see `DuxtSectionContext.warn`. */
+  warnings: string[];
+  /** Set when the declared artefact was not there to read. */
+  missing?: boolean;
 }
 
 /**
@@ -257,6 +293,17 @@ export interface DuxtGeneratedMeta {
   localisation: 'original' | 'per-locale';
   /** Whether Content downloads the repository this artefact sits in. */
   remote: boolean;
+  /**
+   * What reading the artefact said about it — see `DuxtSectionReport`.
+   *
+   * Absent until something has actually read it, which is not the resolver's
+   * job: `resolveGeneratedSections` is pure and never touches disk. It is
+   * filled by whoever reads the file — `sections.ts` while the collections are
+   * being declared, and `readSectionReports` for the manifest the modules hold.
+   * Absent therefore means "not read here", never "nothing to report", and the
+   * checks are written to say nothing rather than guess.
+   */
+  report?: DuxtSectionReport;
 }
 
 /**
@@ -489,24 +536,32 @@ export function sectionPages(
   type: DuxtSectionType,
   artefact: string
 ): DuxtSectionPage[] {
+  const warnings: string[] = [];
+
   const pages = type.parse(artefact, {
     label: entry.generated!.label,
     prefix: entry.prefix,
-    options: entry.generated!.options ?? {}
+    options: entry.generated!.options ?? {},
+    warn: (message) => {
+      // Deduplicated here rather than in each type: one unresolvable `$ref` is
+      // reached from every operation that uses it, and a report that says the
+      // same sentence forty times is a report nobody reads to the end.
+      if (!warnings.includes(message)) warnings.push(message);
+    }
   });
 
-  if (!pages.length) {
-    const problem =
-      `holds nothing the "${entry.generated!.type}" type can read, so the ` +
-      `section "${entry.generated!.label}" has no pages`;
+  entry.generated!.report = { pages: pages.length, warnings };
 
-    if (entry.generated!.remote) {
-      console.warn(
-        `[duxt] ${entry.path} in ${sectionOrigin(entry)} ${problem}.`
-      );
-    } else {
-      throw new Error(`duxt: ${entry.path} ${problem}.`);
-    }
+  // An EMPTY section is not reported here any more, in either direction beyond
+  // the local throw. The report above says `pages: 0`, and `validate-report.ts`
+  // turns that into a finding at the severity the source's kind asks for —
+  // which is where every other finding in this layer already lives. A
+  // `console.warn` beside it was a second reporting channel that scrolled away.
+  if (!pages.length && !entry.generated!.remote) {
+    throw new Error(
+      `duxt: ${entry.path} holds nothing the "${entry.generated!.type}" type ` +
+        `can read, so the section "${entry.generated!.label}" has no pages.`
+    );
   }
 
   return pages;
@@ -519,37 +574,27 @@ export function sectionPages(
  * already states. A LOCAL source is the site's own configuration, so a path
  * that does not exist is a mistake in it and fails the build. A REMOTE one may
  * legitimately not have had the file at an older tag — a remote source can go
- * stale between releases without that being this build's fault — so it warns,
- * names the source and the ref, and the section is simply not built.
+ * stale between releases without that being this build's fault — so it is
+ * recorded as a finding, and the section is simply not built.
  *
- * Returns the pages a caller should carry on with, which for the warning case
+ * Returns the pages a caller should carry on with, which for the recorded case
  * is none — so the two severities read as one expression at both call sites.
  */
 export function missingSectionArtefact(
   entry: DuxtResolvedSource,
   file: string
 ): DuxtSectionPage[] {
-  if (entry.generated!.remote) {
-    console.warn(
-      `[duxt] the generated section "${entry.generated!.label}" declares ` +
-        `${entry.path}, which ${sectionOrigin(entry)} does not have. ` +
-        'The section is not built.'
-    );
-    return [];
-  }
+  entry.generated!.report = { pages: 0, warnings: [], missing: true };
+
+  // Remote: recorded, not printed. `validate-report.ts` reads the report and
+  // says it once, in the same list as every other finding — see `sectionPages`.
+  if (entry.generated!.remote) return [];
 
   throw new Error(
     `duxt: the generated section "${entry.generated!.label}" declares ` +
       `${entry.path}, which this repository does not have (looked in ${file}). ` +
       "A generated section resolves its path against the source's own root."
   );
-}
-
-/** The repository and ref an artefact was looked for in. */
-function sectionOrigin(entry: DuxtResolvedSource): string {
-  return `${entry.repository ?? entry.repositoryUrl ?? 'the source'}${
-    entry.ref ? `@${entry.ref}` : ''
-  }`;
 }
 
 /**

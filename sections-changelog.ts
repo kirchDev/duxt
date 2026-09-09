@@ -179,6 +179,8 @@ function parseChangelog(
   const headings = headingsOf(lines);
 
   const starts = headings.filter((heading) => release(heading.text));
+
+  reportNearMisses(headings, starts, context);
   const releases: Release[] = starts.map((heading, index) => {
     const parsed = release(heading.text)!;
     const end = starts[index + 1]?.line ?? lines.length;
@@ -279,6 +281,47 @@ function scan(
 }
 
 /** Is this heading a release, and which one? */
+/**
+ * A heading that reads like a release but was not taken for one.
+ *
+ * The parser is deliberately tolerant, and tolerance has a silent edge: a
+ * heading `RELEASE` does not match is not an error, it is PROSE — its lines are
+ * folded into the release above it, or into the preamble, and the release it
+ * was meant to be never becomes a page. Nothing said so. This says so.
+ *
+ * The test is a dotted number at the front, so `## 1.4 (Feb 2024)` and the
+ * Keep a Changelog form `## [1.2.3] - 2024-01-01` — which carries no link and
+ * therefore survives `LINK` with its brackets on — are reported, while a group
+ * heading like `### 3 breaking changes` is not. It is a warning rather than a
+ * throw for the reason every other content finding is one: the site renders,
+ * and a changelog this layer did not write is not the build's to reject.
+ */
+const NEAR_RELEASE = /^\[?v?\d+\.\d/;
+
+function reportNearMisses(
+  headings: { line: number; text: string }[],
+  starts: { line: number }[],
+  context: DuxtSectionContext
+): void {
+  if (!context.warn) return;
+
+  const taken = new Set(starts.map((heading) => heading.line));
+
+  for (const heading of headings) {
+    if (taken.has(heading.line)) continue;
+
+    const text = heading.text.replace(LINK, '$1').trim();
+    if (!NEAR_RELEASE.test(text)) continue;
+
+    context.warn(
+      `the heading "${heading.text}" on line ${heading.line + 1} reads like a ` +
+        'release but does not parse as one, so it became part of the release ' +
+        'above it instead of a page of its own. A release heading is a version, ' +
+        'optionally followed by a date in parentheses: `## 1.4.0 (2024-02-01)`.'
+    );
+  }
+}
+
 function release(text: string): { version: string; date?: string } | undefined {
   const match = RELEASE.exec(text.replace(LINK, '$1').trim());
   if (!match) return undefined;

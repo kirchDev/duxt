@@ -25,6 +25,9 @@ export function resolvedSources(): DuxtResolvedSource[] {
         prefix: '',
         path: 'docs',
         isDefault: true,
+        // The fallback is the site's only source, so it is also the language
+        // everything falls back to — the field is not optional on the manifest.
+        isDefaultLocale: true,
         status: 'current',
         // A source read off disk is a full checkout, so its history is
         // readable without asking.

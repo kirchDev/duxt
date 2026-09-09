@@ -399,3 +399,78 @@ describe('the flat changelog', () => {
     expect(() => layout({ granularty: 'flat' })).toThrow(/granularty/);
   });
 });
+
+describe('a heading that reads like a release but is not one', () => {
+  /** The warnings one parse collected, in order. */
+  const warningsOf = (artefact: string, options: DuxtSectionOptions = {}) => {
+    const warnings: string[] = [];
+
+    changelogSectionType.parse(artefact, {
+      label: 'Releases',
+      prefix: '/releases',
+      options,
+      warn: (message) => warnings.push(message)
+    });
+
+    return warnings;
+  };
+
+  it('names a version heading the parser did not take', () => {
+    // The tolerance has a silent edge: a heading `RELEASE` does not match is
+    // prose, its lines fold into the release above it, and the release it was
+    // meant to be never becomes a page. Nothing used to say so.
+    const warnings = warningsOf(`# Changelog
+
+## 1.4.0 (2026-02-01)
+
+* a thing
+
+## 1.3 (Feb 2026)
+
+* an older thing
+`);
+
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toMatch(/"1\.3 \(Feb 2026\)"/);
+    expect(warnings[0]).toMatch(/line 7/);
+  });
+
+  it('names the Keep a Changelog form that carries no link', () => {
+    // `[1.2.3]` without a `(…)` after it survives the link strip with its
+    // brackets on, so the version regex never sees a version.
+    const warnings = warningsOf(`# Changelog
+
+## [1.2.3] - 2026-01-01
+
+* a thing
+`);
+
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toMatch(/\[1\.2\.3\]/);
+  });
+
+  it('leaves an ordinary group heading alone', () => {
+    // `### 3 breaking changes` begins with a digit and is not a near miss —
+    // the test is a DOTTED number, which is what a version looks like.
+    expect(
+      warningsOf(`# Changelog
+
+## 1.4.0 (2026-02-01)
+
+### 3 breaking changes
+
+* a thing
+`)
+    ).toEqual([]);
+  });
+
+  it('says nothing about a file whose releases all parse', () => {
+    expect(warningsOf(CHANGELOG)).toEqual([]);
+  });
+
+  it('says nothing at all when the file is rendered flat', () => {
+    // Flat mode never looks for a release heading, so it has no near miss to
+    // report — the file is published exactly as it was written.
+    expect(warningsOf(CHANGELOG, { granularity: 'flat' })).toEqual([]);
+  });
+});
