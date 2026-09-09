@@ -622,3 +622,104 @@ describe('openApiBodyProblems', () => {
     expect(openApiBodyProblems('{}', [])).toEqual([]);
   });
 });
+
+/**
+ * `readOnly` is a statement about DIRECTION, and everything here is a request.
+ *
+ * The fixture that found this declares `required: [id, name, kind]` with
+ * `id: readOnly`, which is the ordinary way to describe a field the server
+ * assigns. OpenAPI says the requirement then applies to the response only — and
+ * before this the editor prefilled a body without `id`, correctly, and then
+ * underlined it as missing.
+ */
+describe('a read-only property in a request', () => {
+  const widget = schema({
+    types: ['object'],
+    properties: [
+      {
+        name: 'id',
+        required: true,
+        schema: { types: ['string'], readOnly: true }
+      },
+      { name: 'name', required: true, schema: { types: ['string'] } }
+    ]
+  } as Partial<DuxtOpenApiSchema>);
+
+  it('is not required by the body linter', () => {
+    const keys = openApiBodyKeys(widget);
+
+    expect(keys.map((key) => key.name)).toEqual(['id', 'name']);
+    expect(keys.find((key) => key.name === 'id')?.required).toBe(false);
+    expect(keys.find((key) => key.name === 'name')?.required).toBe(true);
+  });
+
+  /** Reported as missing is exactly what the default body left out. */
+  it('is not reported as missing', () => {
+    const problems = openApiBodyProblems(
+      '{ "name": "A widget" }',
+      openApiBodyKeys(widget)
+    );
+
+    expect(problems).toEqual([]);
+  });
+
+  /** It stays a known key, so typing it is not a warning either. */
+  it('is still described by the document', () => {
+    const problems = openApiBodyProblems(
+      '{ "id": "x", "name": "A widget" }',
+      openApiBodyKeys(widget)
+    );
+
+    expect(problems).toEqual([]);
+  });
+
+  it('gets no box in the form', () => {
+    const form = openApiBodyForm(widget);
+
+    expect(form.expressible).toBe(true);
+    expect(form.expressible && form.fields.map((field) => field.name)).toEqual([
+      'name'
+    ]);
+  });
+
+  /**
+   * Dropped BEFORE the shape checks, not after: a read-only object property
+   * must not cost the whole form its verdict over a field no request carries.
+   */
+  it('does not make the form give up as nested', () => {
+    const form = openApiBodyForm(
+      schema({
+        types: ['object'],
+        properties: [
+          {
+            name: 'meta',
+            required: false,
+            schema: { types: ['object'], readOnly: true }
+          },
+          { name: 'name', required: true, schema: { types: ['string'] } }
+        ]
+      } as Partial<DuxtOpenApiSchema>)
+    );
+
+    expect(form.expressible).toBe(true);
+  });
+
+  /** A body of nothing but read-only fields has no form to draw. */
+  it('leaves an all-read-only body with no form', () => {
+    const form = openApiBodyForm(
+      schema({
+        types: ['object'],
+        properties: [
+          {
+            name: 'id',
+            required: true,
+            schema: { types: ['string'], readOnly: true }
+          }
+        ]
+      } as Partial<DuxtOpenApiSchema>)
+    );
+
+    expect(form.expressible).toBe(false);
+    expect(form.expressible === false && form.reason).toBe('empty');
+  });
+});

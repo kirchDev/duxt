@@ -374,7 +374,22 @@ export function openApiBodyForm(
     return { expressible: false, reason: 'dynamic' };
   }
 
-  const properties = schema.properties ?? [];
+  /**
+   * A `readOnly` property is not part of a REQUEST, and this form is only ever
+   * a request.
+   *
+   * The document says who fills a field in, and the form used to ignore it: an
+   * `id` the server assigns got a box, and — where the schema also listed it
+   * under `required`, which is the ordinary way to describe such a field — a
+   * red marker demanding the reader invent one. Dropped before the checks
+   * below, not after: a read-only property that is itself an object must not
+   * cost the whole form its `nested` verdict for a field the request never
+   * carries.
+   */
+  const properties = (schema.properties ?? []).filter(
+    (property) => !property.schema.readOnly
+  );
+
   if (!properties.length) return { expressible: false, reason: 'empty' };
 
   if (properties.some((property) => !scalar(property.schema))) {
@@ -535,7 +550,20 @@ export function openApiBodyKeys(schema?: DuxtOpenApiSchema): DuxtOpenApiKey[] {
 
   return (schema.properties ?? []).map((property) => ({
     name: property.name,
-    required: property.required,
+    /**
+     * `readOnly` UNDOES `required` HERE, because this list describes a request.
+     *
+     * OpenAPI is explicit: where a property is `readOnly` and also listed under
+     * `required`, the requirement applies to the response only. A request must
+     * not carry it at all. Without this the editor demanded a field it had
+     * itself, correctly, left out of the body it prefilled — the linter and the
+     * default contradicting each other inside one component.
+     *
+     * It stays in the list rather than being dropped: the document DOES
+     * describe it, so a reader who types it deserves completion and not the
+     * "not described by this document" warning that removing it would produce.
+     */
+    required: property.required && !property.schema.readOnly,
     type: openApiTypeLabel(property.schema),
     description: property.schema.description,
     enum: property.schema.enum?.length
