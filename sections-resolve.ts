@@ -347,7 +347,17 @@ export function resolveGeneratedSections(
           // offered as one of the versions of the documentation beside it.
           version:
             type.versioning === 'per-version' ? base.entry.version : undefined,
-          isDefault: true,
+          // FOLLOWS THE VERSION IT WAS READ AT, where there is one. This was
+          // hard-wired to `true`, which is right for a `global` section — one
+          // entry, served at a URL with no version in it — and wrong for every
+          // other: it made the v1.9 reference claim to be the default as
+          // loudly as the v2 one. Two things read that claim and both got it
+          // wrong. `excludeOldVersionsFromSitemap` hides what is not the
+          // default, so a deprecated reference stayed in the sitemap while the
+          // deprecated documentation beside it was excluded; and the version
+          // switcher captions the default, so it offered two of them.
+          isDefault:
+            type.versioning === 'per-version' ? base.entry.isDefault : true,
           repository: base.entry.repository,
           repositoryUrl: base.entry.repositoryUrl,
           ref: base.entry.ref,

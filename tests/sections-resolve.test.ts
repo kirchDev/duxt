@@ -508,3 +508,41 @@ describe('the severity of a section that produces nothing', () => {
     warn.mockRestore();
   });
 });
+
+describe('which generated entry claims to be the default version', () => {
+  const source = (type: string) => ({
+    path: 'docs',
+    repo: 'acme/sdk',
+    refs: [
+      { branch: 'main', label: 'v2' },
+      { tag: 'v1.9.4', label: 'v1.9' }
+    ],
+    generated: [{ type, path: 'artefact', label: 'Section' }]
+  });
+
+  it('follows the version it was read at, for a per-version type', () => {
+    // Hard-wired to `true`, the deprecated reference claimed to be the default
+    // as loudly as the current one — which kept it in the sitemap and put a
+    // second "default" in the version switcher.
+    const entries = duxtManifest([source('openapi')], {}).filter(
+      (entry) => entry.generated
+    );
+
+    expect(entries.map((entry) => [entry.version, entry.isDefault])).toEqual([
+      ['v2', true],
+      ['v1.9', false]
+    ]);
+  });
+
+  it('stays the default for a version-neutral type', () => {
+    // One entry, served at a URL with no version in it — there is nothing else
+    // for it to be.
+    const entries = duxtManifest([source('changelog')], {}).filter(
+      (entry) => entry.generated
+    );
+
+    expect(entries).toHaveLength(1);
+    expect(entries[0]!.isDefault).toBe(true);
+    expect(entries[0]!.version).toBeUndefined();
+  });
+});
