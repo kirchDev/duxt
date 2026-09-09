@@ -154,7 +154,7 @@ function readFrameLocation() {
 }
 
 onMounted(() => {
-  if (!preview.value || preview.value.src) return;
+  if (!preview.value || preview.value.live === false) return;
 
   const root = previewRoot.value;
   if (!root) return;
@@ -398,63 +398,97 @@ defineOgImage('Duxt', {
             </UiButton>
           </div>
 
-          <!-- Two <img>s rather than one: a screenshot of a light theme on a
-               dark page is a torch, and `srcDark` is how a site hands over the
-               other file. Without one, `src` serves both. -->
-          <template v-if="preview.src">
-            <img
-              :src="preview.src"
-              :alt="preview.alt ?? ''"
-              loading="lazy"
-              decoding="async"
-              class="w-full"
-              :class="preview.srcDark ? 'dark:hidden' : ''"
-            />
-            <img
-              v-if="preview.srcDark"
-              :src="preview.srcDark"
-              alt=""
-              loading="lazy"
-              decoding="async"
-              class="hidden w-full dark:block"
-            />
-          </template>
+          <!-- THE POSTER AND THE LIVE PAGE IN ONE STACK, not one or the other.
+               The frame is a second copy of the application: between the moment
+               the band arrives and the moment that copy has booted there used
+               to be an empty box the height of a page. The poster fills it from
+               the first byte — the server can render it — and the frame takes
+               over underneath it, so the perceived wait is nothing while the
+               reader still ends up with the real thing.
 
-          <!-- The live one. Rendered only after the band scrolls into view, and
-               never on the server: an iframe in the initial HTML is a second
-               full page load competing with this one. The box keeps its height
-               either way, so nothing below it jumps when the frame arrives.
+               `live: false` keeps the old meaning of `src`: a picture and no
+               second load at all, for a site that would rather not.
 
-               NO `loading="lazy"`. The observer above has already decided this
-               frame should load, and the attribute then puts the browser's own
-               heuristic in front of that decision — a second gate on something
-               that is only mounted at all because it is about to be needed. -->
-          <ClientOnly v-else>
-            <iframe
-              v-if="previewVisible"
-              ref="previewFrame"
-              :src="previewTo"
-              @load="
-                previewLoading = false;
-                readFrameLocation();
-              "
-              :title="previewTitle"
-              class="h-[44rem] w-full max-lg:h-[36rem] max-sm:h-[28rem]"
-              :style="{ height: preview.height }"
-            />
-            <div
-              v-else
-              class="h-[44rem] max-lg:h-[36rem] max-sm:h-[28rem]"
-              :style="{ height: preview.height }"
-            />
+               THE BOX OWNS THE HEIGHT, not whatever happens to be inside it.
+               The frame is mounted late and the poster is absolutely
+               positioned, so with the height on the frame — where it was — the
+               band had no height at all until the frame arrived, and then
+               jumped to a page's worth. -->
+          <div
+            class="relative h-[44rem] max-lg:h-[36rem] max-sm:h-[28rem]"
+            :style="{ height: preview.height }"
+          >
+            <!-- The live one. Rendered only after the band scrolls into view,
+                 and never on the server: an iframe in the initial HTML is a
+                 second full page load competing with this one.
 
-            <template #fallback>
-              <div
-                class="h-[44rem] max-lg:h-[36rem] max-sm:h-[28rem]"
-                :style="{ height: preview.height }"
+                 NO `loading="lazy"`. The observer above has already decided
+                 this frame should load, and the attribute then puts the
+                 browser's own heuristic in front of that decision — a second
+                 gate on something that is only mounted at all because it is
+                 about to be needed. -->
+            <ClientOnly v-if="preview.live !== false">
+              <iframe
+                v-if="previewVisible"
+                ref="previewFrame"
+                :src="previewTo"
+                @load="
+                  previewLoading = false;
+                  readFrameLocation();
+                "
+                :title="previewTitle"
+                class="h-full w-full"
               />
-            </template>
-          </ClientOnly>
+            </ClientOnly>
+
+            <!-- Over the frame until it has loaded once, then gone. Not
+                 `v-if`-ed away on the same tick it stops being needed: a poster
+                 that vanishes the instant the frame reports `load` swaps one
+                 picture for another mid-paint, and a fade covers exactly that.
+                 `pointer-events-none` so a poster on its way out cannot eat the
+                 click that lands on the page underneath. -->
+            <Transition
+              enter-from-class="opacity-0"
+              leave-to-class="opacity-0"
+              enter-active-class="transition-opacity"
+              leave-active-class="transition-opacity duration-500"
+            >
+              <div
+                v-if="previewLoading || preview.live === false"
+                class="absolute inset-0 overflow-hidden bg-background"
+                :class="preview.live === false ? '' : 'pointer-events-none'"
+                :aria-hidden="preview.live === false ? undefined : 'true'"
+              >
+                <!-- Two <img>s rather than one: a screenshot of a light theme
+                     on a dark page is a torch, and `srcDark` is how a site
+                     hands over the other file. Without one, `src` serves
+                     both. -->
+                <template v-if="preview.src">
+                  <img
+                    :src="preview.src"
+                    :alt="preview.alt ?? ''"
+                    decoding="async"
+                    class="h-full w-full object-cover object-top"
+                    :class="preview.srcDark ? 'dark:hidden' : ''"
+                  />
+                  <img
+                    v-if="preview.srcDark"
+                    :src="preview.srcDark"
+                    alt=""
+                    decoding="async"
+                    class="hidden h-full w-full object-cover object-top dark:block"
+                  />
+                </template>
+
+                <!-- No screenshot: the SHAPE of a documentation page, drawn
+                     from the theme's own tokens. It needs no asset, it is
+                     right in both modes by construction, and it says "a page
+                     is coming" where a blank box said nothing. A site that
+                     wants its own picture sets `src`. -->
+                <DuxtPreviewSkeleton v-else />
+              </div>
+            </Transition>
+          </div>
         </div>
       </div>
     </section>

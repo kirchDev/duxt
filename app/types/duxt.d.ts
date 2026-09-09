@@ -388,17 +388,30 @@ declare global {
    * the reader scrolls it, opens its navigation and switches its theme without
    * leaving the landing page.
    *
-   * A still image is the alternative, not the default: set `src` and the window
-   * shows that instead, for a site that would rather not load itself twice.
+   * A still image is the POSTER, not the alternative: the frame is a second
+   * copy of the application, and the picture covers the box until that copy has
+   * booted. Where no picture is given the window draws the shape of a page
+   * instead — see `DuxtPreviewSkeleton`, which needs no asset and is right in
+   * both themes by construction. `live: false` is how a site says it would
+   * rather not load itself twice at all.
    */
   interface DuxtPreview {
     /** The page to embed. Defaults to the first section. */
     to?: string;
     /** Window height, any CSS length. Defaults to a responsive clamp. */
     height?: string;
-    /** A screenshot instead of the live page. `srcDark` serves dark mode. */
+    /**
+     * A screenshot shown until the live page is up — or instead of it, where
+     * `live` is false. `srcDark` serves dark mode; without one, `src` serves
+     * both, which on a dark page is a torch.
+     */
     src?: string;
     srcDark?: string;
+    /**
+     * Embed the page at all. `false` shows only `src`, which is what a site
+     * picks when a second copy of the application is a cost it will not pay.
+     */
+    live?: boolean;
     /** The image's alt text, and the frame's accessible name. */
     alt?: DuxtText;
   }
