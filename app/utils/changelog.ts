@@ -1,6 +1,6 @@
 /**
  * What a release history needs beyond the pages the parser writes: the anchor a
- * group is linked at, and the colour it is drawn in.
+ * group is linked at, the colour it is drawn in, and the day it was cut.
  *
  * Here rather than in the components because TWO PLACES have to agree about an
  * id — the heading `ChangelogGroup` draws, and the contents column built from
@@ -108,4 +108,32 @@ export function changelogTone(name: string): DuxtChangelogTone {
   }
 
   return TONES[hash % TONES.length]!;
+}
+
+/**
+ * A release day, in the reader's language.
+ *
+ * `timeZone: 'UTC'` because the value is a calendar date and not a moment: read
+ * as local time, `2026-09-08` is the 7th for every reader west of Greenwich —
+ * and a different day on the server than in the browser, which is a hydration
+ * mismatch as well as a wrong date.
+ *
+ * Here rather than beside one of its callers because TWO of them draw it — the
+ * timeline on the overview and the meta row on the release page — and a date
+ * formatted in two places is two chances to print two different days for one
+ * release.
+ */
+export function changelogDate(
+  value: string | undefined,
+  locale: string
+): string | undefined {
+  if (!value) return undefined;
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return undefined;
+
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: 'medium',
+    timeZone: 'UTC'
+  }).format(date);
 }

@@ -2,7 +2,9 @@
   "duxt": {
     "page": {
       "edit": "Editar esta página",
+      "compare": "Comparar cambios",
       "lastUpdated": "Última actualización el {date}",
+      "released": "Publicada el {date}",
       "contributors": "Escrito por",
       "copyFailed": "No se pudo copiar la página.",
       "helpful": {

@@ -24,6 +24,15 @@ const props = defineProps<{
   page:
     | {
         stem?: string;
+        /**
+         * The day a dated page names — a release, and nothing else so far.
+         * It REPLACES the last commit rather than joining it: every release of
+         * a changelog shares one file, so their last commit is the same date on
+         * all of them and says nothing about any.
+         */
+        date?: string;
+        /** The diff a release was cut from, where its heading linked one. */
+        compare?: string;
         lastUpdated?: string;
         contributors?: { name: string; commits: number; username?: string }[];
       }
@@ -34,7 +43,7 @@ const props = defineProps<{
 const page = computed(() => props.page);
 
 const { source } = useDuxtCollection();
-const { locale } = useI18n();
+const { locale, t } = useI18n();
 
 const file = computed(() => {
   // A GENERATED SECTION has no file per page: every page in it was split out of
@@ -62,7 +71,24 @@ const link = computed(() =>
     : undefined
 );
 
+/**
+ * The day this page names, where it names one.
+ *
+ * `timeZone: 'UTC'`, unlike the commit date below it: a release date is a
+ * calendar day and not a moment, so read as local time it is the day before for
+ * every reader west of Greenwich — and a different day on the server than in
+ * the browser, which is a hydration mismatch as well as a wrong date. The
+ * commit date IS a moment and is left alone.
+ */
+const released = computed(() => changelogDate(page.value?.date, locale.value));
+
 const updated = computed(() => {
+  // The page's own date wins. Both lines would be true and only one is useful:
+  // a changelog's releases all live in one file, so the commit that last
+  // touched it dates every release the same day, which is at best the newest
+  // one's and at worst years off.
+  if (page.value?.date) return undefined;
+
   const value = page.value?.lastUpdated;
   if (!value) return undefined;
 
@@ -75,43 +101,70 @@ const updated = computed(() => {
 });
 
 const contributors = computed(() => page.value?.contributors ?? []);
+
+/**
+ * What this page lets a reader DO with where it came from.
+ *
+ * The compare link goes above the edit link, because the two are the same kind
+ * of thing pointing at the same repository — where the page came FROM, rather
+ * than what it says — and it is the one a reader of a release wants first: the
+ * notes are the summary, the diff is what actually shipped.
+ */
+const actions = computed(() => {
+  const entries: { icon: string; label: string; to: string; external: true }[] =
+    [];
+
+  // The diff a release links, where its heading linked an absolute one — see
+  // the parser. `git-compare` rather than the crossed arrows: at 14 px beside a
+  // pencil the arrows read as a knot rather than as two branches.
+  if (page.value?.compare) {
+    entries.push({
+      icon: 'lucide:git-compare',
+      label: t('duxt.page.compare'),
+      to: page.value.compare,
+      external: true
+    });
+  }
+
+  // A tag has no edit form — see `sourceLink`. The label follows the kind
+  // rather than promising a form that answers with a 404.
+  if (link.value) {
+    entries.push({
+      icon: link.value.kind === 'edit' ? 'lucide:pencil' : 'lucide:file-code-2',
+      label: t(
+        link.value.kind === 'edit' ? 'duxt.page.edit' : 'duxt.page.view'
+      ),
+      to: link.value.url,
+      external: true
+    });
+  }
+
+  return entries;
+});
+
+/** The dated facts, in the order they are read. */
+const notes = computed(() => {
+  const lines: string[] = [];
+
+  if (released.value) {
+    lines.push(t('duxt.page.released', { date: released.value }));
+  } else if (updated.value) {
+    lines.push(t('duxt.page.lastUpdated', { date: updated.value }));
+  }
+
+  return lines;
+});
 </script>
 
 <template>
-  <div
-    v-if="link || updated || contributors.length"
-    class="mt-6 border-t pt-4 text-xs text-muted-foreground"
-    :class="
-      row ? 'flex flex-wrap items-center justify-end gap-x-6 gap-y-2' : ''
-    "
-  >
-    <!-- A tag has no edit form — see `sourceLink`. The label follows the kind
-         rather than promising a form that answers with a 404. -->
-    <a
-      v-if="link"
-      :href="link.url"
-      target="_blank"
-      rel="noopener"
-      class="flex items-center gap-1.5 transition-colors hover:text-foreground"
-    >
-      <Icon
-        :name="link.kind === 'edit' ? 'lucide:pencil' : 'lucide:file-code-2'"
-        class="size-3.5 shrink-0"
-      />
-      {{ link.kind === 'edit' ? $t('duxt.page.edit') : $t('duxt.page.view') }}
-    </a>
+  <!-- One block, one spacing rule — see `DuxtMetaList`. The contributors are
+       the one part that is neither an action nor a line of text, so they go in
+       the slot and are spaced as one more item. -->
+  <DuxtMetaList :row="row" :actions="actions" :notes="notes">
+    <div v-if="contributors.length" :class="row ? '' : 'space-y-1.5'">
+      <p>{{ $t('duxt.page.contributors') }}</p>
 
-    <p v-if="updated" :class="row ? '' : 'mt-3'">
-      {{ $t('duxt.page.lastUpdated', { date: updated }) }}
-    </p>
-
-    <template v-if="contributors.length">
-      <p :class="row ? '' : 'mt-3'">{{ $t('duxt.page.contributors') }}</p>
-
-      <ul
-        class="flex flex-wrap items-center gap-x-2 gap-y-1.5"
-        :class="row ? '' : 'mt-1.5'"
-      >
+      <ul class="flex flex-wrap items-center gap-x-2 gap-y-1.5">
         <li
           v-for="person in contributors"
           :key="person.name"
@@ -136,6 +189,6 @@ const contributors = computed(() => page.value?.contributors ?? []);
           <span>{{ person.name }}</span>
         </li>
       </ul>
-    </template>
-  </div>
+    </div>
+  </DuxtMetaList>
 </template>
