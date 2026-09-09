@@ -8,16 +8,21 @@
   "scripts": {
     "dev": "nuxt dev",
     "build": "nuxt build",
+    "build:cf": "NITRO_PRESET=cloudflare-module nuxt build",
+    "deploy": "pnpm run build:cf && wrangler deploy",
+    "preview:cf": "pnpm run build:cf && wrangler dev",
     "typecheck": "nuxt typecheck"
   },
   "dependencies": {
     "@iconify-json/vscode-icons": "^1.2.76",
     "@kirchdev/duxt": "workspace:*",
+    "agents": "^0.20.1",
     "nuxt": "^4.5.2"
   },
   "devDependencies": {
     "nuxtseo-layer-devtools": "^5.3.14",
     "typescript": "^6.0.3",
-    "vue-tsc": "^3.3.11"
+    "vue-tsc": "^3.3.11",
+    "wrangler": "^4.114.0"
   }
 }

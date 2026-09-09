@@ -52,7 +52,17 @@ overrides:
 # .nativeSqlite), so nothing here needs the addon.
 allowBuilds:
   better-sqlite3: false
+  # Arrives transitively with `agents` (the Cloudflare MCP handler). Its
+  # postinstall only prints a funding banner — nothing is compiled and nothing
+  # is placed, so the package works exactly the same without it.
+  core-js-pure: false
   esbuild: true
   # reka-ui pulls vue-demi, whose postinstall picks the Vue 2/3 shim. gildstone
   # allows it for the same reason.
   vue-demi: true
+  # wrangler's local runtime. Its postinstall places the workerd binary that
+  # `pnpm --filter www preview:cf` (miniflare) runs the built Worker on. The
+  # deploy itself never starts it — but a preview that cannot run is a preview
+  # nobody uses, and refusing the build only moves the failure to the first
+  # person who tries.
+  workerd: true

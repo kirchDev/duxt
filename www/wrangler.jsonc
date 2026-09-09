@@ -1,0 +1,75 @@
+{
+  // $schema is the one line wrangler itself reads for editor completion; every
+  // other key here is a deployment fact.
+  "$schema": "../node_modules/wrangler/config-schema.json",
+
+  "name": "duxt-www",
+
+  // Nitro's `cloudflare-module` preset writes an ES-module Worker, and the
+  // built assets sit beside it. Both paths resolve against THIS FILE, which is
+  // why it lives in `www/` rather than at the repository root — `wrangler
+  // deploy` is run from here.
+  "main": "./.output/server/index.mjs",
+
+  // The static half. Every prerendered page, every OG image and every asset
+  // Nitro emits is served straight from Cloudflare's edge storage; the Worker
+  // is only reached for what is left — `/mcp`, the `.md` middleware and the
+  // demo endpoint. `run_worker_first` stays off: an asset that exists must not
+  // pay for a Worker invocation.
+  "assets": {
+    "directory": "./.output/public",
+    "binding": "ASSETS"
+  },
+
+  "compatibility_date": "2026-09-02",
+
+  // Not optional. Nuxt Content's Nitro half, the MCP SDK and Nitro's own
+  // runtime all reach for node builtins; without this flag the Worker fails at
+  // the first import rather than at the first request.
+  "compatibility_flags": ["nodejs_compat"],
+
+  // Claiming a hostname does NOT take the workers.dev one away. Leave it on and
+  // the Worker answers on two names, one of them in front of whatever rules the
+  // zone applies and one in front of nothing. The docs site is public either
+  // way — what it must not have is two front doors with different rules.
+  "workers_dev": false,
+
+  // ── THE HOSTNAME IS NOT DECLARED HERE, AND THAT IS DELIBERATE ─────────────
+  //
+  // DNS record and Workers route are owned end to end by the OpenTofu estate,
+  // not by wrangler: wrangler creates and updates routes but DELETES NOTHING
+  // that disappears from this file, so a retired hostname keeps answering
+  // forever. tofu deletes what falls out of its state and shows it in a plan
+  // first.
+  //
+  // **Do not add a `routes` key back.** A new hostname is an infrastructure
+  // change that has to be APPLIED, not merely merged — and nothing here fails
+  // if it is missing: the deploy succeeds and the name stays dark.
+
+  // Nuxt Content keeps the rendered content in SQL at request time. Locally
+  // that is `node:sqlite` over a file under `.data/content/`; a Worker has
+  // neither a filesystem nor `node:sqlite`, so the same dump is loaded into D1
+  // on the first request after a deploy.
+  //
+  // Only the three dynamic endpoints ever read it — the `.md` middleware,
+  // the `/mcp` tools and `llms.txt` all call `queryCollection()` at runtime.
+  // The prerendered pages never touch this binding.
+  //
+  // `database_id` comes from `wrangler d1 create duxt-www-content` and is not a
+  // secret — it is an account-scoped identifier, and wrangler refuses to deploy
+  // without it.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "duxt-www-content",
+      "database_id": "REPLACE_ME"
+    }
+  ],
+
+  // Logs without a Tail Worker. The docs site has no alerting path of its own —
+  // a 500 here costs a page view, not a dropped webhook — so this is the whole
+  // observability story on purpose.
+  "observability": {
+    "enabled": true
+  }
+}

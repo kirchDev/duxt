@@ -1,0 +1,93 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+
+# NOT A STUB, AND THE ONE EXCEPTION IN THIS DIRECTORY. Every other workflow here
+# calls a body in kirchDev/workflows; there is no body for a Cloudflare deploy,
+# so this one carries its own job. If a second repo ever deploys a Nuxt site to
+# Workers, this is what moves out.
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+  # First run, a rotated token, or a redeploy after `infrastructure` has applied
+  # the hostname — none of which is a commit.
+  workflow_dispatch:
+
+# ON EVERY PUSH TO MAIN, NOT ON EVERY RELEASE. `www/` reads `docs/` off the
+# CHECKOUT — `origin.ref` in its `app.config.ts` names the repository for the
+# "Edit this page" link and downloads nothing — so the site publishes the
+# documentation of the commit it is built from. Waiting for a release would hold
+# a documentation fix back for no reason.
+#
+# The consequence, stated rather than hidden: the version badge comes from
+# `package.json`, which release-please bumps, so between a promotion and its
+# release the site shows the last released number while documenting what is
+# already on main. main only moves when the promotion PR merges, so that window
+# is short — but it is real, and it is the price of this trigger.
+concurrency:
+  group: deploy-www
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy www
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # The layer reads git for "last updated" and the edit links. A shallow
+          # clone gives every page the same commit date.
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # The Cloudflare deploy token from the kirchDev-ci Bitwarden project. It
+      # needs `Workers Scripts: Edit` AND `D1: Edit`; the D1 half is newer than
+      # the token, so verify it is there before blaming the build.
+      #
+      # No `Workers Routes: Edit`: the route is tofu's, not wrangler's — see the
+      # header of `www/wrangler.jsonc`.
+      - name: Fetch secrets from Bitwarden
+        uses: bitwarden/sm-action@1238aae8fc64b212641190a9227c8a734ab1a793 # v3.0.1
+        with:
+          access_token: ${{ secrets.BWS_ACCESS_TOKEN }}
+          cloud_region: eu
+          secrets: |
+            1c906de8-7fb1-4d43-9996-b4810165cacf > CLOUDFLARE_API_TOKEN
+
+      # THE BUILD HAPPENS HERE, NOT AT CLOUDFLARE. No Pages git integration and
+      # no build on their side: the artefact is produced by this runner, with
+      # this lockfile and this Node, and wrangler only uploads it — one place
+      # builds, and it is the one whose logs we keep.
+      #
+      # `pnpm run deploy` (not `pnpm deploy` — that is pnpm's own built-in)
+      # builds with the cloudflare preset and then uploads the Worker together
+      # with `.output/public`. wrangler reads CLOUDFLARE_API_TOKEN from the env.
+      - name: Build and deploy
+        run: pnpm deploy:www
+
+      - name: Deployment summary
+        if: success()
+        run: |
+          {
+            echo "## 🚀 www deployed"
+            echo ""
+            echo "| Property | Value |"
+            echo "|----------|-------|"
+            echo "| Commit | \`${{ github.sha }}\` |"
+            echo "| Worker | \`duxt-www\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
