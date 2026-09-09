@@ -77,7 +77,13 @@
         "format": "Formater",
         "invalidJson": "Ce n'est pas encore du JSON valide — la requête sera envoyée telle quelle.",
         "noForm": "Ce corps ne peut pas être présenté sous forme de formulaire : modifiez-le en JSON."
-      }
+      },
+      "version": "Version de l’API",
+      "operations": "Opérations",
+      "groups": "Groupes",
+      "serverCount": "Serveurs",
+      "fields": "{count} champs",
+      "expects": "Réponse attendue"
     }
   }
 }

@@ -77,7 +77,13 @@
         "format": "Formatieren",
         "invalidJson": "Noch kein gültiges JSON — die Anfrage wird so gesendet, wie sie dasteht.",
         "noForm": "Dieser Body lässt sich nicht als Formular darstellen: bitte als JSON bearbeiten."
-      }
+      },
+      "version": "API-Version",
+      "operations": "Operationen",
+      "groups": "Gruppen",
+      "serverCount": "Server",
+      "fields": "{count} Felder",
+      "expects": "Erwartete Antwort"
     }
   }
 }

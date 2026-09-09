@@ -77,7 +77,13 @@
         "format": "Format",
         "invalidJson": "Not valid JSON yet — the request will be sent as written.",
         "noForm": "This body cannot be drawn as a form: edit it as JSON."
-      }
+      },
+      "version": "API version",
+      "operations": "Operations",
+      "groups": "Groups",
+      "serverCount": "Servers",
+      "fields": "{count} fields",
+      "expects": "Expects in return"
     }
   }
 }

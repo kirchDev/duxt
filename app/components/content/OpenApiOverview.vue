@@ -15,7 +15,7 @@ import type {
  * which groups of endpoints exist — are the three a reference is opened for
  * before any single endpoint is.
  */
-defineProps<{
+const props = defineProps<{
   version?: string;
   summary?: string;
   servers?: DuxtOpenApiServer[];
@@ -35,14 +35,15 @@ defineProps<{
 }>();
 
 const localeLink = useDuxtLink();
+
+/** Every operation the document describes, counted over its groups. */
+const operations = computed(() =>
+  (props.groups ?? []).reduce((all, group) => all + (group.operations ?? 0), 0)
+);
 </script>
 
 <template>
   <div>
-    <div v-if="version" class="not-typeset mb-4">
-      <UiBadge variant="secondary" class="font-mono">{{ version }}</UiBadge>
-    </div>
-
     <p v-if="summary" class="not-typeset mb-4 text-lg text-muted-foreground">
       {{ summary }}
     </p>
@@ -50,14 +51,124 @@ const localeLink = useDuxtLink();
     <!-- The document's own description, as the Markdown it is written in. -->
     <slot />
 
+    <!-- WHAT THE DOCUMENT IS, in figures — the same row the release history
+         opens with, and the reason the version is no longer a badge floating
+         over the page: a version is a fact about the document, and a fact
+         belongs where the other facts are. On its own above the title it read
+         as a label for the page, which it never was. -->
+    <dl
+      v-if="version || groups?.length"
+      class="not-typeset mt-8 grid grid-cols-2 gap-x-6 gap-y-7 border-b pb-5 sm:grid-cols-4"
+    >
+      <div v-if="version" class="flex flex-col gap-1">
+        <dd
+          class="font-mono text-2xl font-semibold tracking-tight tabular-nums sm:text-3xl"
+        >
+          {{ version }}
+        </dd>
+        <dt class="flex items-center gap-1.5 text-xs font-medium text-primary">
+          <Icon name="lucide:tag" class="size-3.5" />
+          {{ $t('duxt.openapi.version') }}
+        </dt>
+      </div>
+
+      <div v-if="groups?.length" class="flex flex-col gap-1">
+        <dd
+          class="text-2xl font-semibold tracking-tight tabular-nums sm:text-3xl"
+        >
+          {{ operations }}
+        </dd>
+        <dt class="flex items-center gap-1.5 text-xs font-medium text-primary">
+          <Icon name="lucide:arrow-left-right" class="size-3.5" />
+          {{ $t('duxt.openapi.operations') }}
+        </dt>
+      </div>
+
+      <div v-if="groups?.length" class="flex flex-col gap-1">
+        <dd
+          class="text-2xl font-semibold tracking-tight tabular-nums sm:text-3xl"
+        >
+          {{ groups.length }}
+        </dd>
+        <dt class="flex items-center gap-1.5 text-xs font-medium text-primary">
+          <Icon name="lucide:folder-tree" class="size-3.5" />
+          {{ $t('duxt.openapi.groups') }}
+        </dt>
+      </div>
+
+      <div v-if="servers?.length" class="flex flex-col gap-1">
+        <dd
+          class="text-2xl font-semibold tracking-tight tabular-nums sm:text-3xl"
+        >
+          {{ servers.length }}
+        </dd>
+        <dt class="flex items-center gap-1.5 text-xs font-medium text-primary">
+          <Icon name="lucide:server" class="size-3.5" />
+          {{ $t('duxt.openapi.serverCount') }}
+        </dt>
+      </div>
+    </dl>
+
     <div class="not-typeset">
+      <!-- THE GROUPS FIRST, and that is the whole of this reordering: they
+           are what a reader opened the reference for, and they stood third —
+           under the base URL and the authentication, which are details you
+           come back to once you know which endpoint you want. -->
+      <section v-if="groups?.length" class="mt-8">
+        <h2 class="duxt-label">
+          {{ $t('duxt.openapi.endpoints') }}
+        </h2>
+
+        <!-- The groups as rows, with the arrow every other list of links on
+             this site steps forward under the pointer. A grid of cards claimed
+             they are alternatives to choose between; they are a table of
+             contents. -->
+        <ul class="mt-3 -mx-3">
+          <li
+            v-for="group in groups"
+            :key="group.to"
+            class="border-t border-border/60 first:border-t-0"
+          >
+            <NuxtLink
+              :to="localeLink(group.to) ?? group.to"
+              class="group flex items-start gap-3 rounded-lg px-3 py-3 transition-colors hover:bg-muted/40"
+            >
+              <span class="min-w-0 flex-1">
+                <span class="flex flex-wrap items-baseline gap-x-3">
+                  <span class="font-medium">{{ group.name }}</span>
+                  <span class="text-xs text-muted-foreground tabular-nums">
+                    {{ group.operations }}
+                  </span>
+                </span>
+
+                <span
+                  v-if="group.description"
+                  class="mt-1 line-clamp-2 block text-sm text-muted-foreground"
+                >
+                  {{ group.description }}
+                </span>
+              </span>
+
+              <Icon
+                name="lucide:arrow-right"
+                aria-hidden="true"
+                class="mt-1 size-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"
+              />
+            </NuxtLink>
+          </li>
+        </ul>
+      </section>
+
       <section v-if="servers?.length" class="mt-8">
-        <h2 class="text-sm font-semibold tracking-wide uppercase">
+        <h2 class="duxt-label">
           {{ $t('duxt.openapi.servers') }}
         </h2>
 
-        <ul class="mt-3 divide-y rounded-lg border">
-          <li v-for="server in servers" :key="server.url" class="px-4 py-3">
+        <!-- Rows a hairline apart rather than a bordered card: the card said
+             "one object" about a list of several, and three of them down a page
+             put a frame around every fact the page states. -->
+        <ul class="mt-3 divide-y divide-border/60 border-t border-border/60">
+          <li v-for="server in servers" :key="server.url" class="py-3">
             <code class="font-mono text-sm break-all">{{ server.url }}</code>
 
             <p
@@ -90,16 +201,12 @@ const localeLink = useDuxtLink();
       </section>
 
       <section v-if="securitySchemes?.length" class="mt-8">
-        <h2 class="text-sm font-semibold tracking-wide uppercase">
+        <h2 class="duxt-label">
           {{ $t('duxt.openapi.authentication') }}
         </h2>
 
-        <ul class="mt-3 divide-y rounded-lg border">
-          <li
-            v-for="scheme in securitySchemes"
-            :key="scheme.key"
-            class="px-4 py-3"
-          >
+        <ul class="mt-3 divide-y divide-border/60 border-t border-border/60">
+          <li v-for="scheme in securitySchemes" :key="scheme.key" class="py-3">
             <div class="flex flex-wrap items-baseline gap-2">
               <code class="font-mono text-sm font-medium">{{
                 scheme.key
@@ -124,100 +231,61 @@ const localeLink = useDuxtLink();
         </ul>
       </section>
 
-      <section v-if="groups?.length" class="mt-8">
-        <h2 class="text-sm font-semibold tracking-wide uppercase">
-          {{ $t('duxt.openapi.endpoints') }}
-        </h2>
-
-        <ul class="mt-3 grid gap-3 sm:grid-cols-2">
-          <li v-for="group in groups" :key="group.to">
-            <NuxtLink
-              :to="localeLink(group.to) ?? group.to"
-              class="block h-full rounded-lg border px-4 py-3 transition-colors hover:bg-muted/50"
-            >
-              <div class="flex flex-wrap items-baseline gap-2">
-                <span class="font-medium">{{ group.name }}</span>
-                <span class="font-mono text-xs text-muted-foreground">
-                  {{ group.operations }}
-                </span>
-              </div>
-              <p
-                v-if="group.description"
-                class="mt-1 line-clamp-2 text-sm text-muted-foreground"
-              >
-                {{ group.description }}
-              </p>
-            </NuxtLink>
-          </li>
-        </ul>
-      </section>
-
-      <dl
+      <!-- ONE ROW, not four labelled lines. Contact, licence and terms are
+           what a reader looks up once and never reads: as a definition list
+           they took four lines and the visual weight of a section, under an
+           actual section that answers what the API does. -->
+      <p
         v-if="contact ?? license ?? termsOfService ?? externalDocs"
-        class="mt-8 space-y-2 text-sm"
+        class="mt-10 flex flex-wrap items-center gap-x-5 gap-y-2 border-t pt-5 text-xs text-muted-foreground"
       >
-        <div v-if="contact" class="flex flex-wrap gap-2">
-          <dt class="text-muted-foreground">
-            {{ $t('duxt.openapi.contact') }}
-          </dt>
-          <dd>
-            <a
-              v-if="contact.url ?? contact.email"
-              :href="contact.url ?? `mailto:${contact.email}`"
-              rel="noopener noreferrer"
-              class="text-primary underline underline-offset-4"
-            >
-              {{ contact.name ?? contact.url ?? contact.email }}
-            </a>
-            <template v-else>{{ contact.name }}</template>
-          </dd>
-        </div>
+        <a
+          v-if="contact"
+          :href="contact.url ?? `mailto:${contact.email}`"
+          rel="noopener noreferrer"
+          class="inline-flex items-center gap-1.5 transition-colors hover:text-foreground"
+        >
+          <Icon name="lucide:mail" class="size-3.5" />
+          <!-- The words the label used to print, kept for whoever cannot see
+               the icon that replaced them: an envelope beside "Support" says
+               "contact" only to a reader who can see the envelope. -->
+          <span class="sr-only">{{ $t('duxt.openapi.contact') }}:</span>
+          {{ contact.name ?? contact.url ?? contact.email }}
+        </a>
 
-        <div v-if="license" class="flex flex-wrap gap-2">
-          <dt class="text-muted-foreground">
-            {{ $t('duxt.openapi.license') }}
-          </dt>
-          <dd>
-            <a
-              v-if="license.url"
-              :href="license.url"
-              rel="noopener noreferrer"
-              class="text-primary underline underline-offset-4"
-            >
-              {{ license.name ?? license.identifier }}
-            </a>
-            <template v-else>{{ license.name ?? license.identifier }}</template>
-          </dd>
-        </div>
+        <a
+          v-if="license"
+          :href="license.url"
+          rel="noopener noreferrer"
+          class="inline-flex items-center gap-1.5 transition-colors hover:text-foreground"
+        >
+          <Icon name="lucide:scale" class="size-3.5" />
+          <span class="sr-only">{{ $t('duxt.openapi.license') }}:</span>
+          {{ license.name ?? license.identifier }}
+        </a>
 
-        <div v-if="termsOfService" class="flex flex-wrap gap-2">
-          <dt class="text-muted-foreground">{{ $t('duxt.openapi.terms') }}</dt>
-          <dd>
-            <a
-              :href="termsOfService"
-              rel="noopener noreferrer"
-              class="text-primary break-all underline underline-offset-4"
-            >
-              {{ termsOfService }}
-            </a>
-          </dd>
-        </div>
+        <a
+          v-if="termsOfService"
+          :href="termsOfService"
+          rel="noopener noreferrer"
+          class="inline-flex items-center gap-1.5 transition-colors hover:text-foreground"
+        >
+          <Icon name="lucide:file-text" class="size-3.5" />
+          {{ $t('duxt.openapi.terms') }}
+        </a>
 
-        <div v-if="externalDocs" class="flex flex-wrap gap-2">
-          <dt class="text-muted-foreground">
-            {{ $t('duxt.openapi.moreInfo') }}
-          </dt>
-          <dd>
-            <a
-              :href="externalDocs.url"
-              rel="noopener noreferrer"
-              class="text-primary break-all underline underline-offset-4"
-            >
-              {{ externalDocs.description ?? externalDocs.url }}
-            </a>
-          </dd>
-        </div>
-      </dl>
+        <a
+          v-if="externalDocs"
+          :href="externalDocs.url"
+          rel="noopener noreferrer"
+          target="_blank"
+          class="inline-flex items-center gap-1.5 transition-colors hover:text-foreground"
+        >
+          <Icon name="lucide:book-open" class="size-3.5" />
+          {{ externalDocs.description ?? $t('duxt.openapi.moreInfo') }}
+          <Icon name="lucide:arrow-up-right" class="size-3 opacity-60" />
+        </a>
+      </p>
     </div>
   </div>
 </template>
