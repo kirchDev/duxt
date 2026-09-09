@@ -269,6 +269,49 @@ declare global {
     /** URL segment for this section; defaults to the slugified label. */
     slug?: string;
     /**
+     * The versions of THIS ARTEFACT, where the source's own refs do not name
+     * them.
+     *
+     * A version is normally a checkout: list `refs` on the source and every
+     * section it carries is published once per ref. An API is usually not kept
+     * that way — `openapi/v1.yaml` beside `openapi/v2.yaml` in one repository,
+     * versioned by FILE — and without this key the two are two unrelated
+     * sections with two entries in the navbar.
+     *
+     * Declared here rather than as two sources: two sections are offered as
+     * versions of one another only when they came from ONE declaration, and a
+     * source always publishes a documentation tree, so a source per API version
+     * would publish the prose twice.
+     *
+     * Never beside a source versioned by refs — both want the same segment of
+     * the URL, and the build says so.
+     *
+     * ```ts
+     * generated: [
+     *   {
+     *     type: 'openapi',
+     *     label: 'API',
+     *     versions: [
+     *       { version: 'v2', path: 'openapi/v2.yaml' },
+     *       { version: 'v1', path: 'openapi/v1.yaml', status: 'deprecated' }
+     *     ]
+     *   }
+     * ]
+     * ```
+     */
+    versions?: {
+      /** Shown in the switcher and used in the URL. */
+      version: string;
+      /** The artefact this version reads; defaults to the declaration's. */
+      path?: string;
+      /** Per-locale artefacts for this version. */
+      locales?: Record<string, string>;
+      /** Lifecycle of this version. */
+      status?: DuxtSourceStatusInput;
+      /** Served without a version segment. Defaults to the first in the list. */
+      default?: boolean;
+    }[];
+    /**
      * The knobs this TYPE offers, as this site turns them.
      *
      * Opaque to the layer: what a key means is the type's own business — the

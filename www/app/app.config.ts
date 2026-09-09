@@ -112,7 +112,26 @@ export default defineAppConfig({
           // language and every other locale falls through to it with the
           // translation banner saying so. A site whose API description IS
           // translated names the file per locale instead.
-          { type: 'openapi', path: 'www/openapi.yaml', label: 'API' }
+          //
+          // VERSIONED BY FILE, which is how an API usually is: `v1` and `v2`
+          // sit beside each other in one checkout and neither is a git ref.
+          // Declared on the section rather than as two sources — two sections
+          // are versions of one another only when one declaration produced
+          // them, and a source always publishes a documentation tree, so a
+          // source per API version would publish this site's prose twice.
+          {
+            type: 'openapi',
+            path: 'www/openapi.yaml',
+            label: 'API',
+            versions: [
+              { version: 'v2', path: 'www/openapi.yaml' },
+              {
+                version: 'v1',
+                path: 'www/openapi.v1.yaml',
+                status: 'deprecated'
+              }
+            ]
+          }
         ]
       }
     ],

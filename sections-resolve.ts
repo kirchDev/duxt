@@ -18,6 +18,7 @@ import type {
   DuxtRef,
   DuxtResolvedSource,
   DuxtSource,
+  DuxtSourceStatus,
   DuxtSourcesOptions
 } from './sources-resolve';
 import {
@@ -39,6 +40,26 @@ import { openapiSectionType } from './sections-openapi';
  * Not called `sections`: `duxt.sections` is taken for the second navbar row,
  * and two meanings on one public name is a collision the layer pays for later.
  */
+/**
+ * One version of a generated section — the artefact, and what it is called.
+ *
+ * `path` and `locales` are the declaration's own, overridden per version: a
+ * translated artefact is translated per version, because that is the file that
+ * exists.
+ */
+export interface DuxtGeneratedSectionVersion {
+  /** Shown in the switcher and used in the URL. */
+  version: string;
+  /** The artefact this version reads; defaults to the declaration's. */
+  path?: string;
+  /** Per-locale artefacts for this version; defaults to the declaration's. */
+  locales?: Record<string, string>;
+  /** Lifecycle of this version. See `DuxtSourceStatus`. */
+  status?: DuxtSourceStatus;
+  /** Served without a version segment. Defaults to the first in the list. */
+  default?: boolean;
+}
+
 export interface DuxtGeneratedSection {
   /** The registry key of the type that parses it, e.g. `changelog`. */
   type: string;
@@ -61,6 +82,26 @@ export interface DuxtGeneratedSection {
   label: string;
   /** URL segment for this section; defaults to the slugified label. */
   slug?: string;
+  /**
+   * The versions of THIS ARTEFACT, where the source's own refs do not name
+   * them.
+   *
+   * A version is normally a checkout: list `refs` on the source and every
+   * section it carries is published once per ref. An API is usually not kept
+   * that way — `openapi/v1.yaml` sits beside `openapi/v2.yaml` in one
+   * repository, versioned by FILE — and without this key the two are two
+   * unrelated sections with two navbar entries.
+   *
+   * Declared HERE rather than as two sources, and that is the whole design: two
+   * sections are offered as versions of one another only when they came from
+   * one declaration (see `DuxtGeneratedMeta.declaration`), and a source always
+   * publishes a documentation tree, so a source per API version would publish
+   * the prose twice. One declaration, several versions, one artefact.
+   *
+   * Never beside a versioned SOURCE: the two would each want the same segment
+   * of the URL, and the resolver says so rather than nesting them.
+   */
+  versions?: DuxtGeneratedSectionVersion[];
   /**
    * The knobs THIS TYPE offers, as the site turned them.
    *
@@ -370,77 +411,130 @@ export function resolveGeneratedSections(
         );
       }
 
+      // One pass where the declaration names no versions, so a section that
+      // has none resolves exactly as it did.
+      const editions: (DuxtGeneratedSectionVersion | undefined)[] = declared
+        .versions?.length
+        ? declared.versions
+        : [undefined];
+
       for (const base of basesFor(source, resolved, expanded, type, declared)) {
-        const prefix = `${base.entry.prefix}/${slug}`;
-        const claim = `${base.entry.locale ?? ''}|${prefix}`;
-        const previous = taken.get(claim);
-
-        if (previous) {
-          throw new Error(
-            `duxt: the generated section "${declared.label}" resolves to the ` +
-              `URL prefix "${prefix}", which ${previous} already claims. ` +
-              'Give the section a `slug`.'
-          );
-        }
-
-        taken.set(claim, `the generated section "${declared.label}"`);
-
-        generated.push({
-          collection: `${base.entry.collection}_${identifier(slug)}`,
-          prefix,
-          repo: base.entry.repo,
-          // `global` is version-NEUTRAL, so it carries no version at all: the
-          // switcher lists what has a version, and a changelog must not be
-          // offered as one of the versions of the documentation beside it.
-          version:
-            type.versioning === 'per-version' ? base.entry.version : undefined,
-          // FOLLOWS THE VERSION IT WAS READ AT, where there is one. This was
-          // hard-wired to `true`, which is right for a `global` section — one
-          // entry, served at a URL with no version in it — and wrong for every
-          // other: it made the v1.9 reference claim to be the default as
-          // loudly as the v2 one. Two things read that claim and both got it
-          // wrong. `excludeOldVersionsFromSitemap` hides what is not the
-          // default, so a deprecated reference stayed in the sitemap while the
-          // deprecated documentation beside it was excluded; and the version
-          // switcher captions the default, so it offered two of them.
-          isDefault:
-            type.versioning === 'per-version' ? base.entry.isDefault : true,
-          repository: base.entry.repository,
-          repositoryUrl: base.entry.repositoryUrl,
-          ref: base.entry.ref,
-          refKind: base.entry.refKind,
-          // The ARTEFACT, not a folder: `DuxtPageInfo` links back to the file a
-          // page was written in, and for a generated section every page in it
-          // was written in this one. Per LOCALE where the declaration names one
-          // — see `artefactFor`.
-          path: base.path,
-          locale: base.entry.locale,
-          isDefaultLocale: base.entry.isDefaultLocale,
-          status: base.entry.status,
-          // Never read for history. Its pages have no file of their own on
-          // disk, so `git log` would answer about nothing; a type that has
-          // dates puts them in the frontmatter it writes.
-          history: false,
-          generated: {
-            type: declared.type,
-            label: declared.label,
-            slug,
-            declaration,
-            navigation: declared.navigation ?? 'sections',
-            icon: declared.icon ?? type.icon,
-            layout:
-              typeof type.layout === 'function'
-                ? type.layout(options)
-                : type.layout,
-            versioning: type.versioning,
-            localisation: type.localisation,
-            remote: base.remote,
-            // Only when the site named some: an empty object where there was
-            // `undefined` is a different value in the manifest every page
-            // ships, and this one changes on no site that declares nothing.
-            ...(Object.keys(options).length ? { options } : {})
+        for (const [index, edition] of editions.entries()) {
+          if (edition && base.entry.version) {
+            throw new Error(
+              `duxt: the generated section "${declared.label}" names its own ` +
+                'versions and sits on a source that is versioned by refs. ' +
+                'Both want the same segment of the URL — put the versions on ' +
+                'one of the two.'
+            );
           }
-        });
+
+          // A version-NEUTRAL type has one history at one URL, so a list of
+          // versions is a contradiction rather than a shape to resolve.
+          if (edition && type.versioning === 'global') {
+            throw new Error(
+              `duxt: the generated section "${declared.label}" names versions, ` +
+                `but the type "${declared.type}" publishes one history at a ` +
+                'version-neutral URL.'
+            );
+          }
+
+          const editionDefault =
+            editions.length === 1 ||
+            (edition?.default ??
+              (!editions.some((entry) => entry?.default) && index === 0));
+
+          const version = edition ? slugify(edition.version) : undefined;
+
+          const segments = version && !editionDefault ? `/${version}` : '';
+          const artefact = edition
+            ? (artefactFor({ ...declared, ...edition }, base.entry) ??
+              base.path)
+            : base.path;
+
+          const prefix = `${base.entry.prefix}${segments}/${slug}`;
+          const claim = `${base.entry.locale ?? ''}|${prefix}`;
+          const previous = taken.get(claim);
+
+          if (previous) {
+            throw new Error(
+              `duxt: the generated section "${declared.label}" resolves to the ` +
+                `URL prefix "${prefix}", which ${previous} already claims. ` +
+                'Give the section a `slug`.'
+            );
+          }
+
+          taken.set(claim, `the generated section "${declared.label}"`);
+
+          generated.push({
+            // THE VERSION IS PART OF THE NAME where the declaration owns it.
+            // A ref-versioned source hands each version its own base entry, so
+            // the base's name already differs; a declaration's versions share
+            // one base, and without this both editions claimed one collection —
+            // the second overwrote the first in `content.config.ts`, and the
+            // default version 404'd while the older one rendered.
+            collection: `${base.entry.collection}_${identifier(slug)}${
+              version ? `_${identifier(version)}` : ''
+            }`,
+            prefix,
+            repo: base.entry.repo,
+            // `global` is version-NEUTRAL, so it carries no version at all: the
+            // switcher lists what has a version, and a changelog must not be
+            // offered as one of the versions of the documentation beside it.
+            version:
+              type.versioning === 'per-version'
+                ? (version ?? base.entry.version)
+                : undefined,
+            // FOLLOWS THE VERSION IT WAS READ AT, where there is one. This was
+            // hard-wired to `true`, which is right for a `global` section — one
+            // entry, served at a URL with no version in it — and wrong for every
+            // other: it made the v1.9 reference claim to be the default as
+            // loudly as the v2 one. Two things read that claim and both got it
+            // wrong. `excludeOldVersionsFromSitemap` hides what is not the
+            // default, so a deprecated reference stayed in the sitemap while the
+            // deprecated documentation beside it was excluded; and the version
+            // switcher captions the default, so it offered two of them.
+            isDefault:
+              type.versioning === 'per-version'
+                ? base.entry.isDefault && editionDefault
+                : true,
+            repository: base.entry.repository,
+            repositoryUrl: base.entry.repositoryUrl,
+            ref: base.entry.ref,
+            refKind: base.entry.refKind,
+            // The ARTEFACT, not a folder: `DuxtPageInfo` links back to the file a
+            // page was written in, and for a generated section every page in it
+            // was written in this one. Per LOCALE where the declaration names one
+            // — see `artefactFor`.
+            path: artefact,
+            locale: base.entry.locale,
+            isDefaultLocale: base.entry.isDefaultLocale,
+            status: edition?.status ?? base.entry.status,
+            // Never read for history. Its pages have no file of their own on
+            // disk, so `git log` would answer about nothing; a type that has
+            // dates puts them in the frontmatter it writes.
+            history: false,
+            generated: {
+              type: declared.type,
+              label: declared.label,
+              slug,
+              declaration,
+              navigation: declared.navigation ?? 'sections',
+              icon: declared.icon ?? type.icon,
+              layout:
+                typeof type.layout === 'function'
+                  ? type.layout(options)
+                  : type.layout,
+              versioning: type.versioning,
+              localisation: type.localisation,
+              remote: base.remote,
+              // Only when the site named some: an empty object where there was
+              // `undefined` is a different value in the manifest every page
+              // ships, and this one changes on no site that declares nothing.
+              ...(Object.keys(options).length ? { options } : {})
+            }
+          });
+        }
       }
     }
   });

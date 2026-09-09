@@ -577,3 +577,131 @@ describe('which generated entry claims to be the default version', () => {
     expect(entries[0]!.version).toBeUndefined();
   });
 });
+
+/**
+ * A section that carries its OWN versions — the shape an API is usually kept
+ * in: two documents in one checkout, versioned by file rather than by tag.
+ *
+ * The identity is what makes this work at all: both entries come from one
+ * declaration, so `sameArtefact` offers them as versions of one another. Two
+ * separate declarations never are, whatever versions they name.
+ */
+describe('a section versioned by its own declaration', () => {
+  const sources = [
+    {
+      path: 'docs',
+      generated: [
+        {
+          type: 'openapi',
+          label: 'API',
+          path: 'openapi/v2.yaml',
+          versions: [
+            { version: 'v2', path: 'openapi/v2.yaml' },
+            {
+              version: 'v1',
+              path: 'openapi/v1.yaml',
+              status: 'deprecated' as const
+            }
+          ]
+        }
+      ]
+    }
+  ];
+
+  const resolve = () => resolveGeneratedSections(sources);
+
+  it('serves the default at the section`s own URL and the rest under theirs', () => {
+    expect(resolve().map((entry) => entry.prefix)).toEqual(['/api', '/v1/api']);
+  });
+
+  it('reads a different artefact per version', () => {
+    expect(resolve().map((entry) => entry.path)).toEqual([
+      'openapi/v2.yaml',
+      'openapi/v1.yaml'
+    ]);
+  });
+
+  it('gives each version a collection of its own', () => {
+    // The bug this exists over: a ref-versioned source hands every version its
+    // own base entry, so the collection name already differed. A declaration's
+    // versions share one base — both claimed `docs_api`, the second overwrote
+    // the first in `content.config.ts`, and the DEFAULT version 404'd while the
+    // deprecated one rendered.
+    const [current, old] = resolve();
+
+    expect(current!.collection).not.toBe(old!.collection);
+  });
+
+  it('keeps both under one declaration, which is what makes them versions', () => {
+    const [current, old] = resolve();
+
+    expect(current!.generated!.declaration).toBe(old!.generated!.declaration);
+    expect(current!.version).toBe('v2');
+    expect(old!.version).toBe('v1');
+    expect(current!.isDefault).toBe(true);
+    expect(old!.isDefault).toBe(false);
+    expect(old!.status).toBe('deprecated');
+  });
+
+  it('takes the default the list names rather than the first', () => {
+    const declared = [
+      {
+        path: 'docs',
+        generated: [
+          {
+            type: 'openapi',
+            label: 'API',
+            path: 'openapi/v2.yaml',
+            versions: [
+              { version: 'v2', path: 'openapi/v2.yaml' },
+              { version: 'v1', path: 'openapi/v1.yaml', default: true }
+            ]
+          }
+        ]
+      }
+    ];
+
+    const entries = resolveGeneratedSections(declared);
+
+    expect(entries.map((entry) => entry.prefix)).toEqual(['/v2/api', '/api']);
+  });
+
+  it('refuses versions on a section whose source is versioned by refs', () => {
+    const declared = [
+      {
+        path: 'docs',
+        refs: [{ tag: 'v2.0.0' }, { tag: 'v1.0.0' }],
+        generated: [
+          {
+            type: 'openapi',
+            label: 'API',
+            path: 'openapi/v2.yaml',
+            versions: [{ version: 'v2', path: 'openapi/v2.yaml' }]
+          }
+        ]
+      }
+    ];
+
+    expect(() => resolveGeneratedSections(declared)).toThrow(
+      /same segment of the URL/
+    );
+  });
+
+  it('refuses versions on a version-neutral type', () => {
+    const declared = [
+      {
+        path: 'docs',
+        generated: [
+          {
+            type: 'changelog',
+            label: 'Releases',
+            path: 'CHANGELOG.md',
+            versions: [{ version: 'v2', path: 'CHANGELOG.md' }]
+          }
+        ]
+      }
+    ];
+
+    expect(() => resolveGeneratedSections(declared)).toThrow(/version-neutral/);
+  });
+});
