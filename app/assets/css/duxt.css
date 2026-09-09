@@ -257,6 +257,47 @@
   @apply opacity-100;
 }
 
+/* A release group's ENTRIES, which arrive as ordinary Markdown in
+   `ChangelogGroup`'s slot and were therefore set as prose: 1.7 leading with a
+   paragraph's flow between them, so six one-line facts filled a screen and a
+   half and a release with twelve groups read as a document rather than as a
+   list. They are a list, and are set as one.
+
+   The MARKER IS MUTED, not the group's tone. The colour is already stated in
+   the label directly above these lines; stated again on every line it stops
+   being a signal — the same hint, repeated, is confetti. Drawn as a box rather
+   than through `::marker`, which takes a colour but not a size or a position.
+
+   Only the TOP level: a list nested inside an entry keeps the prose treatment,
+   because there the indent is what says it is nested. */
+.typeset :where(.duxt-release > ul) {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.typeset :where(.duxt-release > ul > li) {
+  position: relative;
+  margin: 0;
+  padding-left: 1.05rem;
+  line-height: 1.55;
+}
+
+.typeset :where(.duxt-release > ul > li + li) {
+  margin-top: 0.35rem;
+}
+
+.typeset :where(.duxt-release > ul > li)::before {
+  content: '';
+  position: absolute;
+  top: 0.6em;
+  left: 0;
+  height: 0.3125rem;
+  width: 0.3125rem;
+  border-radius: 999px;
+  background: var(--muted-foreground);
+}
+
 pre.shiki,
 .typeset :where(pre) {
   background-color: transparent;
@@ -415,4 +456,20 @@ pre.shiki,
   text-align: right;
   color: var(--color-muted-foreground);
   user-select: none;
+}
+
+/* A page whose LAST band carries a background of its own runs straight into the
+   footer.
+
+   `DuxtFooter` sets `mt-16`, which is right for a documentation page: the prose
+   ends and the footer needs air under it. It is wrong after a tinted, bordered
+   section — the tint stops, four rems of page colour follow, and then the
+   footer's own rule draws a second line under the first. Three edges where the
+   design has one.
+
+   Written as a rule rather than as a margin the page removes, because the two
+   elements are siblings of the layout and neither can reach the other: the
+   section is inside `main`, and `main` is what stands next to the footer. */
+main:has(.duxt-flush-footer) + footer {
+  margin-top: 0;
 }
