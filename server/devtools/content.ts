@@ -3,7 +3,7 @@ import {
   queryCollection,
   queryCollectionSearchSections
 } from '@nuxt/content/nitro';
-import type { PageRecord } from '../../validate-report';
+import type { Collected, PageRecord } from '../../validate-report';
 import { walk } from '../../validate-report';
 import { context, resolvedSources } from './context';
 import type { Doc, DocGroup, IndexedSection } from './render/content';
@@ -64,9 +64,12 @@ export async function checksPanel(event: H3Event): Promise<string> {
 
   const pages: PageRecord[] = groups.flatMap(({ collection, docs }) =>
     docs.map((doc) => {
-      const anchors = new Set<string>();
-      const links: { href: string }[] = [];
-      walk(doc.body, anchors, links);
+      const collected: Collected = {
+        anchors: new Set<string>(),
+        links: [],
+        commands: []
+      };
+      walk(doc.body, collected);
 
       return {
         collection,
@@ -74,8 +77,9 @@ export async function checksPanel(event: H3Event): Promise<string> {
         file: doc.id ?? doc.path,
         title: doc.title,
         description: doc.description,
-        anchors,
-        links
+        anchors: collected.anchors,
+        links: collected.links,
+        commands: collected.commands
       };
     })
   );
