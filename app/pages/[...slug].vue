@@ -323,6 +323,14 @@ useSchemaOrg([
         <ContentRenderer v-if="page" :value="page" />
       </div>
 
+      <!-- The SECTION's own order, which is what a generated section has: the
+           releases newest to oldest, the endpoints as the artefact listed them.
+           `DuxtPageNav` walks the same navigation the sidebar draws and stops
+           at the section's edge, so the links can only be siblings — and a
+           release page that ended in whitespace now ends in the release before
+           it, which is how a history is read. -->
+      <DuxtPageNav :path="path" />
+
       <!-- Provenance survives the chrome, because it is the one part of it that
            is still true: every page of a generated section came out of one
            artefact, and `DuxtPageInfo` already links at that artefact rather
