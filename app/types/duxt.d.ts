@@ -33,6 +33,17 @@ declare global {
     url: string;
     headers: Record<string, string>;
     body?: string;
+    /**
+     * The component name of what a successful response returns, where the
+     * document gave it one — `Widget`, or `Widget[]` for a list.
+     *
+     * This is what makes a TypeScript sample worth more than the JavaScript one
+     * it would otherwise be character for character: `$fetch<Widget>(…)` is the
+     * line somebody actually writes. Absent where the response schema is inline
+     * rather than a `$ref`, which no generator can invent a name for — a sample
+     * then simply has no type parameter.
+     */
+    responseType?: string;
   }
 
   /**

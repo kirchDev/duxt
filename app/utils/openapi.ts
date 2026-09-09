@@ -15,6 +15,7 @@
 import type {
   DuxtOpenApiOperation,
   DuxtOpenApiParameter,
+  DuxtOpenApiResponse,
   DuxtOpenApiSchema,
   DuxtOpenApiServer
 } from '../../openapi-model';
@@ -812,7 +813,10 @@ export function openApiQueryString(
 
 /** The request an operation, a server and the reader's answers add up to. */
 export function openApiRequest(
-  operation: Pick<DuxtOpenApiOperation, 'method' | 'path' | 'parameters'>,
+  operation: Pick<
+    DuxtOpenApiOperation,
+    'method' | 'path' | 'parameters' | 'responses'
+  >,
   server: string,
   values: Record<string, string>,
   headers: Record<string, string> = {},
@@ -846,8 +850,38 @@ export function openApiRequest(
     // the two has to go, or every request is sent to a doubled separator.
     url: `${server.replace(/\/+$/, '')}${path}${query}`,
     headers: sent,
-    body
+    body,
+    responseType: openApiResponseType(operation.responses)
   };
+}
+
+/**
+ * What a successful response returns, by the name the document gave it.
+ *
+ * THE FIRST 2xx WITH A NAMED SCHEMA, and a name is the whole requirement: a
+ * TypeScript sample can write `$fetch<Widget>` only where `Widget` exists to be
+ * imported, and an inline schema has nothing to call itself. `204 No Content`
+ * and a response described inline therefore yield nothing, and the sample drops
+ * its type parameter rather than inventing a shape.
+ *
+ * An array is named by its items, because that is how the type reads: a list
+ * endpoint returns `Widget[]` and no document declares a component for the
+ * bracket.
+ */
+export function openApiResponseType(
+  responses?: DuxtOpenApiResponse[]
+): string | undefined {
+  for (const response of responses ?? []) {
+    if (!response.status.startsWith('2')) continue;
+
+    const schema = response.content?.[0]?.schema;
+    if (!schema) continue;
+
+    if (schema.name) return schema.name;
+    if (schema.items?.name) return `${schema.items.name}[]`;
+  }
+
+  return undefined;
 }
 
 /** Which family a response status belongs to, for the colour it is drawn in. */

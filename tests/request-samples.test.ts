@@ -21,7 +21,8 @@ const post: DuxtOpenApiRequest = {
   method: 'POST',
   url: 'https://api.test/pets',
   headers: { 'Content-Type': 'application/json', 'X-Key': 'abc' },
-  body: '{\n  "name": "Rex",\n  "tags": ["good"]\n}'
+  body: '{\n  "name": "Rex",\n  "tags": ["good"]\n}',
+  responseType: 'Pet'
 };
 
 const get: DuxtOpenApiRequest = {
@@ -65,7 +66,7 @@ describe('curl', () => {
   });
 });
 
-describe('the JavaScript clients', () => {
+describe('the TypeScript clients', () => {
   it('writes a JSON body as the data it is', () => {
     // `JSON.stringify(request.body)` used to emit the body as an escaped string
     // literal — one long line of `\\"name\\"`, which nobody would write.
@@ -78,7 +79,7 @@ describe('the JavaScript clients', () => {
     // ofetch serialises an object body and sets the header on its own.
     expect(openApiOfetch(post)).toContain('body: {');
     expect(openApiOfetch(post)).not.toContain('JSON.stringify');
-    expect(openApiUseFetch(post)).toContain('const { data } = await useFetch(');
+    expect(openApiUseFetch(post)).toContain('const { data } = await useFetch');
   });
 
   it('omits the method for a GET', () => {
@@ -333,5 +334,47 @@ describe('resolveRequestSamples', () => {
 
   it('drops an id nothing ships', () => {
     expect(resolveRequestSamples(['curl', 'nope'])).toHaveLength(1);
+  });
+});
+
+/**
+ * The type parameter, which is the whole of what makes these TypeScript.
+ *
+ * Without it the samples were JavaScript that happened to compile as TypeScript
+ * — not one annotation between them — so a second group for it would have been
+ * two tabs showing the same characters.
+ */
+describe('the response type', () => {
+  it('goes where a client has somewhere to put one', () => {
+    expect(openApiOfetch(post)).toContain(
+      "$fetch<Pet>('https://api.test/pets'"
+    );
+    expect(openApiUseFetch(post)).toContain('useFetch<Pet>(');
+    expect(openApiAxios(post)).toContain('await axios<Pet>({');
+  });
+
+  /** `fetch` returns a `Response` whatever the body is; there is no generic. */
+  it('is left off fetch, which has none', () => {
+    expect(openApiFetch(post)).toContain("await fetch('https://api.test/pets'");
+    expect(openApiFetch(post)).not.toContain('<Pet>');
+  });
+
+  /** An inline response schema has no name, so the sample takes no parameter. */
+  it('is dropped where the document named nothing', () => {
+    const untyped = { ...post, responseType: undefined };
+
+    expect(openApiOfetch(untyped)).toContain("$fetch('https://api.test/pets'");
+    expect(openApiUseFetch(untyped)).not.toContain('<');
+    expect(openApiAxios(untyped)).toContain('await axios({');
+  });
+
+  it('keeps every javascript client in one typescript group', () => {
+    const groups = new Set(
+      duxtRequestSamples
+        .filter((sample) => sample.language === 'typescript')
+        .map((sample) => String(sample.group))
+    );
+
+    expect([...groups]).toEqual(['TypeScript']);
   });
 });

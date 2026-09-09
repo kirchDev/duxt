@@ -6,6 +6,13 @@
  * has to follow. That is also why these run in the browser and why
  * `code-highlight.ts` needs a grammar per language they use.
  *
+ * TYPESCRIPT RATHER THAN JAVASCRIPT, and one group rather than two. The three
+ * clients that take a type parameter get the response's component name —
+ * `$fetch<Widget>` is the line somebody writes — and `fetch`, which has none,
+ * is identical in both languages. Two groups would therefore have carried one
+ * pair that never differs and another that differs only where the document
+ * named its response, for double the tabs.
+ *
  * WHAT A SAMPLE SHOWS IS THE REQUEST, and nothing after it. The response is
  * already on screen, in the panel below the editor — a sample that fetched it a
  * second time would be showing the reader something they can see, at the cost of
@@ -233,15 +240,29 @@ function jsOptions(
   return options;
 }
 
+/**
+ * A call, with the response type where the client has somewhere to put one.
+ *
+ * `typed` is what separates the TypeScript samples from the JavaScript they
+ * would otherwise be character for character: `$fetch`, `useFetch` and axios all
+ * take the response shape as a type parameter, and it is the line somebody
+ * actually writes. `fetch` has none — it returns a `Response` whatever the body
+ * turns out to be — so its sample is the same in either language, and saying so
+ * is more honest than inventing an annotation for it.
+ */
 function jsCall(
   call: string,
   request: DuxtOpenApiRequest,
-  body: 'stringify' | 'object'
+  body: 'stringify' | 'object',
+  typed = false
 ): string {
-  const options = jsOptions(request, body);
-  if (!options.length) return `${call}('${request.url}');`;
+  const generic =
+    typed && request.responseType ? `<${request.responseType}>` : '';
 
-  return `${call}('${request.url}', {\n${options.join(',\n')}\n});`;
+  const options = jsOptions(request, body);
+  if (!options.length) return `${call}${generic}('${request.url}');`;
+
+  return `${call}${generic}('${request.url}', {\n${options.join(',\n')}\n});`;
 }
 
 /** The request as a `fetch` call. A JSON body is written as the data it is. */
@@ -251,7 +272,7 @@ export function openApiFetch(request: DuxtOpenApiRequest): string {
 
 /** ofetch, which serialises an object body and sets the header itself. */
 export function openApiOfetch(request: DuxtOpenApiRequest): string {
-  return `await ${jsCall('$fetch', request, 'object')}`;
+  return `await ${jsCall('$fetch', request, 'object', true)}`;
 }
 
 /**
@@ -263,7 +284,7 @@ export function openApiOfetch(request: DuxtOpenApiRequest): string {
  * carries the destructuring that makes that the point.
  */
 export function openApiUseFetch(request: DuxtOpenApiRequest): string {
-  return `const { data } = await ${jsCall('useFetch', request, 'object')}`;
+  return `const { data } = await ${jsCall('useFetch', request, 'object', true)}`;
 }
 
 /** axios through its uniform form, so the shape does not change per method. */
@@ -280,7 +301,9 @@ export function openApiAxios(request: DuxtOpenApiRequest): string {
     options.push(`  data: ${data === undefined ? js(request.body) : js(data)}`);
   }
 
-  return `await axios({\n${options.join(',\n')}\n});`;
+  const generic = request.responseType ? `<${request.responseType}>` : '';
+
+  return `await axios${generic}({\n${options.join(',\n')}\n});`;
 }
 
 /** The verb as `requests` and `httpx` spell it, or their generic form. */
@@ -478,32 +501,32 @@ export const duxtRequestSamples: DuxtRequestSample[] = [
   },
   {
     id: 'fetch',
-    icon: 'vscode-icons:file-type-js',
-    group: 'JavaScript',
+    icon: 'vscode-icons:file-type-typescript',
+    group: 'TypeScript',
     label: 'fetch',
     language: 'typescript',
     generate: openApiFetch
   },
   {
     id: 'ofetch',
-    icon: 'vscode-icons:file-type-js',
-    group: 'JavaScript',
+    icon: 'vscode-icons:file-type-typescript',
+    group: 'TypeScript',
     label: '$fetch',
     language: 'typescript',
     generate: openApiOfetch
   },
   {
     id: 'use-fetch',
-    icon: 'vscode-icons:file-type-js',
-    group: 'JavaScript',
+    icon: 'vscode-icons:file-type-typescript',
+    group: 'TypeScript',
     label: 'useFetch',
     language: 'typescript',
     generate: openApiUseFetch
   },
   {
     id: 'axios',
-    icon: 'vscode-icons:file-type-js',
-    group: 'JavaScript',
+    icon: 'vscode-icons:file-type-typescript',
+    group: 'TypeScript',
     label: 'axios',
     language: 'typescript',
     generate: openApiAxios
