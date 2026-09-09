@@ -153,6 +153,29 @@ function readFrameLocation() {
   }
 }
 
+/**
+ * The framed document, fetched into the cache while the browser is idle.
+ *
+ * The frame itself still mounts on approach — it is a second copy of the
+ * application, and starting it with the landing page would double the work of
+ * the first paint for a band most readers never reach. But the SLOW half of
+ * that is the network: a document, its entry chunk, its payload. A prefetch is
+ * not an execution — it costs the reader nothing on screen and no main-thread
+ * time, and by the time the observer says "now" the frame has nothing left to
+ * download. `as="document"` is what makes the browser reuse it for an iframe
+ * rather than fetch it a second time.
+ *
+ * Idle, not immediate, so it queues behind the landing page's own work; and
+ * only where a `src` was not given, because a foreign origin is somebody else's
+ * bandwidth to spend.
+ */
+useHead(() => ({
+  link:
+    preview.value && preview.value.live !== false
+      ? [{ rel: 'prefetch', as: 'document', href: previewTo.value }]
+      : []
+}));
+
 onMounted(() => {
   if (!preview.value || preview.value.live === false) return;
 
