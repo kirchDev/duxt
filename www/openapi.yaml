@@ -52,6 +52,15 @@ tags:
     externalDocs:
       url: https://example.org/batching
       description: How batching works
+  - name: Demo
+    description: |
+      The one part of this document that is **real**: an endpoint this very
+      site answers, so the try-it client on the landing page sends a request
+      and gets something back rather than failing against a host that does not
+      exist.
+
+      Kept deliberately small — one server, one scheme, two fields — because it
+      stands beside a paragraph rather than on a page of its own.
 
 paths:
   /widgets:
@@ -300,6 +309,66 @@ paths:
                       properties:
                         done: { type: boolean }
                     - $ref: '#/components/schemas/Problem'
+
+  /echo:
+    post:
+      operationId: echoWidget
+      summary: Create a demo widget
+      tags: [Demo]
+      description: |
+        Takes a widget and hands it back with an id and a timestamp, exactly as
+        `POST /widgets` would — except that this one is answered, by this site.
+
+        Nothing is stored and nothing is checked beyond the token being
+        present: it exists so the client on the landing page can be pressed.
+      # ITS OWN SERVER, which REPLACES the document's: the two hosts at the top
+      # of this file are invented, and a client pointed at them cannot answer.
+      # Relative, because this site does not know its own origin at build time
+      # and the browser resolves it against wherever the page is served.
+      servers:
+        - url: /demo
+          description: This site.
+      # And its own scheme, replacing the document's pair. One field to fill in
+      # is what a demo beside a paragraph can ask of a reader; two, one of them
+      # a header name nobody has, is a form people bounce off.
+      security:
+        - bearer: []
+      requestBody:
+        required: true
+        description: The widget to echo.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  description: What to call it.
+                  examples: ['A widget']
+                shape:
+                  type: string
+                  description: Its shape.
+                  enum: [round, square]
+                  default: round
+      responses:
+        '201':
+          description: The widget, as it would have been stored.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string, format: uuid }
+                  name: { type: string }
+                  shape: { type: string, enum: [round, square] }
+                  createdAt: { type: string, format: date-time }
+        '401':
+          description: No bearer token was sent.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
 
 webhooks:
   widgetChanged:
