@@ -122,9 +122,22 @@ defineProps<{
     </div>
 
     <!-- Sticky only where there is a column to be sticky in: below `xl` the
-         client sits after the description, which is the order a phone reads. -->
+         client sits after the description, which is the order a phone reads.
+
+         AND IT SCROLLS ITSELF, the way the sidebar and the table of contents
+         already do — same expression, `100vh` less the chrome above it. Sticky
+         alone pinned a panel taller than the viewport, so the request samples
+         under the send button were cut off and only came into view once the
+         reader had scrolled the whole page to its end: the panel is beside the
+         endpoint precisely so it does not have to be chased there.
+
+         Bounded and scrollable only at `xl`, because below it the client is in
+         normal flow and a second scrollbar inside the page would be one nobody
+         asked for. -->
     <div class="not-typeset min-w-0">
-      <div class="xl:sticky xl:top-[var(--duxt-chrome)]">
+      <div
+        class="xl:sticky xl:top-[var(--duxt-chrome)] xl:max-h-[calc(100vh-var(--duxt-chrome)-1.5rem)] xl:overflow-y-auto xl:pr-1"
+      >
         <DuxtOpenApiClient
           :operation="operation"
           :servers="servers"
