@@ -84,3 +84,51 @@ describe('buildSheetNavigation', () => {
     });
   });
 });
+
+describe('a second source', () => {
+  const sources = [
+    { prefix: '' },
+    { prefix: '/demo' },
+    { prefix: '/demo/api', generated: { type: 'openapi' } }
+  ];
+
+  const navigation = [
+    { label: 'Docs' },
+    { label: 'Demo API', to: '/demo' },
+    { label: 'Credits', to: '/credits' }
+  ];
+
+  const sections = [
+    { label: 'Guides', to: '/guides' },
+    { label: 'Overview', to: '/demo' },
+    { label: 'Reference', to: '/demo/api' }
+  ];
+
+  it('hangs each area under the entry that opens it', () => {
+    const sheet = buildSheetNavigation(navigation, sections, sources);
+
+    expect(sheet.entries[0]!.children?.map((child) => child.to)).toEqual([
+      '/guides'
+    ]);
+    expect(sheet.entries[1]!.children?.map((child) => child.to)).toEqual([
+      '/demo',
+      '/demo/api'
+    ]);
+    expect(sheet.sections).toEqual([]);
+  });
+
+  it('leaves an area with no entry to hang on in the loose block', () => {
+    const sheet = buildSheetNavigation([{ label: 'Docs' }], sections, sources);
+
+    expect(sheet.sections.map((section) => section.to)).toEqual([
+      '/demo',
+      '/demo/api'
+    ]);
+  });
+
+  it('ignores the areas entirely when no sources are handed in', () => {
+    const sheet = buildSheetNavigation(navigation, sections);
+
+    expect(sheet.entries[0]!.children).toHaveLength(3);
+  });
+});

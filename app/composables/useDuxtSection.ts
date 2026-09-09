@@ -23,9 +23,16 @@ export function useDuxtSection(
    * back to the whole tree, and the breadcrumb lost its head, so a release page
    * printed its own version and nothing above it.
    */
+  /**
+   * LONGEST MATCH, not the first one written. `/demo` and `/demo/api` both
+   * prefix a page under the reference, and taking the first said the reader was
+   * in the prose beside it — so the sidebar drew that tree instead of the
+   * endpoints. Same rule, and the same bug, as `sourceForPath`.
+   */
   const section = computed(() =>
-    [...(duxt.sections ?? []), ...(duxt.navigation ?? [])].find(
-      (candidate) => candidate.to && path.value.startsWith(candidate.to)
+    currentSection(
+      [...(duxt.sections ?? []), ...(duxt.navigation ?? [])],
+      path.value
     )
   );
 

@@ -44,7 +44,16 @@ function isActive(to?: string) {
  */
 function entryActive(link: DuxtLink) {
   if (link.to) return isActive(link.to);
-  return (duxt.sections ?? []).some((section) => isActive(section.to));
+
+  // THE ROOT AREA'S sections, not every entry the site declared: a to-less
+  // entry stands for the documentation, and on a site with a second source the
+  // list also holds that source's parts — which would light "Docs" on a page
+  // that is not documentation at all, beside the entry that really owns it.
+  return sectionsForPath(
+    duxt.sections ?? [],
+    duxt.resolvedSources ?? [],
+    '/'
+  ).some((section) => isActive(section.to));
 }
 
 /**
@@ -73,7 +82,7 @@ watch(
 // One tree instead of two lists: the sections become children of the entry
 // that stands for the documentation. See `buildSheetNavigation`.
 const sheet = computed(() =>
-  buildSheetNavigation(duxt.navigation, duxt.sections)
+  buildSheetNavigation(duxt.navigation, duxt.sections, duxt.resolvedSources)
 );
 
 /** A group owns the page when any of its children does. */

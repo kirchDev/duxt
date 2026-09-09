@@ -13,8 +13,17 @@ export function useDuxtSectionRow() {
   const duxt = useDuxtConfig();
   const path = useDuxtPath();
 
+  /**
+   * THIS AREA'S ENTRIES, not every entry the site declared — see
+   * `sectionsForPath`. A second source has top-level parts of its own, and the
+   * row is "the parts of what you are reading" rather than a site index.
+   */
+  const sections = computed(() =>
+    sectionsForPath(duxt.sections ?? [], duxt.resolvedSources ?? [], path.value)
+  );
+
   const visible = computed(() =>
-    (duxt.sections ?? []).some(
+    sections.value.some(
       (section) => section.to && path.value.startsWith(section.to)
     )
   );
@@ -36,5 +45,5 @@ export function useDuxtSectionRow() {
    */
   const headerOffset = computed(() => (visible.value ? '6.5rem' : '3.75rem'));
 
-  return { visible, headerOffset };
+  return { sections, visible, headerOffset };
 }

@@ -16,6 +16,7 @@
  * part is what happens when there is nothing to hang them on — and a section
  * that silently reaches no list at all is unreachable on a phone.
  */
+import { areaForPath } from './section-scope';
 
 /** The navbar with the sections adopted, plus whatever nobody adopted. */
 export interface DuxtSheetNavigation {
@@ -45,22 +46,55 @@ function adopts(entry: DuxtLink) {
   return !entry.to && !entry.children?.length;
 }
 
+/**
+ * And which entry adopts ANOTHER AREA's sections: the one pointing at that
+ * area's own root.
+ *
+ * The desktop row scopes itself to the area the reader is in — see
+ * `sectionsForPath` — and the sheet has no rows to scope. So a site with a
+ * second source hangs that source's parts under the navbar entry that opens it,
+ * which is the same relationship the to-less entry has with the documentation,
+ * stated with a `to` because this one has somewhere to point.
+ */
+const adoptsArea = (entry: DuxtLink, area: string) =>
+  Boolean(area) && entry.to === area && !entry.children?.length;
+
 export function buildSheetNavigation(
   navigation: DuxtLink[] | undefined,
-  sections: DuxtSection[] | undefined
+  sections: DuxtSection[] | undefined,
+  sources: { prefix: string; generated?: unknown }[] = []
 ): DuxtSheetNavigation {
   const entries = navigation ?? [];
   const list = sections ?? [];
 
   if (!list.length) return { entries, sections: [] };
 
-  const host = entries.findIndex(adopts);
-  if (host < 0) return { entries, sections: list };
+  // One bucket per area, in the order the site declared the sections.
+  const byArea = new Map<string, DuxtSection[]>();
+  for (const section of list) {
+    const area = section.to ? areaForPath(section.to, sources) : '';
+    byArea.set(area, [...(byArea.get(area) ?? []), section]);
+  }
+
+  const adopted = entries.map((entry) => ({
+    entry,
+    taken: [] as DuxtSection[]
+  }));
+  const orphans: DuxtSection[] = [];
+
+  for (const [area, group] of byArea) {
+    const host = adopted.find(({ entry }) =>
+      area ? adoptsArea(entry, area) : adopts(entry)
+    );
+
+    if (host) host.taken = group;
+    else orphans.push(...group);
+  }
 
   return {
-    entries: entries.map((entry, index) =>
-      index === host ? { ...entry, children: list } : entry
+    entries: adopted.map(({ entry, taken }) =>
+      taken.length ? { ...entry, children: taken } : entry
     ),
-    sections: []
+    sections: orphans
   };
 }
