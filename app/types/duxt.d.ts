@@ -561,6 +561,17 @@ declare global {
      * does not want.
      */
     requestSamples?: (string | DuxtRequestSample)[];
+    /**
+     * Extra Shiki grammars for the runtime highlighter, beyond the ones the
+     * configured samples already name.
+     *
+     * The one case that needs it is `x-codeSamples`: a sample written into the
+     * OpenAPI document is coloured in the browser like a generated one, and its
+     * language is not visible to the build — the document may live in a
+     * repository that has not been cloned yet. A spec carrying Ruby samples
+     * names `ruby` here, and pays for that one grammar.
+     */
+    sampleLanguages?: string[];
     /** Layout a consumer can switch off. */
     breadcrumb?: boolean;
     /**

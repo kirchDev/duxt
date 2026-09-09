@@ -71,6 +71,7 @@
         "blocked": "O pedido não chegou ao servidor. Pode não aceitar pedidos de outra origem, ou o endereço não estar acessível a partir daqui.",
         "samples": "Exemplo de pedido",
         "sampleClient": "Cliente",
+        "fromSpec": "Escrito pela API, por isso não acompanha as tuas alterações acima.",
         "form": "Formulário",
         "json": "JSON",
         "format": "Formatar",

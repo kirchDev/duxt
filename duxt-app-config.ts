@@ -43,6 +43,17 @@ export interface DuxtBuildConfig {
    * Nuxt runtime whose generated types carry that global.
    */
   requestSamples?: (string | { id?: string; language?: string })[];
+  /**
+   * Extra grammars to load into the runtime highlighter.
+   *
+   * For `x-codeSamples`: a hand-written sample in the OpenAPI document is
+   * highlighted in the browser like a generated one, but its language cannot be
+   * known here — a remote source has not been cloned yet when this runs, and
+   * `parse` is synchronous, so the samples cannot be coloured at build time
+   * either. A document carrying Ruby samples therefore names `ruby` here, and
+   * pays for that one grammar.
+   */
+  sampleLanguages?: string[];
 }
 
 /**

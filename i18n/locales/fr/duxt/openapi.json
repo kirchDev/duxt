@@ -71,6 +71,7 @@
         "blocked": "La requête n’a pas atteint le serveur. Il n’accepte peut-être pas les requêtes d’une autre origine, ou l’adresse est inaccessible d’ici.",
         "samples": "Exemple de requête",
         "sampleClient": "Client",
+        "fromSpec": "Fourni par l’API : il ne suit donc pas vos modifications ci-dessus.",
         "form": "Formulaire",
         "json": "JSON",
         "format": "Formater",

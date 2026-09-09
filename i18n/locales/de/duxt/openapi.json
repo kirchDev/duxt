@@ -71,6 +71,7 @@
         "blocked": "Die Anfrage hat den Server nicht erreicht. Möglicherweise erlaubt er keine Anfragen von einer anderen Herkunft, oder die Adresse ist von hier nicht erreichbar.",
         "samples": "Beispielanfrage",
         "sampleClient": "Client",
+        "fromSpec": "Von der API mitgeliefert — folgt deinen Änderungen oben also nicht.",
         "form": "Formular",
         "json": "JSON",
         "format": "Formatieren",

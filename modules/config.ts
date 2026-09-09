@@ -169,7 +169,12 @@ function writeGrammars(nuxt: Nuxt, config?: DuxtBuildConfig): void {
 
   const wanted = config?.requestSamples ?? duxtDefaultRequestSamples;
 
-  const languages = new Set(['bash', 'json', 'typescript']);
+  const languages = new Set([
+    'bash',
+    'json',
+    'typescript',
+    ...(config?.sampleLanguages ?? [])
+  ]);
 
   for (const entry of wanted) {
     const language =

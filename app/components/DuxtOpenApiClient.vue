@@ -346,15 +346,55 @@ const request = computed(() => {
  * own entry may carry an i18n key, and `useDuxtConfig` collapses all three text
  * forms before a component ever sees them.
  */
-const samples = computed(() =>
-  resolveRequestSamples(duxt.requestSamples).map((entry) => ({
+/**
+ * The samples this site offers, each already written for the current request.
+ *
+ * `generate` runs here rather than at build time because the request is being
+ * edited: a path parameter or a body character changes and every sample has to
+ * say the new thing. `label` and `group` arrive already resolved — a consumer's
+ * own entry may carry an i18n key, and `useDuxtConfig` collapses all three text
+ * forms before a component ever sees them.
+ *
+ * A SPEC SAMPLE REPLACES THE GENERATED ONES FOR ITS LANGUAGE. `x-codeSamples` is
+ * written by the person who owns the API, who knows its idioms better than a
+ * generator does — so where a document carries a `php` sample, PHP's tab shows
+ * that instead of Guzzle and Laravel. The price is that it is STATIC: it cannot
+ * follow the reader's edits, which is why it is labelled rather than quietly
+ * mixed in.
+ *
+ * It keeps the shipped group's name where the language matches one, so a `php`
+ * sample joins a tab reading PHP rather than opening a second one spelled
+ * differently.
+ */
+const samples = computed(() => {
+  const shipped = resolveRequestSamples(duxt.requestSamples).map((entry) => ({
     id: entry.id,
     language: entry.language,
     label: asText(entry.label) ?? entry.id,
     group: asText(entry.group) ?? entry.id,
-    code: entry.generate(request.value)
-  }))
-);
+    code: entry.generate(request.value),
+    fromSpec: false
+  }));
+
+  const written = props.operation.codeSamples ?? [];
+  if (!written.length) return shipped;
+
+  const replaced = new Set(written.map((entry) => entry.lang));
+
+  return [
+    ...shipped.filter((entry) => !replaced.has(entry.language)),
+    ...written.map((entry, index) => ({
+      id: `spec:${entry.lang}:${index}`,
+      language: entry.lang,
+      label: entry.label ?? entry.lang,
+      group:
+        shipped.find((candidate) => candidate.language === entry.lang)?.group ??
+        entry.lang,
+      code: entry.source,
+      fromSpec: true
+    }))
+  ];
+});
 
 /**
  * REMEMBERED ACROSS PAGES, like the package manager: a reader who works in
@@ -963,6 +1003,17 @@ function pretty(text: string): string {
             />
           </UiButton>
         </div>
+
+        <!-- Said plainly, because the difference is invisible otherwise: a
+             reader who edits the body and switches to this tab would see a
+             sample that does not contain the edit, and conclude the editor is
+             broken rather than that this sample is fixed. -->
+        <p
+          v-if="shown.fromSpec"
+          class="border-b bg-muted/20 px-4 py-2 text-xs text-muted-foreground"
+        >
+          {{ $t('duxt.openapi.client.fromSpec') }}
+        </p>
 
         <TabsContent :value="group">
           <!-- eslint-disable-next-line vue/no-v-html -- Shiki's own output over

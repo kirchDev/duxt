@@ -30,6 +30,7 @@ import type {
   DuxtOpenApiBody,
   DuxtOpenApiCallback,
   DuxtOpenApiCallbackOperation,
+  DuxtOpenApiCodeSample,
   DuxtOpenApiConstraints,
   DuxtOpenApiEncoding,
   DuxtOpenApiExample,
@@ -591,6 +592,26 @@ function read(document: Node, dialect: '3.0' | '3.1'): DuxtOpenApiSpec {
     );
   };
 
+  /**
+   * `x-codeSamples`, under both spellings it has had.
+   *
+   * Redocly renamed `x-code-samples` to `x-codeSamples` and documents carry
+   * either, so both are read and the newer one wins where a document has both.
+   * `lang` is required — it is both the grammar and the name of the group the
+   * sample joins — and a sample with no source is nothing to show.
+   */
+  const codeSamples = (
+    operation: Record<string, unknown>
+  ): DuxtOpenApiCodeSample[] =>
+    list(operation['x-codeSamples'] ?? operation['x-code-samples'])
+      .filter(isObject)
+      .map((entry) => ({
+        lang: str(entry.lang) ?? '',
+        label: str(entry.label),
+        source: str(entry.source) ?? ''
+      }))
+      .filter((entry) => !!entry.lang && !!entry.source);
+
   const callbacks = (node: unknown): DuxtOpenApiCallback[] => {
     if (!isObject(node)) return [];
 
@@ -672,7 +693,8 @@ function read(document: Node, dialect: '3.0' | '3.1'): DuxtOpenApiSpec {
         parameters: merged,
         requestBody: requestBody(operation.requestBody),
         responses: responses(operation.responses),
-        callbacks: callbacks(operation.callbacks)
+        callbacks: callbacks(operation.callbacks),
+        codeSamples: codeSamples(operation)
       });
     }
   };

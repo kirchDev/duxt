@@ -71,6 +71,7 @@
         "blocked": "La solicitud no llegó al servidor. Puede que no admita solicitudes de otro origen, o que la dirección no sea accesible desde aquí.",
         "samples": "Ejemplo de petición",
         "sampleClient": "Cliente",
+        "fromSpec": "Lo escribió la API, así que no sigue tus cambios de arriba.",
         "form": "Formulario",
         "json": "JSON",
         "format": "Formatear",

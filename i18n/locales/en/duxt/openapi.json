@@ -71,6 +71,7 @@
         "blocked": "The request did not reach the server. It may not allow requests from another origin, or the address may be unreachable from here.",
         "samples": "Request sample",
         "sampleClient": "Client",
+        "fromSpec": "Written by the API, so it does not follow your edits above.",
         "form": "Form",
         "json": "JSON",
         "format": "Format",

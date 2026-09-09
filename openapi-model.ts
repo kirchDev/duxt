@@ -276,6 +276,26 @@ export interface DuxtOpenApiOperation {
   requestBody?: DuxtOpenApiBody;
   responses?: DuxtOpenApiResponse[];
   callbacks?: DuxtOpenApiCallback[];
+  /**
+   * Samples the API's own author wrote, from `x-codeSamples`.
+   *
+   * The extension is Redocly's and is what an OpenAPI document already carries
+   * where somebody has written samples by hand. They are STATIC — they cannot
+   * follow the reader's edits in the try-it client — and they are worth showing
+   * anyway: the person who owns the API knows its idioms, and a build-time
+   * sample is highlighted with the full grammar set and so costs a reader
+   * nothing.
+   */
+  codeSamples?: DuxtOpenApiCodeSample[];
+}
+
+/** One hand-written sample from `x-codeSamples`. */
+export interface DuxtOpenApiCodeSample {
+  /** The `lang` field, used as the Shiki id and as the group's name. */
+  lang: string;
+  /** The client, where the author named one. */
+  label?: string;
+  source: string;
 }
 
 export interface DuxtOpenApiTag {
