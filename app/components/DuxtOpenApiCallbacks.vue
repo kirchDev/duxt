@@ -18,7 +18,7 @@ defineProps<{ callbacks?: DuxtOpenApiCallback[] }>();
 
 <template>
   <section v-if="callbacks?.length" class="mt-8">
-    <h2 class="text-sm font-semibold tracking-wide uppercase">
+    <h2 class="duxt-label">
       {{ $t('duxt.openapi.callbacks') }}
     </h2>
 
@@ -28,16 +28,16 @@ defineProps<{ callbacks?: DuxtOpenApiCallback[] }>();
       <div
         v-for="(operation, index) in callback.operations ?? []"
         :key="index"
-        class="mt-3 rounded-lg border"
+        class="mt-3 border-t border-border/60"
       >
-        <div class="flex flex-wrap items-center gap-2 border-b px-4 py-3">
+        <div class="flex flex-wrap items-center gap-2 pt-3">
           <DuxtOpenApiMethod :method="operation.method" />
           <code class="font-mono text-sm break-all">
             {{ operation.expression }}
           </code>
         </div>
 
-        <div class="space-y-4 px-4 py-3">
+        <div class="mt-3 space-y-4">
           <p v-if="operation.summary" class="text-sm">
             {{ operation.summary }}
           </p>
@@ -54,18 +54,37 @@ defineProps<{ callbacks?: DuxtOpenApiCallback[] }>();
             direction="request"
           />
 
-          <ul
-            v-if="operation.responses?.length"
-            class="flex flex-wrap gap-2 text-xs text-muted-foreground"
-          >
-            <li
-              v-for="response in operation.responses"
-              :key="response.status"
-              class="rounded bg-muted px-1.5 py-0.5 font-mono"
-            >
-              {{ response.status }}
-            </li>
-          </ul>
+          <!-- NAMED, because the direction is inverted and a bare status chip
+               under a request body reads as one of the operation's own answers.
+               It is the opposite: what the API expects the READER's endpoint to
+               reply with. The document's own description of it is drawn beside
+               the status, which is the whole of what it says. -->
+          <div v-if="operation.responses?.length">
+            <p class="text-xs font-medium text-foreground/80">
+              {{ $t('duxt.openapi.expects') }}
+            </p>
+
+            <ul class="mt-2 space-y-1.5">
+              <li
+                v-for="response in operation.responses"
+                :key="response.status"
+                class="flex flex-wrap items-center gap-3"
+              >
+                <UiBadge
+                  :class="[
+                    'h-5 px-1.5 font-mono text-[0.6875rem] leading-none font-semibold tabular-nums',
+                    openApiStatusTone(response.status)
+                  ]"
+                >
+                  {{ response.status }}
+                </UiBadge>
+
+                <span v-if="response.description" class="text-sm">
+                  {{ response.description }}
+                </span>
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>

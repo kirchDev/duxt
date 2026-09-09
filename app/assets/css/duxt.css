@@ -271,6 +271,72 @@
   @apply opacity-100;
 }
 
+/* A SCHEMA ROW THAT OPENS. The whole row is the target and the tile is the
+   sign, because a 16-pixel box is under the size a fingertip can aim at — so
+   the click area is the summary and the tile only says that there is one.
+   
+   The marker `details` draws itself is removed in both spellings browsers
+   still need. */
+.duxt-schema-row {
+  @apply -mx-1.5 cursor-pointer rounded-lg px-1.5 py-0.5 transition-colors;
+  list-style: none;
+}
+
+.duxt-schema-row::-webkit-details-marker {
+  display: none;
+}
+
+.duxt-schema-row:hover {
+  background: color-mix(in oklch, var(--muted) 50%, transparent);
+}
+
+.duxt-schema-row:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+
+/* A `+` that becomes a `−`, drawn by the icon set rather than by two
+   pseudo-elements: at this size the percentage insets that placed them rounded
+   to different thicknesses, so the cross had one heavy stroke and one thin.
+   Both icons ship in the markup and the state picks one — the alternative is a
+   `content` swap, which cannot draw an SVG. */
+.duxt-schema-tile {
+  @apply relative inline-flex size-4 shrink-0 items-center justify-center rounded border bg-muted/40 text-muted-foreground transition-colors;
+  align-self: center;
+}
+
+.duxt-schema-tile .duxt-schema-minus,
+details[open] > .duxt-schema-row .duxt-schema-tile .duxt-schema-plus {
+  display: none;
+}
+
+details[open] > .duxt-schema-row .duxt-schema-tile .duxt-schema-minus {
+  display: block;
+}
+
+/* The tile answers the hover of the ROW, not of itself: the row is what is
+   being aimed at, and a tile that lit only under the pointer would go dark
+   exactly when the reader is about to click the line beside it. */
+.duxt-schema-row:hover .duxt-schema-tile {
+  @apply border-foreground/20 bg-muted text-foreground;
+}
+
+/* The label a section of generated furniture is headed with — the release
+   page's groups, the reference's "parameters" and "responses", the overview's
+   "servers".
+   
+   ONE CLASS because there are six of them and they were six copies of five
+   utilities, which is exactly how the reference came to be set in
+   `text-sm font-semibold uppercase` at full strength while the changelog was
+   set at 0.6875rem in `muted-foreground`: the same idea, two sizes, two
+   weights, two colours, on pages a reader moves between.
+   
+   The colour is the DEFAULT and not the rule: a caller that has a tone of its
+   own — a changelog group — sets it after this class and wins. */
+.duxt-label {
+  @apply text-[0.6875rem] font-semibold tracking-[0.12em] text-muted-foreground uppercase;
+}
+
 /* A release group's ENTRIES, which arrive as ordinary Markdown in
    `ChangelogGroup`'s slot and were therefore set as prose: 1.7 leading with a
    paragraph's flow between them, so six one-line facts filled a screen and a

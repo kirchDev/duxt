@@ -30,14 +30,15 @@ const localeLink = useDuxtLink();
          the typeset preset; the list below emphatically does not. -->
     <slot />
 
-    <ul
-      v-if="operations?.length"
-      class="not-typeset mt-6 divide-y rounded-lg border"
-    >
-      <li v-for="entry in operations" :key="`${entry.method}-${entry.to}`">
+    <ul v-if="operations?.length" class="not-typeset mt-6 -mx-3">
+      <li
+        v-for="entry in operations"
+        :key="`${entry.method}-${entry.to}`"
+        class="border-t border-border/60 first:border-t-0"
+      >
         <NuxtLink
           :to="localeLink(entry.to) ?? entry.to"
-          class="flex flex-wrap items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/50"
+          class="flex flex-wrap items-center gap-3 rounded-lg px-3 py-3 transition-colors hover:bg-muted/40"
         >
           <DuxtOpenApiMethod :method="entry.method" class="w-16" />
 

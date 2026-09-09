@@ -59,9 +59,15 @@ const clientAnchor = computed(() =>
 <template>
   <!-- Wider on a wide screen: a `curl` line with a couple of headers wraps at
        23rem however much room the window has, and the column that shows it is
-       the reason this layout takes the whole width in the first place. -->
+       why `reference` hands its page the whole column rather than capping it at
+       a reading measure the way `docs` and `changelog` do.
+       
+       30rem AT `2xl`, not the 34 it was. That number was chosen while the shell
+       ran to 100rem, where it left the description the larger half; inside
+       90rem the same 34 split the row down the middle, and the description —
+       which is what the page is FOR — became the narrower side of a client. -->
   <div
-    class="grid gap-8 xl:grid-cols-[minmax(0,1fr)_23rem] 2xl:grid-cols-[minmax(0,1fr)_34rem]"
+    class="grid gap-8 xl:grid-cols-[minmax(0,1fr)_23rem] 2xl:grid-cols-[minmax(0,1fr)_30rem]"
   >
     <div class="min-w-0">
       <div class="not-typeset flex flex-wrap items-center gap-2">
@@ -97,7 +103,7 @@ const clientAnchor = computed(() =>
         <DuxtOpenApiParameters :parameters="operation.parameters" />
 
         <section v-if="operation.requestBody?.content?.length" class="mt-8">
-          <h2 class="text-sm font-semibold tracking-wide uppercase">
+          <h2 class="duxt-label">
             {{ $t('duxt.openapi.requestBody') }}
             <span
               v-if="operation.requestBody.required"
@@ -114,7 +120,7 @@ const clientAnchor = computed(() =>
             {{ operation.requestBody.description }}
           </p>
 
-          <div class="mt-4 rounded-lg border px-4 py-3">
+          <div class="mt-3 border-t border-border/60 pt-3">
             <DuxtOpenApiMedia
               :content="operation.requestBody.content"
               direction="request"

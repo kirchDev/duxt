@@ -30,20 +30,20 @@ const groups = computed(() =>
 
 <template>
   <section v-if="groups.length" class="mt-8">
-    <h2 class="text-sm font-semibold tracking-wide uppercase">
+    <h2 class="duxt-label">
       {{ $t('duxt.openapi.parameters') }}
     </h2>
 
     <div v-for="group in groups" :key="group.where" class="mt-4">
-      <h3 class="text-xs font-medium text-muted-foreground">
+      <h3 class="text-xs font-medium text-foreground/80">
         {{ $t(`duxt.openapi.in.${group.where}`) }}
       </h3>
 
-      <ul class="mt-2 divide-y rounded-lg border">
+      <ul class="mt-2 divide-y divide-border/60 border-t border-border/60">
         <li
           v-for="parameter in group.parameters"
           :key="parameter.name"
-          class="px-4 py-3"
+          class="py-3"
         >
           <DuxtOpenApiSchema
             :schema="parameter.schema"

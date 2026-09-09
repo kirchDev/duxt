@@ -10,44 +10,36 @@ import type { DuxtOpenApiResponse } from '../../openapi-model';
  * to open.
  */
 defineProps<{ responses?: DuxtOpenApiResponse[] }>();
-
-const tones: Record<string, string> = {
-  info: 'bg-muted text-muted-foreground ring-border',
-  success: 'bg-success/10 text-success ring-success/30',
-  redirect: 'bg-sky-500/10 text-sky-700 dark:text-sky-300 ring-sky-500/30',
-  client:
-    'bg-amber-500/10 text-amber-700 dark:text-amber-300 ring-amber-500/30',
-  server: 'bg-destructive/10 text-destructive ring-destructive/30',
-  default: 'bg-muted text-muted-foreground ring-border'
-};
 </script>
 
 <template>
   <section v-if="responses?.length" class="mt-8">
-    <h2 class="text-sm font-semibold tracking-wide uppercase">
+    <h2 class="duxt-label">
       {{ $t('duxt.openapi.responses') }}
     </h2>
 
-    <div class="mt-4 space-y-4">
-      <div
-        v-for="response in responses"
-        :key="response.status"
-        class="rounded-lg border"
-      >
-        <div class="flex flex-wrap items-center gap-3 border-b px-4 py-3">
-          <span
-            class="inline-flex shrink-0 items-center rounded px-1.5 py-0.5 font-mono text-xs font-semibold ring-1 ring-inset"
-            :class="tones[openApiStatusKind(response.status)]"
+    <!-- A hairline between responses rather than a card around each: what
+         separates two of them is that one ends and the next begins, which is
+         what a rule says. The card said "one object" a third time on a page
+         that had already said it about the security and the parameters. -->
+    <div class="mt-3 divide-y divide-border/60 border-t border-border/60">
+      <div v-for="response in responses" :key="response.status" class="py-4">
+        <div class="flex flex-wrap items-center gap-3">
+          <UiBadge
+            :class="[
+              'h-5 px-1.5 font-mono text-[0.6875rem] leading-none font-semibold tabular-nums',
+              openApiStatusTone(response.status)
+            ]"
           >
             {{ response.status }}
-          </span>
+          </UiBadge>
 
           <span v-if="response.description" class="text-sm">
             {{ response.description }}
           </span>
         </div>
 
-        <div class="space-y-4 px-4 py-3">
+        <div class="mt-3 space-y-4">
           <div v-if="response.headers?.length">
             <h3 class="mb-2 text-xs font-medium text-muted-foreground">
               {{ $t('duxt.openapi.headers') }}

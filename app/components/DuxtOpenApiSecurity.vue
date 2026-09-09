@@ -22,7 +22,7 @@ const open = computed(() => props.security?.length === 0);
 
 <template>
   <section v-if="security" class="mt-8">
-    <h2 class="text-sm font-semibold tracking-wide uppercase">
+    <h2 class="duxt-label">
       {{ $t('duxt.openapi.security') }}
     </h2>
 
@@ -30,11 +30,15 @@ const open = computed(() => props.security?.length === 0);
       {{ $t('duxt.openapi.noAuth') }}
     </p>
 
-    <ul v-else class="mt-4 space-y-3">
+    <!-- Rows a hairline apart, not a card each. A card says "one object" and
+         these are alternatives inside one requirement — three cards down a page
+         that also boxes its parameters and its responses is a page made of
+         frames rather than of text. -->
+    <ul v-else class="mt-3 divide-y divide-border/60 border-t border-border/60">
       <li
         v-for="(alternative, index) in alternatives"
         :key="index"
-        class="rounded-lg border px-4 py-3"
+        class="py-3"
       >
         <p
           v-if="alternatives.length > 1"

@@ -906,6 +906,29 @@ export function openApiStatusKind(
   }
 }
 
+/**
+ * The colour a status is drawn in, in the badge's own construction — a tenth of
+ * the colour as surface, a fifth as border.
+ *
+ * Here rather than beside one of its callers because TWO draw a status: the
+ * responses of an operation, and the responses a callback expects back. They
+ * were two copies of the same map, which is two chances for a 4xx to be amber
+ * in one place and grey in the other.
+ */
+export function openApiStatusTone(status: string): string {
+  const tones: Record<string, string> = {
+    info: 'border-border bg-muted text-muted-foreground',
+    success: 'border-success/20 bg-success/10 text-success',
+    redirect: 'border-sky-500/20 bg-sky-500/10 text-sky-700 dark:text-sky-400',
+    client:
+      'border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-400',
+    server: 'border-destructive/20 bg-destructive/10 text-destructive',
+    default: 'border-border bg-muted text-muted-foreground'
+  };
+
+  return tones[openApiStatusKind(status)] ?? tones.default!;
+}
+
 /** A value as the JSON a code sample shows. */
 export function openApiJson(value: unknown): string {
   if (typeof value === 'string') return value;

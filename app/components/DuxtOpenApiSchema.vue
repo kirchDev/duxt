@@ -76,97 +76,190 @@ const nested = computed(
     Boolean(additional.value) ||
     Boolean(schema.value?.not)
 );
+
+const { t } = useI18n();
+
+/**
+ * Type, format, constraints and flags as ONE grey run, `·` between them.
+ *
+ * They were a line of chips under the name, and a field cost two or three
+ * lines: name and type, a red "required", then two boxes saying `min length 1`
+ * and `max length 120`. An object with eight fields filled a screen with
+ * twenty-four lines of furniture around eight facts. Set as one run —
+ * `string · min 1 · max 120` — a field is a line, which is what it is.
+ *
+ * The enum stays in the run as alternatives (`round | square | other`) rather
+ * than as one chip per value: they are one fact about the field, not five.
+ */
+const meta = computed(() => {
+  const parts: string[] = [type.value];
+
+  if (schema.value?.name) parts.push(schema.value.name);
+
+  for (const constraint of constraints.value) {
+    const label = t(`duxt.openapi.constraints.${constraint.key}`);
+
+    parts.push(
+      constraint.value === 'true' ? label : `${label} ${constraint.value}`
+    );
+  }
+
+  const options = schema.value?.enum ?? [];
+  if (options.length) parts.push(options.map(openApiJson).join(' | '));
+
+  if (schema.value?.readOnly) parts.push(t('duxt.openapi.readOnly'));
+  if (schema.value?.writeOnly) parts.push(t('duxt.openapi.writeOnly'));
+  if (schema.value?.deprecated) parts.push(t('duxt.openapi.deprecated'));
+
+  return parts.filter(Boolean);
+});
+
+/**
+ * How many fields lie behind this row — the number the chip shows, and the
+ * number the open-by-default rule reads.
+ *
+ * Through an ARRAY, because `items: Widget[]` is a row a reader opens to see a
+ * widget: the array itself has no properties and the seven behind it are what
+ * the click is worth.
+ */
+const size = computed(() => {
+  const inner = items.value ?? schema.value;
+
+  if (inner?.properties?.length) return inner.properties.length;
+  if (branches.value.length) {
+    return branches.value.reduce(
+      (all, [, list]) => all + (list?.length ?? 0),
+      0
+    );
+  }
+
+  return nested.value ? 1 : 0;
+});
+
+/**
+ * ONE THRESHOLD FOR TWO RULES: five fields is where a row starts closed, and
+ * five is where the count is worth printing. Below it the chip would say
+ * something nobody weighed a decision on ("1"), and the row would hide a line
+ * and a half.
+ */
+const MANY = 5;
+
+/**
+ * A row can only close if it HAS a row: the media type's own schema, an array's
+ * item and a branch of a `oneOf` arrive without a name, so there is nothing to
+ * click and they are always drawn open.
+ */
+const collapsible = computed(
+  () =>
+    Boolean(props.name) &&
+    nested.value &&
+    !deep.value &&
+    !schema.value?.circular
+);
+
+const open = computed(() => size.value < MANY);
 </script>
 
 <template>
-  <div class="min-w-0">
-    <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-      <code v-if="name" class="font-mono text-sm font-medium text-foreground">
-        {{ name }}
-      </code>
-
-      <span class="font-mono text-xs text-muted-foreground">{{ type }}</span>
-
-      <span
-        v-if="schema?.name"
-        class="rounded bg-muted px-1.5 py-0.5 font-mono text-[0.6875rem] text-muted-foreground"
-      >
-        {{ schema.name }}
-      </span>
-
-      <!-- `required` FOLLOWS THE DIRECTION. A property may be `readOnly` and
-           listed under `required`, which is the ordinary way to describe a
-           field the server assigns — and OpenAPI then means it is required in
-           the response, never in the request. Marking it required on a request
-           body asked the reader to invent an id.
-
-           The `readOnly` / `writeOnly` badges below stay put either way: this
-           table documents the schema, and a value it cannot carry is still
-           worth naming. Only the demand is conditional. -->
-      <span
-        v-if="required && !excluded(schema ?? {}, direction)"
-        class="text-xs font-medium text-destructive"
-      >
-        {{ $t('duxt.openapi.required') }}
-      </span>
-
-      <span v-if="schema?.deprecated" class="text-xs text-muted-foreground">
-        {{ $t('duxt.openapi.deprecated') }}
-      </span>
-
-      <span v-if="schema?.readOnly" class="text-xs text-muted-foreground">
-        {{ $t('duxt.openapi.readOnly') }}
-      </span>
-
-      <span v-if="schema?.writeOnly" class="text-xs text-muted-foreground">
-        {{ $t('duxt.openapi.writeOnly') }}
-      </span>
-    </div>
-
-    <p v-if="schema?.title" class="mt-1 text-sm font-medium">
-      {{ schema.title }}
-    </p>
-
-    <p v-if="schema?.description" class="mt-1 text-sm text-muted-foreground">
-      {{ schema.description }}
-    </p>
-
-    <!-- A reference this build could not follow. Said out loud rather than
-         drawn as an empty object, which is what it would otherwise look like. -->
-    <p v-if="schema?.external" class="mt-1 text-sm text-muted-foreground">
-      {{ $t('duxt.openapi.externalRef') }}
-      <code class="font-mono text-xs">{{ schema.ref }}</code>
-    </p>
-
-    <p v-else-if="schema?.circular" class="mt-1 text-sm text-muted-foreground">
-      {{ $t('duxt.openapi.circular') }}
-    </p>
-
-    <div
-      v-if="constraints.length || schema?.enum?.length"
-      class="mt-1.5 flex flex-wrap gap-1.5"
+  <!-- `details` only where there is a name to click: everything else is drawn
+       open, because a summary nobody can aim at is a summary nobody can open.
+       The TAG varies, the row does not — one block of markup either way, so a
+       collapsed and an expanded field cannot drift apart. -->
+  <component
+    :is="collapsible ? 'details' : 'div'"
+    :open="collapsible ? open : undefined"
+    class="min-w-0"
+  >
+    <component
+      :is="collapsible ? 'summary' : 'div'"
+      :class="collapsible ? 'duxt-schema-row' : ''"
     >
-      <!-- `uniqueItems: true` is a FLAG, and printing its value reads as
-           "unique true". The label alone is the whole statement. -->
-      <span
-        v-for="constraint in constraints"
-        :key="constraint.key"
-        class="rounded bg-muted px-1.5 py-0.5 font-mono text-[0.6875rem] text-muted-foreground"
-      >
-        {{ $t(`duxt.openapi.constraints.${constraint.key}`) }}
-        <template v-if="constraint.value !== 'true'">
-          {{ constraint.value }}
-        </template>
+      <span class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+        <!-- The mark is lucide's own `plus` and `minus`, one shown per state.
+             It was two pseudo-elements before, and at 16 pixels the percentage
+             insets that positioned them rounded to different thicknesses — a
+             cross with one heavy stroke. An icon set that already draws this
+             pair with round caps and one stroke width draws it better than an
+             arithmetic of insets ever will.
+             
+             The TILE around it is what says "control" while nothing is being
+             hovered, which a bare glyph in grey never did. -->
+        <span v-if="collapsible" aria-hidden="true" class="duxt-schema-tile">
+          <Icon name="lucide:plus" class="duxt-schema-plus size-2.5" />
+          <Icon name="lucide:minus" class="duxt-schema-minus size-2.5" />
+        </span>
+
+        <code v-if="name" class="font-mono text-sm font-medium text-foreground">
+          {{ name }}<!-- `required` FOLLOWS THE DIRECTION. A property may be
+            `readOnly` and listed under `required`, which is the ordinary way to
+            describe a field the server assigns — and OpenAPI then means it is
+            required in the response, never in the request. Marking it required
+            on a request body asked the reader to invent an id.
+
+            A STAR, not the word: on a body with eight required fields, eight
+            red words are a page that shouts, and a warning colour that appears
+            everywhere warns of nothing. The word survives for a screen reader,
+            which cannot see that the star is red. --><span
+            v-if="required && !excluded(schema ?? {}, direction)"
+            class="font-semibold text-destructive"
+            :title="$t('duxt.openapi.required')"
+            >*<span class="sr-only">
+              {{ $t('duxt.openapi.required') }}</span
+            ></span
+          >
+        </code>
+
+        <!-- One run, `·` between: see `meta`. -->
+        <span class="font-mono text-xs text-muted-foreground">
+          <template v-for="(part, index) in meta" :key="index"
+            ><span v-if="index" aria-hidden="true" class="px-1 opacity-50"
+              >·</span
+            >{{ part }}</template
+          >
+        </span>
+
+        <!-- Only past the threshold, and it is the SAME threshold that closed
+             the row: a chip therefore always means "this is bigger than you
+             read in passing" rather than "this opens", which the tile already
+             said. -->
+        <span
+          v-if="collapsible && size >= MANY"
+          class="ml-auto rounded-md bg-muted px-1.5 font-mono text-[0.6875rem] text-muted-foreground tabular-nums"
+          :aria-label="$t('duxt.openapi.fields', { count: size })"
+        >
+          {{ size }}
+        </span>
+      </span>
+
+      <span v-if="schema?.title" class="mt-1 block text-sm font-medium">
+        {{ schema.title }}
       </span>
 
       <span
-        v-for="(option, index) in schema?.enum ?? []"
-        :key="`enum-${index}`"
-        class="rounded bg-muted px-1.5 py-0.5 font-mono text-[0.6875rem] text-foreground"
+        v-if="schema?.description"
+        class="mt-1 block text-sm text-muted-foreground"
       >
-        {{ openApiJson(option) }}
+        {{ schema.description }}
       </span>
-    </div>
+
+      <!-- A reference this build could not follow. Said out loud rather than
+           drawn as an empty object, which is what it would otherwise look
+           like. -->
+      <span
+        v-if="schema?.external"
+        class="mt-1 block text-sm text-muted-foreground"
+      >
+        {{ $t('duxt.openapi.externalRef') }}
+        <code class="font-mono text-xs">{{ schema.ref }}</code>
+      </span>
+
+      <span
+        v-else-if="schema?.circular"
+        class="mt-1 block text-sm text-muted-foreground"
+      >
+        {{ $t('duxt.openapi.circular') }}
+      </span>
+    </component>
 
     <p v-if="nested && deep" class="mt-2 text-sm text-muted-foreground">
       {{ $t('duxt.openapi.truncated') }}
@@ -268,5 +361,5 @@ const nested = computed(
         <code class="font-mono">{{ schema.discriminator.propertyName }}</code>
       </p>
     </template>
-  </div>
+  </component>
 </template>
