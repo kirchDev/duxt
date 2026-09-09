@@ -8,13 +8,17 @@
  * and the client, because those two are properties of the operation and a
  * layout cannot reach them.
  *
- * Two differences from `docs`, and only two. Its column is WIDER — parameter
- * tables and a request client beside them need more than the 90rem the prose
- * gets — but it is still a column: unbounded, the endpoint ran the full width
- * of a 27" screen, and a description set across 1900px is unreadable however
- * many tables sit under it. And its sidebar is the endpoint list rather than a
- * prose tree — the same navigation, from the same collection, because a
+ * ONE difference from `docs`, and it is the sidebar: the endpoint list rather
+ * than a prose tree — the same navigation, from the same collection, because a
  * generated section is an ordinary collection and its pages ARE the endpoints.
+ *
+ * The WIDTH is not a difference, and it was: this shell ran to 100rem where
+ * every other one on the site stops at 90rem, so on a wide screen the reference
+ * stood ten rem past the header above it and the footer below it. The argument
+ * for it — parameter tables and a request client want room — was an argument
+ * about the OPERATION, which splits itself and can be given that room there;
+ * it was never an argument for the page hanging over the site's own edge.
+ * Alignment with the header is worth more than ten rem nobody asked for.
  *
  * A page rendered here draws its own header: see the `owned` computed in
  * `pages/[...slug].vue`.
@@ -50,7 +54,7 @@ const { headerOffset } = useDuxtSectionRow();
     <DuxtHeader />
     <DuxtSections />
 
-    <div class="mx-auto flex w-full max-w-[100rem] flex-1 gap-8 px-4 lg:px-8">
+    <div class="mx-auto flex w-full max-w-[90rem] flex-1 gap-8 px-4 lg:px-8">
       <!-- A section with one page has nothing to navigate, exactly as in the
            docs layout: the column would list the page the reader is on. -->
       <div v-if="items.length > 1" class="hidden w-64 shrink-0 lg:block">
