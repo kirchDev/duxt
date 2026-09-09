@@ -8,7 +8,17 @@ import type { DuxtOpenApiMediaType } from '../../openapi-model';
  * `multipart/form-data` are two spellings of ONE body, and stacking them reads
  * as two bodies a request would carry both of.
  */
-const props = defineProps<{ content?: DuxtOpenApiMediaType[] }>();
+const props = defineProps<{
+  content?: DuxtOpenApiMediaType[];
+  /**
+   * Which way this body travels, and therefore which fields it can hold.
+   *
+   * Required rather than defaulted: this component draws the request body AND
+   * every response, and a default would have to be wrong for one of them. The
+   * only way a caller can forget is by not compiling.
+   */
+  direction: DuxtOpenApiDirection;
+}>();
 
 const types = computed(() => props.content ?? []);
 const current = ref(0);
@@ -20,7 +30,7 @@ const examples = computed(() => {
   const written = media.value?.examples ?? [];
   if (written.length) return written;
 
-  const derived = openApiExampleValue(media.value?.schema);
+  const derived = openApiExampleValue(media.value?.schema, props.direction);
 
   return derived === null ? [] : [{ name: 'example', value: derived }];
 });
@@ -50,7 +60,11 @@ const examples = computed(() => {
       {{ media?.type }}
     </p>
 
-    <DuxtOpenApiSchema v-if="media?.schema" :schema="media.schema" />
+    <DuxtOpenApiSchema
+      v-if="media?.schema"
+      :schema="media.schema"
+      :direction="direction"
+    />
 
     <div v-for="example in examples" :key="example.name" class="mt-3">
       <p v-if="example.summary" class="mb-1 text-xs text-muted-foreground">

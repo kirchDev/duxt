@@ -27,6 +27,8 @@ const props = withDefaults(
     /** The property name this schema sits under, when it has one. */
     name?: string;
     required?: boolean;
+    /** Which way the body this schema describes travels — see `excluded`. */
+    direction: DuxtOpenApiDirection;
     depth?: number;
   }>(),
   { depth: 0 }
@@ -92,7 +94,19 @@ const nested = computed(
         {{ schema.name }}
       </span>
 
-      <span v-if="required" class="text-xs font-medium text-destructive">
+      <!-- `required` FOLLOWS THE DIRECTION. A property may be `readOnly` and
+           listed under `required`, which is the ordinary way to describe a
+           field the server assigns — and OpenAPI then means it is required in
+           the response, never in the request. Marking it required on a request
+           body asked the reader to invent an id.
+
+           The `readOnly` / `writeOnly` badges below stay put either way: this
+           table documents the schema, and a value it cannot carry is still
+           worth naming. Only the demand is conditional. -->
+      <span
+        v-if="required && !excluded(schema ?? {}, direction)"
+        class="text-xs font-medium text-destructive"
+      >
         {{ $t('duxt.openapi.required') }}
       </span>
 
@@ -168,6 +182,7 @@ const nested = computed(
             :schema="property.schema"
             :name="property.name"
             :required="property.required"
+            :direction="direction"
             :depth="depth + 1"
           />
         </li>
@@ -177,14 +192,22 @@ const nested = computed(
         <p class="mb-1 text-xs font-medium text-muted-foreground">
           {{ $t('duxt.openapi.items') }}
         </p>
-        <DuxtOpenApiSchema :schema="items" :depth="depth + 1" />
+        <DuxtOpenApiSchema
+          :schema="items"
+          :direction="direction"
+          :depth="depth + 1"
+        />
       </div>
 
       <div v-if="additional" class="mt-3 border-l pl-4">
         <p class="mb-1 text-xs font-medium text-muted-foreground">
           {{ $t('duxt.openapi.additionalProperties') }}
         </p>
-        <DuxtOpenApiSchema :schema="additional" :depth="depth + 1" />
+        <DuxtOpenApiSchema
+          :schema="additional"
+          :direction="direction"
+          :depth="depth + 1"
+        />
       </div>
 
       <p
@@ -204,7 +227,11 @@ const nested = computed(
         </p>
         <ul class="space-y-3">
           <li v-for="(branch, index) in list" :key="index">
-            <DuxtOpenApiSchema :schema="branch" :depth="depth + 1" />
+            <DuxtOpenApiSchema
+              :schema="branch"
+              :direction="direction"
+              :depth="depth + 1"
+            />
           </li>
         </ul>
       </div>
@@ -213,7 +240,11 @@ const nested = computed(
         <p class="mb-1 text-xs font-medium text-muted-foreground">
           {{ $t('duxt.openapi.composition.not') }}
         </p>
-        <DuxtOpenApiSchema :schema="schema.not" :depth="depth + 1" />
+        <DuxtOpenApiSchema
+          :schema="schema.not"
+          :direction="direction"
+          :depth="depth + 1"
+        />
       </div>
 
       <p v-if="schema?.externalDocs" class="mt-2 text-sm">

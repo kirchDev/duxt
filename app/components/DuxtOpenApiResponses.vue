@@ -58,6 +58,7 @@ const tones: Record<string, string> = {
                   :schema="header.schema"
                   :name="header.name"
                   :required="header.required"
+                  direction="response"
                 />
                 <p
                   v-if="header.description"
@@ -72,6 +73,7 @@ const tones: Record<string, string> = {
           <DuxtOpenApiMedia
             v-if="response.content?.length"
             :content="response.content"
+            direction="response"
           />
 
           <p

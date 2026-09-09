@@ -49,6 +49,7 @@ const groups = computed(() =>
             :schema="parameter.schema"
             :name="parameter.name"
             :required="parameter.required"
+            direction="request"
           />
 
           <p
@@ -101,7 +102,10 @@ const groups = computed(() =>
                is serialised as a body — a JSON object in a query string. Rare,
                and invisible if it is not drawn. -->
           <div v-if="parameter.content?.length" class="mt-3">
-            <DuxtOpenApiMedia :content="parameter.content" />
+            <DuxtOpenApiMedia
+              :content="parameter.content"
+              direction="request"
+            />
           </div>
         </li>
       </ul>

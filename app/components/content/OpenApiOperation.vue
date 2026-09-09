@@ -95,7 +95,10 @@ defineProps<{
           </p>
 
           <div class="mt-4 rounded-lg border px-4 py-3">
-            <DuxtOpenApiMedia :content="operation.requestBody.content" />
+            <DuxtOpenApiMedia
+              :content="operation.requestBody.content"
+              direction="request"
+            />
           </div>
         </section>
 

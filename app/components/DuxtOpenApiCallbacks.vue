@@ -45,9 +45,13 @@ defineProps<{ callbacks?: DuxtOpenApiCallback[] }>();
             {{ operation.description }}
           </p>
 
+          <!-- A callback is a request the SERVER sends, so its body travels
+               the same way any request body does. Its responses are drawn as
+               status chips here, with no schema to give a direction to. -->
           <DuxtOpenApiMedia
             v-if="operation.requestBody?.content?.length"
             :content="operation.requestBody.content"
+            direction="request"
           />
 
           <ul

@@ -56,13 +56,22 @@ describe('openApiTypeLabel', () => {
 describe('openApiExampleValue', () => {
   it('prefers what the document wrote over anything derived', () => {
     expect(
-      openApiExampleValue(schema({ types: ['string'], examples: ['Rex'] }))
+      openApiExampleValue(
+        schema({ types: ['string'], examples: ['Rex'] }),
+        'request'
+      )
     ).toBe('Rex');
     expect(
-      openApiExampleValue(schema({ types: ['string'], default: 'Fido' }))
+      openApiExampleValue(
+        schema({ types: ['string'], default: 'Fido' }),
+        'request'
+      )
     ).toBe('Fido');
     expect(
-      openApiExampleValue(schema({ types: ['string'], enum: ['a', 'b'] }))
+      openApiExampleValue(
+        schema({ types: ['string'], enum: ['a', 'b'] }),
+        'request'
+      )
     ).toBe('a');
   });
 
@@ -105,7 +114,8 @@ describe('openApiExampleValue', () => {
               schema: schema({ types: ['string'] })
             }
           ]
-        })
+        }),
+        'request'
       )
     ).toEqual({ name: 'string' });
   });
@@ -114,7 +124,7 @@ describe('openApiExampleValue', () => {
     // `Pet.friends: Pet[]` is the ordinary shape of a schema; deriving through
     // it is a stack overflow in the browser.
     expect(
-      openApiExampleValue(schema({ name: 'Pet', circular: true }))
+      openApiExampleValue(schema({ name: 'Pet', circular: true }), 'request')
     ).toBeNull();
   });
 
@@ -126,18 +136,27 @@ describe('openApiExampleValue', () => {
         schema({
           types: ['integer'],
           constraints: { minimum: 400, maximum: 599 }
-        })
+        }),
+        'request'
       )
     ).toBe(400);
-    expect(openApiExampleValue(schema({ types: ['integer'] }))).toBe(0);
+    expect(openApiExampleValue(schema({ types: ['integer'] }), 'request')).toBe(
+      0
+    );
   });
 
   it('answers a format with something shaped like it', () => {
     expect(
-      openApiExampleValue(schema({ types: ['string'], format: 'date' }))
+      openApiExampleValue(
+        schema({ types: ['string'], format: 'date' }),
+        'request'
+      )
     ).toBe('2026-01-01');
     expect(
-      openApiExampleValue(schema({ types: ['string'], format: 'uuid' }))
+      openApiExampleValue(
+        schema({ types: ['string'], format: 'uuid' }),
+        'request'
+      )
     ).toMatch(/^[0-9a-f-]{36}$/);
   });
 });
@@ -721,5 +740,79 @@ describe('a read-only property in a request', () => {
 
     expect(form.expressible).toBe(false);
     expect(form.expressible === false && form.reason).toBe('empty');
+  });
+});
+
+/**
+ * The direction, which the example deriver had no word for.
+ *
+ * `readOnly` belongs to responses and `writeOnly` to requests, and one function
+ * used to guess: it dropped read-only fields at the top level, whichever way the
+ * body was travelling. `DuxtOpenApiMedia` draws both the request body and every
+ * response through it, so a response example arrived without the `id` and
+ * `createdAt` a response is mostly about.
+ */
+describe('openApiExampleValue — direction', () => {
+  const widget = schema({
+    types: ['object'],
+    properties: [
+      {
+        name: 'id',
+        required: true,
+        schema: schema({ types: ['string'], readOnly: true })
+      },
+      {
+        name: 'secret',
+        required: false,
+        schema: schema({ types: ['string'], writeOnly: true })
+      },
+      { name: 'name', required: true, schema: schema({ types: ['string'] }) }
+    ]
+  } as Partial<DuxtOpenApiSchema>);
+
+  it('leaves the server-assigned field out of a request', () => {
+    expect(openApiExampleValue(widget, 'request')).toEqual({
+      secret: 'string',
+      name: 'string'
+    });
+  });
+
+  it('leaves the write-only field out of a response', () => {
+    expect(openApiExampleValue(widget, 'response')).toEqual({
+      id: 'string',
+      name: 'string'
+    });
+  });
+
+  /** The old guard held at the top level only, so a nested one slipped past. */
+  it('applies at every depth, not only the top one', () => {
+    const nested = schema({
+      types: ['object'],
+      properties: [{ name: 'child', required: false, schema: widget }]
+    } as Partial<DuxtOpenApiSchema>);
+
+    expect(openApiExampleValue(nested, 'request')).toEqual({
+      child: { secret: 'string', name: 'string' }
+    });
+  });
+
+  /** Through an array's items, and through `allOf`, for the same reason. */
+  it('applies through items and allOf', () => {
+    expect(
+      openApiExampleValue(
+        schema({
+          types: ['array'],
+          items: widget
+        } as Partial<DuxtOpenApiSchema>),
+        'response'
+      )
+    ).toEqual([{ id: 'string', name: 'string' }]);
+
+    expect(
+      openApiExampleValue(
+        schema({ allOf: [widget] } as Partial<DuxtOpenApiSchema>),
+        'request'
+      )
+    ).toEqual({ secret: 'string', name: 'string' });
   });
 });

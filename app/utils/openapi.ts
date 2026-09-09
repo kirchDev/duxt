@@ -70,6 +70,33 @@ export function openApiConstraints(
 }
 
 /**
+ * Which way a body is travelling.
+ *
+ * `readOnly` and `writeOnly` are statements about direction, and until this
+ * existed the code had no word for it: one function guessed "request" and the
+ * rest ignored the question, so a response example dropped the `id` and
+ * `createdAt` a response is mostly about.
+ */
+export type DuxtOpenApiDirection = 'request' | 'response';
+
+/**
+ * Whether a property cannot appear in a body travelling this way.
+ *
+ * The rule OpenAPI states, and the reason `required` alone is not enough to go
+ * on: a `readOnly` property belongs to responses, a `writeOnly` one to
+ * requests, and either may still be listed under `required` — where the
+ * requirement then applies only in the direction the property exists in.
+ */
+export function excluded(
+  schema: DuxtOpenApiSchema,
+  direction: DuxtOpenApiDirection
+): boolean {
+  return direction === 'request'
+    ? schema.readOnly === true
+    : schema.writeOnly === true;
+}
+
+/**
  * A worked example of what a schema describes.
  *
  * The document's own example WINS wherever it has one — `examples`, then
@@ -81,7 +108,8 @@ export function openApiConstraints(
  * `Pet.friends: Pet[]` would otherwise derive until the stack gave out.
  */
 export function openApiExampleValue(
-  schema?: DuxtOpenApiSchema,
+  schema: DuxtOpenApiSchema | undefined,
+  direction: DuxtOpenApiDirection,
   depth = 0
 ): unknown {
   if (!schema || schema.circular || depth > MAX_DEPTH) return null;
@@ -92,7 +120,7 @@ export function openApiExampleValue(
   if (schema.enum?.length) return schema.enum[0];
 
   const branch = schema.oneOf?.[0] ?? schema.anyOf?.[0];
-  if (branch) return openApiExampleValue(branch, depth + 1);
+  if (branch) return openApiExampleValue(branch, direction, depth + 1);
 
   const declared = (schema.types ?? []).filter((type) => type !== 'null');
   const type =
@@ -110,23 +138,34 @@ export function openApiExampleValue(
       const built: Record<string, unknown> = {};
 
       for (const property of schema.properties ?? []) {
-        // A field the server fills in is not a field a request carries, and
-        // the example is what the try-it client starts from.
-        if (property.schema.readOnly && depth === 0) continue;
-        built[property.name] = openApiExampleValue(property.schema, depth + 1);
+        // `readOnly` and `writeOnly` say WHICH WAY a field travels, and an
+        // example is a value rather than documentation — so a field that cannot
+        // appear in this direction is not in the example either. At every depth:
+        // this used to hold at the top level only, so a nested `id` the server
+        // assigns landed in the body the try-it client prefilled.
+        if (excluded(property.schema, direction)) continue;
+
+        built[property.name] = openApiExampleValue(
+          property.schema,
+          direction,
+          depth + 1
+        );
       }
 
       for (const merged of schema.allOf ?? []) {
         Object.assign(
           built,
-          openApiExampleValue(merged, depth + 1) as Record<string, unknown>
+          openApiExampleValue(merged, direction, depth + 1) as Record<
+            string,
+            unknown
+          >
         );
       }
 
       return built;
     }
     case 'array':
-      return [openApiExampleValue(schema.items, depth + 1)];
+      return [openApiExampleValue(schema.items, direction, depth + 1)];
     case 'boolean':
       return true;
     case 'integer':
@@ -387,7 +426,7 @@ export function openApiBodyForm(
    * carries.
    */
   const properties = (schema.properties ?? []).filter(
-    (property) => !property.schema.readOnly
+    (property) => !excluded(property.schema, 'request')
   );
 
   if (!properties.length) return { expressible: false, reason: 'empty' };
@@ -563,7 +602,7 @@ export function openApiBodyKeys(schema?: DuxtOpenApiSchema): DuxtOpenApiKey[] {
      * describe it, so a reader who types it deserves completion and not the
      * "not described by this document" warning that removing it would produce.
      */
-    required: property.required && !property.schema.readOnly,
+    required: property.required && !excluded(property.schema, 'request'),
     type: openApiTypeLabel(property.schema),
     description: property.schema.description,
     enum: property.schema.enum?.length
