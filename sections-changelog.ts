@@ -54,6 +54,23 @@ const FENCE = /^\s*(```|~~~)/;
 /** An inline link, reduced to the text it shows. */
 const LINK = /\[([^\]]*)\]\([^)]*\)/g;
 
+/**
+ * A link the release heading OPENS on — where release-please puts the compare
+ * URL of the release against the one before it.
+ *
+ * Anchored at the front, and only that link: a heading matches `RELEASE` once
+ * its links are reduced to their text, so a link standing first IS the version
+ * and nothing else can be. A link further along is prose about the release
+ * rather than a diff of it.
+ *
+ * `https?` ONLY. A relative href in a changelog resolves against the site that
+ * renders it rather than the repository the file came from, so it points at a
+ * page that does not exist — and a `javascript:` one is a script this layer
+ * would be putting on the page of a site that only asked for someone else's
+ * changelog.
+ */
+const RELEASE_LINK = /^\[[^\]]*\]\((https?:\/\/[^)\s]+)(?:[ \t]+"[^"]*")?\)/;
+
 /** What is left of a release heading once its link is gone: version, date. */
 const RELEASE = /^(v?\d[\w.+-]*)(?:[ \t]+\((\d{4}-\d{2}-\d{2})\))?$/;
 
@@ -83,6 +100,8 @@ interface Release {
   version: string;
   /** The release date, when the heading carried one. */
   date?: string;
+  /** The diff against the release before it, when the heading linked one. */
+  compare?: string;
   /** The lines under the heading, up to the next release. */
   body: string[];
 }
@@ -188,6 +207,7 @@ function parseChangelog(
     return {
       version: parsed.version,
       date: parsed.date,
+      compare: parsed.compare,
       body: lines.slice(heading.line + 1, end)
     };
   });
@@ -322,11 +342,19 @@ function reportNearMisses(
   }
 }
 
-function release(text: string): { version: string; date?: string } | undefined {
-  const match = RELEASE.exec(text.replace(LINK, '$1').trim());
+function release(
+  text: string
+): { version: string; date?: string; compare?: string } | undefined {
+  const trimmed = text.trim();
+
+  const match = RELEASE.exec(trimmed.replace(LINK, '$1').trim());
   if (!match) return undefined;
 
-  return { version: match[1]!, date: match[2] };
+  return {
+    version: match[1]!,
+    date: match[2],
+    compare: RELEASE_LINK.exec(trimmed)?.[1]
+  };
 }
 
 /**
@@ -424,14 +452,28 @@ function index(
   };
 }
 
-/** One release, as a page: the version as its heading, then its groups. */
+/**
+ * One release, as a page: its groups, and in the frontmatter what the release
+ * IS.
+ *
+ * `date` and `compare` are FRONTMATTER rather than a row the body opens on, and
+ * that is the difference between a release page and a dashboard: a release note
+ * is Markdown and should read as the rest of the site's Markdown does. Both
+ * facts are provenance — when this was cut, and what went into it — so they
+ * belong where the site already answers that, in the column beside the contents
+ * where "Edit this page" and the last commit sit. `DuxtPageInfo` draws them.
+ */
 function page(entry: Release, order: string): DuxtSectionPage {
   const { intro, groups } = groupsOf(trim(entry.body));
 
   return {
     file: `${order}.${segment(entry.version)}.md`,
     body: [
-      frontmatter({ title: entry.version, date: entry.date }),
+      frontmatter({
+        title: entry.version,
+        date: entry.date,
+        compare: entry.compare
+      }),
       '',
       // The version is the page's title, and the page draws it — see `index`.
       ...(intro.length ? [...promote(intro), ''] : []),

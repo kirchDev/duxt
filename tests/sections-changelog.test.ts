@@ -209,6 +209,46 @@ describe('the changelog rendering', () => {
     expect(parse(nested)[1]!.body).toContain('### A detail');
   });
 
+  it('dates a release page and links the diff it was cut from', () => {
+    const [, first, patch] = parse(CHANGELOG);
+
+    // Frontmatter rather than a row the body opens on: both are provenance,
+    // and the page draws them beside "Edit this page" — see `DuxtPageInfo`.
+    expect(first!.body).toContain('date: "2026-02-01"');
+    expect(first!.body).toContain(
+      'compare: "https://example.com/compare/v0.1.0...v0.2.0"'
+    );
+    expect(patch!.body).toContain(
+      'compare: "https://example.com/compare/v0.1.0...v0.1.1"'
+    );
+  });
+
+  it('writes no compare key for a heading that carries no link', () => {
+    // `## 0.1.0 (2026-01-01)` — a hand-kept heading, and the last of the three.
+    const oldest = parse(CHANGELOG).at(-1)!;
+
+    expect(oldest.body).toContain('date: "2026-01-01"');
+    expect(oldest.body).not.toContain('compare:');
+  });
+
+  it('takes no compare link from a relative href', () => {
+    // It would resolve against the site rendering the changelog rather than
+    // the repository the file came from — a link to a page that does not exist.
+    const relative = [
+      '## [1.1.0](../compare/v1.0.0...v1.1.0) (2026-03-01)',
+      '',
+      '### Features',
+      '',
+      '* a thing',
+      ''
+    ].join('\n');
+
+    const [, first] = parse(relative);
+
+    expect(first!.body).toContain('date: "2026-03-01"');
+    expect(first!.body).not.toContain('compare:');
+  });
+
   it('leaves the prose before the first group where it is', () => {
     const noted = ['## 1.0.0', '', 'A note about this one.', ''].join('\n');
 

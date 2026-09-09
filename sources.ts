@@ -58,6 +58,15 @@ export const pageSchema = z.object({
    * reference page does not, and falls back to its last commit.
    */
   date: z.string().optional(),
+  /**
+   * The diff this page was cut from — a changelog release links the commits it
+   * carries, taken off the heading release-please wrapped the version in.
+   *
+   * Beside `date` because it answers the other half of the same question, and
+   * it is drawn in the same place: the provenance block under the contents,
+   * where "Edit this page" already sends a reader at the repository.
+   */
+  compare: z.string().optional(),
   /** Filled in by `modules/git-meta.ts`; not written by hand. */
   lastUpdated: z.string().optional(),
   /** Filled in by `modules/git-meta.ts`; not written by hand. */

@@ -11,16 +11,20 @@ per release at `/releases`, once whole at `/changelog` — so `pnpm check` rende
 both of the `changelog` type's granularities end to end rather than trusting a
 registry with nothing in it.
 
-Two things below are deliberate rather than historical. `0.5.0` carries **every
+Three things below are deliberate rather than historical. `0.5.0` carries **every
 section release-please can write** — the breaking-change block, the two visible
 types and the whole hidden set — because the theme colours and filters groups by
 the names the file used, and a fixture holding two of them proves nothing about
 the twelfth. `0.4.1` is written at `###` with its groups at `###` too, which is
 how release-please writes a patch: the parser finds a release's groups by the
 shallowest heading inside it rather than by a fixed level, and that is the only
-release here that tells the two rules apart.
+release here that tells the two rules apart. And `0.1.0` alone wraps its version
+in no compare link, which is the third thing kept on purpose: release-please
+writes one on every release that has a predecessor, the release page turns it
+into the "compare changes" beside "edit this page", and the first release of a
+project has nothing to compare against — so the page has to render without one.
 
-## 0.5.0 (2026-09-08)
+## [0.5.0](https://github.com/kirchDev/duxt/compare/v0.4.1...v0.5.0) (2026-09-08)
 
 ### ⚠ BREAKING CHANGES
 
@@ -78,13 +82,13 @@ release here that tells the two rules apart.
 
 * update the development dependencies to their September releases
 
-### 0.4.1 (2026-09-08)
+### [0.4.1](https://github.com/kirchDev/duxt/compare/v0.4.0...v0.4.1) (2026-09-08)
 
 ### Bug Fixes
 
 * stop the section row from wrapping onto a second line at exactly 1024px
 
-## 0.4.0 (2026-09-08)
+## [0.4.0](https://github.com/kirchDev/duxt/compare/v0.3.0...v0.4.0) (2026-09-08)
 
 ### Features
 
@@ -98,7 +102,7 @@ release here that tells the two rules apart.
 * check the origin before a framed panel takes a theme from a message
 * stop creating the content database before Content does
 
-## 0.3.0 (2026-09-06)
+## [0.3.0](https://github.com/kirchDev/duxt/compare/v0.2.0...v0.3.0) (2026-09-06)
 
 ### Features
 
@@ -111,7 +115,7 @@ release here that tells the two rules apart.
 * give a page outside every section one branch of the tree, not the whole tree
 * name a sidebar folder after its index page rather than its directory
 
-## 0.2.0 (2026-09-04)
+## [0.2.0](https://github.com/kirchDev/duxt/compare/v0.1.0...v0.2.0) (2026-09-04)
 
 ### Features
 
