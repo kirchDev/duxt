@@ -9,6 +9,17 @@ declare global {
   type DuxtText = string | Record<string, string>;
 
   /**
+   * The package managers a command block can speak for.
+   *
+   * Declared here rather than in `app/utils/package-command.ts` because this is
+   * the file that owns the public config surface, and one definition cannot
+   * drift from the other. The translation table is checked against it: `dlx`
+   * maps every member, so a fifth name added here fails to compile until it has
+   * a spelling.
+   */
+  type DuxtPackageManager = 'pnpm' | 'npm' | 'yarn' | 'bun';
+
+  /**
    * The name of a page collection, as Content generated it for THIS site.
    *
    * Was the literal `'docs'` while the layer always shipped a collection by
@@ -480,8 +491,16 @@ declare global {
     };
     links?: DuxtLink[];
     landing?: DuxtLanding;
-    /** Package managers offered by a command block, in display order. */
-    packageManagers?: string[];
+    /**
+     * Package managers offered by a command block, in display order.
+     *
+     * A closed set, not free text: `packageCommand` translates one written
+     * command into each manager's own spelling, and it can only do that for the
+     * four it has a table for. A fifth name used to be accepted and then
+     * prefixed naively — `deno add -D pkg`, where deno wants `deno add npm:pkg`
+     * — which is a configurable list with closed semantics, and an invitation.
+     */
+    packageManagers?: DuxtPackageManager[];
     /** Layout a consumer can switch off. */
     breadcrumb?: boolean;
     /**

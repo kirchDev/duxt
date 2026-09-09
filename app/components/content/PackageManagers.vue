@@ -2,20 +2,38 @@
 // `::package-managers{command="add -D @kirchdev/duxt"}` — one command, every
 // manager, in a single box: tabs and copy button sit in the code block's own
 // header rather than floating above a separate card.
-const props = defineProps<{ command: string; managers?: string[] }>();
+const props = defineProps<{
+  command: string;
+  managers?: DuxtPackageManager[];
+}>();
 
 const duxt = useDuxtConfig();
 
-// Per block, then the site's configured order, then the built-in list.
-const managers = computed(
-  () => props.managers ?? duxt.packageManagers ?? ['pnpm', 'npm', 'yarn', 'bun']
+// Per block, then the site's configured order, then all four.
+const offered = computed(
+  () => props.managers ?? duxt.packageManagers ?? duxtPackageManagers
+);
+
+/**
+ * A manager that cannot express this command gets NO TAB.
+ *
+ * Berry has no `outdated` and npm no `patch`, and the nearest relative in each
+ * case does a different job — so a tab there would be a control that lies.
+ * Dropping it reuses what the block could already do: it may list fewer
+ * managers than the reader's cookie covers, and falls back to its own first tab.
+ * `modules/validate.ts` reports which page asked, so the omission is not silent.
+ */
+const managers = computed(() =>
+  offered.value.filter(
+    (manager) => packageCommand(manager, props.command) !== undefined
+  )
 );
 
 // Brand colours per theme. A single value does not work: bun's cream is
 // invisible on a light background and npm's red is muddy on a dark one, so
 // each manager carries both and CSS picks by theme class.
 const managerBrands: Record<
-  string,
+  DuxtPackageManager,
   { icon: string; light: string; dark: string }
 > = {
   npm: { icon: 'simple-icons:npm', light: '#CB3837', dark: '#F1554C' },
@@ -24,23 +42,12 @@ const managerBrands: Record<
   bun: { icon: 'simple-icons:bun', light: '#14151A', dark: '#FBF0DF' }
 };
 
-// npm spells it `install` where the others take `add`; `dlx` differs too.
-function render(manager: string) {
-  const command = props.command;
-  if (manager === 'npm') {
-    if (command.startsWith('add ')) return `npm install ${command.slice(4)}`;
-    if (command.startsWith('dlx ')) return `npx ${command.slice(4)}`;
-  }
-  if (manager === 'yarn' && command.startsWith('dlx '))
-    return `yarn dlx ${command.slice(4)}`;
-  if (manager === 'bun' && command.startsWith('dlx '))
-    return `bunx ${command.slice(4)}`;
-  return `${manager} ${command}`;
-}
-
 const commands = computed(() =>
   Object.fromEntries(
-    managers.value.map((manager) => [manager, render(manager)])
+    managers.value.map((manager) => [
+      manager,
+      packageCommand(manager, props.command)!
+    ])
   )
 );
 
@@ -64,12 +71,11 @@ const stored = usePackageManager();
 
 // A block can list fewer managers than the reader's choice covers; fall back to
 // its first rather than showing nothing.
-const active = computed({
+const active = computed<DuxtPackageManager>({
   get: () =>
-    managers.value.includes(stored.value ?? '')
-      ? stored.value!
-      : managers.value[0]!,
-  set: (value: string) => {
+    managers.value.find((manager) => manager === stored.value) ??
+    managers.value[0]!,
+  set: (value) => {
     stored.value = value;
   }
 });
@@ -79,7 +85,7 @@ const { t } = useI18n();
 
 async function copy() {
   try {
-    await navigator.clipboard.writeText(render(active.value));
+    await navigator.clipboard.writeText(commands.value[active.value]!);
     copied.value = true;
     notify.success(t('duxt.code.copiedToast'));
     setTimeout(() => (copied.value = false), 2000);
@@ -94,7 +100,14 @@ async function copy() {
 </script>
 
 <template>
-  <div class="duxt-code my-6 overflow-hidden rounded-lg border bg-card">
+  <!-- Nothing to show where NO manager can express the command: `active` has
+       no first tab to fall back on, and a card with an empty header reads as a
+       broken component rather than as a command nobody can run. The build
+       validator names the page. -->
+  <div
+    v-if="managers.length"
+    class="duxt-code my-6 overflow-hidden rounded-lg border bg-card"
+  >
     <div
       class="flex min-h-11 items-center gap-1 border-b bg-muted/40 px-2 py-1.5"
     >
@@ -147,6 +160,6 @@ async function copy() {
     <pre
       v-else
       class="overflow-x-auto px-4 py-3 font-mono text-sm"
-    ><code>{{ render(active) }}</code></pre>
+    ><code>{{ commands[active] }}</code></pre>
   </div>
 </template>
