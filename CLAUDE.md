@@ -71,6 +71,7 @@ What that leaves as candidate value: the **ergonomics** (a compact `sources` lis
 | `pnpm typecheck:app`| `nuxt typecheck` over the layer, run through `www/`        |
 | `pnpm test`         | `vitest run` over the layer's pure logic                   |
 | `pnpm build:app`    | `nuxt build` in `www/` — the gate's SSR check              |
+| `pnpm deploy:www`   | Builds `www/` for Workers and `wrangler deploy`s it         |
 | `pnpm check`        | Runs `lint` + `format` + both typechecks + `test` + `check:policy` + `build:app` + `check:a11y` — the CI gate |
 | `pnpm check:policy` | Proves the two agent policy files ban the same commands    |
 | `pnpm check:a11y`   | axe-core over six rendered pages of the built site          |
@@ -142,6 +143,41 @@ What follows:
 - **The pins are commit SHAs with the version as a trailing comment.** Dependabot raises the bumps; the `github-actions` ecosystem is already configured in `.github/dependabot.yml`.
 - **Publishing** is an own job in `release-please.yml`, gated on `needs.release-please.outputs.release-created` — not a forked workflow.
 - **Checks come from `package.json`.** `ci.yml` runs whatever the `check` script chains, so adding a check needs no workflow change at all.
+
+## Deployment — `www/` on Cloudflare Workers
+
+`www/` is deployed as **one Worker with static assets**, built in GitHub Actions and uploaded with wrangler. There is no Pages git integration and no build on Cloudflare's side: `.github/workflows/deploy.yml` runs `pnpm deploy:www` on every push to `main`, which builds with `NITRO_PRESET=cloudflare-module` and then `wrangler deploy`s the result. One place builds, and it is the one whose logs we keep.
+
+**SSR on the edge, with everything prerendered that can be.** Not a choice between static and SSR: `routeRules: { '/**': { prerender: true } }` writes every doc page and every OG image into `.output/public`, which the assets binding serves without ever invoking the Worker. What is left running is exactly what cannot be a file — and it is the reason the site is not simply `nuxt generate`d:
+
+- **`/mcp`** (`@nuxtjs/mcp-toolkit`) — POST, an actual MCP server.
+- **`…/page.md`** — `server/middleware/raw-markdown.ts`, a suffix match over arbitrary paths, which is what "View as Markdown" and the ChatGPT/Claude hand-off links open.
+- **`POST /demo/echo`** — the one real endpoint behind the API reference's try-it client.
+
+A static build kills all three, which are the layer's whole pitch. That is the trade, and it was taken deliberately.
+
+Three Workers facts follow, and all three are guarded by `const cloudflare = NITRO_PRESET.startsWith('cloudflare')` in `www/nuxt.config.ts` — `pnpm build:app`, the gate's SSR check, still builds an ordinary Node server, because every one of them would be wrong locally:
+
+- **Content needs D1.** A Worker has no filesystem and no `node:sqlite`, so `content.database = { type: 'd1', bindingName: 'DB' }` and Content restores its dump into D1 on the first request after a deploy. Only the three dynamic endpoints above ever read it — every one of them calls `queryCollection()` at runtime. The prerendered pages never touch the binding. `experimental.nativeSqlite` in the layer covers the local case and means nothing here.
+- **OG images are build-time only.** `@resvg/resvg-js` is a native Node binding and cannot run on workerd at all, so `ogImage.zeroRuntime` strips the renderer out of the bundle and leaves the images the prerender pass wrote. Every OG image here is a function of a page, and every page is prerendered, so nothing is lost. If a dynamically rendered image is ever needed, the answer is the Takumi/WASM renderer, not the native one.
+- **`nodejs_compat` is not optional.** Content's Nitro half, the MCP SDK and Nitro's own runtime all reach for node builtins; without the flag the Worker fails at the first import.
+- **`/mcp` needs the `agents` package.** `@nuxtjs/mcp-toolkit` picks a provider by preset, and its Cloudflare one imports `agents/mcp` — Cloudflare's MCP Handler API, a stateless handler, so no Durable Object and no binding. It is an optional peer dependency, so nothing installs it for you: without it the Nitro build dies with `Cannot resolve "agents/mcp" … and externals are not allowed`. It sits in `www/`, not in the layer — a consumer deploying to Node must not carry it — and a consumer deploying duxt to Workers has to add it for the same reason.
+- **The site's origin has to be stated.** `i18n.baseUrl` in `www/nuxt.config.ts` is `https://duxt.app`, and the layer's module turns it into `site.url` — the sitemap, the canonicals, robots.txt and the absolute OG URLs all read it. It does not degrade when missing: the sitemap fails the prerender outright with "You must provide a site URL".
+- **The OG renders time out under the crawl, and that is not fully solved.** Every page renders an OG image through satori while the crawler walks the site, and at Nitro's default concurrency hundreds contend for one process until they exceed the renderer's 15-second budget: one build produced 335 `createImage timeout` lines and therefore 335 pages with no image — silently, because a missing OG image fails nothing. `prerender.concurrency: 8` brought that to 140, and `ogImage.security.renderTimeout` is raised to 60s as the second lever. **The combination has not yet been measured on a green build.** Watch the `createImage timeout` count in the deploy log; it should be zero.
+- **The route rule alone prerenders nothing.** `routeRules` says a page *may* be prerendered; it seeds no crawl. Left at that, the build rendered the 17 Content SQL dumps and not one page — a build that looks fine and ships a fully dynamic site. `nitro.prerender.crawlLinks` with `routes: ['/']` is what actually walks the sidebar, the `.md` twin of every page included.
+- **`failOnError` is off, and the crawler is now this repo's link checker.** Nuxt exits the build on the first prerender error, and crawling every link finds every dead one: `/demo/api/shipments` and its two operations are linked by the versioned demo section and served by nothing, 42 times across the locales. Those pages fall through to the Worker, which answers them as it would anyway. **The links are a real defect and want fixing where they are generated** — the build prints each one, so the list stays visible rather than going quiet.
+- **The origin has to be pinned twice, and the second one is not a duplicate.** `@nuxtjs/i18n` copies its `baseUrl` into `runtimeConfig.public.i18n` with `defu`, and something in the SEO chain seeds that key first, so the module option never reaches the runtime. The runtime then holds an empty string, falls back to the request's own origin, and every page rendered at build time is rendered against `localhost:3000` — nuxt-site-config pushes that over `site.url`, and the prerendered HTML ships `<link rel="canonical" href="http://localhost:3000">`. `runtimeConfig.public.i18n.baseUrl` set explicitly is what fixes it. A served site never shows this, because the fallback resolves to the real host; it took the first prerendered build to surface.
+
+> [!IMPORTANT]
+> **The hostname is not in `www/wrangler.jsonc`, deliberately.** DNS record and Workers route are owned end to end by the OpenTofu estate, not by wrangler: wrangler creates and updates routes but **deletes nothing** that disappears from the file, so a retired hostname keeps answering forever. `workers_dev = false` for the same reason a second front door is a bypass. A new hostname is an infrastructure change that has to be **applied**, not merely merged — and nothing here fails if it is missing: the deploy succeeds and the name stays dark.
+
+**`database_id` in `www/wrangler.jsonc` has to be filled in once**, from `wrangler d1 create duxt-www-content`. It is an account-scoped identifier, not a secret, and wrangler refuses to deploy without it. The deploy token in Bitwarden needs `Workers Scripts: Edit` **and `D1: Edit`**. It needs no `Workers Routes: Edit`, because the route is tofu's.
+
+**Deploying on every push to `main`, not on every release.** `www/` reads `docs/` off the checkout — `origin.ref` in its `app.config.ts` names the repository for the edit links and downloads nothing — so the site publishes the documentation of the commit it is built from, and a documentation fix should not wait for a release. The consequence, stated rather than hidden: the version badge comes from `package.json`, which release-please bumps, so between a promotion and its release the site shows the last released number while documenting what is already on `main`. `main` only moves when the promotion PR merges, so the window is short — but it is real.
+
+**The Cloudflare build is not part of `pnpm check`.** `check` builds the Node server, which is the SSR gate; a second full Nuxt build would roughly double CI for a target only `main` ever reaches. So a Workers-only breakage surfaces in the deploy rather than in the pull request. That is the accepted trade — `pnpm --filter www preview:cf` runs the built Worker on miniflare locally when a change looks like it might land on that side.
+
+**`@nuxthub/core` was considered and rejected.** It abstracts over the Cloudflare primitives (`hubDatabase`, `hubKV`, `hubBlob`) and wants to own the deploy; Content already speaks D1 directly, the site writes nothing, and route ownership belongs to tofu. It would add a module, a runtime layer and an account for no capability this site uses. A future KV need is a binding in `wrangler.jsonc`, not a framework.
 
 ## Branching model
 
