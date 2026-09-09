@@ -1,12 +1,13 @@
 /**
  * The one endpoint this site actually answers.
  *
- * `www/openapi.yaml` is an invented API and says so — no host behind it
+ * `www/demo/` describes an invented API and says so — no host behind it
  * replies, which is right for a reference page and wrong for the try-it client
  * on the landing page, where a reader presses Send and gets a network error.
  *
- * So one operation in that document is real, and this is it: it takes a widget
- * and hands it back with an id and a timestamp, the way `POST /widgets` would.
+ * So one operation in that document is real, and this is it: it takes a
+ * consignment and hands it back with an id and a timestamp, the way
+ * `POST /consignments` would.
  * Nothing is stored, and the token is checked only for being there — enough to
  * show the authorisation field doing something, and not enough to pretend this
  * is an account system.
@@ -32,19 +33,20 @@ export default defineEventHandler(async (event) => {
     };
   }
 
-  const body = await readBody<{ name?: unknown; shape?: unknown }>(event).catch(
-    () => ({}) as { name?: unknown; shape?: unknown }
-  );
+  const body = await readBody<{ reference?: unknown; mode?: unknown }>(
+    event
+  ).catch(() => ({}) as { reference?: unknown; mode?: unknown });
 
-  const name = typeof body?.name === 'string' ? body.name : 'A widget';
-  const shape = body?.shape === 'square' ? 'square' : 'round';
+  const reference =
+    typeof body?.reference === 'string' ? body.reference : 'HB-1042';
+  const mode = body?.mode === 'air' ? 'air' : 'sea';
 
   setResponseStatus(event, 201);
 
   return {
     id: crypto.randomUUID(),
-    name,
-    shape,
+    reference,
+    mode,
     createdAt: new Date().toISOString()
   };
 });

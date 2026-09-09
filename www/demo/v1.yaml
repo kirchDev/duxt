@@ -1,0 +1,121 @@
+# The demo API at the version that is DEAD.
+#
+# Deliberately small, and that is the point of it: `v3.yaml` carries every
+# awkward construct and this one carries none. What it exercises is the other
+# thing entirely — the `eol` banner, and a version that is left out of the
+# sitemap altogether, which no other document in this repository is.
+#
+# It also makes a distinction this site kept confusing visible: `info.version`
+# below is `1.4.0`, while the URL segment is `v1.x`. A document's own version
+# and the version it is PUBLISHED at are two different facts, and a reference
+# that shows both has to say which is which.
+openapi: 3.1.0
+
+info:
+  title: Harbour
+  version: 1.4.0
+  summary: The first Harbour API. Switched off, and kept only to be read.
+  description: |
+    **End of life.** Nothing answers on this line any more.
+
+    Superseded by **2.x**, which renamed `shipments` to `consignments` and
+    started returning a cursor instead of a page number.
+  contact:
+    name: Support
+    email: support@example.org
+  license:
+    name: MIT
+    identifier: MIT
+
+servers:
+  - url: https://api.example.org/v1
+    description: The invented production host, switched off.
+
+security:
+  - apiKey: []
+
+tags:
+  - name: Shipments
+    description: Everything that is a shipment. Called a consignment from 2.x on.
+
+paths:
+  /shipments:
+    get:
+      operationId: listShipments
+      summary: List shipments
+      tags: [Shipments]
+      description: Returns a page of shipments, oldest first.
+      parameters:
+        - name: page
+          in: query
+          description: Which page to return, counting from one.
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+      responses:
+        '200':
+          description: A page of shipments.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Shipment'
+                  pages:
+                    type: integer
+                    description: How many pages there are in total.
+    post:
+      operationId: createShipment
+      summary: Book a shipment
+      tags: [Shipments]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Shipment'
+      responses:
+        '201':
+          description: Booked.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Shipment'
+
+components:
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-Api-Key
+      description: A key from the account page.
+
+  schemas:
+    Shipment:
+      type: object
+      title: Shipment
+      description: One shipment, as the first API saw it.
+      required: [id, label, state]
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        label:
+          type: string
+          description: Renamed to `reference` in 2.x.
+          minLength: 1
+          maxLength: 120
+        state:
+          type: string
+          description: Renamed to `status` in 2.x, and gained `cancelled`.
+          enum: [booked, sailing, landed]
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true

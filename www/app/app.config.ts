@@ -102,7 +102,46 @@ export default defineAppConfig({
             label: 'Changelog',
             navigation: false,
             options: { granularity: 'flat' }
-          },
+          }
+        ]
+      },
+
+      /**
+       * THE DEMO API, a source of its own — and the reason this list has two
+       * entries rather than one.
+       *
+       * It carries ONE page of prose and four OpenAPI documents, and the ratio
+       * is the shape a consumer genuinely has: an API described in a file, with
+       * a page in front of it saying what the thing is. The page is also what
+       * the source needs to be legal — a source publishes a documentation tree,
+       * and the build rejects a collection with nothing in it rather than
+       * serving a prefix that 404s on every URL it claims.
+       *
+       * `slug` is what keeps the prose at the root. The automatic rule gives
+       * every source a segment once the list names more than one REPOSITORY,
+       * and both of these are this checkout, so it never fires — the docs would
+       * have stayed at `/getting-started` and this source would have wanted the
+       * same prefix. A source that names a slug is served under it either way,
+       * and the source above, which names none, does not move.
+       */
+      {
+        path: 'www/demo',
+        slug: 'demo',
+        origin: { repo: 'kirchDev/duxt', ref: 'main' },
+
+        // ONE LANGUAGE, NAMED. Listing the default locale looks like it says
+        // nothing — it is the tree in `path` itself either way, and no second
+        // collection comes of it — but on a site that HAS translations it is
+        // the difference between a source whose language is English and one
+        // whose language is unknown. An entry that names none delivers a page
+        // the reader is assumed not to have asked for: the translation banner
+        // goes up and `noindex` with it, in every language including this one.
+        //
+        // The API stays untranslated on purpose — this site translates its
+        // prose and not its invented freight company — so the page in front of
+        // it says so in the only place that can be read: here.
+        locales: ['en-GB'],
+        generated: [
           // An OpenAPI document, published as reference pages. `per-version`
           // and `per-locale`, unlike the changelog above — the two policies the
           // registry exists to make parameters, taking their opposite values.
@@ -113,23 +152,41 @@ export default defineAppConfig({
           // translation banner saying so. A site whose API description IS
           // translated names the file per locale instead.
           //
-          // VERSIONED BY FILE, which is how an API usually is: `v1` and `v2`
-          // sit beside each other in one checkout and neither is a git ref.
-          // Declared on the section rather than as two sources — two sections
+          // VERSIONED BY FILE, which is how an API usually is: four lines sit
+          // beside each other in one checkout and none of them is a git ref.
+          // Declared on the section rather than as four sources — two sections
           // are versions of one another only when one declaration produced
-          // them, and a source always publishes a documentation tree, so a
-          // source per API version would publish this site's prose twice.
+          // them.
+          //
+          // FOUR STATUSES, one each, which is the whole reason there are four:
+          // `eol`, `deprecated`, `current` and `upcoming` are what a reader can
+          // be told about the version they are in, and every one of them is now
+          // rendered by `pnpm build:app` rather than described in a test.
+          //
+          // `navigation: 'sections'` — the default — puts the entry in the
+          // SECTION ROW, and that row is now this source's own: the layer shows
+          // the entries of the area the reader is in, so `/demo` and
+          // `/demo/api` sit beside each other there while the documentation
+          // keeps its six at the root. The navbar entry below opens the area;
+          // the row moves around inside it.
           {
             type: 'openapi',
-            path: 'www/openapi.yaml',
-            label: 'API',
+            path: 'www/demo/v3.yaml',
+            label: 'Demo API',
+            slug: 'api',
             versions: [
-              { version: 'v2', path: 'www/openapi.yaml' },
               {
-                version: 'v1',
-                path: 'www/openapi.v1.yaml',
+                version: 'main',
+                path: 'www/demo/main.yaml',
+                status: 'upcoming'
+              },
+              { version: 'v3.x', path: 'www/demo/v3.yaml', default: true },
+              {
+                version: 'v2.x',
+                path: 'www/demo/v2.yaml',
                 status: 'deprecated'
-              }
+              },
+              { version: 'v1.x', path: 'www/demo/v1.yaml', status: 'eol' }
             ]
           }
         ]
@@ -241,6 +298,20 @@ export default defineAppConfig({
       // different things in the same language is worse than not translating a
       // word most languages have borrowed anyway.
       { label: 'Releases', to: '/releases', icon: 'lucide:tag' },
+      // THE DEMO AREA, placed by hand for the same reason the releases above
+      // are: appended, it would land after Credits, and the thing this site
+      // exists to show is not an afterthought of it.
+      //
+      // Labelled for the AREA and not for the reference inside it — `Demo`
+      // rather than `Demo API`, because the row underneath already names the
+      // two parts, and an entry called after one of its own children reads as
+      // a second link to it.
+      //
+      // It points at the AREA, not at one page in it: `/demo` is where the
+      // second source starts, and its own section row — the prose and the
+      // reference — takes over from there. The highlight is a prefix match, so
+      // the entry stays lit across every version of the reference under it.
+      { label: 'Demo', to: '/demo', icon: 'lucide:flask-conical' },
       // A navbar entry of its own rather than an item inside the dropdown: a
       // link buried in a menu is a link nobody opens the menu for, and this one
       // is a page of the site while the five above leave it. It sits after
@@ -258,9 +329,11 @@ export default defineAppConfig({
       }
     ],
 
-    // The source carries a slug, so every path has a repository segment and the
-    // navigation the layer ships — which assumes a single unprefixed source —
-    // no longer matches. A consumer with prefixes has to name its own.
+    // THE DOCUMENTATION SOURCE'S OWN ROW, and it is written out because the
+    // layer's default row assumes the section names it ships. These are this
+    // site's folders, at the root, where the source that has no slug serves
+    // them — the demo API beside them is in the navbar row instead, because it
+    // is a thing standing next to the documentation rather than a part of it.
     //
     // Written out per language rather than pointed at the layer's own
     // `duxt.defaults.sections.*` keys. Those keys are the layer's PRIVATE
@@ -349,6 +422,26 @@ export default defineAppConfig({
         // and repeating the section's own symbol on every child would say
         // nothing the heading has not already said.
         pageIcon: 'lucide:file-text'
+      },
+
+      // THE SECOND SOURCE'S OWN PART, in the same list — the row is filtered by
+      // the area the reader is in, so this one is invisible on every page of
+      // the documentation above and stands beside the generated reference on
+      // every page under `/demo`.
+      //
+      // The reference's own entry is not written here: its declaration says
+      // `navigation: 'sections'`, and the layer appends it to this row at the
+      // version the reader is on. Writing it by hand would pin it to one.
+      {
+        label: {
+          'en-GB': 'Overview',
+          'de-DE': 'Überblick',
+          'es-ES': 'Resumen',
+          'fr-FR': 'Vue d’ensemble',
+          'pt-PT': 'Visão geral'
+        },
+        to: '/demo',
+        icon: 'lucide:book-open-text'
       }
     ],
 
@@ -644,7 +737,7 @@ export default defineAppConfig({
             // only above 80rem and below the whole description everywhere
             // narrower, so a frame this size opened at the top of the page
             // showed the prose and hid the one control the tab is named for.
-            to: '/api/widgets/createwidget#createwidget-try-it',
+            to: '/demo/api/consignments/createconsignment#createconsignment-try-it',
             skeleton: 'api'
           },
           {
@@ -998,11 +1091,11 @@ sourceOptions: { defaultRef: 'v2.0.0' }
               'fr-FR': 'Ouvrir la référence',
               'pt-PT': 'Abrir a referência'
             },
-            to: '/api'
+            to: '/demo/api'
           },
           demo: {
             type: 'frame',
-            to: '/api/widgets',
+            to: '/demo/api/consignments',
             height: '34rem',
             skeleton: 'api'
           }
@@ -1112,7 +1205,7 @@ sourceOptions: { defaultRef: 'v2.0.0' }
           full: true,
           demo: {
             type: 'operation',
-            to: '/api/demo/echowidget',
+            to: '/demo/api/demo/echoconsignment',
             // The words beside the SECOND row. The client splits itself into
             // the form and the samples, and each row wants its own sentence —
             // one component, so the sample really is the request the button

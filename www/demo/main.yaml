@@ -1,24 +1,37 @@
-# The development site's own OpenAPI document.
+# The demo API at the version that has NOT HAPPENED YET.
 #
-# Not a real API — this site serves no HTTP interface. It exists so the
-# `openapi` section type is exercised by `pnpm build:app` and `pnpm check:a11y`
-# against a document that carries the awkward parts rather than the easy ones:
-# every parameter location, several media types, `oneOf` with a discriminator,
-# an `allOf` that folds and one that cannot, a self-referential schema, a
-# deprecated operation, three authentication schemes, response links, a
-# callback and a webhook. The same argument `www/` makes everywhere else —
-# a development site wants edge cases, and a starter wants none of them.
+# `v3.yaml` with one tag more, and that likeness is the fixture: an unreleased
+# line is normally the released one plus what is being added to it, so a reader
+# who switches between the two has to be able to see the difference without
+# being told where to look. Here it is the **Events** tag below — a streaming
+# endpoint that exists on no other version.
+#
+# `upcoming` is the status this carries, and it is the one that is not about
+# age: the banner on these pages tells a reader that what they are reading may
+# still change, and offers no upgrade advice, because there is nothing to
+# upgrade to. Semver cannot place a branch against a tag, which is why the
+# config states it rather than deriving it.
+#
+# It is a hand-kept copy on purpose. A build step that produced it out of
+# `v3.yaml` plus a patch would be a second rendering path for a file whose only
+# job is to be read by the one this repository already has.
 openapi: 3.1.0
 
 info:
-  title: Widgets
-  version: 2.1.0
-  summary: A small API, invented for this documentation site.
+  title: Harbour
+  version: 4.0.0-rc.1
+  summary: The next Harbour API, still being written.
   description: |
-    A **worked example**, and nothing more: no server behind it answers.
+    A **worked example**, and nothing more: no host behind this replies, save
+    the one operation that says it does.
 
-    It exists so the reference pages have every construct of OpenAPI 3.1 to
-    render — including the ones that are easy to leave out.
+    This is the unreleased line. Everything in 3.x is here unchanged; what is
+    new is the **Events** tag, and it may still change before it ships.
+
+    Harbour moves consignments through berths. The nouns are made up; the
+    *shapes* are the point — this document exists so the reference pages have
+    every construct of OpenAPI 3.1 to render, including the ones that are easy
+    to leave out.
   contact:
     name: Support
     email: support@example.org
@@ -27,13 +40,17 @@ info:
     identifier: MIT
   termsOfService: https://example.org/terms
 
+externalDocs:
+  url: https://example.org/harbour
+  description: Harbour guide
+
 servers:
   - url: https://api.example.org/{stage}
     description: The invented production host.
     variables:
       stage:
-        default: v2
-        enum: [v1, v2]
+        default: v3
+        enum: [v1, v2, v3]
         description: Which line of the API to talk to.
   - url: http://localhost:8080
     description: A local process, for trying things out.
@@ -43,15 +60,21 @@ security:
   - bearer: []
 
 tags:
-  - name: Widgets
+  - name: Consignments
     description: |
-      Everything that is a widget. The nouns here are made up; the *shapes*
-      are the point.
+      Everything that is a consignment — a load of freight, with a reference on
+      it and a berth to end up at.
+  - name: Vessels
+    description: The ships consignments travel on, and what they are carrying.
   - name: Batches
-    description: Operations that act on many widgets at once.
+    description: Operations that act on many consignments at once.
     externalDocs:
       url: https://example.org/batching
       description: How batching works
+  - name: Events
+    description: |
+      **New in this line.** A consignment's own history, as it happens, rather
+      than a page of it fetched again and again.
   - name: Demo
     description: |
       The one part of this document that is **real**: an endpoint this very
@@ -63,7 +86,7 @@ tags:
       stands beside a paragraph rather than on a page of its own.
 
 paths:
-  /widgets:
+  /consignments:
     parameters:
       - name: X-Request-Id
         in: header
@@ -72,18 +95,18 @@ paths:
           type: string
           format: uuid
     get:
-      operationId: listWidgets
-      summary: List widgets
-      tags: [Widgets]
+      operationId: listConsignments
+      summary: List consignments
+      tags: [Consignments]
       description: |
-        Returns a page of widgets, newest first.
+        Returns a page of consignments, newest first.
 
         Paging is by `cursor`; the value comes from the previous response's
         `next` field and is opaque.
       parameters:
         - name: limit
           in: query
-          description: How many widgets to return.
+          description: How many consignments to return.
           schema:
             type: integer
             minimum: 1
@@ -94,6 +117,16 @@ paths:
           description: Where to continue from.
           schema:
             type: string
+        - name: status
+          in: query
+          description: Only consignments in these states.
+          style: form
+          explode: false
+          schema:
+            type: array
+            uniqueItems: true
+            items:
+              $ref: '#/components/schemas/ConsignmentStatus'
         - name: session
           in: cookie
           description: An optional session, for a personalised order.
@@ -114,7 +147,7 @@ paths:
             type: string
       responses:
         '200':
-          description: A page of widgets.
+          description: A page of consignments.
           headers:
             X-Request-Id:
               required: true
@@ -130,103 +163,119 @@ paths:
                   items:
                     type: array
                     items:
-                      $ref: '#/components/schemas/Widget'
+                      $ref: '#/components/schemas/Consignment'
                   next:
                     type: [string, 'null']
                     description: The cursor for the following page, if any.
+            # A SECOND media type on one response, which the reference has to
+            # offer as a choice rather than render twice.
+            text/csv:
+              schema:
+                type: string
+                description: The same page, one consignment per line.
+              example: |
+                id,reference,status
+                6f1c…,HB-1042,loading
           links:
             NextPage:
-              operationId: listWidgets
+              operationId: listConsignments
               description: The same call again, with `cursor` set from `next`.
         '400':
           $ref: '#/components/responses/Problem'
         default:
           $ref: '#/components/responses/Problem'
     post:
-      operationId: createWidget
-      summary: Create a widget
-      tags: [Widgets]
-      description: Creates one widget and tells you where it ended up.
+      operationId: createConsignment
+      summary: Book a consignment
+      tags: [Consignments]
+      description: Books one consignment and tells you where it ended up.
       requestBody:
         required: true
-        description: The widget to create.
+        description: The consignment to book.
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/NewWidget'
+              $ref: '#/components/schemas/NewConsignment'
             examples:
               minimal:
                 summary: The smallest body that works
                 value:
-                  name: A widget
-                  kind: round
+                  reference: HB-1042
+                  status: booked
+              withManifest:
+                summary: With the paperwork attached
+                value:
+                  reference: HB-1042
+                  status: booked
+                  callbackUrl: https://example.org/hooks/harbour
+                  tags: [refrigerated]
           multipart/form-data:
             schema:
               type: object
               properties:
-                name:
+                reference:
                   type: string
-                drawing:
+                manifest:
                   type: string
                   format: binary
             encoding:
-              drawing:
-                contentType: image/png
+              manifest:
+                contentType: application/pdf
       responses:
         '201':
-          description: Created.
+          description: Booked.
           headers:
             Location:
               required: true
-              description: Where the new widget can be read.
+              description: Where the new consignment can be read.
               schema:
                 type: string
                 format: uri
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Widget'
+                $ref: '#/components/schemas/Consignment'
         '422':
           $ref: '#/components/responses/Problem'
       callbacks:
-        widgetCreated:
+        consignmentLoaded:
           '{$request.body#/callbackUrl}':
             post:
-              summary: Sent once the widget has finished building.
+              summary: Sent once the consignment has been loaded.
               requestBody:
                 content:
                   application/json:
                     schema:
-                      $ref: '#/components/schemas/Widget'
+                      $ref: '#/components/schemas/Consignment'
               responses:
                 '204':
                   description: Acknowledged.
 
-  /widgets/{widgetId}:
+  /consignments/{consignmentId}:
     get:
-      operationId: getWidget
-      summary: Read a widget
-      tags: [Widgets]
+      operationId: getConsignment
+      summary: Read a consignment
+      tags: [Consignments]
       parameters:
-        - name: widgetId
+        - name: consignmentId
           in: path
-          description: The widget's own identifier.
+          description: The consignment's own identifier.
           schema:
             type: string
             format: uuid
       responses:
         '200':
-          description: The widget.
+          description: The consignment.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Widget'
+                $ref: '#/components/schemas/Consignment'
         '404':
           $ref: '#/components/responses/Problem'
     patch:
-      operationId: updateWidget
-      summary: Update a widget
-      tags: [Widgets]
+      operationId: updateConsignment
+      summary: Update a consignment
+      tags: [Consignments]
       description: |
         The one FLAT body in this document, and deliberately so: every other
         request body here carries an array or a map, which the try-it client
@@ -235,7 +284,7 @@ paths:
         site, and a view nothing renders is a view whose failures nobody sees.
         Four properties, one of each kind of box: text, enum, boolean, number.
       parameters:
-        - name: widgetId
+        - name: consignmentId
           in: path
           schema:
             type: string
@@ -245,26 +294,26 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/WidgetPatch'
+              $ref: '#/components/schemas/ConsignmentPatch'
       responses:
         '200':
-          description: The widget as it now stands.
+          description: The consignment as it now stands.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Widget'
+                $ref: '#/components/schemas/Consignment'
         '404':
           $ref: '#/components/responses/Problem'
     delete:
-      operationId: deleteWidget
-      summary: Delete a widget
-      tags: [Widgets]
+      operationId: cancelConsignment
+      summary: Cancel a consignment
+      tags: [Consignments]
       deprecated: true
       description: |
         Deprecated. Use the batch endpoint, which takes the same identifiers
         and reports what it could not do.
       parameters:
-        - name: widgetId
+        - name: consignmentId
           in: path
           schema:
             type: string
@@ -272,6 +321,85 @@ paths:
       responses:
         '204':
           description: Gone.
+
+  /vessels/{imo}/manifest:
+    put:
+      operationId: replaceManifest
+      summary: Replace a vessel's manifest
+      tags: [Vessels]
+      description: |
+        The whole manifest at once — a `PUT`, because half a manifest is not a
+        smaller manifest, it is a wrong one.
+      parameters:
+        - name: imo
+          in: path
+          description: The vessel's IMO number.
+          required: true
+          schema:
+            type: string
+            pattern: '^IMO[0-9]{7}$'
+        - name: If-Match
+          in: header
+          description: The manifest revision you are replacing.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [entries]
+              properties:
+                entries:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ManifestEntry'
+      responses:
+        '200':
+          description: The manifest as it now stands.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ManifestEntry'
+        '412':
+          $ref: '#/components/responses/Problem'
+
+  /consignments/{consignmentId}/events:
+    get:
+      operationId: streamConsignmentEvents
+      summary: Follow a consignment
+      tags: [Events]
+      description: |
+        Holds the connection open and writes one event per line as the
+        consignment moves, in the `text/event-stream` format.
+
+        The response is not a document, which is the interesting part for a
+        reference: there is a schema for one *event*, and none for the body as
+        a whole.
+      parameters:
+        - name: consignmentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: Last-Event-ID
+          in: header
+          description: Resume after the event you last saw.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The stream, until you close it.
+          content:
+            text/event-stream:
+              schema:
+                $ref: '#/components/schemas/ConsignmentEvent'
+        '404':
+          $ref: '#/components/responses/Problem'
 
   /batches:
     post:
@@ -312,12 +440,13 @@ paths:
 
   /echo:
     post:
-      operationId: echoWidget
-      summary: Create a demo widget
+      operationId: echoConsignment
+      summary: Book a demo consignment
       tags: [Demo]
       description: |
-        Takes a widget and hands it back with an id and a timestamp, exactly as
-        `POST /widgets` would — except that this one is answered, by this site.
+        Takes a consignment and hands it back with an id and a timestamp,
+        exactly as `POST /consignments` would — except that this one is
+        answered, by this site.
 
         Nothing is stored and nothing is checked beyond the token being
         present: it exists so the client on the landing page can be pressed.
@@ -335,33 +464,33 @@ paths:
         - bearer: []
       requestBody:
         required: true
-        description: The widget to echo.
+        description: The consignment to echo.
         content:
           application/json:
             schema:
               type: object
-              required: [name]
+              required: [reference]
               properties:
-                name:
+                reference:
                   type: string
                   description: What to call it.
-                  examples: ['A widget']
-                shape:
+                  examples: ['HB-1042']
+                mode:
                   type: string
-                  description: Its shape.
-                  enum: [round, square]
-                  default: round
+                  description: How it travels.
+                  enum: [sea, air]
+                  default: sea
       responses:
         '201':
-          description: The widget, as it would have been stored.
+          description: The consignment, as it would have been stored.
           content:
             application/json:
               schema:
                 type: object
                 properties:
                   id: { type: string, format: uuid }
-                  name: { type: string }
-                  shape: { type: string, enum: [round, square] }
+                  reference: { type: string }
+                  mode: { type: string, enum: [sea, air] }
                   createdAt: { type: string, format: date-time }
         '401':
           description: No bearer token was sent.
@@ -371,17 +500,17 @@ paths:
                 $ref: '#/components/schemas/Problem'
 
 webhooks:
-  widgetChanged:
+  consignmentChanged:
     post:
-      summary: A widget changed
+      summary: A consignment changed
       description: |
-        Sent to the address registered for your account whenever a widget you
-        can see changes. Answer with any 2xx.
+        Sent to the address registered for your account whenever a consignment
+        you can see changes. Answer with any 2xx.
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Widget'
+              $ref: '#/components/schemas/Consignment'
       responses:
         '200':
           description: Acknowledged.
@@ -415,8 +544,8 @@ components:
           authorizationUrl: https://auth.example.org/authorize
           tokenUrl: https://auth.example.org/token
           scopes:
-            'widgets:read': Read widgets
-            'widgets:write': Create and change widgets
+            'consignments:read': Read consignments
+            'consignments:write': Book and change consignments
 
   responses:
     Problem:
@@ -441,30 +570,36 @@ components:
         detail:
           type: [string, 'null']
 
-    Widget:
+    ConsignmentStatus:
+      type: string
+      description: Where a consignment has got to.
+      enum: [booked, loading, sailing, landed, cancelled]
+
+    Consignment:
       type: object
-      description: One widget, as the API sees it.
-      required: [id, name, kind]
+      description: One consignment, as the API sees it.
+      required: [id, reference, status]
       properties:
         id:
           type: string
           format: uuid
           readOnly: true
-        name:
+        reference:
           type: string
           minLength: 1
           maxLength: 120
-        kind:
-          type: string
-          enum: [round, square, other]
+        status:
+          $ref: '#/components/schemas/ConsignmentStatus'
         createdAt:
           type: string
           format: date-time
           readOnly: true
         parent:
           # A schema that refers to itself, which is the ordinary shape of a
-          # tree and the one a naive renderer expands until the tab dies.
-          $ref: '#/components/schemas/Widget'
+          # tree — a consignment split across two vessels is two consignments
+          # under a third — and the one a naive renderer expands until the tab
+          # dies.
+          $ref: '#/components/schemas/Consignment'
         tags:
           type: array
           uniqueItems: true
@@ -475,69 +610,108 @@ components:
           additionalProperties:
             type: string
 
-    WidgetPatch:
+    ConsignmentEvent:
       type: object
-      description: The fields of a widget that may be changed after it is made.
+      description: One thing that happened to a consignment.
+      required: [id, at, status]
       properties:
-        name:
+        id:
+          type: string
+          description: The value to send back as `Last-Event-ID`.
+        at:
+          type: string
+          format: date-time
+        status:
+          $ref: '#/components/schemas/ConsignmentStatus'
+        berth:
+          type: [string, 'null']
+          description: Where it is, once it is anywhere.
+
+    ConsignmentPatch:
+      type: object
+      description: The fields of a consignment that may be changed after booking.
+      properties:
+        reference:
           type: string
           minLength: 1
           maxLength: 120
-        kind:
+        status:
           type: string
-          enum: [round, square, other]
-        active:
+          enum: [booked, loading, sailing, landed, cancelled]
+        insured:
           type: boolean
-          description: Whether the widget answers requests.
-        weight:
+          description: Whether the load is covered.
+        priority:
           type: integer
           minimum: 1
           maximum: 100
-          description: How far up a list this widget sorts.
+          description: How far up a berth queue this consignment sorts.
 
-    NewWidget:
+    NewConsignment:
       # Folds into one object: a `$ref` plus the fields this endpoint adds is
       # the commonest `allOf` there is.
       allOf:
-        - $ref: '#/components/schemas/Widget'
+        - $ref: '#/components/schemas/Consignment'
         - type: object
           properties:
             callbackUrl:
               type: string
               format: uri
-              description: Where to send the callback once the widget is built.
+              description: Where to send the callback once the load is aboard.
+
+    ManifestEntry:
+      type: object
+      required: [line, contents]
+      properties:
+        line:
+          type: integer
+          minimum: 1
+        contents:
+          # ALTERNATIVES THAT ARE NOT EXCLUSIVE, and the one composition the
+          # document above has no other use for: a line may name a consignment,
+          # describe loose cargo, or do both.
+          anyOf:
+            - type: object
+              properties:
+                consignmentId:
+                  type: string
+                  format: uuid
+            - type: object
+              properties:
+                description: { type: string }
+                weightKg: { type: number, minimum: 0 }
 
     Instruction:
       # Does NOT fold: the branches are alternatives, not additions, and a
       # discriminator says which field tells them apart.
       oneOf:
-        - $ref: '#/components/schemas/RenameInstruction'
+        - $ref: '#/components/schemas/RelabelInstruction'
         - $ref: '#/components/schemas/RetagInstruction'
       discriminator:
         propertyName: op
         mapping:
-          rename: '#/components/schemas/RenameInstruction'
+          relabel: '#/components/schemas/RelabelInstruction'
           retag: '#/components/schemas/RetagInstruction'
 
-    RenameInstruction:
+    RelabelInstruction:
       type: object
-      required: [op, widgetId, name]
+      required: [op, consignmentId, reference]
       properties:
         op:
-          const: rename
-        widgetId:
+          const: relabel
+        consignmentId:
           type: string
           format: uuid
-        name:
+        reference:
           type: string
 
     RetagInstruction:
       type: object
-      required: [op, widgetId, tags]
+      required: [op, consignmentId, tags]
       properties:
         op:
           const: retag
-        widgetId:
+        consignmentId:
           type: string
           format: uuid
         tags:

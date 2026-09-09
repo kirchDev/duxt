@@ -75,8 +75,8 @@ const ROUTES = [
   // being checked here — the reference layout and a parser's operation page
   // are, and nothing else on this list would catch a heading order or an
   // unlabelled control in either.
-  '/api',
-  '/api/widgets/listwidgets',
+  '/demo/api',
+  '/demo/api/consignments/listconsignments',
   '/does-not-exist'
 ];
 
