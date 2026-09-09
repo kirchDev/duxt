@@ -63,7 +63,7 @@ const tone = computed(() => changelogTone(props.name));
          height it sits low by the difference. -->
     <h2
       :id="anchor"
-      class="group mb-3 flex scroll-mt-28 items-center gap-2 text-[0.6875rem] font-semibold tracking-[0.12em] uppercase"
+      class="duxt-label group mb-3 flex scroll-mt-28 items-center gap-2"
       :class="tone.text"
     >
       <a v-if="anchor" :href="`#${anchor}`" class="duxt-heading-link">

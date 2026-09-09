@@ -249,6 +249,20 @@
   @apply absolute -left-5 font-normal text-muted-foreground opacity-0 transition-opacity;
 }
 
+/* THE MARKER AS THE LINK ITSELF, where the heading already contains one and
+   cannot be wrapped in a second — see `headingHasLink`. It sits in the flow
+   rather than out in the margin, and it is always visible: a control revealed
+   only on hover is a control no touch device can reach, which is tolerable
+   while the words beside it are the same link and not at all once they are
+   somebody else's. */
+.typeset :where(.duxt-anchor-only) {
+  @apply relative left-auto mr-2 inline no-underline opacity-60 transition-opacity;
+}
+
+.typeset :where(.duxt-anchor-only:hover, .duxt-anchor-only:focus-visible) {
+  @apply opacity-100;
+}
+
 /* Revealed by hovering the heading, not the marker: the marker is 1.25rem
    outside the text and nobody hunts for it. Focus does the same for the
    keyboard, where the link is reached without a pointer at all. */

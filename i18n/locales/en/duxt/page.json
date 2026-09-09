@@ -27,7 +27,8 @@
       "untranslated": {
         "title": "This page is not available in your language yet",
         "description": "You are reading it in {language}."
-      }
+      },
+      "anchor": "Link to this section"
     }
   }
 }
