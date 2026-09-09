@@ -372,6 +372,7 @@ const samples = computed(() => {
     language: entry.language,
     label: asText(entry.label) ?? entry.id,
     group: asText(entry.group) ?? entry.id,
+    icon: entry.icon,
     code: entry.generate(request.value),
     fromSpec: false
   }));
@@ -390,6 +391,11 @@ const samples = computed(() => {
       group:
         shipped.find((candidate) => candidate.language === entry.lang)?.group ??
         entry.lang,
+      // A spec sample carries no icon of its own; where it joins a shipped
+      // group that group keeps its mark, and where it opens one of its own the
+      // language answers for it.
+      icon: shipped.find((candidate) => candidate.language === entry.lang)
+        ?.icon,
       code: entry.source,
       fromSpec: true
     }))
@@ -440,6 +446,25 @@ const group = computed({
     if (first) sample.value = first.id;
   }
 });
+
+/**
+ * The mark for a language tab.
+ *
+ * A sample's own `icon` where it names one, and `fileIcon(language)` otherwise —
+ * which is the fallback and not the rule, because the language is the GRAMMAR: a
+ * `$fetch` sample asks for `typescript`, so the JavaScript tab used to wear a
+ * TypeScript logo, and `curl` a generic shell file.
+ */
+function groupIcon(group: string): string {
+  const named = samples.value.find(
+    (entry) => entry.group === group && entry.icon
+  );
+  if (named?.icon) return named.icon;
+
+  return fileIcon(
+    samples.value.find((entry) => entry.group === group)?.language
+  );
+}
 
 const clients = computed(() =>
   samples.value.filter((entry) => entry.group === group.value)
@@ -953,14 +978,7 @@ function pretty(text: string): string {
               :value="entry"
               class="flex cursor-pointer items-center gap-1.5 rounded-md px-2.5 py-1 font-mono text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
             >
-              <Icon
-                :name="
-                  fileIcon(
-                    samples.find((sample_) => sample_.group === entry)?.language
-                  )
-                "
-                class="size-3.5"
-              />
+              <Icon :name="groupIcon(entry)" class="size-3.5" />
               {{ entry }}
             </TabsTrigger>
           </TabsList>

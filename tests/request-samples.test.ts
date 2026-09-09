@@ -258,6 +258,34 @@ describe('the registry', () => {
       expect(sample.group, sample.id).toBeTruthy();
     }
   });
+
+  /**
+   * Every shipped sample names its own icon, so a group keeps its mark whichever
+   * of its members a site kept. Without one the picker falls back to
+   * `fileIcon(language)` — and the language is the grammar, so the JavaScript
+   * tab wore a TypeScript logo and curl a generic shell file.
+   */
+  it('names an icon on every shipped sample', () => {
+    for (const sample of duxtRequestSamples) {
+      expect(sample.icon, sample.id).toBeTruthy();
+    }
+  });
+
+  it('gives every member of a group the same icon', () => {
+    const byGroup = new Map<string, Set<string>>();
+
+    for (const sample of duxtRequestSamples) {
+      const group = String(sample.group);
+      byGroup.set(
+        group,
+        (byGroup.get(group) ?? new Set()).add(sample.icon ?? '')
+      );
+    }
+
+    for (const [group, icons] of byGroup) {
+      expect([...icons], group).toHaveLength(1);
+    }
+  });
 });
 
 describe('resolveRequestSamples', () => {

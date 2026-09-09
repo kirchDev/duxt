@@ -470,6 +470,7 @@ export function openApiPhpCurl(request: DuxtOpenApiRequest): string {
 export const duxtRequestSamples: DuxtRequestSample[] = [
   {
     id: 'curl',
+    icon: 'simple-icons:curl',
     group: 'curl',
     label: 'curl',
     language: 'bash',
@@ -477,6 +478,7 @@ export const duxtRequestSamples: DuxtRequestSample[] = [
   },
   {
     id: 'fetch',
+    icon: 'vscode-icons:file-type-js',
     group: 'JavaScript',
     label: 'fetch',
     language: 'typescript',
@@ -484,6 +486,7 @@ export const duxtRequestSamples: DuxtRequestSample[] = [
   },
   {
     id: 'ofetch',
+    icon: 'vscode-icons:file-type-js',
     group: 'JavaScript',
     label: '$fetch',
     language: 'typescript',
@@ -491,6 +494,7 @@ export const duxtRequestSamples: DuxtRequestSample[] = [
   },
   {
     id: 'use-fetch',
+    icon: 'vscode-icons:file-type-js',
     group: 'JavaScript',
     label: 'useFetch',
     language: 'typescript',
@@ -498,6 +502,7 @@ export const duxtRequestSamples: DuxtRequestSample[] = [
   },
   {
     id: 'axios',
+    icon: 'vscode-icons:file-type-js',
     group: 'JavaScript',
     label: 'axios',
     language: 'typescript',
@@ -505,6 +510,7 @@ export const duxtRequestSamples: DuxtRequestSample[] = [
   },
   {
     id: 'python-requests',
+    icon: 'vscode-icons:file-type-python',
     group: 'Python',
     label: 'requests',
     language: 'python',
@@ -512,6 +518,7 @@ export const duxtRequestSamples: DuxtRequestSample[] = [
   },
   {
     id: 'python-httpx',
+    icon: 'vscode-icons:file-type-python',
     group: 'Python',
     label: 'httpx',
     language: 'python',
@@ -519,6 +526,7 @@ export const duxtRequestSamples: DuxtRequestSample[] = [
   },
   {
     id: 'python-urllib',
+    icon: 'vscode-icons:file-type-python',
     group: 'Python',
     label: 'urllib',
     language: 'python',
@@ -526,6 +534,7 @@ export const duxtRequestSamples: DuxtRequestSample[] = [
   },
   {
     id: 'go',
+    icon: 'vscode-icons:file-type-go',
     group: 'Go',
     label: 'net/http',
     language: 'go',
@@ -533,6 +542,7 @@ export const duxtRequestSamples: DuxtRequestSample[] = [
   },
   {
     id: 'php-guzzle',
+    icon: 'vscode-icons:file-type-php',
     group: 'PHP',
     label: 'Guzzle',
     language: 'php',
@@ -540,6 +550,7 @@ export const duxtRequestSamples: DuxtRequestSample[] = [
   },
   {
     id: 'php-laravel',
+    icon: 'vscode-icons:file-type-php',
     group: 'PHP',
     label: 'Laravel Http',
     language: 'php',
@@ -547,6 +558,7 @@ export const duxtRequestSamples: DuxtRequestSample[] = [
   },
   {
     id: 'php-curl',
+    icon: 'vscode-icons:file-type-php',
     group: 'PHP',
     label: 'curl extension',
     language: 'php',

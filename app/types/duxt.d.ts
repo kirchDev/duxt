@@ -56,6 +56,19 @@ declare global {
     label: DuxtText;
     group: DuxtText;
     language: string;
+    /**
+     * The icon for this sample's GROUP, where the language does not answer for
+     * it.
+     *
+     * Without one the picker draws `fileIcon(language)`, and the language is the
+     * grammar rather than the tab: every JavaScript client asks for
+     * `typescript`, so the tab reading "JavaScript" wore a TypeScript logo, and
+     * `curl` wore a generic shell file. The first sample of a group that names
+     * one wins, so a group needs it on at most one member — the shipped ones set
+     * it on all of theirs, so dropping `fetch` from the list does not cost
+     * JavaScript its mark.
+     */
+    icon?: string;
     generate: (request: DuxtOpenApiRequest) => string;
   }
 
