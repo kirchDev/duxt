@@ -81,6 +81,12 @@ const current = computed(() =>
  * panel that is showing, which is what `DuxtCodeBlock` does for itself.
  */
 const root = useTemplateRef<HTMLElement>('root');
+
+/** The height follows the file that is showing — see the composable. */
+const shell = useTemplateRef<HTMLElement>('shell');
+const body = useTemplateRef<HTMLElement>('body');
+
+useDuxtAnimatedHeight(shell, body);
 const copied = ref(false);
 const notify = useDuxtToast();
 const { t } = useI18n();
@@ -145,27 +151,33 @@ async function copy() {
       </UiButton>
     </div>
 
-    <!-- ALL PANELS MOUNTED, STACKED IN ONE GRID CELL, and only the active one
-         visible. The obvious version renders one panel at a time, and then the
-         block's height is the height of whatever file is showing: switching
-         from a three-line config to a twelve-line one moved everything below it
-         down the page, under the reader's own cursor.
+    <!-- THE BLOCK FOLLOWS THE FILE THAT IS SHOWING, over 300ms.
 
-         Stacked, the cell is as tall as the LONGEST file and stays there. The
-         cost is that every panel is in the DOM — which it was going to be
-         anyway, since the fences arrive as VNodes the slot already built. -->
-    <div class="grid">
-      <TabsContent
-        v-for="entry in entries"
-        :key="entry.value"
-        :value="entry.value"
-        force-mount
-        class="col-start-1 row-start-1 focus-visible:outline-none data-[state=inactive]:invisible [&_.duxt-code]:my-0 [&_.duxt-code]:rounded-none [&_.duxt-code]:border-0"
-      >
-        <!-- `:header="false"`: the tab above already says what the bar inside
-             would, and the copy button now sits beside the tabs. -->
-        <component :is="entry.node" :header="false" />
-      </TabsContent>
+         The first version mounted every panel stacked in one grid cell, so the
+         block was always as tall as the LONGEST file. It never moved, which was
+         the point — and it left a three-line config sitting in the space a
+         twelve-line one needs, which is a lot of empty box on a landing page.
+
+         So one panel at a time, and the height is animated instead of switched:
+         the same treatment the request-sample card gets, out of the same
+         composable. Nothing below the block jumps, and nothing above it sits in
+         a hole. -->
+    <div
+      ref="shell"
+      class="overflow-hidden motion-safe:transition-[height] motion-safe:duration-300 motion-safe:ease-out"
+    >
+      <div ref="body">
+        <TabsContent
+          v-for="entry in entries"
+          :key="entry.value"
+          :value="entry.value"
+          class="focus-visible:outline-none [&_.duxt-code]:my-0 [&_.duxt-code]:rounded-none [&_.duxt-code]:border-0"
+        >
+          <!-- `:header="false"`: the tab above already says what the bar inside
+               would, and the copy button now sits beside the tabs. -->
+          <component :is="entry.node" :header="false" />
+        </TabsContent>
+      </div>
     </div>
   </TabsRoot>
 </template>
