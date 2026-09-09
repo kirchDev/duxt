@@ -29,17 +29,33 @@ const managers = computed(() =>
   )
 );
 
-// Brand colours per theme. A single value does not work: bun's cream is
-// invisible on a light background and npm's red is muddy on a dark one, so
-// each manager carries both and CSS picks by theme class.
-const managerBrands: Record<
-  DuxtPackageManager,
-  { icon: string; light: string; dark: string }
-> = {
-  npm: { icon: 'simple-icons:npm', light: '#CB3837', dark: '#F1554C' },
-  pnpm: { icon: 'simple-icons:pnpm', light: '#F69220', dark: '#F9AD00' },
-  yarn: { icon: 'simple-icons:yarn', light: '#2C8EBB', dark: '#4FA8D8' },
-  bun: { icon: 'simple-icons:bun', light: '#14151A', dark: '#FBF0DF' }
+/**
+ * The mark each manager is drawn with.
+ *
+ * vscode-icons, because it carries the real colours in the file itself — the
+ * same collection every file name and every fence language on this site is
+ * drawn from. What stood here before was simple-icons, which is monochrome by
+ * design, plus eight hand-set hex values: two per manager, because one cannot
+ * serve both themes. That table is gone with it.
+ */
+const managerIcons: Record<DuxtPackageManager, string> = {
+  npm: 'vscode-icons:file-type-npm',
+  pnpm: 'vscode-icons:file-type-pnpm',
+  yarn: 'vscode-icons:file-type-yarn',
+  bun: 'vscode-icons:file-type-bun'
+};
+
+/**
+ * pnpm, and pnpm alone, needs a second spelling.
+ *
+ * Its mark is orange squares AND WHITE ONES, so half the grid disappears on a
+ * white page. vscode-icons ships a `light` variant for exactly that — the white
+ * cells drawn `#4e4e4e` instead — and it ships one for no other manager here,
+ * which is the collection reaching the same conclusion. Two elements swapped by
+ * the theme class, the way the preview poster serves its two screenshots.
+ */
+const managerIconsLight: Partial<Record<DuxtPackageManager, string>> = {
+  pnpm: 'vscode-icons:file-type-light-pnpm'
 };
 
 const commands = computed(() =>
@@ -124,12 +140,18 @@ async function copy() {
         @click="active = manager"
       >
         <Icon
-          :name="managerBrands[manager]?.icon ?? 'lucide:terminal'"
-          class="duxt-brand size-3.5"
-          :style="{
-            '--brand': managerBrands[manager]?.light,
-            '--brand-dark': managerBrands[manager]?.dark
-          }"
+          :name="
+            managerIconsLight[manager] ??
+            managerIcons[manager] ??
+            'lucide:terminal'
+          "
+          class="size-3.5"
+          :class="managerIconsLight[manager] ? 'dark:hidden' : ''"
+        />
+        <Icon
+          v-if="managerIconsLight[manager]"
+          :name="managerIcons[manager]"
+          class="hidden size-3.5 dark:block"
         />
         {{ manager }}
       </button>

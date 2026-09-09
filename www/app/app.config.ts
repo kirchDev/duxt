@@ -352,7 +352,7 @@ export default defineAppConfig({
     // consumer reaching into it turns an internal rename into a silent break.
     links: [
       {
-        icon: 'lucide:github',
+        icon: 'simple-icons:github',
         to: 'https://github.com/kirchDev/duxt',
         label: {
           'en-GB': 'Repository',
@@ -401,7 +401,7 @@ export default defineAppConfig({
             'pt-PT': 'Comunidade no Discord'
           },
           to: 'https://discord.kirch.dev/',
-          icon: 'lucide:message-circle',
+          icon: 'simple-icons:discord',
           external: true
         },
         // duxt's published documentation, by its own domain rather than by a
@@ -512,7 +512,7 @@ export default defineAppConfig({
         {
           label: 'GitHub',
           to: 'https://github.com/kirchDev/duxt',
-          icon: 'lucide:github',
+          icon: 'simple-icons:github',
           variant: 'outline',
           external: true
         }

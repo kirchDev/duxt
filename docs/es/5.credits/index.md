@@ -21,13 +21,34 @@ entre ellos más un puñado de opiniones.
 | [reka-ui](https://reka-ui.com)                      | Las primitivas que hay debajo: foco, roving tabindex, ARIA                 |
 | [Tailwind CSS](https://tailwindcss.com)             | El sistema de estilos y la capa de tokens                                  |
 | [Shiki](https://shiki.style)                        | Resaltado de sintaxis, en tiempo de compilación                            |
-| [Lucide](https://lucide.dev)                        | El conjunto de iconos                                                      |
+| [Los conjuntos de iconos](#iconos)                  | Cuatro colecciones, una por tipo de marca                                  |
 | [MDC](https://content.nuxt.com/docs/files/markdown) | Componentes invocables desde Markdown                                      |
 
 La versión de cada uno está en `package.json`, que es donde le corresponde estar
 a un número — una segunda copia en prosa es una copia que se queda obsoleta en
 silencio.
 
+
+## Iconos
+
+Cuatro colecciones, porque monocromo y con color propio son trabajos distintos —
+la regla que decide cuál dibuja qué está escrita en
+[Convenciones](/conventions/icons).
+
+| Conjunto                                                     | Dibuja                                       | Licencia |
+| :------------------------------------------------------------ | :------------------------------------------- | :------- |
+| [Lucide](https://lucide.dev)                                  | la interfaz                                   | ISC      |
+| [vscode-icons](https://github.com/vscode-icons/vscode-icons)  | archivos, lenguajes de bloque, herramientas   | MIT      |
+| [Simple Icons](https://simpleicons.org)                       | las marcas que vscode-icons no lleva          | CC0-1.0  |
+| [flag-icons](https://github.com/lipis/flag-icons)             | la bandera junto a cada locale                | MIT      |
+
+La licencia se nombra aquí y no solo en `package.json` porque la compilación
+incrusta estos SVG en lo que se publica: el paquete transporta las obras, así que
+transporta los avisos.
+
+Una licencia sobre un archivo no es una licencia sobre una marca. Los gestores de
+paquetes, GitHub, Discord, Claude y OpenAI son marcas de sus titulares; aquí se
+dibujan para nombrar aquello que identifican, y para nada más.
 ## Construido mirando a
 
 Ideas que duxt tomó de proyectos sobre los que no está construido. Sobre lo que
