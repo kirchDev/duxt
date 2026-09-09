@@ -738,7 +738,26 @@ function pretty(text: string): string {
           </h2>
         </div>
 
-        <form class="space-y-4 px-4 py-3" @submit.prevent="send">
+        <!-- NOT A LOGIN, and password managers have to be told so. A `<form>`
+             holding a `type="password"` field is exactly the shape Bitwarden,
+             1Password, LastPass and Dashlane look for, so they offered to fill
+             the token box with a site password and to save whatever was typed
+             there as a new credential.
+
+             Each vendor reads its own attribute — there is no standard one, and
+             `autocomplete="off"` alone has not been respected for years. They
+             are set on the form AND on each credential box, because the ones
+             that scan for a form and the ones that scan for a field are
+             different products. -->
+        <form
+          class="space-y-4 px-4 py-3"
+          autocomplete="off"
+          data-form-type="other"
+          data-bwignore
+          data-1p-ignore
+          data-lpignore="true"
+          @submit.prevent="send"
+        >
           <!-- server -->
           <div v-if="servers.length">
             <label
@@ -775,6 +794,10 @@ function pretty(text: string): string {
 
             <div
               v-for="variable in server?.variables ?? []"
+              data-form-type="other"
+              data-bwignore
+              data-1p-ignore
+              data-lpignore="true"
               :key="variable.name"
               class="mt-2"
             >
@@ -790,6 +813,10 @@ function pretty(text: string): string {
                 class="font-mono text-sm"
                 :placeholder="variable.default"
                 autocomplete="off"
+                data-form-type="other"
+                data-bwignore
+                data-1p-ignore
+                data-lpignore="true"
               />
             </div>
           </div>
