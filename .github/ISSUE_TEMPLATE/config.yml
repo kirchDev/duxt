@@ -4,11 +4,11 @@ blank_issues_enabled: false
 # forum channel drop this whole `contact_links` block.
 contact_links:
   - name: ❓ Question
-    url: https://discord.kirch.dev/
+    url: https://discord.duxt.app/
     about: Ask in this repo's Discord forum — questions are answered there, not in issues.
   - name: 💡 Idea
-    url: https://discord.kirch.dev/
+    url: https://discord.duxt.app/
     about: Float it in the Discord forum first; ideas that firm up become a feature request.
   - name: 🐛 Possible bug
-    url: https://discord.kirch.dev/
+    url: https://discord.duxt.app/
     about: Not sure it's a real bug? Start in the forum — confirmed ones move to an issue.

@@ -512,7 +512,7 @@ export default defineAppConfig({
             'fr-FR': 'Communauté Discord',
             'pt-PT': 'Comunidade no Discord'
           },
-          to: 'https://discord.kirch.dev/',
+          to: 'https://discord.duxt.app/',
           icon: 'simple-icons:discord',
           external: true
         },
