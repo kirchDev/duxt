@@ -274,16 +274,28 @@ const operations = computed(() =>
           {{ $t('duxt.openapi.terms') }}
         </a>
 
+        <!-- The one item here whose text the DOCUMENT wrote. `description` is
+             prose in OpenAPI's own words, so it may be a label ("Guide") or a
+             whole sentence — and a sentence in a row of two-word chips reads as
+             a paragraph that lost its paragraph. It is clamped rather than
+             shortened: the full text stays in the link, which is what a screen
+             reader announces and what the title shows on hover. -->
         <a
           v-if="externalDocs"
           :href="externalDocs.url"
+          :title="externalDocs.description"
           rel="noopener noreferrer"
           target="_blank"
-          class="inline-flex items-center gap-1.5 transition-colors hover:text-foreground"
+          class="inline-flex min-w-0 items-center gap-1.5 transition-colors hover:text-foreground"
         >
-          <Icon name="lucide:book-open" class="size-3.5" />
-          {{ externalDocs.description ?? $t('duxt.openapi.moreInfo') }}
-          <Icon name="lucide:arrow-up-right" class="size-3 opacity-60" />
+          <Icon name="lucide:book-open" class="size-3.5 shrink-0" />
+          <span class="max-w-64 truncate">
+            {{ externalDocs.description ?? $t('duxt.openapi.moreInfo') }}
+          </span>
+          <Icon
+            name="lucide:arrow-up-right"
+            class="size-3 shrink-0 opacity-60"
+          />
         </a>
       </p>
     </div>
