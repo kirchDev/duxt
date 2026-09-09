@@ -461,7 +461,230 @@ declare global {
     command?: string;
     /** A picture of the site itself, framed as a browser window. */
     preview?: DuxtPreview;
+    /**
+     * The claims the hero makes in numbers — "7 locales", "1 line of config".
+     *
+     * A row rather than a sentence, because a number read in a paragraph is a
+     * number nobody remembers. Drawn under the hero's buttons; absent, the row
+     * is not drawn at all.
+     */
+    stats?: DuxtStat[];
+    /**
+     * The window under the hero, in the shape a reader can drive: several pages
+     * of this same site behind a tab bar, one frame, one page loaded at a time.
+     *
+     * `preview` is the single-page form of the same idea and stays what a site
+     * with one thing to show writes. Where both are set the tabbed one wins,
+     * because it is strictly the larger statement.
+     */
+    demo?: DuxtLandingDemo;
+    /**
+     * The bands between the window and the feature grid: one feature at a time,
+     * its prose on one side and something running on the other.
+     *
+     * This is where a site shows rather than tells — a live page of its own API
+     * reference, the config that produced it, a screenshot. The sides alternate
+     * on their own, so a list written top to bottom needs no layout decisions.
+     */
+    showcase?: DuxtShowcase[];
     features?: DuxtFeature[];
+    /**
+     * The closing list: everything that is real but does not earn a band of its
+     * own. An icon, a line, no link — a reader who wants one of these will find
+     * it in the navigation.
+     */
+    highlights?: DuxtFeature[];
+    /**
+     * The visible heading over that list.
+     *
+     * A CONFIG FIELD rather than one of the layer's own strings, and the line
+     * between the two is whether a reader sees it. `featuresTitle` is shipped
+     * because it is `sr-only` — a name the document outline needs and nobody
+     * reads. "And the rest" is prose on the page, and prose on the page belongs
+     * to the site that wrote the list underneath it.
+     *
+     * Unset, the list draws no heading and its entries are paragraphs rather
+     * than headings, so the outline gains nothing to explain.
+     */
+    highlightsTitle?: DuxtText;
+  }
+
+  /** One number in the hero's row, with the words that give it a meaning. */
+  interface DuxtStat {
+    /**
+     * The number as it is printed — `'7'`, `'1 line'`, `'~0 KB'`. A string, not
+     * a number: half of these are not quantities, and a site that has to format
+     * `0` into `'zero config'` in the config is a site that will not.
+     */
+    value: string;
+    label: DuxtText;
+    icon?: string;
+  }
+
+  /**
+   * The tabbed window: one live frame, several pages to point it at.
+   *
+   * Every tab is a page of THIS site, for the reason `DuxtPreview.to` gives —
+   * a window framing somebody else's site is an advert.
+   */
+  interface DuxtLandingDemo {
+    tabs: DuxtDemoTab[];
+    /** Window height, any CSS length. Defaults to a responsive clamp. */
+    height?: string;
+  }
+
+  interface DuxtDemoTab {
+    label: DuxtText;
+    to: string;
+    icon?: string;
+    /** The poster drawn while this page loads. Defaults to `docs`. */
+    skeleton?: DuxtSkeletonVariant;
+  }
+
+  /**
+   * Which shape the window draws while a page is on its way.
+   *
+   * Named per target rather than guessed from its path: the layer has no idea
+   * that `/api` is an OpenAPI section or that `/llms.txt` is plain text — a
+   * consumer may call them anything — and a poster whose layout is not the
+   * layout that arrives reads as the frame having loaded the wrong page.
+   */
+  type DuxtSkeletonVariant = 'docs' | 'api' | 'text';
+
+  /**
+   * The words half of a band: eyebrow, heading, paragraph, list, link.
+   *
+   * A type of its own because a band may need TWO of them — a split client puts
+   * its form in one row and its samples in the next, and each row wants its own
+   * sentence about what the reader is looking at.
+   */
+  interface DuxtShowcaseProse {
+    /** The eyebrow over the title — a two-word name for the area. */
+    badge?: DuxtText;
+    icon?: string;
+    title: DuxtText;
+    description?: DuxtText;
+    /** The three things this feature actually does, as a checked list. */
+    bullets?: DuxtShowcaseBullet[];
+    /** The way into the page that explains it. */
+    action?: DuxtAction;
+  }
+
+  /** One band: prose on one side, something running on the other. */
+  interface DuxtShowcase extends DuxtShowcaseProse {
+    /**
+     * Put the demo on the LEFT, against the alternation.
+     *
+     * Unset, the bands alternate by their position in the list, which is what a
+     * page of them wants. Set, a band overrides that — and every band after it
+     * keeps alternating from wherever the list said, not from the override.
+     */
+    reverse?: boolean;
+    /**
+     * Give the demo the WHOLE width, with the prose above it rather than beside
+     * it.
+     *
+     * For a demo that is not a picture of something but the thing itself: a
+     * try-it client squeezed into half a band is the same mistake a framed page
+     * makes one level down — a control built for a column of its own, put in a
+     * column that is not one. `reverse` means nothing here; there are no sides.
+     */
+    full?: boolean;
+    demo: DuxtDemo;
+  }
+
+  interface DuxtShowcaseBullet {
+    label: DuxtText;
+    icon?: string;
+  }
+
+  /**
+   * What a band shows. Three kinds, and the discriminant is `type` rather than
+   * which key happens to be set: a demo missing its one required field should
+   * fail to typecheck, not fall through to another kind.
+   */
+  type DuxtDemo =
+    | DuxtDemoFrame
+    | DuxtDemoCode
+    | DuxtDemoImage
+    | DuxtDemoOperation;
+
+  /**
+   * The try-it client of one operation, rendered on its own.
+   *
+   * `frame` pointed at the same page shows the client inside a whole second
+   * copy of the application — and below 80rem the panel sits under the entire
+   * description, so a band-sized window opened the page and showed prose. This
+   * renders the CONTROL, which is what the band is about: no frame, no poster,
+   * no wait, and strictly less to download than the page around it.
+   *
+   * `to` is the operation page's own path; the operation is read from the page
+   * Content already built for it, so nothing here parses OpenAPI a second time.
+   */
+  interface DuxtDemoOperation {
+    type: 'operation';
+    to: string;
+    /**
+     * `split` breaks the client into two rows — the form in one, the request
+     * samples in the next — each with its own prose beside it, and the sides
+     * alternating the way the bands themselves do. The shape a full-width band
+     * wants. Defaults to the single card an operation page draws.
+     */
+    layout?: 'panel' | 'split';
+    /**
+     * The words beside the samples row.
+     *
+     * Only read when the client is split, because only then is there a second
+     * row to write a sentence for. Without it the row draws the samples alone
+     * and the space beside them stays empty.
+     */
+    samples?: DuxtShowcaseProse;
+    /**
+     * How tall the panel may get before it scrolls itself, any CSS length.
+     *
+     * A `max-height`, not a height: a GET with two parameters is a short panel
+     * and padding it out to the height of a POST would be a box mostly empty.
+     * Defaults to the same measure the windows beside it use.
+     */
+    height?: string;
+  }
+
+  /** A live page of this site, framed and operable — mounted on approach. */
+  interface DuxtDemoFrame {
+    type: 'frame';
+    to: string;
+    height?: string;
+    /** `false` drops the browser chrome, leaving the page in a plain box. */
+    chrome?: boolean;
+    /** The poster drawn while the page loads. Defaults to `docs`. */
+    skeleton?: DuxtSkeletonVariant;
+  }
+
+  /**
+   * The config or the command behind the feature, highlighted.
+   *
+   * A list rather than one file, because the interesting answer is often two
+   * files — what you write and what comes out. Several become tabs.
+   */
+  interface DuxtDemoCode {
+    type: 'code';
+    files: DuxtDemoFile[];
+  }
+
+  interface DuxtDemoFile {
+    /** The tab's label and the block's header — a file name, or a command. */
+    name?: string;
+    /** A grammar the RUNTIME highlighter carries: bash, json, typescript. */
+    language?: string;
+    code: string;
+  }
+
+  /** A picture, for what cannot be framed — a devtools panel, an editor. */
+  interface DuxtDemoImage {
+    type: 'image';
+    src: string;
+    srcDark?: string;
+    alt?: DuxtText;
   }
 
   /**

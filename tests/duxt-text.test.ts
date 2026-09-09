@@ -82,6 +82,55 @@ describe('resolveDuxtTexts', () => {
     expect(resolved.badge).toBe('Beta-Version');
   });
 
+  it('resolves every prose key the landing page renders', () => {
+    // The regression: `highlightsTitle` is prose, was not on the allowlist, and
+    // so reached the page as its own locale record printed as JSON. Named one
+    // by one rather than derived, because deriving them from the type is
+    // exactly what the allowlist refuses to do.
+    const record = { 'en-GB': 'And the rest', 'de-DE': 'Und der Rest' };
+
+    const resolved = resolveDuxtTexts(
+      {
+        landing: {
+          headline: record,
+          description: record,
+          highlightsTitle: record,
+          stats: [{ value: '7', label: record }],
+          demo: { tabs: [{ label: record, to: '/guide' }] },
+          showcase: [
+            {
+              badge: record,
+              title: record,
+              description: record,
+              bullets: [{ label: record }],
+              action: { label: record, to: '/guide' }
+            }
+          ],
+          highlights: [{ title: record, description: record }]
+        }
+      },
+      'de-DE',
+      lookup
+    );
+
+    const { landing } = resolved;
+
+    expect(landing.headline).toBe('Und der Rest');
+    expect(landing.description).toBe('Und der Rest');
+    expect(landing.highlightsTitle).toBe('Und der Rest');
+    expect(landing.stats[0]!.label).toBe('Und der Rest');
+    expect(landing.demo.tabs[0]!.label).toBe('Und der Rest');
+    expect(landing.showcase[0]!.badge).toBe('Und der Rest');
+    expect(landing.showcase[0]!.title).toBe('Und der Rest');
+    expect(landing.showcase[0]!.bullets[0]!.label).toBe('Und der Rest');
+    expect(landing.showcase[0]!.action.label).toBe('Und der Rest');
+    expect(landing.highlights[0]!.title).toBe('Und der Rest');
+
+    // The paths beside them are untouched, which is what the allowlist is for.
+    expect(landing.demo.tabs[0]!.to).toBe('/guide');
+    expect(landing.showcase[0]!.action.to).toBe('/guide');
+  });
+
   it('does not touch a string under a non-text key', () => {
     // `nav.guide` IS a registered key — it still must not be translated here,
     // because `to` is a path and paths are not prose.

@@ -28,12 +28,32 @@ import type {
  * wants the typeset preset and a parameter table does not, and they are
  * siblings here so each gets what it needs.
  */
-defineProps<{
+const props = defineProps<{
   operation: DuxtOpenApiOperation;
   servers?: DuxtOpenApiServer[];
   security?: DuxtOpenApiSecurity;
   securitySchemes?: DuxtOpenApiSecurityScheme[];
 }>();
+
+/**
+ * A fragment that lands on the client rather than at the top of the page.
+ *
+ * The panel sits beside the endpoint at `xl` and BELOW the whole description
+ * everywhere narrower — so on a phone, and in any frame narrower than 80rem, a
+ * link to the operation shows the prose and hides the one control the page is
+ * about. `#…-try-it` is how a reader, a release note or the landing page's own
+ * window points at it.
+ *
+ * Keyed by the operation rather than a bare `try-it`, because
+ * `OpenApiOperations` renders a run of these on one page and a duplicated id is
+ * an anchor that resolves to whichever came first.
+ */
+const clientAnchor = computed(() =>
+  `${props.operation.operationId ?? `${props.operation.method}-${props.operation.path}`}-try-it`
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+);
 </script>
 
 <template>
@@ -134,7 +154,10 @@ defineProps<{
          Bounded and scrollable only at `xl`, because below it the client is in
          normal flow and a second scrollbar inside the page would be one nobody
          asked for. -->
-    <div class="not-typeset min-w-0">
+    <div
+      :id="clientAnchor"
+      class="not-typeset min-w-0 scroll-mt-[var(--duxt-chrome)]"
+    >
       <div
         class="xl:sticky xl:top-[var(--duxt-chrome)] xl:max-h-[calc(100vh-var(--duxt-chrome)-1.5rem)] xl:overflow-y-auto xl:pr-1"
       >

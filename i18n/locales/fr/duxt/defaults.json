@@ -11,7 +11,8 @@
         },
         "preview": "Aperçu en direct de la documentation",
         "previewOpen": "Ouvrir",
-        "featuresTitle": "Fonctionnalités"
+        "featuresTitle": "Fonctionnalités",
+        "demoTitle": "Démo en direct"
       },
       "aside": {
         "title": "Communauté"

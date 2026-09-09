@@ -11,7 +11,8 @@
         },
         "preview": "Live preview of the documentation",
         "previewOpen": "Open",
-        "featuresTitle": "Features"
+        "featuresTitle": "Features",
+        "demoTitle": "Live demo"
       },
       "aside": {
         "title": "Community"

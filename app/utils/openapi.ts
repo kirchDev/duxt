@@ -917,3 +917,89 @@ export function openApiJson(value: unknown): string {
     return String(value);
   }
 }
+
+/**
+ * The props of the `open-api-operation` node inside a generated page's body.
+ *
+ * The landing page shows the try-it client on its own — no frame, no second
+ * copy of the application — and the client needs exactly what the operation
+ * page hands it. That data is not in the page's frontmatter: `sections-openapi`
+ * writes it as the props of one MDC component in the body, so this walks the
+ * parsed body and lifts them back out.
+ *
+ * A PURE FUNCTION OVER THE TREE, and separate from the component, because it is
+ * the one part of this that couples to a shape somebody else produces —
+ * Content's minimal AST, where an element is `[tag, props, ...children]` — and
+ * a coupling that can be tested is a coupling that fails loudly.
+ *
+ * Returns undefined rather than throwing: a page that carries no operation is
+ * a band that draws nothing, not a landing page that 500s.
+ */
+export function openApiOperationProps(
+  body: unknown
+): Record<string, unknown> | undefined {
+  const value = (body as { value?: unknown })?.value ?? body;
+  if (!Array.isArray(value)) return undefined;
+
+  for (const node of value) {
+    if (!Array.isArray(node)) continue;
+
+    const [tag, props, ...children] = node as [unknown, unknown, ...unknown[]];
+
+    if (
+      tag === 'open-api-operation' &&
+      props &&
+      typeof props === 'object' &&
+      !Array.isArray(props)
+    ) {
+      return mdcProps(props as Record<string, unknown>);
+    }
+
+    // Depth first: the node sits under the body's root element, and a page may
+    // wrap it in whatever the generator put around it.
+    const nested = openApiOperationProps(children);
+    if (nested) return nested;
+  }
+
+  return undefined;
+}
+
+/**
+ * MDC's stored props, as a component would receive them.
+ *
+ * A component's frontmatter is serialised into the tree the way it was written
+ * in the Markdown — a BOUND prop keeps its colon and its value stays a JSON
+ * string, because that is what `:operation="…"` is in an MDC block. The
+ * renderer parses it on the way into the component; anything reading the tree
+ * directly gets `{ ':operation': '{"kind":"operation",…}' }` and, handed
+ * straight on, a component whose every prop is undefined.
+ *
+ * A value that will not parse is kept as the string it is: a bound prop may
+ * carry an expression rather than data, and dropping it silently would be the
+ * same failure one level along.
+ */
+function mdcProps(props: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(props)) {
+    if (!key.startsWith(':')) {
+      out[key] = value;
+      continue;
+    }
+
+    const name = key.slice(1);
+
+    if (typeof value !== 'string') {
+      out[name] = value;
+      continue;
+    }
+
+    try {
+      out[name] = JSON.parse(value);
+    } catch {
+      out[name] = value;
+    }
+  }
+
+  return out;
+}
