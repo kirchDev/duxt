@@ -1,3 +1,4 @@
+import { JSDOM } from 'jsdom';
 import { describe, expect, it } from 'vitest';
 import { duxtManifest } from '../sections-resolve';
 import {
@@ -54,11 +55,27 @@ const served = () => {
   return pages;
 };
 
-/** The `<th>` texts of one table, with the markup taken off. */
+/**
+ * The `<th>` texts of one table.
+ *
+ * PARSED, NOT MATCHED. Two regexes stood here — one to find the cells, one to
+ * strip the markup inside them — and the second is the shape CodeQL reads as an
+ * incomplete sanitizer, correctly in general and wrongly here: this reads a
+ * string the renderer beside it produced, in a test, and nothing it returns is
+ * ever rendered. A parser answers the same question without the argument, and
+ * survives an attribute order or a newline inside the tag, which the pattern
+ * did not.
+ *
+ * The `<table>` wrapper is load-bearing: `renderVersions` returns fragments,
+ * and the HTML parser drops a `<th>` that has no table above it — leaving an
+ * empty list, and an assertion over nothing passes.
+ */
 const headings = (html: string) =>
-  [...html.matchAll(/<th scope="col">(.*?)<\/th>/g)].map((match) =>
-    match[1]!.replace(/<[^>]+>/g, '').trim()
-  );
+  [
+    ...new JSDOM(`<table>${html}</table>`).window.document.querySelectorAll(
+      'th[scope="col"]'
+    )
+  ].map((th) => th.textContent!.trim());
 
 describe('the versions matrix with a generated section', () => {
   it('gives each declaration a grid of its own', () => {
