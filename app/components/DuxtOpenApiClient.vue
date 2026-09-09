@@ -965,10 +965,64 @@ function pretty(text: string): string {
             </TabsTrigger>
           </TabsList>
 
-          <!-- Only where the language HAS a second client. One option in a
-               select is a control that cannot be used, and curl or Go would
-               otherwise carry one for symmetry's sake. -->
-          <UiSelect v-if="clients.length > 1" v-model="sample">
+          <UiButton
+            variant="ghost"
+            size="icon"
+            class="ml-auto size-7 hover:bg-accent hover:text-foreground"
+            :aria-label="
+              copiedSample ? $t('duxt.code.copied') : $t('duxt.code.copy')
+            "
+            @click="copySample"
+          >
+            <Icon
+              :name="copiedSample ? 'lucide:check' : 'lucide:copy'"
+              class="size-3.5"
+            />
+          </UiButton>
+        </div>
+
+        <!-- THE CLIENTS OF THE ACTIVE LANGUAGE, in a row of their own.
+             Beside the tabs they were a control the reader had to open to learn
+             that PHP has three of them; on their own line the choice is the
+             thing they see. Dropped entirely where the language has one client,
+             because a picker with a single option cannot be used.
+
+             `role="group"` with `aria-pressed`, NOT a radiogroup: a radiogroup
+             promises arrow-key navigation between its options, and there is no
+             `ui/radio-group` here to implement it. A group of pressed buttons
+             promises only what it does — every one reachable by Tab, every one
+             saying whether it is on. -->
+        <div
+          v-if="clients.length > 1 && clients.length < 6"
+          role="group"
+          :aria-label="$t('duxt.openapi.client.sampleClient') as string"
+          class="flex items-center gap-1 overflow-x-auto border-b bg-muted/20 px-2 py-1.5"
+        >
+          <button
+            v-for="entry in clients"
+            :key="entry.id"
+            type="button"
+            :aria-pressed="entry.id === sample"
+            class="cursor-pointer whitespace-nowrap rounded-md px-2 py-0.5 font-mono text-xs transition-colors"
+            :class="
+              entry.id === sample
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+            "
+            @click="sample = entry.id"
+          >
+            {{ entry.label }}
+          </button>
+        </div>
+
+        <!-- Six is where a row stops being a row. A language with that many
+             clients is a site that configured them, and a select carries any
+             number on any width — the trade the chips above cannot make. -->
+        <div
+          v-else-if="clients.length >= 6"
+          class="flex items-center border-b bg-muted/20 px-2 py-1.5"
+        >
+          <UiSelect v-model="sample">
             <UiSelectTrigger
               class="h-7 w-auto gap-1.5 border-0 bg-transparent px-2 font-mono text-xs shadow-none hover:bg-accent"
               :aria-label="$t('duxt.openapi.client.sampleClient') as string"
@@ -987,21 +1041,6 @@ function pretty(text: string): string {
               </UiSelectItem>
             </UiSelectContent>
           </UiSelect>
-
-          <UiButton
-            variant="ghost"
-            size="icon"
-            class="ml-auto size-7 hover:bg-accent hover:text-foreground"
-            :aria-label="
-              copiedSample ? $t('duxt.code.copied') : $t('duxt.code.copy')
-            "
-            @click="copySample"
-          >
-            <Icon
-              :name="copiedSample ? 'lucide:check' : 'lucide:copy'"
-              class="size-3.5"
-            />
-          </UiButton>
         </div>
 
         <!-- Said plainly, because the difference is invisible otherwise: a
