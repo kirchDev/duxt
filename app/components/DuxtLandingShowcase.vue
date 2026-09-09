@@ -146,8 +146,13 @@ const operation = computed(() =>
       <!-- THE DEMO. `min-w-0` because a highlighted line of config is wider
            than its column and a grid track sized to its content would push the
            prose off the page rather than scroll the code. -->
+      <!-- `self-start`: a demo that changes height — a code group whose tabs
+           hold files of different lengths — grows DOWNWARDS from a fixed top
+           edge. Centred it grew in both directions, so the tab strip the reader
+           just clicked moved up under their cursor. The prose beside it stays
+           centred, which is what the row's `items-center` does. -->
       <div
-        class="min-w-0"
+        class="min-w-0 lg:self-start"
         :class="reversed && !showcase.full ? 'lg:order-1' : ''"
       >
         <DuxtLiveWindow

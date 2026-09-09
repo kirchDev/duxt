@@ -725,10 +725,16 @@ function pretty(text: string): string {
         <slot name="beside-form" />
       </div>
 
+      <!-- `self-start`, for the reason the samples box below gives: a card
+           centred in its row grows in both directions when an answer arrives,
+           and the form the reader is looking at moves up under their cursor. -->
       <div
         :class="
           split
-            ? ['rounded-lg border', reverse ? 'lg:order-1' : 'lg:order-2']
+            ? [
+                'self-start rounded-lg border',
+                reverse ? 'lg:order-1' : 'lg:order-2'
+              ]
             : 'contents'
         "
       >
