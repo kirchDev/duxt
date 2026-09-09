@@ -15,7 +15,7 @@
  * Anchors come from `changelog.ts`, which is also what the two components use,
  * so a link here and the id it points at cannot drift apart.
  */
-import { changelogAnchor } from './changelog';
+import { changelogAnchor, changelogLabel } from './changelog';
 
 export interface DuxtGeneratedTocLink {
   id: string;
@@ -81,7 +81,9 @@ function walk(nodes: unknown[], inside: boolean): DuxtGeneratedTocLink[] {
       const name = String(prop(props, 'name') ?? '');
       const id = changelogAnchor(name);
 
-      if (id) links.push({ id, text: name, depth: 2 });
+      // The same words the heading itself draws — the anchor is still built
+      // from the file's own name, so the two cannot point apart.
+      if (id) links.push({ id, text: changelogLabel(name), depth: 2 });
       links.push(...walk(children, true));
       continue;
     }

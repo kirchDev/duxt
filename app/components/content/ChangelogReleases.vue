@@ -89,29 +89,89 @@ function toggle(name: string) {
     : [...selected.value, name];
 }
 
+/**
+ * The release day, in the reader's language — shared with the meta row a
+ * release page draws, so one release cannot be dated two different ways.
+ */
+const formatted = (value?: string) => changelogDate(value, locale.value);
+/** How many groups a row names before it starts counting the rest. */
+const SHOWN_GROUPS = 3;
+
+/**
+ * The whole history in two numbers, over the list rather than in it.
+ *
+ * The same summary the landing page opens with — a figure set large with a
+ * small labelled line under it — because it answers the question the list
+ * cannot: how much there IS. A list of six rows is read as six rows whatever
+ * they carry, and the sum of what those releases changed is nowhere on the page
+ * otherwise.
+ *
+ * IT COUNTS WHAT IS SHOWN, not what exists, so a filtered page's figures are
+ * about the filtered page — with the total kept beside the first one, which is
+ * also where the heading's own count used to sit.
+ */
+const stats = computed(() => ({
+  releases: shown.value.length,
+  total: props.releases.length,
+  changes: shown.value.reduce(
+    (all, release) =>
+      all + (release.groups ?? []).reduce((sum, group) => sum + group.count, 0),
+    0
+  ),
+  // What the project actually does, as opposed to how much of it: a history of
+  // forty releases that only ever fixes bugs says something a change count
+  // cannot. Counted over the names the file used, so it is the file's own
+  // vocabulary being counted and not a taxonomy of ours.
+  kinds: new Set(
+    shown.value.flatMap((release) =>
+      (release.groups ?? []).map((group) => group.name)
+    )
+  ).size,
+  // The last day something shipped — the one figure here that is not a count,
+  // and the one a reader checks first on a project they are considering.
+  last: formatted(shown.value[0]?.date)
+}));
+
 /** The newest release the file lists — marked wherever the filter puts it. */
 const latest = (release: { to: string }) =>
   release.to === props.releases[0]?.to;
 
 /**
- * The release day, in the reader's language.
+ * The rows as they are drawn: a release, the groups it NAMES, and how many it
+ * leaves.
  *
- * `timeZone: 'UTC'` because the value is a calendar date and not a moment: read
- * as local time, `2026-09-08` is the 7th for every reader west of Greenwich —
- * and a different day on the server than in the browser, which is a hydration
- * mismatch as well as a wrong date.
+ * The whole list was the row before this, and on a release that touched
+ * everything that was twelve names over two lines — twelve facts on a page
+ * whose job is to tell six releases apart. A row that grows with the release it
+ * describes also stops the list comparing them: the one release with every
+ * section becomes the page.
+ *
+ * So three, BY COUNT rather than by the order the file wrote them: the
+ * shallowest reading of "what was this release" is what it did most of, and
+ * release-please's own section order is fixed and means nothing. What is left
+ * is counted, never dropped silently.
+ *
+ * A FILTERED row names what it was filtered by first. Otherwise selecting
+ * "Tests" leaves a release matching on a group its row does not mention, which
+ * reads as a filter that let the wrong page through.
  */
-const formatted = (value?: string) => {
-  if (!value) return undefined;
+const rows = computed(() =>
+  shown.value.map((release) => {
+    const groups = [...(release.groups ?? [])].sort((a, b) => {
+      const chosen =
+        Number(selected.value.includes(b.name)) -
+        Number(selected.value.includes(a.name));
 
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return undefined;
+      return chosen || b.count - a.count;
+    });
 
-  return new Intl.DateTimeFormat(locale.value, {
-    dateStyle: 'medium',
-    timeZone: 'UTC'
-  }).format(date);
-};
+    return {
+      release,
+      named: groups.slice(0, SHOWN_GROUPS),
+      rest: Math.max(0, groups.length - SHOWN_GROUPS)
+    };
+  })
+);
 </script>
 
 <template>
@@ -127,21 +187,10 @@ const formatted = (value?: string) => {
          dropped re-laid the row it shared, so the button a reader was aiming at
          slid out from under the pointer between two clicks. On a row of its own
          the header is fixed and only the row that is actually changing moves. -->
-    <div class="mt-10 mb-8 space-y-3">
+    <div class="mt-12 mb-8 space-y-3">
       <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
         <h2 class="text-lg font-semibold tracking-tight">
           {{ $t('duxt.changelog.history') }}
-
-          <!-- Numbers only, so it needs no words: the whole history, or how
-               much of it the filter is leaving. -->
-          <span
-            class="ml-1.5 text-sm font-normal text-muted-foreground tabular-nums"
-          >
-            <template v-if="selected.length">
-              {{ shown.length }}&thinsp;/&thinsp;{{ releases.length }}
-            </template>
-            <template v-else>{{ releases.length }}</template>
-          </span>
         </h2>
 
         <!-- One kind of change is no choice: the control would offer a single
@@ -150,9 +199,14 @@ const formatted = (value?: string) => {
              A MENU rather than a row of chips, and the reason is the fixture: a
              release-please changelog writes twelve section names, and twelve
              coloured chips wrapped over three rows read as noise sitting
-             between the prose and the history. The colours are the timeline's
-             own, so a chip below and a dot under a version are the same
-             thing. -->
+             between the prose and the history.
+
+             THE MENU KEEPS ITS DOTS while the history below sets the name in
+             the tone instead, and the split is the rule rather than an
+             oversight: a menu item is a control, where a mark beside a label is
+             what makes the row hittable and scannable, and the history is
+             reading matter, where a mark on every line of every release is
+             noise. Same six colours either way. -->
         <div
           v-if="names.length > 1"
           role="group"
@@ -193,7 +247,7 @@ const formatted = (value?: string) => {
                   class="size-1.5 shrink-0 rounded-full"
                   :class="changelogTone(name).dot"
                 />
-                <span class="truncate">{{ name }}</span>
+                <span class="truncate">{{ changelogLabel(name) }}</span>
                 <span
                   class="ml-auto pl-2 text-xs text-muted-foreground tabular-nums"
                 >
@@ -206,18 +260,42 @@ const formatted = (value?: string) => {
       </div>
 
       <!-- Each chip removes its own kind, because "which one did I turn on" is
-           answered by the same control that turns it off. -->
-      <div
-        v-if="selected.length"
+           answered by the same control that turns it off.
+
+           ANIMATED FOR THE SAME REASON THE LIST IS: a chip appearing is the
+           visible half of a filter being set, and the list below moves at the
+           same moment — the two reading as one gesture is the whole point. Same
+           timings, same reduced-motion behaviour.
+
+           NEITHER CHIP CARRIES `transition-colors`, and that is what makes the
+           leave visible at all: two transition utilities on one element are two
+           declarations of the same property, and which one wins is the order
+           Tailwind emitted them in — not the order they are written here. With
+           `transition-colors` on the chip the leave ran its 150ms on the colour
+           and left opacity and transform untouched, so the chip simply
+           vanished. The hover colour is instant now, which on a chip this size
+           is not a loss.
+
+           The row is ALWAYS RENDERED and hidden while empty (`empty:hidden`),
+           rather than held behind a `v-if` that would take the leaving chips
+           with it before they could leave. During a leave it is no longer
+           empty, so it stays laid out until the last chip is gone. -->
+      <TransitionGroup
+        tag="div"
         role="group"
         :aria-label="$t('duxt.changelog.selected')"
-        class="flex flex-wrap items-center gap-2"
+        class="flex flex-wrap items-center gap-2 empty:hidden"
+        enter-active-class="transition duration-200 ease-out motion-reduce:transition-none"
+        enter-from-class="scale-95 opacity-0"
+        leave-active-class="transition duration-150 ease-in motion-reduce:transition-none"
+        leave-to-class="scale-95 opacity-0"
+        move-class="transition-transform duration-200 ease-out motion-reduce:transition-none"
       >
         <button
           v-for="name in selected"
           :key="name"
           type="button"
-          class="inline-flex cursor-pointer items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          class="inline-flex cursor-pointer items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
           :class="changelogTone(name).chip"
           @click="toggle(name)"
         >
@@ -226,95 +304,217 @@ const formatted = (value?: string) => {
             class="size-1.5 rounded-full"
             :class="changelogTone(name).dot"
           />
-          {{ name }}
+          {{ changelogLabel(name) }}
           <Icon name="lucide:x" class="size-3 opacity-60" />
         </button>
 
         <button
+          v-if="selected.length"
+          key="reset"
           type="button"
-          class="cursor-pointer text-xs text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          class="cursor-pointer text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
           @click="selected = []"
         >
           {{ $t('duxt.changelog.reset') }}
         </button>
-      </div>
+      </TransitionGroup>
     </div>
 
-    <!-- A rail down the left, a dot per release: a changelog is read as a
-         sequence, and the dates only line up when the list says so. -->
-    <ol class="relative ml-1.5 space-y-2 border-l pl-8">
-      <li v-for="release in shown" :key="release.to" class="relative">
-        <!-- Centred ON the rail rather than beside it: the dot is placed at the
-             padding edge and then pulled back by half its own width, so it
-             stays centred whatever size it is drawn at. Positioning it by a
-             hand-computed offset is what left it two pixels to the left. -->
-        <span
-          aria-hidden="true"
-          class="absolute top-[1.375rem] -left-8 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-background ring-1 ring-border"
-          :class="latest(release) ? 'bg-primary' : 'bg-muted-foreground'"
-        />
+    <!-- WHAT THE LIST CANNOT SAY: how much there is. Two figures set the way
+         the landing page sets its own — a number, and a small labelled line
+         under it — because six rows are read as six rows whatever they carry.
 
+         They count what is SHOWN. The total stays beside the first one, which
+         is where the heading's own count used to sit.
+
+         A GRID, NOT A WRAPPING ROW, and it is the one place on this page where
+         the column count is written down: four figures over the full width read
+         as the header of the list under them, where the same four bunched at
+         the left edge read as a caption with a hole beside it. The landing's
+         own row wraps and centres instead, for a number of figures a SITE
+         chooses; here the four are the layer's and fixed.
+
+         THE LABEL CARRIES THE ACCENT, the figure does not: `--primary` is the
+         one colour a consuming site sets to make the theme its own, and two
+         short labelled lines are where it costs nothing and reads as the
+         site's. The numbers stay in the text colour — they are read, not
+         branded. -->
+    <dl
+      class="mb-1 grid grid-cols-2 gap-x-6 gap-y-7 border-b pb-5 sm:grid-cols-4"
+    >
+      <div class="flex flex-col gap-1">
+        <dd
+          class="text-2xl font-semibold tracking-tight tabular-nums sm:text-3xl"
+        >
+          {{ stats.releases
+          }}<span v-if="selected.length" class="text-muted-foreground">
+            &thinsp;/&thinsp;{{ stats.total }}
+          </span>
+        </dd>
+        <dt class="flex items-center gap-1.5 text-xs font-medium text-primary">
+          <Icon name="lucide:tag" class="size-3.5" />
+          {{ $t('duxt.changelog.releases') }}
+        </dt>
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <dd
+          class="text-2xl font-semibold tracking-tight tabular-nums sm:text-3xl"
+        >
+          {{ stats.changes }}
+        </dd>
+        <dt class="flex items-center gap-1.5 text-xs font-medium text-primary">
+          <Icon name="lucide:git-commit-horizontal" class="size-3.5" />
+          {{ $t('duxt.changelog.changes') }}
+        </dt>
+      </div>
+
+      <div v-if="stats.kinds" class="flex flex-col gap-1">
+        <dd
+          class="text-2xl font-semibold tracking-tight tabular-nums sm:text-3xl"
+        >
+          {{ stats.kinds }}
+        </dd>
+        <dt class="flex items-center gap-1.5 text-xs font-medium text-primary">
+          <Icon name="lucide:list-filter" class="size-3.5" />
+          {{ $t('duxt.changelog.kinds') }}
+        </dt>
+      </div>
+
+      <!-- A date rather than a count, and the only one here: it is what a
+           reader weighing up a project checks first. Dropped where the file
+           dates nothing, rather than printed as a dash. -->
+      <div v-if="stats.last" class="flex flex-col gap-1">
+        <dd
+          class="text-2xl font-semibold tracking-tight tabular-nums sm:text-3xl"
+        >
+          {{ stats.last }}
+        </dd>
+        <dt class="flex items-center gap-1.5 text-xs font-medium text-primary">
+          <Icon name="lucide:calendar" class="size-3.5" />
+          {{ $t('duxt.changelog.last') }}
+        </dt>
+      </div>
+    </dl>
+
+    <!-- ONE LINE PER RELEASE, in columns: version, date, what it carried. Two
+         stacked lines gave every release the height of a paragraph and put the
+         versions six rows apart — and a history is read down the left edge, one
+         line at a time.
+
+         A GRID rather than a flex row, because the columns are what makes the
+         line readable: every date starts at the same x, so does every summary,
+         and the eye compares releases instead of re-finding the fields. The
+         badge column stays in the grid even where no release carries one — an
+         empty track is what keeps the fifth row's summary under the first's.
+
+         It COLLAPSES rather than scrolls: under `sm` the wrapper stops being
+         `contents`, so version, date and badge sit on one line and the summary
+         takes the one below, which is the same row with less room. -->
+    <!-- FILTERING MOVES ROWS, so the rows move. A list that jumps from six
+         entries to two gives a reader no way to see what happened; the same
+         change taken over 200ms is read as a filter narrowing rather than as a
+         new page.
+
+         `TransitionGroup` rather than a motion library: this is a fade, a
+         nudge and the FLIP the browser does for `move-class`, and none of it is
+         worth a runtime dependency in every site that extends the layer. A
+         leaving row is taken out of the flow (`absolute`) so the rows under it
+         close the gap while it fades rather than after.
+
+         `motion-reduce:transition-none` throughout, because a reader who asked
+         the system for less motion asked this list too. -->
+    <TransitionGroup
+      tag="ol"
+      class="relative -mx-3"
+      enter-active-class="transition duration-200 ease-out motion-reduce:transition-none"
+      enter-from-class="translate-y-1 opacity-0"
+      leave-active-class="absolute inset-x-0 transition duration-150 ease-in motion-reduce:transition-none"
+      leave-to-class="-translate-y-1 opacity-0"
+      move-class="transition-transform duration-200 ease-out motion-reduce:transition-none"
+    >
+      <li
+        v-for="{ release, named, rest } in rows"
+        :key="release.to"
+        class="border-t border-border/60 first:border-t-0"
+      >
         <NuxtLink
           :to="localeLink(release.to)"
-          class="group -mx-3 block rounded-lg px-3 py-2 transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          class="group grid grid-cols-[1fr_auto] items-baseline gap-x-4 gap-y-1.5 rounded-lg px-3 py-3 transition-colors hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:grid-cols-[9rem_1fr_auto_auto]"
         >
-          <div class="flex min-h-7 flex-wrap items-center gap-x-3 gap-y-1">
-            <h3
-              class="text-xl font-semibold tracking-tight transition-colors group-hover:text-primary"
+          <span class="flex items-baseline gap-3 sm:contents">
+            <!-- ONE CELL for the version and its badge, so the two stand a
+                 chip's width apart rather than a column apart: the badge is a
+                 fact about the version, and a fixed track between them made the
+                 gap a layout decision instead of a typographic one. The cell
+                 itself is fixed, which is what still lines the summaries up. -->
+            <span
+              class="flex items-baseline gap-2 sm:col-start-1 sm:row-start-1"
             >
-              {{ release.version }}
-            </h3>
+              <h3
+                class="font-semibold tabular-nums transition-colors group-hover:text-primary"
+              >
+                {{ release.version }}
+              </h3>
 
+              <UiBadge
+                v-if="latest(release)"
+                class="px-2 py-0 text-[0.6875rem] leading-5"
+              >
+                {{ $t('duxt.changelog.latest') }}
+              </UiBadge>
+            </span>
+
+            <!-- At the far end, beside the arrow. It is the one field a reader
+                 scans down rather than reads across, and the right edge is
+                 where a column of dates lines up without competing with the
+                 version for the left one. -->
             <time
               v-if="release.date"
               :datetime="release.date"
-              class="text-sm text-muted-foreground"
+              class="text-xs text-muted-foreground tabular-nums sm:col-start-3 sm:row-start-1"
             >
               {{ formatted(release.date) }}
             </time>
+          </span>
 
-            <span
-              v-if="latest(release)"
-              class="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary ring-1 ring-inset ring-primary/20"
-            >
-              {{ $t('duxt.changelog.latest') }}
-            </span>
-
-            <!-- Only on hover, and only where there is a pointer to hover
-                 with: the affordance is the row lighting up, and an arrow
-                 parked on every line would be forty arrows. -->
-            <Icon
-              name="lucide:arrow-right"
-              aria-hidden="true"
-              class="ml-auto size-4 -translate-x-1 text-muted-foreground opacity-0 transition group-hover:translate-x-0 group-hover:opacity-100"
-            />
-          </div>
-
-          <!-- A dot and a number rather than a filled badge per group: five
-               solid pills on four releases is twenty solid pills, and the
-               colour is doing the work the pill's surface was doing. -->
-          <div
-            v-if="release.groups?.length"
-            class="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1.5"
+          <p
+            class="col-span-2 row-start-2 text-xs text-muted-foreground sm:col-span-1 sm:col-start-2 sm:row-start-1"
           >
-            <span
-              v-for="group in release.groups"
-              :key="group.name"
-              class="inline-flex items-center gap-1.5 text-xs text-muted-foreground"
-            >
+            <span v-for="(group, index) in named" :key="group.name">
+              <!-- The separator is punctuation, not a word: set fainter than
+                   either side and given room, so the eye breaks the line into
+                   three facts instead of reading one run of text. -->
               <span
+                v-if="index"
                 aria-hidden="true"
-                class="size-1.5 rounded-full"
-                :class="changelogTone(group.name).dot"
-              />
-              {{ group.name }}
-              <span class="font-medium text-foreground/70 tabular-nums">
+                class="px-1 text-muted-foreground/50"
+              >
+                ·
+              </span>
+              {{ changelogLabel(group.name) }}
+              <span class="ml-0.5 font-medium text-foreground tabular-nums">
                 {{ group.count }}
               </span>
             </span>
-          </div>
+
+            <template v-if="rest">
+              <span aria-hidden="true" class="px-1 text-muted-foreground/50">
+                ·
+              </span>
+              {{ $t('duxt.changelog.more', { count: rest }) }}
+            </template>
+          </p>
+
+          <!-- The affordance every card and row of this site uses: the arrow
+               that steps forward under the pointer. -->
+          <Icon
+            name="lucide:arrow-right"
+            aria-hidden="true"
+            class="col-start-2 row-start-1 size-3.5 shrink-0 self-center text-muted-foreground transition-transform group-hover:translate-x-0.5 sm:col-start-4"
+          />
         </NuxtLink>
       </li>
-    </ol>
+    </TransitionGroup>
   </div>
 </template>

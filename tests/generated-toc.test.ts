@@ -29,7 +29,9 @@ describe('generatedToc', () => {
   it('lists the groups a release page draws from a prop', () => {
     expect(generatedToc(releasePage)).toEqual([
       { id: 'features', text: 'Features', depth: 2 },
-      { id: 'breaking-changes', text: '⚠ BREAKING CHANGES', depth: 2 }
+      // The mark release-please prefixes the block with is drawn away, and the
+      // anchor is still built from the file's own name — see `changelogLabel`.
+      { id: 'breaking-changes', text: 'BREAKING CHANGES', depth: 2 }
     ]);
   });
 
