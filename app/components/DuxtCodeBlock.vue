@@ -1,10 +1,27 @@
 <script setup lang="ts">
-const props = defineProps<{
-  /** Raw source, used for the copy button and as the body when no slot is given. */
-  code?: string;
-  language?: string;
-  filename?: string;
-}>();
+const props = withDefaults(
+  defineProps<{
+    /** Raw source, used for the copy button and as the body when no slot is given. */
+    code?: string;
+    language?: string;
+    filename?: string;
+    /**
+     * The block's own controls — the header bar AND the copy button.
+     *
+     * `false` says a CONTAINER draws them instead: `CodeGroup` puts the file
+     * names in a tab bar and the copy button beside them, the way
+     * `PackageManagers` does, and a block that kept its own would print the
+     * language under the file name and offer a second button for the same
+     * text.
+     *
+     * Both together, deliberately. Switching off only the bar left the copy
+     * button in its floating position, where it appears on hover — so a group
+     * of fences lost the visible control the same block outside a group has.
+     */
+    header?: boolean;
+  }>(),
+  { header: true }
+);
 
 const slots = useSlots();
 
@@ -76,7 +93,7 @@ async function copy() {
     class="duxt-code group relative my-6 overflow-hidden rounded-lg border bg-card"
   >
     <div
-      v-if="label"
+      v-if="header && label"
       class="duxt-code-header flex min-h-11 items-center gap-2 border-b bg-muted/40 px-3 py-2 text-xs text-muted-foreground"
     >
       <Icon :name="icon" class="size-4 shrink-0" />
@@ -97,7 +114,7 @@ async function copy() {
     </div>
 
     <UiButton
-      v-else
+      v-else-if="header"
       variant="ghost"
       size="icon"
       class="duxt-code-copy absolute top-2 right-2 size-7 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-accent focus-visible:opacity-100"
