@@ -43,5 +43,12 @@ ist als die alte Version, zwei Seiten, bei denen die Übersetzung nicht
 nachgekommen ist, eine Seite ohne Frontmatter — denn ein Panel, das nichts zu
 melden hat, bringt niemandem bei, wie es aussieht, wenn etwas nicht stimmt.
 
+## Ohne Dev-Server
+
+`pnpm exec duxt-report` druckt die Quellen, die Prüfungen und die Weiterleitungen
+als Markdown — dieselben Daten, die diese Panels zeichnen, in einer Form, die du
+in ein Ticket einfügen oder einem Modell geben kannst. `--json` gibt sie
+unaufbereitet. Siehe [Was der Build prüft](/concepts/build-checks).
+
 Die Vorschauen sind unbeweglich: Ihre Tabs wechseln zwischen den Panels, und
 alles andere — die Editor-Links, der Drop-Button, das Suchformular — tut nichts.

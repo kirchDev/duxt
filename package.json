@@ -25,7 +25,11 @@
     "type": "git",
     "url": "git+https://github.com/kirchDev/duxt.git"
   },
+  "bin": {
+    "duxt-report": "./bin/duxt-report.mjs"
+  },
   "files": [
+    "bin",
     "app",
     "components.json",
     "content-cache.ts",
@@ -39,9 +43,12 @@
     "openapi-model.ts",
     "openapi-parse.ts",
     "public",
+    "report.ts",
+    "repository-root.ts",
     "sections-changelog.ts",
     "sections-openapi.ts",
     "sections-resolve.ts",
+    "section-reports.ts",
     "sections.ts",
     "server",
     "sources-git.ts",
@@ -83,6 +90,7 @@
     "typecheck:app": "pnpm --filter www typecheck",
     "test": "vitest run",
     "test:watch": "vitest",
+    "report": "pnpm --filter www exec duxt-report",
     "build:app": "pnpm --filter www build",
     "check:a11y": "node scripts/check-a11y.ts",
     "check:seo": "node scripts/check-seo.ts"

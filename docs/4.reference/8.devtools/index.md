@@ -42,5 +42,12 @@ translation has not caught up with, a page with no frontmatter — because a pan
 with nothing to report teaches nobody what it looks like when something is
 wrong.
 
+## Without a dev server
+
+`pnpm exec duxt-report` prints the sources, the checks and the redirects as
+Markdown — the same data these panels draw, in a form you can paste into a
+ticket or hand to a model. `--json` gives it unrendered. See
+[What the build checks](/concepts/build-checks).
+
 The previews are inert: their tabs move between panels, and everything else —
 the editor links, the drop button, the search form — does nothing.

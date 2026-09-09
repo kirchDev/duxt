@@ -47,8 +47,24 @@ export function readContentCache(
   nuxt: Nuxt,
   collections: Iterable<string>
 ): CachedPage[] | undefined {
-  const file = cacheFile(nuxt);
+  return readContentCacheAt(cacheFile(nuxt), collections);
+}
 
+/** Content's default location for that cache, for a reader with no Nuxt. */
+export const contentCacheFile = (rootDir: string) =>
+  join(rootDir, '.data/content/contents.sqlite');
+
+/**
+ * The same read, addressed by FILE rather than by a Nuxt instance.
+ *
+ * Split out for `report.ts`, which runs as a command beside the build rather
+ * than inside it and has no `nuxt` to be handed. Everything below was already
+ * a function of the path alone; only the path was not reachable.
+ */
+export function readContentCacheAt(
+  file: string,
+  collections: Iterable<string>
+): CachedPage[] | undefined {
   if (!existsSync(file)) return undefined;
 
   const names = new Set(collections);

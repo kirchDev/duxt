@@ -1,5 +1,4 @@
-import { existsSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 import { defineCollection, z } from '@nuxt/content';
 import { defineSitemapSchema } from '@nuxtjs/sitemap/content';
 import type { DuxtSource, DuxtSourcesOptions } from './sources-resolve';
@@ -11,6 +10,10 @@ import {
   resolveSources
 } from './sources-resolve';
 import { resolveLatestRefs } from './sources-git';
+// Re-exported under the name it has always had here: it moved out so a Nuxt
+// module could reach it without this file's imports coming with it.
+import { repositoryRoot } from './repository-root';
+export { repositoryRoot };
 export type {
   DuxtResolvedSource,
   DuxtSource,
@@ -22,23 +25,6 @@ export { duxtSourceManifest } from './sources-resolve';
 // to follow out of client code.
 import { PARTIALS_COLLECTION, partialsCollection } from './sources-resolve';
 export { PARTIALS_COLLECTION, partialsCollection };
-
-/**
- * Walk up to the repository root, so `docs/` resolves there and not in a
- * subfolder. Node-only, and kept here rather than beside the resolver: that
- * file is read by app.config.ts and therefore bundled for the browser.
- */
-export function repositoryRoot(): string {
-  let dir = process.cwd();
-
-  for (;;) {
-    if (existsSync(join(dir, '.git'))) return dir;
-
-    const parent = dirname(dir);
-    if (parent === dir) return process.cwd();
-    dir = parent;
-  }
-}
 
 /**
  * Frontmatter the theme reads beyond Content's own fields.
