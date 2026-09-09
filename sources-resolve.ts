@@ -55,7 +55,16 @@ export interface DuxtSource {
   version?: string;
   /** Shown in the version switcher and used in the URL; defaults to the ref. */
   label?: string;
-  /** Segment used in the URL for this repository; defaults to the repo name. */
+  /**
+   * Segment used in the URL for this source; defaults to the repository name.
+   *
+   * NAMING ONE IS A CLAIM ON A SEGMENT, and that is what makes it more than a
+   * spelling: the automatic rule adds a segment to every source once the list
+   * holds more than one repository, which cannot express "the documentation at
+   * the root, one thing beside it". A source that names a slug gets its segment
+   * whether or not the rule fires, and the sources that name none are untouched
+   * — so a site adding a second source keeps every URL it already serves.
+   */
   slug?: string;
   /**
    * Lifecycle of every version this entry publishes, unless a ref says
@@ -188,7 +197,12 @@ export const refIsTag = (ref: DuxtRef): boolean =>
   typeof ref !== 'string' && 'tag' in ref;
 
 export interface DuxtSourcesOptions {
-  /** Force a repository segment even with a single repository. */
+  /**
+   * Force a repository segment even with a single repository.
+   *
+   * All or nothing, and deliberately: it answers "does this site have prefixes
+   * at all". A single source that wants one uses `slug` instead.
+   */
   showRepo?: boolean;
   /** Force a version segment even with a single version. */
   showVersion?: boolean;
@@ -212,7 +226,14 @@ export interface DuxtResolvedSource {
   collection: string;
   /** URL prefix it serves; '' for the root. */
   prefix: string;
-  /** Repository segment, when the list has more than one repository. */
+  /**
+   * The source's own segment, where it has one — because the list holds more
+   * than one repository, or because the source named a `slug`.
+   *
+   * Read as an IDENTITY as much as a segment: the version switcher and the
+   * search grouping both scope themselves by it, so two sources with different
+   * segments never offer each other's versions.
+   */
   repo?: string;
   /** Version label, when the list has more than one version. */
   version?: string;
@@ -509,6 +530,16 @@ export function resolveSources(
   const withVersion = options.showVersion ?? names.size > 1;
   const defaultRef = options.defaultRef ?? [...names][0];
 
+  /**
+   * Does THIS source get a segment of its own?
+   *
+   * The list-wide rule above, or the source's own `slug` — see there for why a
+   * slug is a claim rather than a spelling. Per source rather than per list,
+   * which is the whole difference: a site whose docs sit at the root can hang
+   * one prefixed source beside them without moving a single existing URL.
+   */
+  const segmented = (source: DuxtSource) => withRepo || Boolean(source.slug);
+
   const resolved: DuxtResolvedSource[] = [];
   const taken = new Map<string, string>();
 
@@ -536,7 +567,7 @@ export function resolveSources(
     const isDefault = !name || name === defaultRef;
 
     const segments: string[] = [];
-    if (withRepo) segments.push(repoSlug(source));
+    if (segmented(source)) segments.push(repoSlug(source));
     if (withVersion && version && !isDefault) segments.push(version);
 
     // THE LOCALE IS NOT PART OF THE PREFIX. @nuxtjs/i18n already puts it in
@@ -572,7 +603,7 @@ export function resolveSources(
     resolved.push({
       collection,
       prefix,
-      repo: withRepo ? repoSlug(source) : undefined,
+      repo: segmented(source) ? repoSlug(source) : undefined,
       version,
       isDefault,
       repository: entry.repo ?? source.origin?.repo,

@@ -217,7 +217,13 @@ declare global {
     version?: string;
     /** Shown in the version switcher and used in the URL; defaults to the ref. */
     label?: DuxtText;
-    /** Segment used in the URL for this repository; defaults to the repo name. */
+    /**
+     * Segment used in the URL for this source; defaults to the repository name.
+     *
+     * A claim on a segment, not a spelling: a source that names one is served
+     * under it whether or not the site has a second repository, which is what
+     * lets one prefixed source sit beside documentation that stays at the root.
+     */
     slug?: string;
     /** Lifecycle of every version this entry publishes, unless a ref says otherwise. */
     status?: DuxtSourceStatusInput;
