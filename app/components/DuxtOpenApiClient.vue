@@ -1112,80 +1112,74 @@ function pretty(text: string): string {
           </p>
         </form>
 
-        <!-- WHAT CAME BACK, ON ITS WAY IN. The panel used to appear at its
-             full height the instant the answer landed, which moves everything
-             under it by a response's worth in one frame.
+        <!-- WHAT CAME BACK. Always in the DOM, collapsed to nothing until
+             there is something to show.
 
-             `grid-rows-[0fr] → [1fr]` is the way to animate to a height nobody
-             can know in advance: a fixed `max-height` is either too small for a
-             long body or animates empty space for a short one. The inner div
-             owns `overflow-hidden`, which is what makes the outer row
-             collapsible at all.
+             NOT a `<Transition>` around a `v-if`, which is what this was. That
+             makes a node appear and disappear, and server and client then
+             disagree about what stands in its place — a fragment against a
+             comment, which is the hydration mismatch it produced. Nothing is
+             added or removed here: the row goes from `0fr` to `1fr` and the
+             border comes with it.
 
-             `motion-safe` only — a reader who asked for less motion gets the
-             panel, immediately, and none of this. -->
-        <Transition
-          enter-active-class="motion-safe:transition-all motion-safe:duration-300 motion-safe:ease-out"
-          leave-active-class="motion-safe:transition-all motion-safe:duration-200 motion-safe:ease-in"
-          enter-from-class="grid-rows-[0fr] opacity-0"
-          leave-to-class="grid-rows-[0fr] opacity-0"
+             `grid-rows` is still the way to animate to a height nobody can know
+             in advance; the inner `overflow-hidden` is what lets the row be
+             shorter than its content on the way. -->
+        <div
+          class="grid motion-safe:transition-all motion-safe:duration-300 motion-safe:ease-out"
+          :class="
+            failure || result
+              ? 'grid-rows-[1fr] border-t opacity-100'
+              : 'grid-rows-[0fr] opacity-0'
+          "
+          :aria-busy="sending || undefined"
         >
-          <div
-            v-if="failure || result"
-            class="grid grid-rows-[1fr] border-t"
-            :aria-busy="sending || undefined"
-          >
-            <div class="overflow-hidden">
-              <div class="px-4 py-3">
-                <p v-if="failure" class="text-sm text-destructive">
-                  {{ failure }}
-                </p>
+          <div class="overflow-hidden">
+            <div class="px-4 py-3">
+              <p v-if="failure" class="text-sm text-destructive">
+                {{ failure }}
+              </p>
 
-                <template v-else-if="result">
-                  <div class="flex flex-wrap items-center gap-2 text-sm">
-                    <span class="font-mono font-semibold">
-                      {{ result.status }}
-                    </span>
-                    <span class="text-muted-foreground">
-                      {{ result.statusText }}
-                    </span>
-                    <span
-                      class="ml-auto font-mono text-xs text-muted-foreground"
-                    >
-                      {{ result.duration }}&nbsp;ms
-                    </span>
-                  </div>
+              <template v-else-if="result">
+                <div class="flex flex-wrap items-center gap-2 text-sm">
+                  <span class="font-mono font-semibold">
+                    {{ result.status }}
+                  </span>
+                  <span class="text-muted-foreground">
+                    {{ result.statusText }}
+                  </span>
+                  <span class="ml-auto font-mono text-xs text-muted-foreground">
+                    {{ result.duration }}&nbsp;ms
+                  </span>
+                </div>
 
-                  <DuxtCodeBlock
-                    v-if="result.body"
-                    :code="result.body"
-                    language="json"
-                  />
+                <DuxtCodeBlock
+                  v-if="result.body"
+                  :code="result.body"
+                  language="json"
+                />
 
-                  <details v-if="result.headers.length" class="mt-2">
-                    <summary
-                      class="cursor-pointer text-xs text-muted-foreground"
+                <details v-if="result.headers.length" class="mt-2">
+                  <summary class="cursor-pointer text-xs text-muted-foreground">
+                    {{ $t('duxt.openapi.headers') }}
+                  </summary>
+                  <dl
+                    class="mt-2 space-y-1 font-mono text-xs text-muted-foreground"
+                  >
+                    <div
+                      v-for="[name, value] in result.headers"
+                      :key="name"
+                      class="flex gap-2"
                     >
-                      {{ $t('duxt.openapi.headers') }}
-                    </summary>
-                    <dl
-                      class="mt-2 space-y-1 font-mono text-xs text-muted-foreground"
-                    >
-                      <div
-                        v-for="[name, value] in result.headers"
-                        :key="name"
-                        class="flex gap-2"
-                      >
-                        <dt class="shrink-0">{{ name }}</dt>
-                        <dd class="break-all">{{ value }}</dd>
-                      </div>
-                    </dl>
-                  </details>
-                </template>
-              </div>
+                      <dt class="shrink-0">{{ name }}</dt>
+                      <dd class="break-all">{{ value }}</dd>
+                    </div>
+                  </dl>
+                </details>
+              </template>
             </div>
           </div>
-        </Transition>
+        </div>
       </div>
     </div>
 
