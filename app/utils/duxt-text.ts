@@ -30,6 +30,7 @@ const TEXT_KEYS = new Set([
   'badge',
   'copyright',
   'description',
+  'group',
   'headline',
   'label',
   'title'

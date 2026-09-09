@@ -743,13 +743,6 @@ export function openApiQueryString(
   return written ? `?${written}` : '';
 }
 
-export interface DuxtOpenApiRequest {
-  method: string;
-  url: string;
-  headers: Record<string, string>;
-  body?: string;
-}
-
 /** The request an operation, a server and the reader's answers add up to. */
 export function openApiRequest(
   operation: Pick<DuxtOpenApiOperation, 'method' | 'path' | 'parameters'>,
@@ -788,49 +781,6 @@ export function openApiRequest(
     headers: sent,
     body
   };
-}
-
-/**
- * The same request as a `curl` line.
- *
- * Single-quoted with the shell's own escape for an embedded quote, because
- * every part of this — a URL, a header, a JSON body — comes from a document
- * this layer did not write.
- */
-export function openApiCurl(request: DuxtOpenApiRequest): string {
-  const lines = [`curl -X ${request.method} ${shell(request.url)}`];
-
-  for (const [name, value] of Object.entries(request.headers)) {
-    lines.push(`  -H ${shell(`${name}: ${value}`)}`);
-  }
-
-  if (request.body) lines.push(`  -d ${shell(request.body)}`);
-
-  return lines.join(' \\\n');
-}
-
-/** The same request as a `fetch` call. */
-export function openApiFetch(request: DuxtOpenApiRequest): string {
-  const options: string[] = [`  method: ${JSON.stringify(request.method)}`];
-
-  if (Object.keys(request.headers).length) {
-    options.push(
-      `  headers: ${JSON.stringify(request.headers, null, 2).split('\n').join('\n  ')}`
-    );
-  }
-
-  if (request.body) options.push(`  body: ${JSON.stringify(request.body)}`);
-
-  return [
-    `await fetch(${JSON.stringify(request.url)}, {`,
-    options.join(',\n'),
-    '});'
-  ].join('\n');
-}
-
-/** One argument, safe inside a POSIX shell's single quotes. */
-function shell(value: string): string {
-  return `'${value.replaceAll("'", `'\\''`)}'`;
 }
 
 /** Which family a response status belongs to, for the colour it is drawn in. */

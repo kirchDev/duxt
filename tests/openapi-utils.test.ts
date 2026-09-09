@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import type { DuxtOpenApiSchema } from '../openapi-model';
 import {
   openApiConstraints,
-  openApiCurl,
   openApiBodyForm,
   openApiBodyKeys,
   openApiBodyProblems,
@@ -18,6 +17,7 @@ import {
   openApiStatusKind,
   openApiTypeLabel
 } from '../app/utils/openapi';
+import { openApiCurl } from '../app/utils/request-samples';
 
 const schema = (over: Partial<DuxtOpenApiSchema> = {}): DuxtOpenApiSchema =>
   over as DuxtOpenApiSchema;

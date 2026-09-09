@@ -70,6 +70,7 @@
         "direct": "La solicitud la envía su navegador, directamente a ese servidor.",
         "blocked": "La solicitud no llegó al servidor. Puede que no admita solicitudes de otro origen, o que la dirección no sea accesible desde aquí.",
         "samples": "Ejemplo de petición",
+        "sampleClient": "Cliente",
         "form": "Formulario",
         "json": "JSON",
         "format": "Formatear",

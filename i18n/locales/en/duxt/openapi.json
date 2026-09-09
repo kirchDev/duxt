@@ -70,6 +70,7 @@
         "direct": "The request is sent by your browser, straight to that server.",
         "blocked": "The request did not reach the server. It may not allow requests from another origin, or the address may be unreachable from here.",
         "samples": "Request sample",
+        "sampleClient": "Client",
         "form": "Form",
         "json": "JSON",
         "format": "Format",

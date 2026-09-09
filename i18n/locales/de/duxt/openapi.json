@@ -70,6 +70,7 @@
         "direct": "Die Anfrage sendet Ihr Browser direkt an diesen Server.",
         "blocked": "Die Anfrage hat den Server nicht erreicht. Möglicherweise erlaubt er keine Anfragen von einer anderen Herkunft, oder die Adresse ist von hier nicht erreichbar.",
         "samples": "Beispielanfrage",
+        "sampleClient": "Client",
         "form": "Formular",
         "json": "JSON",
         "format": "Formatieren",

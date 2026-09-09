@@ -150,6 +150,8 @@ const bodyKeys = computed(() => openApiBodyKeys(media.value?.schema));
  * property of one endpoint: somebody who edits the body as JSON means it on
  * the next one too. Falls back to the form the moment it cannot serve.
  */
+const duxt = useDuxtConfig();
+
 const storedMode = useDuxtChoice('request-body-view');
 
 const bodyMode = computed({
@@ -335,36 +337,72 @@ const request = computed(() => {
   };
 });
 
-const samples = computed(() => [
-  { name: 'curl', language: 'bash', code: openApiCurl(request.value) },
-  { name: 'fetch', language: 'ts', code: openApiFetch(request.value) }
-]);
-
 /**
- * Which sample is showing, by NAME rather than by index: it is the tab strip's
- * own value, and an index would go stale the day a third language is added
- * above `curl` in the list.
+ * The samples this site offers, each already written for the current request.
+ *
+ * `generate` runs here rather than at build time because the request is being
+ * edited: a path parameter or a body character changes and every sample has to
+ * say the new thing. `label` and `group` arrive already resolved — a consumer's
+ * own entry may carry an i18n key, and `useDuxtConfig` collapses all three text
+ * forms before a component ever sees them.
  */
+const samples = computed(() =>
+  resolveRequestSamples(duxt.requestSamples).map((entry) => ({
+    id: entry.id,
+    language: entry.language,
+    label: asText(entry.label) ?? entry.id,
+    group: asText(entry.group) ?? entry.id,
+    code: entry.generate(request.value)
+  }))
+);
+
 /**
  * REMEMBERED ACROSS PAGES, like the package manager: a reader who works in
  * `curl` works in `curl` on the next endpoint too, and asking again on every
  * page of a forty-endpoint reference is asking forty times. The cookie travels
  * with the request, so the server already renders the right tab.
+ *
+ * The ID is what is stored, not an index: the list is configurable and open, so
+ * a position means nothing across two sites, or across one that adds an entry.
  */
 const stored = useDuxtChoice('request-sample');
 
 const sample = computed({
   get: () =>
-    samples.value.some((entry) => entry.name === stored.value)
-      ? stored.value!
-      : samples.value[0]!.name,
+    samples.value.find((entry) => entry.id === stored.value)?.id ??
+    samples.value[0]!.id,
   set: (value: string) => {
     stored.value = value;
   }
 });
 
 const shown = computed(() =>
-  samples.value.find((entry) => entry.name === sample.value)!
+  samples.value.find((entry) => entry.id === sample.value)!
+);
+
+/**
+ * TWO LEVELS, because the registry is open and a flat strip is not.
+ *
+ * The language is the strip and the client is a select inside it, so PHP with
+ * Guzzle, Laravel and the curl extension costs one tab rather than three — and a
+ * consumer adding three Ruby generators still costs one. Choosing a language
+ * moves to its first client; the cookie holds the client, so the language it
+ * belongs to needs no second cookie.
+ */
+const groups = computed(() => [
+  ...new Set(samples.value.map((entry) => entry.group))
+]);
+
+const group = computed({
+  get: () => shown.value.group,
+  set: (value: string) => {
+    const first = samples.value.find((entry) => entry.group === value);
+    if (first) sample.value = first.id;
+  }
+});
+
+const clients = computed(() =>
+  samples.value.filter((entry) => entry.group === group.value)
 );
 
 /**
@@ -854,7 +892,7 @@ function pretty(text: string): string {
          button sat inside the lower one, away from the choice it belongs to. -->
     <div class="border-t px-4 py-3">
       <TabsRoot
-        v-model="sample"
+        v-model="group"
         class="overflow-hidden rounded-lg border bg-card"
       >
         <!-- The copy button is a SIBLING of the strip, not a child of it: a
@@ -870,15 +908,45 @@ function pretty(text: string): string {
             :aria-label="$t('duxt.openapi.client.samples') as string"
           >
             <TabsTrigger
-              v-for="entry in samples"
-              :key="entry.name"
-              :value="entry.name"
+              v-for="entry in groups"
+              :key="entry"
+              :value="entry"
               class="flex cursor-pointer items-center gap-1.5 rounded-md px-2.5 py-1 font-mono text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
             >
-              <Icon :name="fileIcon(entry.language)" class="size-3.5" />
-              {{ entry.name }}
+              <Icon
+                :name="
+                  fileIcon(
+                    samples.find((sample_) => sample_.group === entry)?.language
+                  )
+                "
+                class="size-3.5"
+              />
+              {{ entry }}
             </TabsTrigger>
           </TabsList>
+
+          <!-- Only where the language HAS a second client. One option in a
+               select is a control that cannot be used, and curl or Go would
+               otherwise carry one for symmetry's sake. -->
+          <UiSelect v-if="clients.length > 1" v-model="sample">
+            <UiSelectTrigger
+              class="h-7 w-auto gap-1.5 border-0 bg-transparent px-2 font-mono text-xs shadow-none hover:bg-accent"
+              :aria-label="$t('duxt.openapi.client.sampleClient') as string"
+            >
+              {{ shown.label }}
+            </UiSelectTrigger>
+
+            <UiSelectContent>
+              <UiSelectItem
+                v-for="entry in clients"
+                :key="entry.id"
+                :value="entry.id"
+                class="font-mono text-xs"
+              >
+                {{ entry.label }}
+              </UiSelectItem>
+            </UiSelectContent>
+          </UiSelect>
 
           <UiButton
             variant="ghost"
@@ -896,7 +964,7 @@ function pretty(text: string): string {
           </UiButton>
         </div>
 
-        <TabsContent :value="sample">
+        <TabsContent :value="group">
           <!-- eslint-disable-next-line vue/no-v-html -- Shiki's own output over
                a string this component built; nothing a reader typed reaches it
                unescaped. -->

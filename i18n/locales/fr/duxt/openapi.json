@@ -70,6 +70,7 @@
         "direct": "La requête est envoyée par votre navigateur, directement à ce serveur.",
         "blocked": "La requête n’a pas atteint le serveur. Il n’accepte peut-être pas les requêtes d’une autre origine, ou l’adresse est inaccessible d’ici.",
         "samples": "Exemple de requête",
+        "sampleClient": "Client",
         "form": "Formulaire",
         "json": "JSON",
         "format": "Formater",

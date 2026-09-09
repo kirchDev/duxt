@@ -30,6 +30,19 @@ export interface DuxtBuildConfig {
    * shape instead of importing it.
    */
   title?: string | Record<string, string>;
+  /**
+   * The try-it client's code samples — read here for their LANGUAGES only.
+   *
+   * `modules/config.ts` turns the ids into the grammar set the runtime
+   * highlighter loads, so a site pays for the languages its samples use and no
+   * others. The generator functions are irrelevant to the build and are left
+   * alone; only `language` and `id` are looked at.
+   *
+   * Typed structurally rather than as `DuxtRequestSample[]` for the same reason
+   * `title` is not a `DuxtText`: this file is loaded by the build, outside the
+   * Nuxt runtime whose generated types carry that global.
+   */
+  requestSamples?: (string | { id?: string; language?: string })[];
 }
 
 /**

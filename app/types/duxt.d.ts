@@ -20,6 +20,46 @@ declare global {
   type DuxtPackageManager = 'pnpm' | 'npm' | 'yarn' | 'bun';
 
   /**
+   * The request the try-it client has built, as a sample generator receives it.
+   *
+   * Declared here rather than exported from `app/utils/openapi.ts` because it is
+   * public now: `duxt.requestSamples` takes a consumer's own generator, and this
+   * is the whole of what such a generator is given. `body` is the editor's text,
+   * not parsed — a generator that wants it as data parses it itself, and gets to
+   * decide what to do when it is not JSON.
+   */
+  interface DuxtOpenApiRequest {
+    method: string;
+    url: string;
+    headers: Record<string, string>;
+    body?: string;
+  }
+
+  /**
+   * One code sample beside the try-it client.
+   *
+   * `generate` runs in the BROWSER, on every keystroke, because the sample has to
+   * follow the request the reader is editing. It must therefore be synchronous,
+   * pure, and cheap; it must not touch the network or the DOM.
+   *
+   * `language` is a Shiki id, and it is read at BUILD time: `modules/config.ts`
+   * collects the ids of the configured samples and loads exactly those grammars
+   * into the runtime highlighter, so a site pays for the languages it shows and
+   * no others. A language Shiki does not know renders as plain text.
+   *
+   * `group` is the first level of the picker and `label` the second, so three
+   * clients for one language cost one control rather than three tabs.
+   */
+  interface DuxtRequestSample {
+    /** Stable across releases: it is also the value remembered in the cookie. */
+    id: string;
+    label: DuxtText;
+    group: DuxtText;
+    language: string;
+    generate: (request: DuxtOpenApiRequest) => string;
+  }
+
+  /**
    * The name of a page collection, as Content generated it for THIS site.
    *
    * Was the literal `'docs'` while the layer always shipped a collection by
@@ -53,11 +93,17 @@ declare global {
         ? string | undefined
         : string
       : T
-    : T extends readonly (infer U)[]
-      ? DuxtResolved<U>[]
-      : T extends object
-        ? { [K in keyof T]: DuxtResolved<T[K]> }
-        : T;
+    : // A FUNCTION IS AN OBJECT, and the mapped type below turns one into `{}` —
+      // it has no own enumerable keys to map. Harmless while every field was
+      // data; `DuxtRequestSample.generate` is a function a consumer writes, and
+      // without this branch the config type says it cannot be called.
+      T extends (...args: never[]) => unknown
+      ? T
+      : T extends readonly (infer U)[]
+        ? DuxtResolved<U>[]
+        : T extends object
+          ? { [K in keyof T]: DuxtResolved<T[K]> }
+          : T;
 
   type DuxtConfigResolved = DuxtResolved<DuxtConfig>;
 
@@ -501,6 +547,20 @@ declare global {
      * — which is a configurable list with closed semantics, and an invitation.
      */
     packageManagers?: DuxtPackageManager[];
+    /**
+     * The code samples the try-it client offers, in display order.
+     *
+     * A string picks one the layer ships — `curl`, `fetch`, `ofetch`,
+     * `use-fetch`, `axios`, `python-requests`, `python-httpx`, `python-urllib`,
+     * `go`, `php-guzzle`, `php-laravel`, `php-curl` — and an object adds one of
+     * the site's own, or replaces a shipped one by reusing its id.
+     *
+     * Unset means the default seven. A configured list REPLACES rather than
+     * extends, like every other list in `duxtDefaults`: otherwise a site
+     * documenting a PHP API could add its clients but never drop the ones it
+     * does not want.
+     */
+    requestSamples?: (string | DuxtRequestSample)[];
     /** Layout a consumer can switch off. */
     breadcrumb?: boolean;
     /**
