@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineNuxtConfig } from 'nuxt/config';
 import tailwindcss from '@tailwindcss/vite';
+import { highlightLangs } from './highlight-langs';
 
 /** Resolve against this layer, not the project extending it. */
 const layer = (path: string) => fileURLToPath(new URL(path, import.meta.url));
@@ -329,22 +330,7 @@ export default defineNuxtConfig({
             default: 'github-light',
             dark: 'github-dark'
           },
-          langs: [
-            'bash',
-            'css',
-            'diff',
-            'html',
-            'json',
-            'js',
-            'jsonc',
-            'md',
-            'mdc',
-            'php',
-            'sh',
-            'ts',
-            'vue',
-            'yaml'
-          ]
+          langs: highlightLangs
         }
       }
     },

@@ -31,6 +31,7 @@
     "content-cache.ts",
     "content.config.ts",
     "duxt-app-config.ts",
+    "highlight-langs.ts",
     "i18n",
     "mdc.config.ts",
     "modules",
