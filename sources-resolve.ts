@@ -36,6 +36,23 @@ export interface DuxtSource {
    * serves. Which one is the default comes from `defaultLocale`.
    */
   locales?: DuxtSourceLocale[];
+  /**
+   * The version THIS source is, where no ref names one.
+   *
+   * A version is normally a checkout — list `refs` and each becomes one. An API
+   * is usually not versioned that way: `openapi/v1.yaml` sits beside
+   * `openapi/v2.yaml` in one repository, and without this key the two are two
+   * unrelated sections rather than two versions of one document.
+   *
+   * Named here, everything else follows the ref path exactly: the URL segment,
+   * the switcher entry (scoped to the same artefact), the banner and the
+   * canonical. `sourceOptions.defaultRef` names which of them is served without
+   * a prefix, whether it is a ref or one of these.
+   *
+   * Never beside `refs` — a source with both would have to be served at two
+   * prefixes at once, and the resolver says so rather than picking one.
+   */
+  version?: string;
   /** Shown in the version switcher and used in the URL; defaults to the ref. */
   label?: string;
   /** Segment used in the URL for this repository; defaults to the repo name. */
@@ -468,23 +485,49 @@ export function resolveSources(
   const expanded = expandSources(sources, options);
 
   const repos = new Set(sources.map((source) => source.repo ?? ''));
-  const refs = new Set(
+
+  /**
+   * What NAMES a version — a ref, or a source that declares one.
+   *
+   * A ref is the usual answer and the only one this resolver had: a version was
+   * a checkout, so a repository that does not tag its API had no versions at
+   * all. That is the common shape for an API — `openapi/v1.yaml` beside
+   * `openapi/v2.yaml` in one checkout, versioned by FILE — and it produced two
+   * unrelated sections rather than two versions of one document.
+   *
+   * So a source may name its own version. Everything downstream is unchanged,
+   * because everything downstream reads this name: the URL segment, the
+   * switcher entry, the banner, the canonical.
+   */
+  const names = new Set(
     expanded
-      .map((entry) => entry.ref)
-      .filter(Boolean)
-      .map((ref) => refName(ref!))
+      .map((entry) => (entry.ref ? refName(entry.ref) : entry.source.version))
+      .filter(Boolean) as string[]
   );
 
   const withRepo = options.showRepo ?? repos.size > 1;
-  const withVersion = options.showVersion ?? refs.size > 1;
-  const defaultRef = options.defaultRef ?? [...refs][0];
+  const withVersion = options.showVersion ?? names.size > 1;
+  const defaultRef = options.defaultRef ?? [...names][0];
 
   const resolved: DuxtResolvedSource[] = [];
   const taken = new Map<string, string>();
 
   for (const { source, ref, locale, effective: entry } of expanded) {
     const effectiveRef = entry.ref ?? ref;
-    const name = effectiveRef ? refName(effectiveRef) : undefined;
+
+    // TWO TRUTHS ABOUT ONE SOURCE is not a state this resolver can be in: a
+    // source that both lists refs and names a version would have to be served
+    // at two prefixes at once, and the reader would meet the same document
+    // twice in the switcher.
+    if (effectiveRef && source.version) {
+      throw new Error(
+        `duxt: the source "${source.path ?? source.repo ?? ''}" names the ` +
+          `version "${source.version}" and lists refs. A version comes from ` +
+          'a ref or from this key, never from both.'
+      );
+    }
+
+    const name = effectiveRef ? refName(effectiveRef) : source.version;
     const label =
       (ref && typeof ref === 'object' ? ref.label : undefined) ?? source.label;
     const code = locale ? localeCode(locale) : undefined;

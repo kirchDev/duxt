@@ -198,6 +198,23 @@ declare global {
      * kept for the current version and not for the two behind it.
      */
     locales?: DuxtSourceLocaleInput[];
+    /**
+     * The version THIS source is, where no ref names one.
+     *
+     * A version is normally a checkout — list `refs` and each becomes one. An API
+     * is usually not versioned that way: `openapi/v1.yaml` sits beside
+     * `openapi/v2.yaml` in one repository, and without this key the two are two
+     * unrelated sections rather than two versions of one document.
+     *
+     * Named here, everything else follows the ref path exactly: the URL segment,
+     * the switcher entry (scoped to the same artefact), the banner and the
+     * canonical. `sourceOptions.defaultRef` names which of them is served without
+     * a prefix, whether it is a ref or one of these.
+     *
+     * Never beside `refs` — a source with both would have to be served at two
+     * prefixes at once, and the resolver says so rather than picking one.
+     */
+    version?: string;
     /** Shown in the version switcher and used in the URL; defaults to the ref. */
     label?: DuxtText;
     /** Segment used in the URL for this repository; defaults to the repo name. */

@@ -116,3 +116,55 @@ describe('versionRelation', () => {
     expect(versionRelation(undefined, 'v1.0.0')).toBe('unknown');
   });
 });
+
+/**
+ * A version a SOURCE names, where no ref names one.
+ *
+ * The shape an API is usually kept in: two documents in one checkout, versioned
+ * by file. Before this they were two unrelated sections — the resolver derived
+ * a version from a ref and there was none, so neither carried a prefix and the
+ * switcher had nothing to offer.
+ */
+describe('a version without a ref', () => {
+  const sources = [
+    { path: 'openapi/v2.yaml', version: 'v2' },
+    { path: 'openapi/v1.yaml', version: 'v1', status: 'deprecated' as const }
+  ];
+
+  it('serves the default without a prefix and the rest under theirs', () => {
+    const resolved = resolveSources(sources);
+
+    expect(resolved.map((source) => source.prefix)).toEqual(['', '/v1']);
+    expect(resolved.map((source) => source.version)).toEqual(['v2', 'v1']);
+  });
+
+  it('takes `defaultRef` for which one that is', () => {
+    const resolved = resolveSources(sources, { defaultRef: 'v1' });
+
+    expect(resolved.map((source) => source.prefix)).toEqual(['/v2', '']);
+    expect(resolved.find((source) => source.isDefault)?.version).toBe('v1');
+  });
+
+  it('carries the lifecycle a source declares', () => {
+    const resolved = resolveSources(sources);
+
+    expect(resolved.at(-1)?.status).toBe('deprecated');
+  });
+
+  it('refuses a source that names a version AND lists refs', () => {
+    // Two truths about one source: it would have to be served at two prefixes
+    // at once, and the reader would meet the same document twice.
+    expect(() =>
+      resolveSources([
+        { path: 'docs', version: 'v2', refs: [{ tag: 'v2.0.0' }] }
+      ])
+    ).toThrow(/never from both/);
+  });
+
+  it('leaves a single unversioned source exactly as it was', () => {
+    const resolved = resolveSources([{ path: 'docs' }]);
+
+    expect(resolved[0]?.prefix).toBe('');
+    expect(resolved[0]?.version).toBeUndefined();
+  });
+});
