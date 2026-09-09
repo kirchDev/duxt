@@ -85,3 +85,66 @@ describe('versionChoices', () => {
     expect(versionChoices([v2, v1], undefined, undefined)).toEqual([]);
   });
 });
+
+describe('a site that publishes a reference beside its documentation', () => {
+  /** The same two versions again, as an `openapi` section reaches the manifest. */
+  const api = (over: Partial<DuxtResolvedSource> = {}) =>
+    source({
+      repo: 'duxt',
+      generated: {
+        type: 'openapi',
+        label: 'API',
+        slug: 'api',
+        declaration: 0,
+        navigation: 'sections',
+        versioning: 'per-version',
+        localisation: 'per-locale',
+        remote: false
+      },
+      ...over
+    } as Partial<DuxtResolvedSource>);
+
+  const apiV2 = api({ version: '2.x', prefix: '/api', isDefault: true });
+  const apiV1 = api({ version: '1.x', prefix: '/1.x/api' });
+
+  const all = [v2, v1, apiV2, apiV1];
+
+  it('does not offer the reference as a version of the documentation', () => {
+    // Four entries with two labels between them, two of which moved the reader
+    // out of the documentation entirely.
+    expect(versionChoices(all, v2, undefined)).toEqual([
+      { label: '2.x', to: '/', description: 'default' },
+      { label: '1.x', to: '/1.x', description: undefined }
+    ]);
+  });
+
+  it('switches version WITHIN the reference when that is what is open', () => {
+    // The reader asked for another version of this endpoint, not for the
+    // documentation's front page.
+    expect(
+      versionChoices(all, apiV2, undefined).map((choice) => choice.to)
+    ).toEqual(['/api', '/1.x/api']);
+  });
+
+  it('still offers nothing where a section is version-neutral', () => {
+    const changelog = api({
+      version: undefined,
+      prefix: '/releases',
+      isDefault: true,
+      generated: {
+        type: 'changelog',
+        label: 'Releases',
+        slug: 'releases',
+        declaration: 1,
+        navigation: 'sections',
+        versioning: 'global',
+        localisation: 'original',
+        remote: false
+      }
+    } as Partial<DuxtResolvedSource>);
+
+    expect(versionChoices([...all, changelog], changelog, undefined)).toEqual(
+      []
+    );
+  });
+});

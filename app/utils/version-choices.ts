@@ -12,6 +12,24 @@
  * done inline in a component, where it could only be checked by clicking.
  */
 
+/**
+ * Are these two collections versions of the SAME thing?
+ *
+ * A documentation tree and an API reference are both published per version, and
+ * neither is a version of the other — so a switcher that compared only the
+ * repository offered `v2 → /` and `v2 → /api` side by side, twice each label,
+ * and a canonical URL on a reference page pointed at the documentation's root.
+ *
+ * Compared by DECLARATION, which is the identity `resolveGeneratedSections`
+ * records for exactly this question. Two documentation trees answer `undefined`
+ * on both sides and are the same artefact, which is what keeps a site without a
+ * single generated section reading exactly as it did.
+ */
+export const sameArtefact = (
+  a: DuxtResolvedSource | undefined,
+  b: DuxtResolvedSource | undefined
+) => a?.generated?.declaration === b?.generated?.declaration;
+
 export function versionChoices(
   sources: DuxtResolvedSource[],
   current: DuxtResolvedSource | undefined,
@@ -28,7 +46,12 @@ export function versionChoices(
   if (configured?.length) return configured;
 
   return sources
-    .filter((source) => source.version && source.repo === current?.repo)
+    .filter(
+      (source) =>
+        source.version &&
+        source.repo === current?.repo &&
+        sameArtefact(source, current)
+    )
     .map((source) => ({
       label: source.version!,
       to: source.prefix || '/',

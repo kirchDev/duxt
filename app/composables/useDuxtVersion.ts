@@ -34,7 +34,11 @@ export function useDuxtVersion() {
           (source) =>
             source.isDefault &&
             source.generated?.versioning !== 'global' &&
-            source.repo === current.value?.repo
+            source.repo === current.value?.repo &&
+            // The default of the same ARTEFACT — see `sameArtefact`. Without
+            // it a reference page's canonical pointed at the documentation's
+            // default, which is a different document at a different URL.
+            sameArtefact(source, current.value)
         )
   );
 
