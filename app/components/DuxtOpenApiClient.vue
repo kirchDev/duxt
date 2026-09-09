@@ -615,75 +615,15 @@ async function send() {
 }
 
 /**
- * The sample card, resized rather than jumped.
- *
- * A `curl` of four lines and a Go client of twenty are two card heights, and
- * switching between them changed one for the other in a single frame. The row
- * around the card reserves the space, so nothing else on the page moves — but
- * the card itself still snapped, which reads as a glitch rather than as a
- * choice being made.
- *
- * MEASURED IN JAVASCRIPT, because CSS cannot do this one. `transition: height`
- * needs two computed values to travel between, and a box that sizes to its
- * content is `auto` before and `auto` after — no change the browser can see.
- * `interpolate-size: allow-keywords` does not help either: it makes `auto` a
- * value a transition can reach, not a value that transitions to itself. So the
- * old height is pinned, the new one is read once the content is in, and the
- * property is handed back to the layout when the animation is over.
- *
- * Skipped where the reader asked for less motion, and where there is no row
- * reserving the space — an operation page's card is in a scrolling column and
- * should size to its content immediately.
+ * The sample card follows its content's height instead of switching to it — the
+ * same behaviour `CodeGroup` has, out of the same composable. Not in `panel`
+ * layout: there the card sits in a column that scrolls as a whole and should
+ * size to its content at once.
  */
-const sampleCard = useTemplateRef<HTMLElement>('sampleCard');
+const sampleShell = useTemplateRef<HTMLElement>('sampleShell');
+const sampleBody = useTemplateRef<HTMLElement>('sampleBody');
 
-const SAMPLE_RESIZE = 300;
-let resizeTimer: ReturnType<typeof setTimeout> | undefined;
-
-watch(
-  () => shown.value?.code,
-  async () => {
-    const card = sampleCard.value;
-
-    if (
-      !card ||
-      !split.value ||
-      typeof window === 'undefined' ||
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    ) {
-      return;
-    }
-
-    clearTimeout(resizeTimer);
-
-    const from = card.getBoundingClientRect().height;
-    card.style.height = `${from}px`;
-    card.style.transition = 'none';
-
-    await nextTick();
-
-    const to = card.scrollHeight;
-    if (Math.abs(to - from) < 1) {
-      card.style.height = '';
-      card.style.transition = '';
-      return;
-    }
-
-    requestAnimationFrame(() => {
-      card.style.transition = `height ${SAMPLE_RESIZE}ms ease-out`;
-      card.style.height = `${to}px`;
-
-      // Handed back to the layout afterwards: a card left at a pixel height is
-      // a card that cannot grow when the window narrows and the code rewraps.
-      resizeTimer = setTimeout(() => {
-        card.style.height = '';
-        card.style.transition = '';
-      }, SAMPLE_RESIZE);
-    });
-  }
-);
-
-onBeforeUnmount(() => clearTimeout(resizeTimer));
+useDuxtAnimatedHeight(sampleShell, sampleBody, () => split.value);
 
 /** A JSON body, indented; anything else exactly as it arrived. */
 function pretty(text: string): string {
@@ -800,10 +740,6 @@ function pretty(text: string): string {
 
             <div
               v-for="variable in server?.variables ?? []"
-              data-form-type="other"
-              data-bwignore
-              data-1p-ignore
-              data-lpignore="true"
               :key="variable.name"
               class="mt-2"
             >
@@ -819,10 +755,6 @@ function pretty(text: string): string {
                 class="font-mono text-sm"
                 :placeholder="variable.default"
                 autocomplete="off"
-                data-form-type="other"
-                data-bwignore
-                data-1p-ignore
-                data-lpignore="true"
               />
             </div>
           </div>
@@ -862,6 +794,10 @@ function pretty(text: string): string {
                   v-model="usernames[scheme.key]"
                   class="mb-2 text-sm"
                   autocomplete="off"
+                  data-form-type="other"
+                  data-bwignore
+                  data-1p-ignore
+                  data-lpignore="true"
                 />
 
                 <label
@@ -877,6 +813,10 @@ function pretty(text: string): string {
                   class="text-sm"
                   autocomplete="off"
                   spellcheck="false"
+                  data-form-type="other"
+                  data-bwignore
+                  data-1p-ignore
+                  data-lpignore="true"
                 />
               </template>
             </div>
@@ -1194,91 +1134,102 @@ function pretty(text: string): string {
          package-manager block are built: the strip used to float above a card
          of its own, so the page carried two boxes for one thing and the copy
          button sat inside the lower one, away from the choice it belongs to. -->
-    <!-- THE ROW RESERVES THE HEIGHT, not the card inside it.
+    <!-- NO RESERVED HEIGHT, and both halves centred.
 
-         Switching language resizes the sample — four lines of `curl`, twenty of
-         Go — and with the row sized to its content that moved the paragraph
-         beside it and every section below. `min-h` big enough for the longest
-         sample means the row never changes at all: the card grows and shrinks
-         inside reserved space, centred, and nothing under it learns which
-         language was picked.
-
-         `min-h` rather than `h`, and only from `lg`: a sample longer than the
-         reserve should overflow the reserve rather than its own card, and on a
-         phone there is one column where nothing sits beside anything. -->
+         Reserving room for the longest sample left half the row empty whenever
+         a reader picked `curl`, which is the sample most of them pick. The row
+         sizes to its card again — and the card's height is ANIMATED rather than
+         switched, so the sections below slide rather than jump. See
+         `measureSample` for why that needs JavaScript. -->
     <div
       :class="
-        split
-          ? 'grid items-center gap-8 lg:min-h-[34rem] lg:grid-cols-2 lg:gap-16'
-          : 'contents'
+        split ? 'grid items-center gap-8 lg:grid-cols-2 lg:gap-16' : 'contents'
       "
     >
       <div v-if="split" :class="reverse ? 'lg:order-1' : 'lg:order-2'">
         <slot name="beside-samples" />
       </div>
 
+      <!-- A HEADING OVER THE CARD, not a card around the card. The samples are
+           already a bordered box with its own tab strip; wrapping that in a
+           second bordered box to carry a title drew a box inside a box for one
+           thing. The title stands above it instead, the way a label does.
+
+           `self-start`, so the box grows DOWNWARDS. Centred in its row it grew
+           in both directions at once, and its tab strip — the control the
+           reader just clicked — moved up under their cursor. -->
       <div
-        ref="sampleCard"
         :class="
           split
-            ? [
-                'overflow-hidden rounded-lg border',
-                reverse ? 'lg:order-2' : 'lg:order-1'
-              ]
+            ? ['self-start', reverse ? 'lg:order-2' : 'lg:order-1']
             : 'border-t px-4 py-3'
         "
       >
-        <div v-if="split" class="border-b px-4 py-3">
-          <h2 class="text-sm font-semibold">
-            {{ $t('duxt.openapi.client.samples') }}
-          </h2>
-        </div>
+        <h2 v-if="split" class="mb-2 text-sm font-semibold">
+          {{ $t('duxt.openapi.client.samples') }}
+        </h2>
 
-        <div :class="split ? 'px-4 py-3' : ''">
-          <TabsRoot
-            v-model="group"
-            class="overflow-hidden rounded-lg border bg-card"
-          >
-            <!-- The copy button is a SIBLING of the strip, not a child of it: a
+        <!-- THE BOX FOLLOWS ITS CONTENT, but takes 300ms to get there.
+
+             A `curl` of four lines and a Go client of twenty are two heights,
+             and switching between them moved everything below the row in a
+             single frame. Animated, the page slides instead.
+
+             `overflow-hidden` is what lets the shell be shorter than what is
+             inside it while its height is still on the way. -->
+        <div
+          ref="sampleShell"
+          :class="
+            split
+              ? 'overflow-hidden motion-safe:transition-[height] motion-safe:duration-300 motion-safe:ease-out'
+              : ''
+          "
+        >
+          <div ref="sampleBody">
+            <TabsRoot
+              v-model="group"
+              class="overflow-hidden rounded-lg border bg-card"
+            >
+              <!-- The copy button is a SIBLING of the strip, not a child of it: a
              `tablist` may hold tabs and nothing else, and axe reports the
              button inside one as `aria-required-children`. The header row is
              the flex container instead, so it still sits where every other
              card on the site puts it. -->
-            <div
-              class="flex min-h-11 items-center gap-1 border-b bg-muted/40 px-2 py-1.5"
-            >
-              <TabsList
-                class="flex items-center gap-1"
-                :aria-label="$t('duxt.openapi.client.samples') as string"
+              <div
+                class="flex min-h-11 items-center gap-1 border-b bg-muted/40 px-2 py-1.5"
               >
-                <TabsTrigger
-                  v-for="entry in groups"
-                  :key="entry"
-                  :value="entry"
-                  class="flex cursor-pointer items-center gap-1.5 rounded-md px-2.5 py-1 font-mono text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                <TabsList
+                  class="flex items-center gap-1"
+                  :aria-label="$t('duxt.openapi.client.samples') as string"
                 >
-                  <Icon :name="groupIcon(entry)" class="size-3.5" />
-                  {{ entry }}
-                </TabsTrigger>
-              </TabsList>
+                  <TabsTrigger
+                    v-for="entry in groups"
+                    :key="entry"
+                    :value="entry"
+                    class="flex cursor-pointer items-center gap-1.5 rounded-md px-2.5 py-1 font-mono text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                  >
+                    <Icon :name="groupIcon(entry)" class="size-3.5" />
+                    {{ entry }}
+                  </TabsTrigger>
+                </TabsList>
 
-              <UiButton
-                variant="ghost"
-                size="icon"
-                class="ml-auto size-7 hover:bg-accent hover:text-foreground"
-                :aria-label="
-                  copiedSample ? $t('duxt.code.copied') : $t('duxt.code.copy')
-                "
-                @click="copySample"
-              >
-                <Icon
-                  :name="copiedSample ? 'lucide:check' : 'lucide:copy'"
-                  class="size-3.5"
-                />
-              </UiButton>
-            </div>
+                <UiButton
+                  variant="ghost"
+                  size="icon"
+                  class="ml-auto size-7 hover:bg-accent hover:text-foreground"
+                  :aria-label="
+                    copiedSample ? $t('duxt.code.copied') : $t('duxt.code.copy')
+                  "
+                  @click="copySample"
+                >
+                  <Icon
+                    :name="copiedSample ? 'lucide:check' : 'lucide:copy'"
+                    class="size-3.5"
+                  />
+                </UiButton>
+              </div>
 
-            <!-- THE CLIENTS OF THE ACTIVE LANGUAGE, in a row of their own.
+              <!-- THE CLIENTS OF THE ACTIVE LANGUAGE, in a row of their own.
              Beside the tabs they were a control the reader had to open to learn
              that PHP has three of them; on their own line the choice is the
              thing they see. Dropped entirely where the language has one client,
@@ -1289,69 +1240,71 @@ function pretty(text: string): string {
              `ui/radio-group` here to implement it. A group of pressed buttons
              promises only what it does — every one reachable by Tab, every one
              saying whether it is on. -->
-            <div
-              v-if="clients.length > 1 && clients.length < 6"
-              role="group"
-              :aria-label="$t('duxt.openapi.client.sampleClient') as string"
-              class="flex items-center gap-1 overflow-x-auto border-b bg-muted/20 px-2 py-1.5"
-            >
-              <button
-                v-for="entry in clients"
-                :key="entry.id"
-                type="button"
-                :aria-pressed="entry.id === sample"
-                class="cursor-pointer whitespace-nowrap rounded-md px-2 py-0.5 font-mono text-xs transition-colors"
-                :class="
-                  entry.id === sample
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:bg-accent hover:text-foreground'
-                "
-                @click="sample = entry.id"
+              <div
+                v-if="clients.length > 1 && clients.length < 6"
+                role="group"
+                :aria-label="$t('duxt.openapi.client.sampleClient') as string"
+                class="flex items-center gap-1 overflow-x-auto border-b bg-muted/20 px-2 py-1.5"
               >
-                {{ entry.label }}
-              </button>
-            </div>
+                <button
+                  v-for="entry in clients"
+                  :key="entry.id"
+                  type="button"
+                  :aria-pressed="entry.id === sample"
+                  class="cursor-pointer whitespace-nowrap rounded-md px-2 py-0.5 font-mono text-xs transition-colors"
+                  :class="
+                    entry.id === sample
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+                  "
+                  @click="sample = entry.id"
+                >
+                  {{ entry.label }}
+                </button>
+              </div>
 
-            <!-- Six is where a row stops being a row. A language with that many
+              <!-- Six is where a row stops being a row. A language with that many
              clients is a site that configured them, and a select carries any
              number on any width — the trade the chips above cannot make. -->
-            <div
-              v-else-if="clients.length >= 6"
-              class="flex items-center border-b bg-muted/20 px-2 py-1.5"
-            >
-              <UiSelect v-model="sample">
-                <UiSelectTrigger
-                  class="h-7 w-auto gap-1.5 border-0 bg-transparent px-2 font-mono text-xs shadow-none hover:bg-accent"
-                  :aria-label="$t('duxt.openapi.client.sampleClient') as string"
-                >
-                  {{ shown.label }}
-                </UiSelectTrigger>
-
-                <UiSelectContent>
-                  <UiSelectItem
-                    v-for="entry in clients"
-                    :key="entry.id"
-                    :value="entry.id"
-                    class="font-mono text-xs"
+              <div
+                v-else-if="clients.length >= 6"
+                class="flex items-center border-b bg-muted/20 px-2 py-1.5"
+              >
+                <UiSelect v-model="sample">
+                  <UiSelectTrigger
+                    class="h-7 w-auto gap-1.5 border-0 bg-transparent px-2 font-mono text-xs shadow-none hover:bg-accent"
+                    :aria-label="
+                      $t('duxt.openapi.client.sampleClient') as string
+                    "
                   >
-                    {{ entry.label }}
-                  </UiSelectItem>
-                </UiSelectContent>
-              </UiSelect>
-            </div>
+                    {{ shown.label }}
+                  </UiSelectTrigger>
 
-            <!-- Said plainly, because the difference is invisible otherwise: a
+                  <UiSelectContent>
+                    <UiSelectItem
+                      v-for="entry in clients"
+                      :key="entry.id"
+                      :value="entry.id"
+                      class="font-mono text-xs"
+                    >
+                      {{ entry.label }}
+                    </UiSelectItem>
+                  </UiSelectContent>
+                </UiSelect>
+              </div>
+
+              <!-- Said plainly, because the difference is invisible otherwise: a
              reader who edits the body and switches to this tab would see a
              sample that does not contain the edit, and conclude the editor is
              broken rather than that this sample is fixed. -->
-            <p
-              v-if="shown.fromSpec"
-              class="border-b bg-muted/20 px-4 py-2 text-xs text-muted-foreground"
-            >
-              {{ $t('duxt.openapi.client.fromSpec') }}
-            </p>
+              <p
+                v-if="shown.fromSpec"
+                class="border-b bg-muted/20 px-4 py-2 text-xs text-muted-foreground"
+              >
+                {{ $t('duxt.openapi.client.fromSpec') }}
+              </p>
 
-            <!-- THE CARD KEEPS ITS OWN HEIGHT. The row around it reserves the
+              <!-- THE CARD KEEPS ITS OWN HEIGHT. The row around it reserves the
                  space — see the `min-h` on the grid below — so a `curl` of four
                  lines and a Go client of twenty both leave the section under
                  this one exactly where it was. What changes is the card, and it
@@ -1361,23 +1314,24 @@ function pretty(text: string): string {
                  The floor stays for the panel layout, where there is no row to
                  reserve anything: on an operation page the card is in a column
                  that scrolls as a whole. -->
-            <TabsContent :value="group">
-              <!-- eslint-disable-next-line vue/no-v-html -- Shiki's own output over
+              <TabsContent :value="group">
+                <!-- eslint-disable-next-line vue/no-v-html -- Shiki's own output over
                a string this component built; nothing a reader typed reaches it
                unescaped. -->
-              <div
-                v-if="sampleHtml"
-                class="duxt-code-body duxt-code-body-sm"
-                :class="split ? '' : 'min-h-56'"
-                v-html="sampleHtml"
-              />
-              <pre
-                v-else
-                class="overflow-x-auto p-4 text-xs"
-                :class="split ? '' : 'min-h-56'"
-              ><code>{{ shown.code }}</code></pre>
-            </TabsContent>
-          </TabsRoot>
+                <div
+                  v-if="sampleHtml"
+                  class="duxt-code-body duxt-code-body-sm"
+                  :class="split ? '' : 'min-h-56'"
+                  v-html="sampleHtml"
+                />
+                <pre
+                  v-else
+                  class="overflow-x-auto p-4 text-xs"
+                  :class="split ? '' : 'min-h-56'"
+                ><code>{{ shown.code }}</code></pre>
+              </TabsContent>
+            </TabsRoot>
+          </div>
         </div>
       </div>
     </div>
