@@ -24,7 +24,7 @@
  * reads is the rendered HTML, which is the only place these tags exist.
  */
 
-import { spawn } from 'node:child_process';
+import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { JSDOM } from 'jsdom';
@@ -32,8 +32,9 @@ import { JSDOM } from 'jsdom';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const server = join(root, 'www', '.output', 'server', 'index.mjs');
 
-const PORT = 3124;
-const ORIGIN = `http://localhost:${PORT}`;
+const PORT = Number(process.env.SEO_CHECK_PORT ?? 3124);
+const ORIGIN = `http://127.0.0.1:${PORT}`;
+const TIMEOUT = Number(process.env.SEO_CHECK_TIMEOUT_MS ?? 30_000);
 
 /**
  * The locales `www` serves, in the order i18n lists them, and the one served
@@ -55,33 +56,65 @@ const PAGES = {
 };
 
 async function main() {
+  if (
+    !Number.isInteger(PORT) ||
+    PORT < 1 ||
+    PORT > 65535 ||
+    !Number.isInteger(TIMEOUT) ||
+    TIMEOUT < 1 ||
+    TIMEOUT > 120_000
+  ) {
+    throw new Error(
+      'SEO_CHECK_PORT must be 1..65535 and SEO_CHECK_TIMEOUT_MS must be 1..120000'
+    );
+  }
   const child = spawn(process.execPath, [server], {
     env: {
       ...process.env,
       PORT: String(PORT),
       NITRO_PORT: String(PORT),
+      HOST: '127.0.0.1',
+      NITRO_HOST: '127.0.0.1',
+      NITRO_UNIX_SOCKET: '',
+      NITRO_SSL_CERT: '',
+      NITRO_SSL_KEY: '',
       // The two names the modules read for the same fact: i18n's for the
       // alternate links and duxt's own `absolute()`, site config's for
       // everything under @nuxtjs/seo.
       NUXT_PUBLIC_I18N_BASE_URL: ORIGIN,
       NUXT_SITE_URL: ORIGIN
     },
-    stdio: ['ignore', 'ignore', 'pipe']
+    stdio: 'pipe'
   });
 
   let stderr = '';
   child.stderr.on('data', (chunk: Buffer) => (stderr += chunk.toString()));
 
-  try {
-    await waitForServer();
+  const failed = new Promise<never>((_resolve, reject) => {
+    child.once('error', (error) =>
+      reject(new Error(`server spawn failed: ${error.message}`))
+    );
+    child.once('exit', (code, signal) =>
+      reject(
+        new Error(`server exited prematurely (code ${code}, signal ${signal})`)
+      )
+    );
+  });
 
-    const failures = [
-      ...(await checkCanonicals()),
-      ...(await checkAlternates()),
-      ...(await checkRobots()),
-      ...(await checkSocial()),
-      ...(await checkSchemaOrg())
-    ];
+  try {
+    const failures = await Promise.race([
+      failed,
+      (async () => {
+        await waitForServer(child);
+        return [
+          ...(await checkCanonicals()),
+          ...(await checkAlternates()),
+          ...(await checkRobots()),
+          ...(await checkSocial()),
+          ...(await checkSchemaOrg())
+        ];
+      })()
+    ]);
 
     if (failures.length) {
       console.error(`\nSEO check failed:\n  - ${failures.join('\n  - ')}\n`);
@@ -98,33 +131,88 @@ async function main() {
     if (stderr.trim()) console.error(stderr.trim());
     process.exitCode = 1;
   } finally {
-    child.kill('SIGTERM');
+    if (child.pid && child.exitCode === null && child.signalCode === null) {
+      const exited = new Promise<void>((resolve) =>
+        child.once('exit', () => resolve())
+      );
+      child.kill('SIGTERM');
+      const timer = setTimeout(() => child.kill('SIGKILL'), 1000);
+      await exited;
+      clearTimeout(timer);
+    }
+    // A broken socket can reject fetch before Node emits the child's exit.
+    if (child.exitCode !== null && child.exitCode !== 0) {
+      console.error(`server exited prematurely (code ${child.exitCode})`);
+    }
   }
 }
 
-async function waitForServer() {
-  for (let attempt = 0; attempt < 60; attempt++) {
-    try {
-      await fetch(`${ORIGIN}/`);
-      return;
-    } catch {
-      await new Promise((resolve) => setTimeout(resolve, 500));
+async function waitForServer(child: ChildProcessWithoutNullStreams) {
+  // Nitro emits this only after its own listen callback succeeds. HTTP polling
+  // alone can accept an unrelated process after our child fails to bind.
+  await new Promise<void>((resolve, reject) => {
+    let stdout = '';
+    const timer = setTimeout(() => {
+      child.stdout.off('data', onData);
+      reject(
+        new Error(
+          `server startup timed out after ${TIMEOUT}ms at ${ORIGIN}. Run \`pnpm build:app\` first.`
+        )
+      );
+    }, TIMEOUT);
+    function onData(chunk: Buffer) {
+      stdout = (stdout + chunk.toString()).slice(-4096);
+      if (stdout.split(/\r?\n/).includes(`Listening on ${ORIGIN}`)) {
+        clearTimeout(timer);
+        child.stdout.off('data', onData);
+        resolve();
+      }
     }
-  }
-
-  throw new Error(
-    `the built server did not answer on port ${PORT}. Run \`pnpm build:app\` first.`
-  );
+    child.once('exit', () => clearTimeout(timer));
+    child.once('error', () => clearTimeout(timer));
+    child.stdout.on('data', onData);
+  });
 }
 
 async function head(route: string) {
-  const response = await fetch(`${ORIGIN}${route}`, {
-    // Without the header Nitro answers an error route with JSON, and the check
-    // then reads no tags at all off a page that renders plenty.
-    headers: { accept: 'text/html' }
-  });
+  const requested = `${ORIGIN}${route}`;
+  const signal = AbortSignal.timeout(TIMEOUT);
+  let response: Response | undefined;
+  let html: string;
+  try {
+    response = await fetch(requested, {
+      redirect: 'manual',
+      signal,
+      // Nitro needs this to render its error route as HTML instead of JSON.
+      headers: { accept: 'text/html' }
+    });
+    html = await response.text();
+  } catch (error) {
+    throw new Error(
+      `response ${signal.aborted ? `timed out after ${TIMEOUT}ms` : 'failed'}: ` +
+        `requested ${requested}; final ${response?.url ?? '(not received)'}; ` +
+        `HTTP ${response?.status ?? '(not received)'}; ` +
+        `content-type ${response?.headers.get('content-type') ?? '(not received)'}; ${String(error)}`
+    );
+  }
+  const contentType = response.headers.get('content-type') ?? '(missing)';
+  const expected =
+    route === PAGES.missing ? response.status === 404 : response.ok;
+  if (!expected || !/^text\/html(?:;|$)/i.test(contentType)) {
+    const headMarkup =
+      html.match(/<head\b[^>]*>[\s\S]*?<\/head>/i)?.[0] ?? html;
+    throw new Error(
+      `invalid HTML response: requested ${requested}; final ${response.url}; ` +
+        `HTTP ${response.status}; content-type ${contentType}; ` +
+        `expected ${route === PAGES.missing ? '404' : '2xx'} HTML` +
+        (response.headers.has('location')
+          ? `; location ${response.headers.get('location')}`
+          : '') +
+        `; head ${headMarkup.slice(0, 2000)}`
+    );
+  }
 
-  const { window } = new JSDOM(await response.text(), {
+  const { window } = new JSDOM(html, {
     url: `${ORIGIN}${route}`
   });
 
