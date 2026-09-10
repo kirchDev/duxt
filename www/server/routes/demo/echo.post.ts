@@ -16,6 +16,8 @@
  * documentation layer that mounted a writable route into every site extending
  * it would be shipping one.
  */
+import { defineEventHandler, getHeader, readBody, setResponseStatus } from 'h3';
+
 export default defineEventHandler(async (event) => {
   const authorisation = getHeader(event, 'authorization');
 
