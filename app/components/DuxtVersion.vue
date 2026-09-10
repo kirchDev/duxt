@@ -154,6 +154,7 @@ function pathIn(version: { to?: string }) {
          scrolls at about ten entries instead of filling the screen. -->
     <UiDropdownMenuContent
       align="start"
+      :portal="props.variant !== 'block'"
       class="max-h-[min(20rem,var(--reka-dropdown-menu-content-available-height))]"
       :class="
         props.variant === 'block'

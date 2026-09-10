@@ -79,6 +79,39 @@ describe('versionChoices', () => {
     ]);
   });
 
+  it('orders lifecycle groups before descending release versions', () => {
+    const main = source({
+      repo: 'duxt',
+      version: 'main',
+      prefix: '/main',
+      status: 'upcoming'
+    });
+    const current = source({
+      repo: 'duxt',
+      version: 'v0.3.0',
+      prefix: '',
+      isDefault: true
+    });
+    const v2 = source({
+      repo: 'duxt',
+      version: 'v0.2.0',
+      prefix: '/v0.2.0',
+      status: 'deprecated'
+    });
+    const v1 = source({
+      repo: 'duxt',
+      version: 'v0.1.0',
+      prefix: '/v0.1.0',
+      status: 'deprecated'
+    });
+
+    expect(
+      versionChoices([v1, current, v2, main], current, undefined).map(
+        (choice) => choice.label
+      )
+    ).toEqual(['main', 'v0.3.0', 'v0.2.0', 'v0.1.0']);
+  });
+
   it('captions a version by its lifecycle rather than its default-ness', () => {
     const eol = source({
       repo: 'duxt',
