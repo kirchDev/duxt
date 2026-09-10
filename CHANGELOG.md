@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.3](https://github.com/kirchDev/duxt/compare/v0.3.2...v0.3.3) (2026-09-10)
+
+
+### Bug Fixes
+
+* navigate versions from menu selection ([bef49d0](https://github.com/kirchDev/duxt/commit/bef49d093bc9fbf3fdeaaba884abdd739b4f9667))
+
 ## [0.3.2](https://github.com/kirchDev/duxt/compare/v0.3.1...v0.3.2) (2026-09-10)
 
 
