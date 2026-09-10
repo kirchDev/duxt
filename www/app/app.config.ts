@@ -51,7 +51,7 @@ export default defineAppConfig({
         refs: [
           { tag: 'latest', default: true },
           // Hidden while `latest` resolves to v0.2.0. The resolver retains it
-          // automatically as deprecated when v0.3.0 is cut.
+          // automatically as deprecated when v0.3.1 is cut.
           { tag: 'v0.2.0' },
           { branch: 'main' },
           { tag: 'v0.1.0' }
