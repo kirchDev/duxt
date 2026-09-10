@@ -82,7 +82,14 @@ it('ignores query strings and preserves the Markdown response contract', async (
 
 it('falls back for a missing translation within the selected version only', async () => {
   config.duxt.resolvedSources = resolveSources(
-    [{ slug: 'app', refs: ['v2', 'v1'], locales: ['en', 'de'] }],
+    [
+      {
+        repo: 'acme/app',
+        slug: 'app',
+        refs: ['v2', 'v1'],
+        locales: ['en', 'de']
+      }
+    ],
     { defaultLocale: 'en', defaultRef: 'v2' }
   );
   const old = config.duxt.resolvedSources.find(
