@@ -1161,7 +1161,7 @@ function pretty(text: string): string {
       <div
         :class="
           split
-            ? ['self-start', reverse ? 'lg:order-2' : 'lg:order-1']
+            ? ['min-w-0 self-start', reverse ? 'lg:order-2' : 'lg:order-1']
             : 'border-t px-4 py-3'
         "
       >
@@ -1199,14 +1199,14 @@ function pretty(text: string): string {
                 class="flex min-h-11 items-center gap-1 border-b bg-muted/40 px-2 py-1.5"
               >
                 <TabsList
-                  class="flex items-center gap-1"
+                  class="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto"
                   :aria-label="$t('duxt.openapi.client.samples') as string"
                 >
                   <TabsTrigger
                     v-for="entry in groups"
                     :key="entry"
                     :value="entry"
-                    class="flex cursor-pointer items-center gap-1.5 rounded-md px-2.5 py-1 font-mono text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                    class="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-2.5 py-1 font-mono text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
                   >
                     <Icon :name="groupIcon(entry)" class="size-3.5" />
                     {{ entry }}
