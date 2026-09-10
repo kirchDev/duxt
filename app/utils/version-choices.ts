@@ -11,6 +11,36 @@
  * rest of it is: every version bug this layer has had came from prefix work
  * done inline in a component, where it could only be checked by clicking.
  */
+import { compareVersionTags } from '../../sources-resolve';
+
+/**
+ * What a reader needs to see first: work that may change, the edition they
+ * normally read, then retired documentation. Version number only breaks ties
+ * inside one lifecycle group — a branch such as `main` therefore stays above
+ * the default release without pretending to be a semver tag.
+ */
+function lifecycleOrder(source: DuxtResolvedSource): number {
+  if (source.status === 'upcoming') return 0;
+  if (source.isDefault) return 1;
+  if (source.status === 'current' || source.status === 'maintained') return 2;
+  if (source.status === 'deprecated') return 3;
+  return 4;
+}
+
+function compareEditions(a: DuxtResolvedSource, b: DuxtResolvedSource): number {
+  const lifecycle = lifecycleOrder(a) - lifecycleOrder(b);
+  if (lifecycle) return lifecycle;
+
+  const aVersion = a.version!;
+  const bVersion = b.version!;
+  const semver = /^v?\d+\.\d+\.\d+(?:-.+)?$/;
+
+  // The shared comparator knows full tags. Demo editions such as `v3.x` are
+  // deliberately not tags, but still sort newest-first inside their group.
+  return semver.test(aVersion) && semver.test(bVersion)
+    ? compareVersionTags(aVersion, bVersion)
+    : bVersion.localeCompare(aVersion);
+}
 
 /**
  * Are these two collections versions of the SAME thing?
@@ -62,6 +92,7 @@ export function versionChoices(
       editions.add(edition);
       return true;
     })
+    .sort(compareEditions)
     .map((source) => ({
       label: source.version!,
       to: source.prefix || '/',

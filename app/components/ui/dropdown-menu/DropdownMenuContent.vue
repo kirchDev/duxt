@@ -17,20 +17,27 @@ defineOptions({
 });
 
 const props = withDefaults(
-  defineProps<DropdownMenuContentProps & { class?: HTMLAttributes['class'] }>(),
+  defineProps<
+    DropdownMenuContentProps & {
+      class?: HTMLAttributes['class'];
+      /** Keep the content inside a containing modal when it must receive taps. */
+      portal?: boolean;
+    }
+  >(),
   {
-    sideOffset: 4
+    sideOffset: 4,
+    portal: true
   }
 );
 const emits = defineEmits<DropdownMenuContentEmits>();
 
-const delegatedProps = reactiveOmit(props, 'class');
+const delegatedProps = reactiveOmit(props, 'class', 'portal');
 
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
 </script>
 
 <template>
-  <DropdownMenuPortal>
+  <DropdownMenuPortal :disabled="!props.portal">
     <DropdownMenuContent
       data-slot="dropdown-menu-content"
       v-bind="{ ...$attrs, ...forwarded }"
