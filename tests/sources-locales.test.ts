@@ -61,6 +61,7 @@ describe('translated sources', () => {
     const resolved = resolveSources(
       [
         {
+          repo: 'acme/docs',
           path: 'docs',
           locales: ['en-GB', 'de-DE'],
           refs: [{ tag: 'v2' }, { tag: 'v1', locales: ['en-GB'] }]

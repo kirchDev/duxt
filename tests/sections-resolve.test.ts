@@ -72,7 +72,14 @@ describe('resolveGeneratedSections', () => {
 
   it('puts a global section on the default version only, without one', () => {
     const generated = resolveGeneratedSections(
-      [{ path: 'docs', refs: ['main', 'v1.x'], generated: [section] }],
+      [
+        {
+          repo: 'acme/docs',
+          path: 'docs',
+          refs: ['main', 'v1.x'],
+          generated: [section]
+        }
+      ],
       {},
       types()
     );
@@ -86,7 +93,14 @@ describe('resolveGeneratedSections', () => {
 
   it('gives a per-version section one collection per version', () => {
     const generated = resolveGeneratedSections(
-      [{ path: 'docs', refs: ['main', 'v1.x'], generated: [section] }],
+      [
+        {
+          repo: 'acme/docs',
+          path: 'docs',
+          refs: ['main', 'v1.x'],
+          generated: [section]
+        }
+      ],
       {},
       types({ versioning: 'per-version' })
     );
@@ -279,6 +293,7 @@ describe('resolveGeneratedSections', () => {
     const generated = resolveGeneratedSections(
       [
         {
+          repo: 'acme/docs',
           path: 'docs',
           refs: ['main', 'v1.x'],
           // One artefact declared twice, as `www` declares its own changelog.
@@ -669,6 +684,7 @@ describe('a section versioned by its own declaration', () => {
   it('refuses versions on a section whose source is versioned by refs', () => {
     const declared = [
       {
+        repo: 'acme/docs',
         path: 'docs',
         refs: [{ tag: 'v2.0.0' }, { tag: 'v1.0.0' }],
         generated: [

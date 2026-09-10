@@ -12,10 +12,10 @@ import type {
 export interface DuxtSource {
   /** Folder holding the Markdown, relative to the repository root. */
   path?: string;
-  /** `owner/name` or a full git URL. Omitted means this repository. */
+  /** `owner/name` or a full git URL. Omitted reads the local checkout. */
   repo?: string;
   /**
-   * Refs to publish as versions. Omitted means the current checkout.
+   * Refs to publish as versions. Requires an explicit source or locale repo.
    *
    * A bare string is a branch. A tag has to say so — git keeps the two in
    * separate namespaces, and asking for a tag under refs/heads fails the
@@ -166,7 +166,7 @@ export type DuxtSourceLocale =
       path?: string;
       /** A repository of its own — `owner/name` or a git URL. */
       repo?: string;
-      /** A ref of its own, when the translation is versioned separately. */
+      /** A ref of its own; requires an explicit source or locale repo. */
       ref?: DuxtRef;
     };
 
@@ -488,12 +488,16 @@ export function expandSources(
 
   return sources.flatMap((source) =>
     (source.refs?.length ? source.refs : [undefined]).flatMap((ref) =>
-      localesOf(source, ref).map((locale) => ({
-        source,
-        ref,
-        locale,
-        effective: localeEntry(source, locale, defaultLocale)
-      }))
+      localesOf(source, ref).map((locale) => {
+        const effective = localeEntry(source, locale, defaultLocale);
+        if (!effective.repo && (effective.ref ?? ref)) {
+          throw new Error(
+            `duxt: source "${source.path ?? 'docs'}" reads the local checkout and cannot select a ref. ` +
+              'Set an explicit repo to publish Git refs, or use version folders without refs.'
+          );
+        }
+        return { source, ref, locale, effective };
+      })
     )
   );
 }

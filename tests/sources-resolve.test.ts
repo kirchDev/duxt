@@ -14,7 +14,9 @@ describe('resolveSources', () => {
   });
 
   it('adds no version segment while there is only one ref', () => {
-    const resolved = resolveSources([{ path: 'docs', refs: ['main'] }]);
+    const resolved = resolveSources([
+      { repo: 'acme/docs', path: 'docs', refs: ['main'] }
+    ]);
 
     expect(resolved).toHaveLength(1);
     expect(resolved[0]!.prefix).toBe('');
@@ -22,7 +24,7 @@ describe('resolveSources', () => {
 
   it('prefixes every version except the default once there are several', () => {
     const resolved = resolveSources([
-      { path: 'docs', refs: ['main', 'v1.x', 'v2.x'] }
+      { repo: 'acme/docs', path: 'docs', refs: ['main', 'v1.x', 'v2.x'] }
     ]);
 
     expect(resolved.map((source) => source.prefix)).toEqual([
@@ -40,7 +42,7 @@ describe('resolveSources', () => {
 
   it('takes the default ref from the options when given', () => {
     const resolved = resolveSources(
-      [{ path: 'docs', refs: ['main', 'v1.x'] }],
+      [{ repo: 'acme/docs', path: 'docs', refs: ['main', 'v1.x'] }],
       {
         defaultRef: 'v1.x'
       }
@@ -99,7 +101,12 @@ describe('resolveSources', () => {
 
   it('uses the label instead of the ref when one is given', () => {
     const resolved = resolveSources([
-      { path: 'docs', refs: ['main', 'release/2024.1'], label: 'stable' }
+      {
+        repo: 'acme/docs',
+        path: 'docs',
+        refs: ['main', 'release/2024.1'],
+        label: 'stable'
+      }
     ]);
 
     // The label names the source, so both of its refs slug to it — which is
@@ -127,7 +134,7 @@ describe('resolveSources', () => {
 
   it('slugifies a ref that is not URL-safe', () => {
     const resolved = resolveSources([
-      { path: 'docs', refs: ['main', 'release/2024.1'] }
+      { repo: 'acme/docs', path: 'docs', refs: ['main', 'release/2024.1'] }
     ]);
 
     expect(resolved[1]!.prefix).toBe('/release-2024.1');
@@ -151,7 +158,7 @@ describe('resolveSources', () => {
 
   it('keeps dashes in the URL prefix, where they belong', () => {
     const resolved = resolveSources([
-      { path: 'docs', refs: ['main', 'v1.0.0'] }
+      { repo: 'acme/docs', path: 'docs', refs: ['main', 'v1.0.0'] }
     ]);
 
     expect(resolved[1]!.prefix).toBe('/v1.0.0');
@@ -160,7 +167,7 @@ describe('resolveSources', () => {
 
   it('marks exactly one source as the default', () => {
     const resolved = resolveSources([
-      { path: 'docs', refs: ['main', 'v1.x', 'v2.x'] }
+      { repo: 'acme/docs', path: 'docs', refs: ['main', 'v1.x', 'v2.x'] }
     ]);
 
     expect(resolved.filter((source) => source.isDefault)).toHaveLength(1);
@@ -169,7 +176,9 @@ describe('resolveSources', () => {
 
 describe('refs', () => {
   it('takes a bare string as a branch', () => {
-    const resolved = resolveSources([{ path: 'docs', refs: ['main', 'next'] }]);
+    const resolved = resolveSources([
+      { repo: 'acme/docs', path: 'docs', refs: ['main', 'next'] }
+    ]);
 
     expect(resolved.map((source) => source.version)).toEqual(['main', 'next']);
   });
@@ -178,7 +187,7 @@ describe('refs', () => {
     // git keeps branches and tags in separate namespaces: asking for a tag
     // under refs/heads fails the build with "Could not find refs/heads/…".
     const resolved = resolveSources([
-      { path: 'docs', refs: ['main', { tag: 'v0.7.0' }] }
+      { repo: 'acme/docs', path: 'docs', refs: ['main', { tag: 'v0.7.0' }] }
     ]);
 
     expect(resolved[1]).toMatchObject({
@@ -190,7 +199,7 @@ describe('refs', () => {
 
   it('matches defaultRef against the ref name, whichever kind it is', () => {
     const resolved = resolveSources(
-      [{ path: 'docs', refs: [{ tag: 'v1.0.0' }, 'main'] }],
+      [{ repo: 'acme/docs', path: 'docs', refs: [{ tag: 'v1.0.0' }, 'main'] }],
       { defaultRef: 'v1.0.0' }
     );
 
