@@ -64,12 +64,12 @@ const ROUTES = [
   // One release, which is where the group components draw their own headings:
   // an `<h2>` a component renders is outside the outline Content builds, so
   // nothing but a rendered page can say whether the order still holds.
-  '/releases/v0.4.0',
-  // The same changelog at the other granularity — one page, in the ordinary
+  '/releases/v0.1.0',
+  // The fixture changelog at the other granularity — one page, in the ordinary
   // docs chrome. A type that names no layout for the options it was given is a
   // decision only a rendered page proves, and its headings run three levels
   // deep where the split pages run two.
-  '/changelog',
+  '/demo/changelog',
   // The OTHER shape a generated section has: a type that names a layout draws
   // its own page, so neither the docs header nor the docs sidebar is what is
   // being checked here — the reference layout and a parser's operation page
