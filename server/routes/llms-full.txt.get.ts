@@ -1,4 +1,4 @@
-import { queryCollection } from '@nuxt/content/nitro';
+import { llmsPages } from '../utils/llms-pages';
 // Imported by path, not auto-import: app/ belongs to the Vue app, and Nitro
 // does not see its utils. The defaults have to come from the same file the
 // pages use, or the two descriptions drift apart.
@@ -27,19 +27,7 @@ export default defineEventHandler(async (event) => {
     mergeDuxtConfig(appConfig.duxt, duxtDefaults)
   );
 
-  const collections = duxt.resolvedSources?.length
-    ? duxt.resolvedSources.map((source) => source.collection)
-    : ['docs'];
-
-  const pages = (
-    await Promise.all(
-      collections.map((name) =>
-        queryCollection(event, name as Parameters<typeof queryCollection>[1])
-          .select('path', 'title', 'description', 'rawbody')
-          .all()
-      )
-    )
-  ).flat();
+  const pages = await llmsPages(event, duxt.resolvedSources);
 
   const origin = getRequestURL(event).origin;
 

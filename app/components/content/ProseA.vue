@@ -11,8 +11,9 @@
  * mid-sentence.
  *
  * So an absolute internal path is read as relative TO ITS OWN SOURCE, and the
- * prefix is put back here. A path that already carries the prefix is left
- * alone, so a link written the long way round still works.
+ * prefix is put back here. `~/` is the explicit website-root escape hatch for
+ * a link that has to leave that source. A path that already carries the prefix
+ * is left alone, so a link written the long way round still works.
  */
 const props = defineProps<{
   href?: string;
@@ -26,22 +27,26 @@ const external = computed(() =>
   Boolean(props.href && /^(?:[a-z]+:|\/\/)/i.test(props.href))
 );
 
+const internal = computed(() =>
+  Boolean(props.href?.startsWith('/') || props.href?.startsWith('~/'))
+);
+
 const to = computed(() => {
   const href = props.href ?? '';
-  if (external.value || !href.startsWith('/')) return href;
+  if (external.value || !internal.value) return href;
 
   const prefix = source.value?.prefix ?? '';
-  const [path, hash] = href.split('#');
-  const resolved =
-    prefix && !isInside(path!, prefix) ? `${prefix}${path}` : path!;
+  const [pathAndQuery, hash] = href.split('#');
+  const [path, query] = pathAndQuery!.split('?');
+  const resolved = resolveDocumentationPath(path!, prefix);
 
-  return `${localeLink(resolved)}${hash ? `#${hash}` : ''}`;
+  return `${localeLink(resolved)}${query ? `?${query}` : ''}${hash ? `#${hash}` : ''}`;
 });
 </script>
 
 <template>
   <a
-    v-if="external || !href?.startsWith('/')"
+    v-if="external || !internal"
     :href="href"
     :target="target ?? (external ? '_blank' : undefined)"
     :rel="external ? 'noopener' : undefined"

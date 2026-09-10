@@ -37,6 +37,8 @@ export const pageSchema = z.object({
   icon: z.string().optional(),
   /** `landing` renders the page without the docs chrome. */
   layout: z.string().optional(),
+  /** The latest release of a generated changelog overview. */
+  release: z.string().optional(),
   /** false hides the page from the navigation. */
   navigation: z.boolean().optional(),
   /**
@@ -153,6 +155,7 @@ export function duxtSources(
 
   resolved.forEach((entry, index) => {
     const { source, ref, effective } = expanded[index]!;
+    if (source.content === false) return;
 
     // A locale entry may carry a ref of its own — a translation repository
     // that tags on its own schedule.
@@ -228,7 +231,8 @@ function partialFolders(
   const seen = new Set<string>();
 
   resolved.forEach((entry, index) => {
-    const { effective } = expanded[index]!;
+    const { source, effective } = expanded[index]!;
+    if (source.content === false) return;
     const key = entry.isDefaultLocale ? undefined : entry.locale;
 
     // One entry per REPOSITORY AND FOLDER, not per version: a partial is a

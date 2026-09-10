@@ -1,4 +1,7 @@
 import { queryCollection } from '@nuxt/content/nitro';
+import { defineEventHandler, setHeader } from 'h3';
+import { splitLocalePath } from '../../app/utils/locale-path';
+import { sourcesForRoute } from '../../sources-resolve';
 import { duxtDefaults, mergeDuxtConfig } from '../../app/utils/duxt-config';
 import { stripFrontmatter } from '../utils/duxt-server-text';
 
@@ -21,31 +24,42 @@ export default defineEventHandler(async (event) => {
   const appConfig = useAppConfig() as { duxt?: Partial<DuxtConfig> };
   const duxt = mergeDuxtConfig(appConfig.duxt, duxtDefaults);
 
-  const wanted = stripLocale(path.slice(0, -'.md'.length));
-
-  // Longest prefix first, exactly as the app resolves a route: `/app/v2` beats
-  // `/app` on `/app/v2/guide`.
-  const sources = [...(duxt.resolvedSources ?? [])].sort(
-    (a, b) => b.prefix.length - a.prefix.length
+  const i18n = (
+    useRuntimeConfig(event).public as {
+      i18n?: {
+        locales?: ({ code: string } | string)[];
+        defaultLocale?: string;
+      };
+    }
+  ).i18n;
+  const { path: wanted, locale } = splitLocalePath(
+    path.slice(0, -'.md'.length),
+    (i18n?.locales ?? []).map((entry) =>
+      typeof entry === 'string' ? entry : entry.code
+    )
+  );
+  // Nuxt i18n loads the consumer's merged Vue I18n config in its request hook.
+  // Browser-language detection's fallback is a different policy.
+  const fallbackLocale = event.context.nuxtI18n?.vueI18nOptions
+    ?.fallbackLocale as string | string[] | undefined;
+  const sources = sourcesForRoute(
+    wanted,
+    locale ?? i18n?.defaultLocale,
+    duxt.resolvedSources ?? [],
+    fallbackLocale
   );
 
-  const source =
-    sources.find(
-      (entry) =>
-        !entry.prefix ||
-        wanted === entry.prefix ||
-        wanted.startsWith(`${entry.prefix}/`)
-    ) ?? sources[0];
-
-  if (!source) return;
-
-  const page = await queryCollection(
-    event,
-    source.collection as Parameters<typeof queryCollection>[1]
-  )
-    .path(wanted)
-    .select('title', 'rawbody')
-    .first();
+  let page;
+  for (const source of sources) {
+    page = await queryCollection(
+      event,
+      source.collection as Parameters<typeof queryCollection>[1]
+    )
+      .path(wanted)
+      .select('title', 'rawbody')
+      .first();
+    if (page) break;
+  }
 
   // No page is not this middleware's error to raise: falling through lets the
   // app answer with its own 404, which knows how to suggest a near miss.
@@ -57,30 +71,3 @@ export default defineEventHandler(async (event) => {
   setHeader(event, 'content-type', 'text/markdown; charset=utf-8');
   return stripFrontmatter(body).trim();
 });
-
-/**
- * The locale segment, off.
- *
- * The browser is on `/de-DE/guide/deploying`; the page is `/guide/deploying`.
- * Same distinction `stripLocalePrefix` makes in the app, made again here
- * because Nitro has no i18n composable to ask.
- */
-function stripLocale(path: string): string {
-  const first = path.split('/')[1];
-  if (!first) return path;
-
-  const locales = (
-    useRuntimeConfig().public as {
-      i18n?: { locales?: ({ code: string } | string)[] };
-    }
-  ).i18n?.locales;
-
-  const codes = (locales ?? []).map((locale) =>
-    typeof locale === 'string' ? locale : locale.code
-  );
-
-  if (!codes.includes(first)) return path;
-
-  const rest = path.slice(first.length + 1);
-  return rest.startsWith('/') ? rest : rest || '/';
-}

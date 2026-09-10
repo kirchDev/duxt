@@ -23,6 +23,25 @@ const types = (over: Partial<DuxtSectionType> = {}) => ({ stub: stub(over) });
 const section = { type: 'stub', path: 'CHANGELOG.md', label: 'Releases' };
 
 describe('resolveGeneratedSections', () => {
+  it('inherits the default language when its source omits locales', () => {
+    const source = { path: 'demo', slug: 'demo', generated: [section] };
+    const options = { defaultLocale: 'en-GB' };
+    const implicit = resolveGeneratedSections([source], options, types());
+    const explicit = resolveGeneratedSections(
+      [{ ...source, locales: ['en-GB'] }],
+      options,
+      types()
+    );
+
+    expect(implicit).toEqual(explicit);
+    expect(implicit[0]).toMatchObject({
+      locale: 'en-GB',
+      isDefaultLocale: true,
+      collection: 'docs_demo_releases',
+      prefix: '/demo/releases'
+    });
+  });
+
   it('produces nothing until a source declares one', () => {
     expect(resolveGeneratedSections([{ path: 'docs' }])).toEqual([]);
   });
@@ -72,7 +91,14 @@ describe('resolveGeneratedSections', () => {
 
   it('puts a global section on the default version only, without one', () => {
     const generated = resolveGeneratedSections(
-      [{ path: 'docs', refs: ['main', 'v1.x'], generated: [section] }],
+      [
+        {
+          repo: 'acme/docs',
+          path: 'docs',
+          refs: ['main', 'v1.x'],
+          generated: [section]
+        }
+      ],
       {},
       types()
     );
@@ -86,7 +112,14 @@ describe('resolveGeneratedSections', () => {
 
   it('gives a per-version section one collection per version', () => {
     const generated = resolveGeneratedSections(
-      [{ path: 'docs', refs: ['main', 'v1.x'], generated: [section] }],
+      [
+        {
+          repo: 'acme/docs',
+          path: 'docs',
+          refs: ['main', 'v1.x'],
+          generated: [section]
+        }
+      ],
       {},
       types({ versioning: 'per-version' })
     );
@@ -279,6 +312,7 @@ describe('resolveGeneratedSections', () => {
     const generated = resolveGeneratedSections(
       [
         {
+          repo: 'acme/docs',
           path: 'docs',
           refs: ['main', 'v1.x'],
           // One artefact declared twice, as `www` declares its own changelog.
@@ -370,6 +404,56 @@ describe('duxtManifest', () => {
 
   it('is the source manifest exactly when nothing is declared', () => {
     expect(duxtManifest([{ path: 'docs' }])).toHaveLength(1);
+  });
+
+  it('lets a generated-only source share a default overview prefix', () => {
+    const manifest = duxtManifest(
+      [
+        { path: 'demo/docs', slug: 'demo', version: 'v3.x' },
+        {
+          path: 'demo/docs',
+          slug: 'demo',
+          version: 'v2.x',
+          status: 'deprecated'
+        },
+        {
+          path: 'demo/docs',
+          slug: 'demo',
+          content: false,
+          generated: [
+            {
+              type: 'stub',
+              path: 'demo/v3.md',
+              label: 'Demo API',
+              slug: 'api',
+              versions: [
+                { version: 'v3.x', path: 'demo/v3.md', default: true },
+                { version: 'v2.x', path: 'demo/v2.md' }
+              ]
+            }
+          ]
+        }
+      ],
+      { defaultRef: 'v3.x' },
+      types({ versioning: 'per-version' })
+    );
+
+    expect(
+      manifest
+        .filter((entry) => !entry.generated)
+        .map(({ version, prefix }) => ({ version, prefix }))
+    ).toEqual([
+      { version: 'v3.x', prefix: '/demo' },
+      { version: 'v2.x', prefix: '/demo/v2.x' }
+    ]);
+    expect(
+      manifest
+        .filter((entry) => entry.generated)
+        .map(({ version, prefix }) => ({ version, prefix }))
+    ).toEqual([
+      { version: 'v3.x', prefix: '/demo/api' },
+      { version: 'v2.x', prefix: '/demo/v2.x/api' }
+    ]);
   });
 });
 
@@ -669,6 +753,7 @@ describe('a section versioned by its own declaration', () => {
   it('refuses versions on a section whose source is versioned by refs', () => {
     const declared = [
       {
+        repo: 'acme/docs',
         path: 'docs',
         refs: [{ tag: 'v2.0.0' }, { tag: 'v1.0.0' }],
         generated: [

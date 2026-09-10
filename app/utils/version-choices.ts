@@ -45,6 +45,8 @@ export function versionChoices(
   // from the URL segment.
   if (configured?.length) return configured;
 
+  const editions = new Set<string>();
+
   return sources
     .filter(
       (source) =>
@@ -52,6 +54,14 @@ export function versionChoices(
         source.repo === current?.repo &&
         sameArtefact(source, current)
     )
+    .filter((source) => {
+      // Repository and artefact are scoped above; translations share the
+      // edition's version and target, while keeping separate collections.
+      const edition = JSON.stringify([source.version, source.prefix || '/']);
+      if (editions.has(edition)) return false;
+      editions.add(edition);
+      return true;
+    })
     .map((source) => ({
       label: source.version!,
       to: source.prefix || '/',

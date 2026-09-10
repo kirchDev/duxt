@@ -12,10 +12,18 @@ import type {
 export interface DuxtSource {
   /** Folder holding the Markdown, relative to the repository root. */
   path?: string;
-  /** `owner/name` or a full git URL. Omitted means this repository. */
+  /**
+   * Whether this source's Markdown is published as documentation pages.
+   *
+   * A source can carry generated sections without publishing its own tree. That
+   * lets a versioned documentation source and a generated artefact share their
+   * default URL prefix without declaring two page collections for it.
+   */
+  content?: boolean;
+  /** `owner/name` or a full git URL. Omitted reads the local checkout. */
   repo?: string;
   /**
-   * Refs to publish as versions. Omitted means the current checkout.
+   * Refs to publish as versions. Requires an explicit source or locale repo.
    *
    * A bare string is a branch. A tag has to say so — git keeps the two in
    * separate namespaces, and asking for a tag under refs/heads fails the
@@ -33,7 +41,8 @@ export interface DuxtSource {
    * The DEFAULT locale is the exception: it is the tree in `path` itself, with
    * no folder, so listing it changes nothing. That is what keeps this key
    * additive — a site that adds `locales` does not move the pages it already
-   * serves. Which one is the default comes from `defaultLocale`.
+   * serves. Which one is the default comes from `defaultLocale`. Omitting
+   * `locales` serves that default language too.
    */
   locales?: DuxtSourceLocale[];
   /**
@@ -166,7 +175,7 @@ export type DuxtSourceLocale =
       path?: string;
       /** A repository of its own — `owner/name` or a git URL. */
       repo?: string;
-      /** A ref of its own, when the translation is versioned separately. */
+      /** A ref of its own; requires an explicit source or locale repo. */
       ref?: DuxtRef;
     };
 
@@ -488,12 +497,16 @@ export function expandSources(
 
   return sources.flatMap((source) =>
     (source.refs?.length ? source.refs : [undefined]).flatMap((ref) =>
-      localesOf(source, ref).map((locale) => ({
-        source,
-        ref,
-        locale,
-        effective: localeEntry(source, locale, defaultLocale)
-      }))
+      localesOf(source, ref).map((locale) => {
+        const effective = localeEntry(source, locale, defaultLocale);
+        if (!effective.repo && (effective.ref ?? ref)) {
+          throw new Error(
+            `duxt: source "${source.path ?? 'docs'}" reads the local checkout and cannot select a ref. ` +
+              'Set an explicit repo to publish Git refs, or use version folders without refs.'
+          );
+        }
+        return { source, ref, locale, effective };
+      })
     )
   );
 }
@@ -561,7 +574,7 @@ export function resolveSources(
     const name = effectiveRef ? refName(effectiveRef) : source.version;
     const label =
       (ref && typeof ref === 'object' ? ref.label : undefined) ?? source.label;
-    const code = locale ? localeCode(locale) : undefined;
+    const code = locale ? localeCode(locale) : defaultLocale;
     const isDefaultLocale = !code || code === defaultLocale;
     const version = name ? slugify(label ?? name) : undefined;
     const isDefault = !name || name === defaultRef;
@@ -584,21 +597,23 @@ export function resolveSources(
 
     // Claimed per locale: two languages serving one prefix is not a collision,
     // it is the point.
-    const claim = `${code ?? ''}|${prefix}`;
-    const previous = taken.get(claim);
-    if (previous) {
-      // The one ambiguity the build-time decision leaves: a docs folder named
-      // like a repository or a version. Rejected rather than resolved silently.
-      throw new Error(
-        `duxt: two sources resolve to the same URL prefix "${prefix || '/'}" ` +
-          `(${previous} and ${source.repo ?? 'this repository'}${ref ? `@${ref}` : ''}). ` +
-          'Give one of them a `slug` or a `label`.'
+    if (source.content !== false) {
+      const claim = `${code ?? ''}|${prefix}`;
+      const previous = taken.get(claim);
+      if (previous) {
+        // The one ambiguity the build-time decision leaves: a docs folder named
+        // like a repository or a version. Rejected rather than resolved silently.
+        throw new Error(
+          `duxt: two sources resolve to the same URL prefix "${prefix || '/'}" ` +
+            `(${previous} and ${source.repo ?? 'this repository'}${ref ? `@${ref}` : ''}). ` +
+            'Give one of them a `slug` or a `label`.'
+        );
+      }
+      taken.set(
+        claim,
+        `${source.repo ?? 'this repository'}${name ? `@${name}` : ''}`
       );
     }
-    taken.set(
-      claim,
-      `${source.repo ?? 'this repository'}${name ? `@${name}` : ''}`
-    );
 
     resolved.push({
       collection,
@@ -631,6 +646,9 @@ export function resolveSources(
     });
   }
 
+  assertCollectionIdentities(
+    resolved.filter((_, index) => expanded[index]!.source.content !== false)
+  );
   return resolved;
 }
 
@@ -905,4 +923,42 @@ function isInsidePrefix(path: string, prefix: string): boolean {
   if (!prefix) return true;
 
   return path === prefix || path.startsWith(`${prefix}/`);
+}
+
+/** Validate names before any collection map can overwrite a declaration. */
+export function assertCollectionIdentities(
+  entries: DuxtResolvedSource[]
+): void {
+  const taken = new Map<string, string>();
+  const claim = (name: string, declaration: string) => {
+    const previous = taken.get(name);
+    if (previous !== undefined) {
+      throw new Error(
+        `duxt: collection "${name}" is claimed by both ${previous} and ${declaration}. ` +
+          'Give one declaration a distinct `slug` or `label`.'
+      );
+    }
+    taken.set(name, declaration);
+  };
+
+  for (const entry of entries) {
+    const kind = entry.generated
+      ? `generated section "${entry.generated.label}"`
+      : 'documentation';
+    claim(
+      entry.collection,
+      `${kind} "${entry.path}" at "${entry.prefix || '/'}"` +
+        (entry.locale ? ` (locale "${entry.locale}")` : '')
+    );
+  }
+
+  // Shared partials are one declaration per language, even across sources.
+  const locales = new Set(
+    entries
+      .filter((entry) => !entry.generated)
+      .map((entry) => (entry.isDefaultLocale ? undefined : entry.locale))
+  );
+  for (const locale of locales) {
+    claim(partialsCollection(locale), `partials for "${locale ?? 'default'}"`);
+  }
 }

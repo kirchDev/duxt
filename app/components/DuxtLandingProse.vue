@@ -42,8 +42,7 @@ const localeLink = useDuxtLink();
     <component
       :is="`h${level}`"
       :id="headingId"
-      class="font-semibold tracking-tight text-balance"
-      :class="level === 2 ? 'text-2xl sm:text-3xl' : 'text-xl sm:text-2xl'"
+      class="text-2xl font-semibold tracking-tight text-balance sm:text-3xl"
     >
       {{ prose.title }}
     </component>

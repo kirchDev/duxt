@@ -1,6 +1,11 @@
 import { execFileSync } from 'node:child_process';
 import type { DuxtSource } from './sources-resolve';
-import { isLatestRef, newestTag, repoUrl } from './sources-resolve';
+import {
+  expandSources,
+  isLatestRef,
+  newestTag,
+  repoUrl
+} from './sources-resolve';
 
 /**
  * Resolve the `latest` shorthand into the tag it means.
@@ -81,6 +86,8 @@ function tagsOf(repo: string | undefined): string[] {
  * resolver itself stays pure and testable — it never learns that git exists.
  */
 export function resolveLatestRefs(sources: DuxtSource[]): DuxtSource[] {
+  // Reject local refs before a missing tag can hide the configuration error.
+  expandSources(sources);
   return sources.map((source) => {
     if (!source.refs?.some(isLatestRef)) return source;
 

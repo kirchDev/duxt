@@ -10,6 +10,7 @@
  */
 import { reservedSegments } from './sources-resolve';
 import { packageCommandIssues } from './app/utils/package-command';
+import { resolveDocumentationPath } from './app/utils/documentation-link';
 
 export interface PageRecord {
   collection: string;
@@ -203,9 +204,9 @@ export function report(
   //    verify, and checking it would put the network in the build.
   //
   //    Resolved exactly as `ProseA` resolves them at render time: an absolute
-  //    path written in a page is relative to that page's OWN source, so it is
-  //    tried under the source's prefix first and bare second. Checking only the
-  //    bare form reports every correct link on a prefixed site.
+  //    path written in a page is relative to that page's OWN source. `~/` is
+  //    the one explicit website-root form. Checking a normal path bare as a
+  //    fallback would green-light a rendered 404 from a prefixed source.
   //
   //    PER LANGUAGE, and that is not a refinement. Every language of one source
   //    serves IDENTICAL content paths — the locale lives in front of the URL,
@@ -259,9 +260,15 @@ export function report(
 
     for (const link of page.links) {
       const { href } = link;
-      if (!href.startsWith('/') && !href.startsWith('#')) continue;
+      if (
+        !href.startsWith('/') &&
+        !href.startsWith('~/') &&
+        !href.startsWith('#')
+      )
+        continue;
 
-      const [target, fragment] = href.split('#');
+      const [targetAndQuery, fragment] = href.split('#');
+      const [target, query] = targetAndQuery!.split('?');
 
       // DECODED, because the two halves are written in different alphabets. A
       // heading's id is the text as it stands — `icônes` — while the link
@@ -269,20 +276,22 @@ export function report(
       // accented anchor on the site as missing and told the author to point at
       // a heading that was already there.
       const anchor = fragment && decodeAnchor(fragment);
-      const destination = target
-        ? (resolve(`${prefix}${target}`, page) ?? resolve(target, page))
-        : page;
+      const renderedTarget = target
+        ? resolveDocumentationPath(target, prefix)
+        : target;
+      const renderedHref = `${renderedTarget}${query ? `?${query}` : ''}${fragment ? `#${fragment}` : ''}`;
+      const destination = renderedTarget ? resolve(renderedTarget, page) : page;
 
-      if (target && !destination) {
+      if (renderedTarget && !destination) {
         warnings.push(
-          `"${page.file}" links to "${href}", which no page serves.`
+          `"${page.file}" links to "${renderedHref}", which no page serves.`
         );
         continue;
       }
 
       if (anchor && destination && !destination.anchors.has(anchor)) {
         warnings.push(
-          `"${page.file}" links to "${href}", but that page has no "${anchor}" heading.`
+          `"${page.file}" links to "${renderedHref}", but that page has no "${anchor}" heading.`
         );
       }
     }

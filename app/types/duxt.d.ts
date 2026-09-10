@@ -185,6 +185,13 @@ declare global {
   interface DuxtSourceInput {
     /** Folder holding the Markdown, relative to the repository root. */
     path?: string;
+    /**
+     * Whether this source's Markdown is published as documentation pages.
+     *
+     * Set `false` for a source that only provides generated sections. It can
+     * then share the default URL prefix of a versioned documentation source.
+     */
+    content?: boolean;
     /** `owner/name` or a full git URL. Omitted means this repository. */
     repo?: string;
     /** Refs to publish as versions. Omitted means the current checkout. */
