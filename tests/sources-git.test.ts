@@ -8,9 +8,10 @@ vi.mock('node:child_process', () => ({
 }));
 
 import { resolveLatestRefs } from '../sources-git';
+import { resolveSources } from '../sources-resolve';
 
 describe('resolveLatestRefs', () => {
-  it('keeps a latest ref default after resolving its concrete tag', () => {
+  it('keeps a latest ref default and labels it with its concrete tag', () => {
     const [source] = resolveLatestRefs([
       {
         repo: 'acme/legacy',
@@ -30,13 +31,13 @@ describe('resolveLatestRefs', () => {
     expect(source!.refs).toEqual([
       {
         tag: 'v0.2.0',
-        label: 'latest',
         default: true,
         status: 'maintained',
         locales: ['en']
       },
       { tag: 'v0.1.0', status: 'deprecated' }
     ]);
+    expect(resolveSources([source!])[0]!.version).toBe('v0.2.0');
   });
 
   it('keeps an explicit release once latest moves past it', () => {
@@ -55,7 +56,6 @@ describe('resolveLatestRefs', () => {
     expect(source!.refs).toEqual([
       {
         tag: 'v0.3.0',
-        label: 'latest',
         default: true,
         status: 'current'
       },

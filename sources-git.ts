@@ -108,10 +108,10 @@ export function resolveLatestRefs(sources: DuxtSource[]): DuxtSource[] {
         if (isLatestRef(ref)) {
           return {
             tag: newest,
-            // The URL keeps saying `latest`, so a bookmark survives the next
-            // release; only the ref underneath moves. `label` is what the
-            // switcher and the prefix are built from.
-            label: typeof ref === 'object' ? (ref.label ?? 'latest') : 'latest',
+            // The resolved tag is the switcher's normal label: `latest` says
+            // how the source was selected, not which release a reader sees.
+            // A caller may still deliberately supply a custom label.
+            label: typeof ref === 'object' ? ref.label : undefined,
             // `latest` stops being distinguishable from an ordinary tag after
             // resolution, so settle its source-level default while that fact
             // still exists. An explicit ref or all-refs source status wins.
