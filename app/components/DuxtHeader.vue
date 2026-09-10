@@ -156,7 +156,14 @@ function current(to?: string) {
           <UiSheetContent side="left" class="flex w-80 flex-col gap-0 p-0">
             <UiSheetHeader class="border-b pr-14">
               <UiSheetTitle class="flex items-center gap-2">
-                <DuxtBrand />
+                <NuxtLink
+                  :to="localeLink('/')"
+                  :aria-label="duxt.logo?.alt || duxt.title"
+                  class="flex items-center gap-2"
+                  @click="sheetOpen = false"
+                >
+                  <DuxtBrand />
+                </NuxtLink>
 
                 <!-- One version and no choice: a fact about the project, so it
                      sits with the identity as a badge rather than filling a
