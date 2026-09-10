@@ -4,6 +4,13 @@ import { splitLocalePath, stripLocalePrefix } from '../app/utils/locale-path';
 const codes = ['en-GB', 'en-US', 'de-DE', 'es-ES', 'fr-FR', 'pt-PT', 'pt-BR'];
 
 describe('stripLocalePrefix', () => {
+  it.each(['/getting-started/', '/de-DE/getting-started/'])(
+    'uses the prerendered document path for %s',
+    (path) => {
+      expect(stripLocalePrefix(path, codes)).toBe('/getting-started');
+    }
+  );
+
   it('leaves the default locale alone, because it carries no prefix', () => {
     expect(stripLocalePrefix('/guide/deploying', codes)).toBe(
       '/guide/deploying'
