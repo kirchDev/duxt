@@ -135,6 +135,28 @@ describe('report', () => {
     expect(warnings).toEqual([]);
   });
 
+  it('keeps a versioned overview in its own edition', () => {
+    const { warnings } = report(
+      [
+        { collection: 'docs_demo_main', prefix: '/demo/main' },
+        { collection: 'docs_demo_api_main', prefix: '/demo/main/api' }
+      ],
+      [
+        page({
+          collection: 'docs_demo_main',
+          path: '/demo/main',
+          links: [{ href: '/api' }]
+        }),
+        page({
+          collection: 'docs_demo_api_main',
+          path: '/demo/main/api'
+        })
+      ]
+    );
+
+    expect(warnings).toEqual([]);
+  });
+
   it('warns about an anchor the target page has not got', () => {
     const { warnings } = report(
       [{ collection: 'docs', prefix: '' }],

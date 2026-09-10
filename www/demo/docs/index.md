@@ -22,15 +22,15 @@ versions are not releases of the duxt package.
 
 ## Where to start
 
-- [Demo Changelog](/demo/changelog) — a release overview, with a page per
+- [Demo Changelog](~/demo/changelog) — a release overview, with a page per
   version and a version sidebar.
-- [Changelog as one page](/demo/changelog-flat) — the same release history,
+- [Changelog as one page](~/demo/changelog-flat) — the same release history,
   showing the flat changelog layout.
-- [The reference](/demo/api) — the overview, then a page per tag and a page per
+- [The reference](/api) — the overview, then a page per tag and a page per
   operation.
-- [Book a consignment](/demo/api/consignments/createconsignment) — two request
+- [Book a consignment](~/demo/api/consignments/createconsignment) — two request
   bodies, a callback and a `Location` header.
-- [Book a demo consignment](/demo/api/demo/echoconsignment) — **the one
+- [Book a demo consignment](~/demo/api/demo/echoconsignment) — **the one
   operation that is real.** A route in `www/server/` answers it, so the try-it
   client sends a request from your browser and gets a `201` back.
 
