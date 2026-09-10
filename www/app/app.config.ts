@@ -56,27 +56,14 @@ export default defineAppConfig({
 
         // An artefact that is not Markdown, published as pages of the site.
         //
-        // The path resolves against the SOURCE'S OWN ROOT — this repository's,
-        // because the source is read off disk — which is why it reads
-        // `www/CHANGELOG.md` and not `CHANGELOG.md`: the artefact belongs to
-        // the site rather than to the package, exactly the shape a monorepo
-        // has when `release-please-config.json` names a changelog per package.
+        // The path resolves against the source's own root — this repository's,
+        // because the source is read off disk. The public release history reads
+        // the package's CHANGELOG.md, maintained by release-please.
         //
         // `label` is a plain string, not a record: it is also the URL segment,
         // and a translated text is not a stable URL — the same pair a version's
         // label makes. The entry appends itself to the section row above.
         generated: [
-          // TO BE REPOINTED AT THE PACKAGE'S OWN CHANGELOG once release-please
-          // cuts the first version: `path: 'CHANGELOG.md'`, the file at the
-          // repository root. It cannot be that today — the manifest stands at
-          // `0.0.0`, the file does not exist, and a generated section whose
-          // artefact is missing fails the build at config load, by design.
-          //
-          // The site's own log stays the fixture either way: it is the one file
-          // in the repository carrying every section release-please writes and
-          // a patch release at `###`, which is what puts both of the parser's
-          // heading rules on the build's path.
-          //
           // `navigation: 'navigation'` puts the entry in the TOP row rather
           // than in the section row: a release log is not a part of the
           // documentation the way "Guides" is, it is a thing the project has
@@ -84,33 +71,20 @@ export default defineAppConfig({
           // `navigation`, between Resources and Credits — see there.
           {
             type: 'changelog',
-            path: 'www/CHANGELOG.md',
+            path: 'CHANGELOG.md',
             label: 'Releases',
             navigation: 'navigation'
-          },
-          // The SAME artefact at the other granularity, which is what puts the
-          // second rendering path on the build's own path: `flat` is one page
-          // holding the file as it was written, and a page that nothing renders
-          // is a page whose failures nobody sees.
-          //
-          // `navigation: false` keeps it out of the section row — one changelog
-          // belongs in a navbar, and this is a fixture standing beside the real
-          // entry rather than a second thing to read.
-          {
-            type: 'changelog',
-            path: 'www/CHANGELOG.md',
-            label: 'Changelog',
-            navigation: false,
-            options: { granularity: 'flat' }
           }
         ]
       },
 
       /**
-       * THE DEMO API, a source of its own — and the reason this list has two
+       * THE DEMO AREA, a source of its own — and the reason this list has two
        * entries rather than one.
        *
-       * It carries ONE page of prose and four OpenAPI documents, and the ratio
+       * It carries three pages of prose, a changelog and four OpenAPI documents.
+       * The prose lives in docs/ so the Markdown changelog is only ingested
+       * by its generated section. The ratio
        * is the shape a consumer genuinely has: an API described in a file, with
        * a page in front of it saying what the thing is. The page is also what
        * the source needs to be legal — a source publishes a documentation tree,
@@ -125,7 +99,7 @@ export default defineAppConfig({
        * and the source above, which names none, does not move.
        */
       {
-        path: 'www/demo',
+        path: 'www/demo/docs',
         slug: 'demo',
         origin: { repo: 'kirchDev/duxt', ref: 'main' },
 
@@ -188,6 +162,16 @@ export default defineAppConfig({
               },
               { version: 'v1.x', path: 'www/demo/v1.yaml', status: 'eol' }
             ]
+          },
+          // The fixture exercises flat rendering while /releases splits the
+          // package's own changelog into a page per version.
+          {
+            type: 'changelog',
+            path: 'www/demo/CHANGELOG.md',
+            label: 'Demo Changelog',
+            slug: 'changelog',
+            navigation: 'sections',
+            options: { granularity: 'flat' }
           }
         ]
       }

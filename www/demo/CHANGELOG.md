@@ -3,13 +3,13 @@
 The documentation site's own log. `www` is private and never published, so the
 numbers below mark this site's milestones rather than releases of the
 `@kirchdev/duxt` package — release-please writes that changelog at the
-repository root once the first version is cut.
+repository root, and the site serves it at `/releases`.
 
 It is also the fixture that keeps a generated section on the build's path: the
-site declares it under `duxt.sources[].generated` twice — once split into a page
-per release at `/releases`, once whole at `/changelog` — so `pnpm check` renders
-both of the `changelog` type's granularities end to end rather than trusting a
-registry with nothing in it.
+site declares it under `duxt.sources[].generated` as one page at `/demo/changelog`.
+Together with the package's release pages, `pnpm check` renders both of the
+`changelog` type's granularities end to end rather than trusting a registry
+with nothing in it.
 
 Three things below are deliberate rather than historical. `0.5.0` carries **every
 section release-please can write** — the breaking-change block, the two visible
