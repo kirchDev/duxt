@@ -611,7 +611,8 @@ export default defineAppConfig({
       // How a reader installs the layer. The layer ships none — it does not
       // know what a consumer's project is called — so duxt's own site is where
       // duxt's own command belongs.
-      command: 'pnpm add -D @kirchdev/duxt',
+      command:
+        'npx nuxi@latest init my-docs -t github:kirchDev/duxt-starter --gitInit --packageManager pnpm',
 
       actions: [
         {
