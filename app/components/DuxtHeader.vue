@@ -328,7 +328,7 @@ function current(to?: string) {
                 </ul>
               </template>
 
-              <template v-if="items.length">
+              <template v-if="path !== '/' && items.length">
                 <p
                   class="mt-6 mb-2 border-t px-2 pt-4 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase first:mt-0 first:border-t-0 first:pt-0"
                 >
