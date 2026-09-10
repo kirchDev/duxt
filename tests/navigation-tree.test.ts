@@ -2,10 +2,34 @@ import type { ContentNavigationItem } from '@nuxt/content';
 import { describe, expect, it } from 'vitest';
 import {
   findByPath,
+  navigationPagePaths,
   overlayTranslations,
   sectionItems,
   trailBelowPrefix
 } from '../app/utils/navigation-tree';
+
+describe('navigationPagePaths', () => {
+  it('keeps versioned pages that a file-extension-based crawler skips', () => {
+    expect(
+      navigationPagePaths([
+        {
+          title: 'Releases',
+          path: '/releases',
+          children: [
+            { title: 'Releases', path: '/releases' },
+            { title: '0.1.0', path: '/releases/v0.1.0' },
+            { title: '0.1.0', path: '/releases/v0.1.0' }
+          ]
+        },
+        {
+          title: 'Folder without an index',
+          path: '/folder',
+          children: [{ title: 'Page', path: '/folder/page' }]
+        }
+      ])
+    ).toEqual(['/releases', '/releases/v0.1.0', '/folder/page']);
+  });
+});
 
 /** What Content builds for a one-segment prefix: `/workflows`. */
 const branchTree: ContentNavigationItem[] = [

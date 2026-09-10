@@ -1,5 +1,18 @@
 import type { ContentNavigationItem } from '@nuxt/content';
 
+/** Actual pages, including dotted version paths; folder wrappers are not pages. */
+export function navigationPagePaths(items: ContentNavigationItem[]): string[] {
+  const paths = new Set<string>();
+  for (const item of items) {
+    if (item.children?.length) {
+      for (const path of navigationPagePaths(item.children)) paths.add(path);
+    } else {
+      paths.add(item.path);
+    }
+  }
+  return [...paths];
+}
+
 /** Find a node by path, anywhere in the tree. */
 export function findByPath(
   items: ContentNavigationItem[],
