@@ -1,13 +1,10 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import { once } from 'node:events';
 import {
-  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
-  statSync,
-  utimesSync,
   writeFileSync
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -139,13 +136,13 @@ it('does not expire a live legacy Nuxt lock based on its age', async () => {
 
 it('keeps serving when a .env change restarts Nuxt dev', async () => {
   const port = 33432;
-  const env = join(project, 'www/.env');
-  const envExisted = existsSync(env);
-  if (!envExisted) writeFileSync(env, '');
-  const previousTimes = statSync(env);
+  const root = mkdtempSync(join(tmpdir(), 'duxt-env-'));
+  roots.push(root);
+  const env = join(root, '.env');
+  writeFileSync(env, '');
   const server = spawn(
     process.execPath,
-    [nuxt, 'dev', '--port', String(port)],
+    [nuxt, 'dev', '--port', String(port), '--dotenv', env],
     {
       cwd: join(project, 'www'),
       detached: true,
@@ -185,8 +182,6 @@ it('keeps serving when a .env change restarts Nuxt dev', async () => {
       )
       .toBe(200);
   } finally {
-    utimesSync(env, previousTimes.atime, previousTimes.mtime);
-    if (!envExisted) rmSync(env);
     await stopProcessGroup(server);
   }
 }, 180_000);
