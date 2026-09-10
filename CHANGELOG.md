@@ -1,5 +1,46 @@
 # Changelog
 
+## [0.2.0](https://github.com/kirchDev/duxt/compare/v0.1.0...v0.2.0) (2026-09-10)
+
+
+### Features
+
+* add nuxi starter setup ([52e8c25](https://github.com/kirchDev/duxt/commit/52e8c253cdb9a433c20500e90c38ea9708d5e98b))
+
+
+### Bug Fixes
+
+* add Demo overview version controls ([abe22a5](https://github.com/kirchDev/duxt/commit/abe22a5b20b30b78a5931c78d1af961d6ac6472b)), closes [#56](https://github.com/kirchDev/duxt/issues/56)
+* assign omitted source locales to the default language ([a14796d](https://github.com/kirchDev/duxt/commit/a14796d8c8a7aa8e7997462105294d6a2ea92d88)), closes [#30](https://github.com/kirchDev/duxt/issues/30)
+* contain request sample tabs on narrow screens ([5a0ec49](https://github.com/kirchDev/duxt/commit/5a0ec49c9922515c2676438ab7eccd1db26216d2)), closes [#51](https://github.com/kirchDev/duxt/issues/51) [#52](https://github.com/kirchDev/duxt/issues/52)
+* correct the codex policy match examples ([cb20011](https://github.com/kirchDev/duxt/commit/cb20011bb67668367f65784dbdee6c0377337c29))
+* deduplicate translated version menu entries ([23ef74a](https://github.com/kirchDev/duxt/commit/23ef74abdf4934f857505620b5b7c443175e19d5)), closes [#25](https://github.com/kirchDev/duxt/issues/25)
+* hide page navigation on mobile homepages ([a02d60e](https://github.com/kirchDev/duxt/commit/a02d60ec0b881b297a60e0de5ced8817e3d597b8)), closes [#39](https://github.com/kirchDev/duxt/issues/39)
+* import Demo route handlers explicitly ([765cae3](https://github.com/kirchDev/duxt/commit/765cae3499e406d6750f02bcd2de7aec69d8df7c))
+* import raw Markdown middleware handlers explicitly ([7f102ba](https://github.com/kirchDev/duxt/commit/7f102bafdb3c2284b29e6789410d7e822e1a2b21))
+* include generated artefacts in site-wide search ([c752db1](https://github.com/kirchDev/duxt/commit/c752db13129a8a2ec9611399ca5a38fc187c9168)), closes [#22](https://github.com/kirchDev/duxt/issues/22)
+* increase landing sample heading size ([ac865f9](https://github.com/kirchDev/duxt/commit/ac865f91842b0db567e155b5b9368e4d22642db6))
+* link the mobile sidebar brand to the locale homepage ([88bb236](https://github.com/kirchDev/duxt/commit/88bb2365e464c0b450b1e4e24bfcffa9218e6d9b)), closes [#53](https://github.com/kirchDev/duxt/issues/53)
+* link the release badge to the site's changelog ([8dd3ed5](https://github.com/kirchDev/duxt/commit/8dd3ed557362f3210a177190d5af1d62665a5195))
+* normalize document paths on reload ([6546f47](https://github.com/kirchDev/duxt/commit/6546f4780f7818c71123a3096333a78af33bc145))
+* prerender versioned pages and their payloads ([e4860d5](https://github.com/kirchDev/duxt/commit/e4860d5f51a221b7a4e7de74a47a09ff0832897b))
+* preserve changelog group colors in the css cascade ([5eb7dab](https://github.com/kirchDev/duxt/commit/5eb7dab2ad6247d39c7d14154d8583ba146df1b6))
+* preserve content styles during hydration ([c4bb7f2](https://github.com/kirchDev/duxt/commit/c4bb7f2457f5c7c8dc9e569c11e5048ee7c3db77))
+* preserve locale identity in llm exports ([efe898e](https://github.com/kirchDev/duxt/commit/efe898ea7ad8d737e454f158e836a6c999149b34)), closes [#24](https://github.com/kirchDev/duxt/issues/24)
+* preserve Nuxt process ownership across dev reloads ([d51c391](https://github.com/kirchDev/duxt/commit/d51c391cd905316f563dd67d6e2f9f4b32628ae5)), closes [#32](https://github.com/kirchDev/duxt/issues/32)
+* publish prereleases only from main ([470d8d6](https://github.com/kirchDev/duxt/commit/470d8d60fef8e193e6c00db8a6ca10b498713abc))
+* refuse conflicting Nuxt site processes ([0dd038c](https://github.com/kirchDev/duxt/commit/0dd038c7464f16747482a7d5babab8a0606ec5db)), closes [#32](https://github.com/kirchDev/duxt/issues/32)
+* reject colliding collection identities ([83cfebe](https://github.com/kirchDev/duxt/commit/83cfebe6611dd23dabb44f2d2d5e5d2ec923eddd)), closes [#21](https://github.com/kirchDev/duxt/issues/21)
+* reject Git refs on local checkout sources ([ac90f12](https://github.com/kirchDev/duxt/commit/ac90f12c6792a9834a4c8b096a88c7900a94a558)), closes [#20](https://github.com/kirchDev/duxt/issues/20)
+* remove request-controlled behavior from SEO fixture ([30b59b1](https://github.com/kirchDev/duxt/commit/30b59b1d6abb5b1cb656002556539454f93407d8)), closes [#26](https://github.com/kirchDev/duxt/issues/26)
+* resolve Demo overview links within their editions ([aad826e](https://github.com/kirchDev/duxt/commit/aad826e4c04bc185868504656eb7159eba6a1036)), closes [#56](https://github.com/kirchDev/duxt/issues/56)
+* separate package releases from the demo changelog ([a4e6423](https://github.com/kirchDev/duxt/commit/a4e64232d8a8de72f6f526d253cfae57866ae932))
+* serve translated markdown with page locale fallbacks ([f28574e](https://github.com/kirchDev/duxt/commit/f28574e9a7f8c3b26908bccea7b62a7a40a165bb)), closes [#23](https://github.com/kirchDev/duxt/issues/23)
+* show the demo changelog with a version sidebar ([67dfda8](https://github.com/kirchDev/duxt/commit/67dfda8cdd66334da5a9cf5cfa736b52b6ce0f77))
+* show the latest changelog release in its badge ([d920bf6](https://github.com/kirchDev/duxt/commit/d920bf66192272f2f0107556e5651a6acf16dfaf)), closes [#57](https://github.com/kirchDev/duxt/issues/57)
+* support website-absolute documentation links ([d18ffa7](https://github.com/kirchDev/duxt/commit/d18ffa7a41aac96d679fee26a1e9446be3899aa8)), closes [#29](https://github.com/kirchDev/duxt/issues/29)
+* validate SEO check server and HTTP responses ([93816df](https://github.com/kirchDev/duxt/commit/93816df8908b820c9925094b9229fb470a6394e8)), closes [#26](https://github.com/kirchDev/duxt/issues/26)
+
 ## 0.1.0 (2026-09-10)
 
 
