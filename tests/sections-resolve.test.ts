@@ -405,6 +405,56 @@ describe('duxtManifest', () => {
   it('is the source manifest exactly when nothing is declared', () => {
     expect(duxtManifest([{ path: 'docs' }])).toHaveLength(1);
   });
+
+  it('lets a generated-only source share a default overview prefix', () => {
+    const manifest = duxtManifest(
+      [
+        { path: 'demo/docs', slug: 'demo', version: 'v3.x' },
+        {
+          path: 'demo/docs',
+          slug: 'demo',
+          version: 'v2.x',
+          status: 'deprecated'
+        },
+        {
+          path: 'demo/docs',
+          slug: 'demo',
+          content: false,
+          generated: [
+            {
+              type: 'stub',
+              path: 'demo/v3.md',
+              label: 'Demo API',
+              slug: 'api',
+              versions: [
+                { version: 'v3.x', path: 'demo/v3.md', default: true },
+                { version: 'v2.x', path: 'demo/v2.md' }
+              ]
+            }
+          ]
+        }
+      ],
+      { defaultRef: 'v3.x' },
+      types({ versioning: 'per-version' })
+    );
+
+    expect(
+      manifest
+        .filter((entry) => !entry.generated)
+        .map(({ version, prefix }) => ({ version, prefix }))
+    ).toEqual([
+      { version: 'v3.x', prefix: '/demo' },
+      { version: 'v2.x', prefix: '/demo/v2.x' }
+    ]);
+    expect(
+      manifest
+        .filter((entry) => entry.generated)
+        .map(({ version, prefix }) => ({ version, prefix }))
+    ).toEqual([
+      { version: 'v3.x', prefix: '/demo/api' },
+      { version: 'v2.x', prefix: '/demo/v2.x/api' }
+    ]);
+  });
 });
 
 describe('duxtSectionTypes', () => {

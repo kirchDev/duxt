@@ -78,31 +78,44 @@ export default defineAppConfig({
         ]
       },
 
-      /**
-       * THE DEMO AREA, a source of its own — and the reason this list has two
-       * entries rather than one.
-       *
-       * It carries three pages of prose, a changelog and four OpenAPI documents.
-       * The prose lives in docs/ so the Markdown changelog is only ingested
-       * by its generated section. The ratio
-       * is the shape a consumer genuinely has: an API described in a file, with
-       * a page in front of it saying what the thing is. The page is also what
-       * the source needs to be legal — a source publishes a documentation tree,
-       * and the build rejects a collection with nothing in it rather than
-       * serving a prefix that 404s on every URL it claims.
-       *
-       * `slug` is what keeps the prose at the root. The automatic rule gives
-       * every source a segment once the list names more than one REPOSITORY,
-       * and both of these are this checkout, so it never fires — the docs would
-       * have stayed at `/getting-started` and this source would have wanted the
-       * same prefix. A source that names a slug is served under it either way,
-       * and the source above, which names none, does not move.
-       */
+      // The Demo overview is one document tree at four editions. The current
+      // `v3.x` tree stays at `/demo`; the other editions keep the same overview
+      // under their version prefix, just like the generated API does below.
       {
         path: 'www/demo/docs',
         slug: 'demo',
+        version: 'main',
+        status: 'upcoming',
+        origin: { repo: 'kirchDev/duxt', ref: 'main' }
+      },
+      {
+        path: 'www/demo/docs',
+        slug: 'demo',
+        version: 'v3.x',
+        origin: { repo: 'kirchDev/duxt', ref: 'main' }
+      },
+      {
+        path: 'www/demo/docs',
+        slug: 'demo',
+        version: 'v2.x',
+        status: 'deprecated',
+        origin: { repo: 'kirchDev/duxt', ref: 'main' }
+      },
+      {
+        path: 'www/demo/docs',
+        slug: 'demo',
+        version: 'v1.x',
+        status: 'eol',
+        origin: { repo: 'kirchDev/duxt', ref: 'main' }
+      },
+      // Generated sections use the same default prefix but do not publish a
+      // second Markdown collection there. Their API declaration owns the four
+      // edition-specific artefacts; changelogs remain one global history.
+      {
+        path: 'www/demo/docs',
+        slug: 'demo',
+        content: false,
         origin: { repo: 'kirchDev/duxt', ref: 'main' },
-
         generated: [
           // An OpenAPI document, published as reference pages. `per-version`
           // and `per-locale`, unlike the changelog above — the two policies the
@@ -171,7 +184,7 @@ export default defineAppConfig({
         ]
       }
     ],
-    sourceOptions: { defaultLocale: 'en-GB' },
+    sourceOptions: { defaultLocale: 'en-GB', defaultRef: 'v3.x' },
     // The feed, pointed at a section that has dated entries. Off by default in
     // the layer; this site turns it on so the route is exercised.
     feed: { path: '/adr', title: 'duxt — decisions' },

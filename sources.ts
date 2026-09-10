@@ -153,6 +153,7 @@ export function duxtSources(
 
   resolved.forEach((entry, index) => {
     const { source, ref, effective } = expanded[index]!;
+    if (source.content === false) return;
 
     // A locale entry may carry a ref of its own — a translation repository
     // that tags on its own schedule.
@@ -228,7 +229,8 @@ function partialFolders(
   const seen = new Set<string>();
 
   resolved.forEach((entry, index) => {
-    const { effective } = expanded[index]!;
+    const { source, effective } = expanded[index]!;
+    if (source.content === false) return;
     const key = entry.isDefaultLocale ? undefined : entry.locale;
 
     // One entry per REPOSITORY AND FOLDER, not per version: a partial is a

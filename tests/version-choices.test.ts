@@ -206,6 +206,60 @@ describe('a site that publishes a reference beside its documentation', () => {
     ).toEqual(['/api', '/1.x/api']);
   });
 
+  it('keeps a versioned overview on the overview route', () => {
+    const overviewV3 = source({
+      repo: 'demo',
+      version: 'v3.x',
+      prefix: '/demo',
+      isDefault: true
+    });
+    const overviewV2 = source({
+      repo: 'demo',
+      version: 'v2.x',
+      prefix: '/demo/v2.x',
+      status: 'deprecated'
+    });
+    const overviewV1 = source({
+      repo: 'demo',
+      version: 'v1.x',
+      prefix: '/demo/v1.x',
+      status: 'eol'
+    });
+    const overviewMain = source({
+      repo: 'demo',
+      version: 'main',
+      prefix: '/demo/main',
+      status: 'upcoming'
+    });
+    const choices = versionChoices(
+      [overviewMain, overviewV3, overviewV2, overviewV1],
+      overviewV3,
+      undefined
+    );
+
+    expect(choices).toEqual([
+      {
+        label: 'main',
+        to: '/demo/main',
+        description: 'duxt.version.status.upcoming'
+      },
+      { label: 'v3.x', to: '/demo', description: 'default' },
+      {
+        label: 'v2.x',
+        to: '/demo/v2.x',
+        description: 'duxt.version.status.deprecated'
+      },
+      {
+        label: 'v1.x',
+        to: '/demo/v1.x',
+        description: 'duxt.version.status.eol'
+      }
+    ]);
+    expect(versionPath('/demo', overviewV3.prefix, choices[2]!.to!)).toBe(
+      '/demo/v2.x'
+    );
+  });
+
   it('still offers nothing where a section is version-neutral', () => {
     const changelog = api({
       version: undefined,

@@ -368,10 +368,16 @@ export function resolveGeneratedSections(
   // Claimed per locale, exactly as `resolveSources` claims its own prefixes:
   // two languages serving one prefix is not a collision, it is the point.
   const taken = new Map<string, string>(
-    resolved.map((entry) => [
-      `${entry.locale ?? ''}|${entry.prefix}`,
-      `the documentation at "${entry.prefix || '/'}"`
-    ])
+    resolved.flatMap((entry, index) =>
+      expanded[index]!.source.content === false
+        ? []
+        : [
+            [
+              `${entry.locale ?? ''}|${entry.prefix}`,
+              `the documentation at "${entry.prefix || '/'}"`
+            ] as [string, string]
+          ]
+    )
   );
 
   // Counted over the whole list rather than per source, so the identity is
@@ -540,7 +546,10 @@ export function resolveGeneratedSections(
     }
   });
 
-  assertCollectionIdentities([...resolved, ...generated]);
+  assertCollectionIdentities([
+    ...resolved.filter((_, index) => expanded[index]!.source.content !== false),
+    ...generated
+  ]);
   return generated;
 }
 
@@ -706,8 +715,11 @@ export function duxtManifest(
   options: DuxtSourcesOptions = {},
   types: DuxtSectionTypes = duxtSectionTypes()
 ): DuxtResolvedSource[] {
+  const resolved = resolveSources(sources, options);
+  const expanded = expandSources(sources, options);
+
   return [
-    ...resolveSources(sources, options),
+    ...resolved.filter((_, index) => expanded[index]!.source.content !== false),
     ...resolveGeneratedSections(sources, options, types)
   ];
 }

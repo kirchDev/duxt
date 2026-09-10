@@ -12,6 +12,14 @@ import type {
 export interface DuxtSource {
   /** Folder holding the Markdown, relative to the repository root. */
   path?: string;
+  /**
+   * Whether this source's Markdown is published as documentation pages.
+   *
+   * A source can carry generated sections without publishing its own tree. That
+   * lets a versioned documentation source and a generated artefact share their
+   * default URL prefix without declaring two page collections for it.
+   */
+  content?: boolean;
   /** `owner/name` or a full git URL. Omitted reads the local checkout. */
   repo?: string;
   /**
@@ -589,21 +597,23 @@ export function resolveSources(
 
     // Claimed per locale: two languages serving one prefix is not a collision,
     // it is the point.
-    const claim = `${code ?? ''}|${prefix}`;
-    const previous = taken.get(claim);
-    if (previous) {
-      // The one ambiguity the build-time decision leaves: a docs folder named
-      // like a repository or a version. Rejected rather than resolved silently.
-      throw new Error(
-        `duxt: two sources resolve to the same URL prefix "${prefix || '/'}" ` +
-          `(${previous} and ${source.repo ?? 'this repository'}${ref ? `@${ref}` : ''}). ` +
-          'Give one of them a `slug` or a `label`.'
+    if (source.content !== false) {
+      const claim = `${code ?? ''}|${prefix}`;
+      const previous = taken.get(claim);
+      if (previous) {
+        // The one ambiguity the build-time decision leaves: a docs folder named
+        // like a repository or a version. Rejected rather than resolved silently.
+        throw new Error(
+          `duxt: two sources resolve to the same URL prefix "${prefix || '/'}" ` +
+            `(${previous} and ${source.repo ?? 'this repository'}${ref ? `@${ref}` : ''}). ` +
+            'Give one of them a `slug` or a `label`.'
+        );
+      }
+      taken.set(
+        claim,
+        `${source.repo ?? 'this repository'}${name ? `@${name}` : ''}`
       );
     }
-    taken.set(
-      claim,
-      `${source.repo ?? 'this repository'}${name ? `@${name}` : ''}`
-    );
 
     resolved.push({
       collection,
@@ -636,7 +646,9 @@ export function resolveSources(
     });
   }
 
-  assertCollectionIdentities(resolved);
+  assertCollectionIdentities(
+    resolved.filter((_, index) => expanded[index]!.source.content !== false)
+  );
   return resolved;
 }
 
