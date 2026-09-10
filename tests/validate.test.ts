@@ -84,6 +84,36 @@ describe('report', () => {
 
     expect(warnings[0]).toMatch(/missing/);
   });
+
+  /**
+   * A heading's id is its text — `icônes` — and a link to it arrives
+   * percent-encoded. Compared as written, every accented anchor on the site was
+   * reported as missing, and the fix the report asked for was to point the link
+   * at a heading that was already there.
+   */
+  it('reads a percent-encoded anchor as the heading it names', () => {
+    const { warnings } = report(
+      [{ collection: 'docs', prefix: '' }],
+      [
+        page({ links: [{ href: '/other#ic%C3%B4nes' }] }),
+        page({ path: '/other', anchors: new Set(['icônes']) })
+      ]
+    );
+
+    expect(warnings).toEqual([]);
+  });
+
+  it('reports one that is encoded and still absent', () => {
+    const { warnings } = report(
+      [{ collection: 'docs', prefix: '' }],
+      [
+        page({ links: [{ href: '/other#ic%C3%B4nes' }] }),
+        page({ path: '/other', anchors: new Set(['icones']) })
+      ]
+    );
+
+    expect(warnings[0]).toMatch(/icônes/);
+  });
 });
 
 describe('links on a translated site', () => {
