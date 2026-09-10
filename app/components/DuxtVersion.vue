@@ -24,7 +24,7 @@ const props = withDefaults(defineProps<{ variant?: 'badge' | 'block' }>(), {
 const duxt = useDuxtConfig();
 const path = useDuxtPath();
 const localeLink = useDuxtLink();
-const { collection, source } = useDuxtCollection();
+const { source } = useDuxtCollection();
 
 /**
  * Versions come from the resolved source manifest, so the control can only
@@ -35,29 +35,11 @@ const { collection, source } = useDuxtCollection();
  */
 const { choices: versions } = useDuxtVersion();
 
-/**
- * A changelog is one global history, so it deliberately has no version
- * selector. Its current release is still useful context, though: read the
- * latest one from the overview's generated frontmatter instead of falling
- * back to the site's package version. The parser writes that value while
- * turning the changelog into the overview and release pages.
- */
+/** A global changelog switches between its source's documentation editions. */
 const changelog = computed(
   () =>
     source.value?.generated?.type === 'changelog' &&
     source.value.generated.versioning === 'global'
-);
-
-const { data: changelogPage } = await useAsyncData(
-  () => `duxt-changelog-version-${collection.value}-${path.value}`,
-  async () => {
-    if (!changelog.value) return undefined;
-
-    return (await queryCollection(collection.value as DuxtCollectionArg)
-      .path(path.value)
-      .first()) as { release?: string } | null;
-  },
-  { watch: [collection, path, changelog] }
 );
 
 const current = computed(() =>
@@ -67,9 +49,7 @@ const current = computed(() =>
   )
 );
 
-const label = computed(
-  () => changelogPage.value?.release ?? current.value?.label ?? duxt.version
-);
+const label = computed(() => current.value?.label ?? duxt.version);
 
 const { t, te } = useI18n();
 
@@ -92,7 +72,12 @@ function caption(version: DuxtLink) {
 /** Same page, other version: swap the prefix rather than jumping to its root. */
 function pathIn(version: { to?: string }) {
   return localeLink(
-    versionPath(path.value, current.value?.to, version.to ?? '/')
+    versionPath(
+      path.value,
+      current.value?.to,
+      version.to ?? '/',
+      changelog.value
+    )
   );
 }
 </script>
