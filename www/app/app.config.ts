@@ -544,7 +544,7 @@ export default defineAppConfig({
     landing: {
       // `{version}` reads this site's `version`, which `nuxt.config.ts` reads
       // out of duxt's own `package.json` — see the note there. Nothing to bump
-      // in either file. The pill links to the release it names.
+      // in either file. The pill links to this site's changelog.
       badge: {
         label: {
           'en-GB': '{version} released',
@@ -558,8 +558,7 @@ export default defineAppConfig({
         // it does not report that something went well. Green reads as a status
         // and pulls harder than the headline underneath it.
         variant: 'default',
-        to: 'https://github.com/kirchDev/duxt/releases/latest',
-        external: true
+        to: '/releases'
       },
 
       /**
