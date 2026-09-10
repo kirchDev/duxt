@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.2](https://github.com/kirchDev/duxt/compare/v0.3.1...v0.3.2) (2026-09-10)
+
+
+### Bug Fixes
+
+* make version switching reliable ([1800e12](https://github.com/kirchDev/duxt/commit/1800e124310756594af5e4f293bc09fff04d8847))
+
 ## [0.3.1](https://github.com/kirchDev/duxt/compare/v0.3.0...v0.3.1) (2026-09-10)
 
 
