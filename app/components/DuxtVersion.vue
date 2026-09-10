@@ -165,22 +165,20 @@ function pathIn(version: { to?: string }) {
       <UiDropdownMenuItem
         v-for="version in versions"
         :key="version.to"
-        as-child
+        @select="navigateTo(pathIn(version))"
       >
-        <NuxtLink :to="pathIn(version)" class="flex items-center gap-2">
-          <Icon
-            name="lucide:check"
-            class="size-3.5"
-            :class="version.label === current?.label ? '' : 'opacity-0'"
-          />
-          <span class="font-mono text-xs">{{ version.label }}</span>
-          <span
-            v-if="caption(version)"
-            class="ml-auto text-xs text-muted-foreground"
-          >
-            {{ caption(version) }}
-          </span>
-        </NuxtLink>
+        <Icon
+          name="lucide:check"
+          class="size-3.5"
+          :class="version.label === current?.label ? '' : 'opacity-0'"
+        />
+        <span class="font-mono text-xs">{{ version.label }}</span>
+        <span
+          v-if="caption(version)"
+          class="ml-auto text-xs text-muted-foreground"
+        >
+          {{ caption(version) }}
+        </span>
       </UiDropdownMenuItem>
     </UiDropdownMenuContent>
   </UiDropdownMenu>
