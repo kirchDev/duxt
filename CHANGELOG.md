@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/kirchDev/duxt/compare/v0.3.0...v0.3.1) (2026-09-10)
+
+
+### Bug Fixes
+
+* redeploy releases with resolved version labels ([32c6181](https://github.com/kirchDev/duxt/commit/32c6181b385b33b731900786bf5a89c24e261411))
+
 ## [0.3.0](https://github.com/kirchDev/duxt/compare/v0.2.0...v0.3.0) (2026-09-10)
 
 
