@@ -56,7 +56,7 @@ describe('combined Content collections', () => {
   it('rejects different segment boundaries with the same joined name', () => {
     expect(() =>
       collections([
-        { path: 'a', slug: 'foo', refs: ['main', 'bar'] },
+        { repo: 'acme/docs', path: 'a', slug: 'foo', refs: ['main', 'bar'] },
         { path: 'b', slug: 'foo_bar' }
       ])
     ).toThrow(/docs_foo_bar.*foo\/bar.*foo_bar/);
