@@ -1,3 +1,5 @@
+import type { DuxtResolvedSource } from '../../sources-resolve';
+import { searchSources } from '../utils/search-scope';
 import type { DuxtSearchSection } from '@duxt/composables/useFuzzySearch';
 
 /** A hit, with the source it came out of. */
@@ -22,18 +24,19 @@ export interface DuxtSearchHit extends DuxtSearchSection {
  * The source being read goes first in each round, because a reader searching
  * inside a project usually means that project.
  *
- * ONE VERSION PER REPOSITORY. Searching every version returns each page as many
+ * ONE VERSION PER ARTEFACT. Searching every version returns each page as many
  * times as there are versions, which buries the answer under its own history.
- * So each repository contributes the version the reader is in, or its default.
+ * Each docs tree and generated declaration contributes its current or default edition.
  */
 export function useDuxtSearch() {
   const duxt = useDuxtConfig();
   const { source } = useDuxtCollection();
+  const { locale, fallbackLocale } = useI18n();
 
   const sources = computed(() => duxt.resolvedSources ?? []);
 
   /**
-   * The collections to search, one per repository.
+   * The available collections; only selected editions are initialized.
    *
    * Fixed at setup, deliberately: each one needs its own `useSearchCollection`,
    * and a composable list that grows with the route is not a thing. The
@@ -79,38 +82,54 @@ export function useDuxtSearch() {
     }).search
   }));
 
-  /** One entry per repository: the version being read, else that repo's default. */
-  const active = computed(() => {
-    const current = source.value;
-    const byRepo = new Map<string, (typeof searchable)[number]>();
+  /** Selected editions, ordered by artefact and then preferred language. */
+  const active = computed(() =>
+    searchSources(
+      searchable,
+      source.value,
+      locale.value,
+      fallbackLocale.value as string | string[] | undefined
+    )
+  );
 
-    for (const entry of searchable) {
-      const key = entry.repo ?? '';
-      const chosen = byRepo.get(key);
-
-      if (entry.collection === current?.collection) {
-        byRepo.set(key, entry);
-        continue;
-      }
-
-      if (chosen?.collection === current?.collection) continue;
-      if (!chosen || (entry.isDefault && !chosen.isDefault)) {
-        byRepo.set(key, entry);
-      }
+  const pagePaths = new Map<string, Promise<Set<string>>>();
+  function paths(collection: string) {
+    let pending = pagePaths.get(collection);
+    if (!pending) {
+      pending = queryCollection(collection as DuxtCollectionArg)
+        .select('path')
+        .all()
+        .then((pages) => new Set(pages.map((page) => page.path)))
+        .catch((error) => {
+          pagePaths.delete(collection);
+          throw error;
+        });
+      pagePaths.set(collection, pending);
     }
+    return pending;
+  }
 
-    // The source being read leads; the rest keep the config's own order.
-    return [...byRepo.values()].sort((a, b) =>
-      a.collection === current?.collection
-        ? -1
-        : b.collection === current?.collection
-          ? 1
-          : 0
+  // A fallback may answer only for a PAGE absent from every better language,
+  // even when a heading or the search term exists only in the original.
+  async function visiblePages(wanted: DuxtResolvedSource[]) {
+    return Promise.all(
+      wanted.map(async (entry, index) => {
+        const preferred = wanted
+          .slice(0, index)
+          .filter((other) => other.prefix === entry.prefix);
+        return new Set(
+          (
+            await Promise.all(preferred.map((other) => paths(other.collection)))
+          ).flatMap((pages) => [...pages])
+        );
+      })
     );
-  });
+  }
 
   /** Only worth a badge when there is more than one thing to tell apart. */
-  const labelled = computed(() => active.value.length > 1);
+  const labelled = computed(
+    () => new Set(active.value.map((entry) => entry.prefix)).size > 1
+  );
 
   const labelOf = (entry: (typeof searchable)[number]) =>
     [entry.repo, entry.version].filter(Boolean).join(' ') ||
@@ -119,8 +138,8 @@ export function useDuxtSearch() {
 
   async function init() {
     await Promise.all(
-      searches
-        .filter((search) => active.value.includes(search.entry))
+      active.value
+        .map((entry) => searches.find((search) => search.entry === entry)!)
         .filter((search) => search.status.value === 'idle')
         .map((search) => search.init())
     );
@@ -153,17 +172,41 @@ export function useDuxtSearch() {
     term: string,
     limit = 20
   ): Promise<{ hits: DuxtSearchHit[]; approximate: boolean }> {
-    if (!term.trim()) return { hits: [], approximate: false };
+    if (!term.trim() || limit <= 0) return { hits: [], approximate: false };
 
     const wanted = active.value;
+    const hidden = await visiblePages(wanted);
+    async function visible(
+      query: (requested: number) => Promise<DuxtSearchSection[]>,
+      index: number
+    ) {
+      let requested = limit;
+      while (true) {
+        const hits = await query(requested);
+        const shown = hits.filter(
+          (hit) => !hidden[index]!.has(hit.id.split('#')[0]!)
+        );
+        if (
+          shown.length >= limit ||
+          hits.length < requested ||
+          !hidden[index]!.size
+        )
+          return shown.slice(0, limit);
+        requested *= 2;
+      }
+    }
 
     const lists = await Promise.all(
-      searches
-        .filter((entry) => wanted.includes(entry.entry))
-        .map(async (entry) => {
-          const hits = (await entry.search(term, {
-            limit
-          })) as DuxtSearchSection[];
+      wanted
+        .map((source) => searches.find((entry) => entry.entry === source)!)
+        .map(async (entry, index) => {
+          const hits = await visible(
+            async (requested) =>
+              (await entry.search(term, {
+                limit: requested
+              })) as DuxtSearchSection[],
+            index
+          );
 
           return hits.map((hit) => ({
             ...hit,
@@ -184,10 +227,13 @@ export function useDuxtSearch() {
     // leaves the reader with an empty box. Fuse gets a second look, over the
     // same sources and merged the same way.
     const fuzzy = await Promise.all(
-      approximate
-        .filter((entry) => wanted.includes(entry.entry))
-        .map(async (entry) => {
-          const hits = await entry.search(term, limit);
+      wanted
+        .map((source) => approximate.find((entry) => entry.entry === source)!)
+        .map(async (entry, index) => {
+          const hits = await visible(
+            (requested) => entry.search(term, requested),
+            index
+          );
 
           return hits.map((hit) => ({
             ...hit,
