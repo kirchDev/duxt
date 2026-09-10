@@ -1,4 +1,4 @@
-import { queryCollection } from '@nuxt/content/nitro';
+import { llmsPages } from '../utils/llms-pages';
 // Imported by path, not auto-import: app/ belongs to the Vue app, and Nitro
 // does not see its utils. The defaults have to come from the same file the
 // pages use, or the two descriptions drift apart.
@@ -22,21 +22,7 @@ export default defineEventHandler(async (event) => {
 
   // Every collection the manifest names, not just `docs`: a versioned site
   // has none by that name, and llms.txt is the whole site's index.
-  const collections = duxt.resolvedSources?.length
-    ? duxt.resolvedSources.map((source) => source.collection)
-    : ['docs'];
-
-  const pages = (
-    await Promise.all(
-      collections.map((name) =>
-        // Cast from Content's own signature: the collection name is data
-        // from the manifest, and the key union is generated per site.
-        queryCollection(event, name as Parameters<typeof queryCollection>[1])
-          .select('path', 'title', 'description')
-          .all()
-      )
-    )
-  ).flat();
+  const pages = await llmsPages(event, duxt.resolvedSources);
 
   const origin = getRequestURL(event).origin;
 
