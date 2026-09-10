@@ -243,6 +243,17 @@ export function report(
     );
   };
 
+  /** A percent-encoded fragment, or the fragment itself where it is not one. */
+  const decodeAnchor = (fragment: string) => {
+    try {
+      return decodeURIComponent(fragment);
+    } catch {
+      // A stray `%` is a link nobody can follow either way, and the anchor
+      // check is not the place to say so.
+      return fragment;
+    }
+  };
+
   for (const page of pages) {
     const prefix = prefixOf.get(page.collection) ?? '';
 
@@ -250,7 +261,14 @@ export function report(
       const { href } = link;
       if (!href.startsWith('/') && !href.startsWith('#')) continue;
 
-      const [target, anchor] = href.split('#');
+      const [target, fragment] = href.split('#');
+
+      // DECODED, because the two halves are written in different alphabets. A
+      // heading's id is the text as it stands — `icônes` — while the link
+      // arrives percent-encoded, so comparing them as written reported every
+      // accented anchor on the site as missing and told the author to point at
+      // a heading that was already there.
+      const anchor = fragment && decodeAnchor(fragment);
       const destination = target
         ? (resolve(`${prefix}${target}`, page) ?? resolve(target, page))
         : page;

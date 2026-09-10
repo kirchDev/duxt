@@ -21,7 +21,7 @@ une poignée de partis pris.
 | [reka-ui](https://reka-ui.com)                       | Les primitives en dessous : focus, roving tabindex, ARIA                 |
 | [Tailwind CSS](https://tailwindcss.com)              | Le système de style et la couche de tokens                               |
 | [Shiki](https://shiki.style)                         | La coloration syntaxique, à la compilation                               |
-| [Les jeux d’icônes](#icones)                         | Quatre collections, une par nature de marque                             |
+| [Les jeux d’icônes](#icônes)                         | Quatre collections, une par nature de marque                             |
 | [MDC](https://content.nuxt.com/docs/files/markdown)  | Des composants appelables depuis le Markdown                             |
 
 La version de chacun est dans `package.json`, là où un numéro a sa place — une

@@ -20,7 +20,7 @@ deste repositório é a cola entre eles mais um punhado de opiniões.
 | [reka-ui](https://reka-ui.com)                       | As primitivas por baixo deles: foco, roving tabindex, ARIA             |
 | [Tailwind CSS](https://tailwindcss.com)              | O sistema de estilos e a camada de tokens                              |
 | [Shiki](https://shiki.style)                         | Realce de sintaxe, em tempo de compilação                              |
-| [Os conjuntos de ícones](#icones)                    | Quatro coleções, uma por tipo de marca                                 |
+| [Os conjuntos de ícones](#ícones)                    | Quatro coleções, uma por tipo de marca                                 |
 | [MDC](https://content.nuxt.com/docs/files/markdown)  | Componentes invocáveis a partir do Markdown                            |
 
 A versão de cada um está no `package.json`, que é onde um número pertence — uma
