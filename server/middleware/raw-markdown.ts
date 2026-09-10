@@ -1,4 +1,5 @@
 import { queryCollection } from '@nuxt/content/nitro';
+import { defineEventHandler, setHeader } from 'h3';
 import { splitLocalePath } from '../../app/utils/locale-path';
 import { sourcesForRoute } from '../../sources-resolve';
 import { duxtDefaults, mergeDuxtConfig } from '../../app/utils/duxt-config';

@@ -4,6 +4,13 @@ import { resolveSources } from '../sources-resolve';
 const database = vi.hoisted(
   () => new Map<string, Record<string, { rawbody: string }>>()
 );
+const setHeader = vi.hoisted(() => vi.fn());
+
+vi.mock('h3', () => ({
+  defineEventHandler: (handler: unknown) => handler,
+  setHeader
+}));
+
 vi.mock('@nuxt/content/nitro', () => ({
   queryCollection: (_event: unknown, collection: string) => ({
     path: (path: string) => ({
@@ -24,10 +31,8 @@ const config = {
     })
   }
 };
-vi.stubGlobal('defineEventHandler', (handler: unknown) => handler);
 vi.stubGlobal('useAppConfig', () => config);
 vi.stubGlobal('useRuntimeConfig', () => runtime);
-vi.stubGlobal('setHeader', vi.fn());
 const { default: handler } = await import('../server/middleware/raw-markdown');
 const request = (path: string) =>
   handler({
