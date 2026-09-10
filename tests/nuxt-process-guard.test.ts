@@ -1,10 +1,13 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import { once } from 'node:events';
 import {
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
+  statSync,
+  utimesSync,
   writeFileSync
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -16,6 +19,10 @@ const children: ChildProcess[] = [];
 const roots: string[] = [];
 const fixture = fileURLToPath(
   new URL('./fixtures/nuxt-ownership/process.ts', import.meta.url)
+);
+const project = fileURLToPath(new URL('..', import.meta.url));
+const nuxt = fileURLToPath(
+  new URL('../www/node_modules/nuxt/bin/nuxt.mjs', import.meta.url)
 );
 
 function start(root: string, command: string) {
@@ -31,6 +38,15 @@ function start(root: string, command: string) {
     output += data;
   });
   return { child, output: () => output };
+}
+
+async function stopProcessGroup(child: ChildProcess): Promise<void> {
+  try {
+    process.kill(-child.pid!, 'SIGKILL');
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error;
+  }
+  if (child.exitCode === null) await once(child, 'exit');
 }
 
 afterEach(async () => {
@@ -120,3 +136,57 @@ it('does not expire a live legacy Nuxt lock based on its age', async () => {
   expect(build.output()).toContain(`dev (PID ${process.pid})`);
   expect(readFileSync(join(buildDir, 'nuxt.lock'), 'utf8')).toBe(lock);
 });
+
+it('keeps serving when a .env change restarts Nuxt dev', async () => {
+  const port = 33432;
+  const env = join(project, 'www/.env');
+  const envExisted = existsSync(env);
+  if (!envExisted) writeFileSync(env, '');
+  const previousTimes = statSync(env);
+  const server = spawn(
+    process.execPath,
+    [nuxt, 'dev', '--port', String(port)],
+    {
+      cwd: join(project, 'www'),
+      detached: true,
+      env: { ...process.env, NODE_ENV: 'development', TEST: undefined },
+      stdio: 'ignore'
+    }
+  );
+  try {
+    await expect
+      .poll(
+        async () => {
+          try {
+            return (await fetch(`http://localhost:${port}/getting-started`))
+              .status;
+          } catch {
+            return 0;
+          }
+        },
+        { timeout: 90_000 }
+      )
+      .toBe(200);
+
+    writeFileSync(env, 'DUXT_NUXT_RELOAD_TEST=1\n');
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+
+    await expect
+      .poll(
+        async () => {
+          try {
+            return (await fetch(`http://localhost:${port}/getting-started`))
+              .status;
+          } catch {
+            return 0;
+          }
+        },
+        { timeout: 60_000 }
+      )
+      .toBe(200);
+  } finally {
+    utimesSync(env, previousTimes.atime, previousTimes.mtime);
+    if (!envExisted) rmSync(env);
+    await stopProcessGroup(server);
+  }
+}, 180_000);

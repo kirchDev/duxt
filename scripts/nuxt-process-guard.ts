@@ -6,6 +6,23 @@ import { DatabaseSync } from 'node:sqlite';
 const registry = globalThis as typeof globalThis & {
   duxtNuxtOwners?: Map<string, DatabaseSync>;
 };
+const ownerRootEnv = 'DUXT_NUXT_OWNER_ROOT';
+const ownerPidEnv = 'DUXT_NUXT_OWNER_PID';
+
+function isOwnerFork(root: string, ownerFile: string): boolean {
+  if (process.env[ownerRootEnv] !== root) return false;
+  const ownerPid = Number(process.env[ownerPidEnv]);
+  if (!Number.isSafeInteger(ownerPid) || ownerPid !== process.ppid)
+    return false;
+  try {
+    const owner = JSON.parse(readFileSync(ownerFile, 'utf8')) as {
+      pid?: number;
+    };
+    return owner.pid === ownerPid;
+  } catch {
+    return false;
+  }
+}
 
 function conflict(root: string, command: string, owner: string): Error {
   return new Error(
@@ -49,6 +66,9 @@ export function claimNuxtProcess(root: string, command: string): void {
   const directory = join(root, '.data', 'nuxt-process');
   mkdirSync(directory, { recursive: true });
   const ownerFile = join(directory, 'owner.json');
+  // Nuxt dev reloads configuration in direct child processes. They inherit the
+  // outer dev process's environment and may use its still-held transaction.
+  if (isOwnerFork(root, ownerFile)) return;
   const database = new DatabaseSync(join(directory, 'ownership.sqlite'));
   try {
     // An OS-backed exclusive transaction survives neither exit nor SIGKILL.
@@ -72,6 +92,8 @@ export function claimNuxtProcess(root: string, command: string): void {
     checkLegacyLock(root, command);
     writeFileSync(ownerFile, JSON.stringify({ pid: process.pid, command }));
     owners.set(root, database);
+    process.env[ownerRootEnv] = root;
+    process.env[ownerPidEnv] = String(process.pid);
   } catch (error) {
     database.close();
     throw error;
