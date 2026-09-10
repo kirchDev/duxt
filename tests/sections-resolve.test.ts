@@ -23,6 +23,25 @@ const types = (over: Partial<DuxtSectionType> = {}) => ({ stub: stub(over) });
 const section = { type: 'stub', path: 'CHANGELOG.md', label: 'Releases' };
 
 describe('resolveGeneratedSections', () => {
+  it('inherits the default language when its source omits locales', () => {
+    const source = { path: 'demo', slug: 'demo', generated: [section] };
+    const options = { defaultLocale: 'en-GB' };
+    const implicit = resolveGeneratedSections([source], options, types());
+    const explicit = resolveGeneratedSections(
+      [{ ...source, locales: ['en-GB'] }],
+      options,
+      types()
+    );
+
+    expect(implicit).toEqual(explicit);
+    expect(implicit[0]).toMatchObject({
+      locale: 'en-GB',
+      isDefaultLocale: true,
+      collection: 'docs_demo_releases',
+      prefix: '/demo/releases'
+    });
+  });
+
   it('produces nothing until a source declares one', () => {
     expect(resolveGeneratedSections([{ path: 'docs' }])).toEqual([]);
   });

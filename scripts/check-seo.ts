@@ -110,6 +110,7 @@ async function main() {
           ...(await checkCanonicals()),
           ...(await checkAlternates()),
           ...(await checkRobots()),
+          ...(await checkSourceLanguage()),
           ...(await checkSocial()),
           ...(await checkSchemaOrg())
         ];
@@ -325,6 +326,35 @@ async function checkRobots() {
     failures.push(`${PAGES.doc}: an ordinary page carries noindex`);
   }
 
+  return failures;
+}
+
+/** The demo deliberately omits locales: its original is still English. */
+async function checkSourceLanguage() {
+  const failures: string[] = [];
+  for (const [route, fallback, noindex] of [
+    ['/demo', false, false],
+    ['/en-US/demo', false, false],
+    ['/de-DE/demo', true, true],
+    ['/demo/api', false, false],
+    ['/de-DE/demo/api', true, true],
+    ['/demo/v1.x/api', false, true]
+  ] as const) {
+    const document = await head(route);
+    const title = route.endsWith('/api') ? 'Harbour' : 'Overview';
+    if (document.querySelector('h1')?.textContent?.trim() !== title) {
+      failures.push(`${route}: expected the demo page to render`);
+    }
+    const banner = [...document.querySelectorAll('[role="status"]')].some(
+      (notice) => notice.textContent?.includes('English (UK)')
+    );
+    if (Boolean(banner) !== fallback) {
+      failures.push(`${route}: unexpected translation-fallback banner state`);
+    }
+    if (Boolean(meta(document, 'robots')?.includes('noindex')) !== noindex) {
+      failures.push(`${route}: unexpected robots indexing state`);
+    }
+  }
   return failures;
 }
 

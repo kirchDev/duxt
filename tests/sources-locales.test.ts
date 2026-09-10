@@ -7,6 +7,27 @@ import {
 } from '../sources-resolve';
 
 describe('translated sources', () => {
+  it('serves an omitted locale as the default language without changing its collections', () => {
+    const root = { path: 'docs', locales: ['en-GB', 'de'] };
+    const demo = { path: 'demo', slug: 'demo' };
+    const implicit = resolveSources([root, demo]);
+    const explicit = resolveSources([root, { ...demo, locales: ['en-GB'] }]);
+
+    expect(implicit).toEqual(explicit);
+    expect(implicit[2]).toMatchObject({
+      locale: 'en-GB',
+      collection: 'docs_demo',
+      path: 'demo',
+      prefix: '/demo'
+    });
+    expect(partialsCollection(implicit[2])).toBe('duxt_partials');
+    for (const locale of ['en-GB', 'en-US', 'de-DE']) {
+      expect(sourcesForRoute('/demo/start', locale, implicit, 'en-GB')).toEqual(
+        sourcesForRoute('/demo/start', locale, explicit, 'en-GB')
+      );
+    }
+  });
+
   it('changes nothing for a site that declares no locales', () => {
     const resolved = resolveSources([{ path: 'docs' }]);
 

@@ -33,7 +33,8 @@ export interface DuxtSource {
    * The DEFAULT locale is the exception: it is the tree in `path` itself, with
    * no folder, so listing it changes nothing. That is what keeps this key
    * additive — a site that adds `locales` does not move the pages it already
-   * serves. Which one is the default comes from `defaultLocale`.
+   * serves. Which one is the default comes from `defaultLocale`. Omitting
+   * `locales` serves that default language too.
    */
   locales?: DuxtSourceLocale[];
   /**
@@ -565,7 +566,7 @@ export function resolveSources(
     const name = effectiveRef ? refName(effectiveRef) : source.version;
     const label =
       (ref && typeof ref === 'object' ? ref.label : undefined) ?? source.label;
-    const code = locale ? localeCode(locale) : undefined;
+    const code = locale ? localeCode(locale) : defaultLocale;
     const isDefaultLocale = !code || code === defaultLocale;
     const version = name ? slugify(label ?? name) : undefined;
     const isDefault = !name || name === defaultRef;

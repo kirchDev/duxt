@@ -103,18 +103,6 @@ export default defineAppConfig({
         slug: 'demo',
         origin: { repo: 'kirchDev/duxt', ref: 'main' },
 
-        // ONE LANGUAGE, NAMED. Listing the default locale looks like it says
-        // nothing — it is the tree in `path` itself either way, and no second
-        // collection comes of it — but on a site that HAS translations it is
-        // the difference between a source whose language is English and one
-        // whose language is unknown. An entry that names none delivers a page
-        // the reader is assumed not to have asked for: the translation banner
-        // goes up and `noindex` with it, in every language including this one.
-        //
-        // The API stays untranslated on purpose — this site translates its
-        // prose and not its invented freight company — so the page in front of
-        // it says so in the only place that can be read: here.
-        locales: ['en-GB'],
         generated: [
           // An OpenAPI document, published as reference pages. `per-version`
           // and `per-locale`, unlike the changelog above — the two policies the

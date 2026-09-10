@@ -33,10 +33,14 @@ const server = createServer((req, res) => {
     res.setHeader('content-type', 'application/json');
   res.statusCode =
     route === '/does-not-exist' && mode !== 'wrong404' ? 404 : 200;
+  const fallback = route === '/de-DE/demo' || route === '/de-DE/demo/api';
+  const noindex =
+    route === '/does-not-exist' || route === '/demo/v1.x/api' || fallback;
+  const title = route.endsWith('/api') ? 'Harbour' : 'Overview';
   res.end(`<html><head>
     <link rel="canonical" href="${origin}${route}">
     ${[...locales, 'x-default'].map((locale) => `<link rel="alternate" hreflang="${locale}" href="${origin}${route}">`).join('')}
-    <meta name="robots" content="${route === '/does-not-exist' ? 'noindex' : 'index'}">
+    <meta name="robots" content="${noindex ? 'noindex' : 'index'}">
     <meta property="og:title" content="Title">
     <meta property="og:description" content="Description">
     <meta property="og:image" content="${origin}/image.png">
@@ -49,7 +53,7 @@ const server = createServer((req, res) => {
       )
       .join('')}
     <script type="application/ld+json">${JSON.stringify({ '@graph': [{ '@type': 'WebSite' }, { '@type': 'TechArticle' }, { '@type': 'BreadcrumbList' }] })}</script>
-  </head><body>Fixture</body></html>`);
+  </head><body><h1>${title}</h1>${fallback ? '<div role="status">Reading English (UK)</div>' : ''}</body></html>`);
 });
 server.listen(Number(process.env.NITRO_PORT), process.env.NITRO_HOST, () => {
   console.log(`Listening on ${origin}`);
