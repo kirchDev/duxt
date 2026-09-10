@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.0](https://github.com/kirchDev/duxt/compare/v0.2.0...v0.3.0) (2026-09-10)
+
+
+### Features
+
+* add versioned source lifecycle defaults ([ae8a5d9](https://github.com/kirchDev/duxt/commit/ae8a5d96482c02b0ac0730511caccdf30cce1746))
+
+
+### Bug Fixes
+
+* simplify starter command ([62133ef](https://github.com/kirchDev/duxt/commit/62133efb037ae053d9285e5f029ee1a58b84b5f1))
+
 ## [0.2.0](https://github.com/kirchDev/duxt/compare/v0.1.0...v0.2.0) (2026-09-10)
 
 
