@@ -1,4 +1,5 @@
 import type { DuxtSearchSection } from '@duxt/composables/useFuzzySearch';
+import { selectSearchSources } from '../utils/search-sources';
 
 /** A hit, with the source it came out of. */
 export interface DuxtSearchHit extends DuxtSearchSection {
@@ -22,13 +23,16 @@ export interface DuxtSearchHit extends DuxtSearchSection {
  * The source being read goes first in each round, because a reader searching
  * inside a project usually means that project.
  *
- * ONE VERSION PER REPOSITORY. Searching every version returns each page as many
+ * ONE VERSION PER ARTEFACT. Searching every version returns each page as many
  * times as there are versions, which buries the answer under its own history.
- * So each repository contributes the version the reader is in, or its default.
+ * Documentation, each generated declaration and a global changelog are
+ * separate artefacts, so each contributes the version the reader is in, or its
+ * default.
  */
 export function useDuxtSearch() {
   const duxt = useDuxtConfig();
   const { source } = useDuxtCollection();
+  const { locale, fallbackLocale } = useI18n();
 
   const sources = computed(() => duxt.resolvedSources ?? []);
 
@@ -79,41 +83,23 @@ export function useDuxtSearch() {
     }).search
   }));
 
-  /** One entry per repository: the version being read, else that repo's default. */
-  const active = computed(() => {
-    const current = source.value;
-    const byRepo = new Map<string, (typeof searchable)[number]>();
-
-    for (const entry of searchable) {
-      const key = entry.repo ?? '';
-      const chosen = byRepo.get(key);
-
-      if (entry.collection === current?.collection) {
-        byRepo.set(key, entry);
-        continue;
-      }
-
-      if (chosen?.collection === current?.collection) continue;
-      if (!chosen || (entry.isDefault && !chosen.isDefault)) {
-        byRepo.set(key, entry);
-      }
-    }
-
-    // The source being read leads; the rest keep the config's own order.
-    return [...byRepo.values()].sort((a, b) =>
-      a.collection === current?.collection
-        ? -1
-        : b.collection === current?.collection
-          ? 1
-          : 0
-    );
-  });
+  /** One version per artefact, with the current artefact and locale first. */
+  const active = computed(() =>
+    selectSearchSources(
+      searchable,
+      source.value,
+      locale.value,
+      fallbackLocale.value as string | string[] | undefined
+    )
+  );
 
   /** Only worth a badge when there is more than one thing to tell apart. */
   const labelled = computed(() => active.value.length > 1);
 
   const labelOf = (entry: (typeof searchable)[number]) =>
-    [entry.repo, entry.version].filter(Boolean).join(' ') ||
+    [entry.repo, entry.generated?.label, entry.version]
+      .filter(Boolean)
+      .join(' ') ||
     entry.prefix ||
     '/';
 
