@@ -73,6 +73,48 @@ describe('sectionsForPath', () => {
       sectionsForPath(sections, SOURCES, '/demo').map((s) => s.label)
     ).toContain('Elsewhere');
   });
+
+  it("keeps a versioned area's row and retargets its overview", () => {
+    // The versioned demo source is one area. Its hand-written overview starts
+    // at the default edition, whereas generated entries already resolve at the
+    // reader's edition. Filtering by the raw prefix made `/demo/v2.x` a new
+    // area, dropped the overview and then hid the whole section row.
+    const sources = [
+      { prefix: '/demo', repo: 'demo', version: 'v3.x' },
+      { prefix: '/demo/v2.x', repo: 'demo', version: 'v2.x' },
+      {
+        prefix: '/demo/api',
+        repo: 'demo',
+        version: 'v3.x',
+        generated: { type: 'openapi' }
+      },
+      {
+        prefix: '/demo/v2.x/api',
+        repo: 'demo',
+        version: 'v2.x',
+        generated: { type: 'openapi' }
+      },
+      {
+        prefix: '/demo/changelog',
+        repo: 'demo',
+        generated: { type: 'changelog' }
+      }
+    ];
+    const row = [
+      { label: 'Overview', to: '/demo' },
+      { label: 'Demo API', to: '/demo/v2.x/api' },
+      { label: 'Demo Changelog', to: '/demo/changelog' }
+    ];
+
+    expect(areaForPath('/demo/v2.x', sources)).toBe('/demo');
+    expect(areaForPath('/demo', sources)).toBe('/demo');
+    expect(areaForPath('/demo/changelog', sources)).toBe('/demo');
+    expect(sectionsForPath(row, sources, '/demo/v2.x')).toEqual([
+      { label: 'Overview', to: '/demo/v2.x' },
+      { label: 'Demo API', to: '/demo/v2.x/api' },
+      { label: 'Demo Changelog', to: '/demo/changelog' }
+    ]);
+  });
 });
 
 describe('currentSection', () => {

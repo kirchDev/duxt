@@ -15,12 +15,58 @@
  * that lives there: prefix work done inline in a component can only be checked
  * by clicking.
  */
-import { isInside, sourceForPath } from './version-paths';
+import { isInside, sourceForPath, versionPath } from './version-paths';
 
 /** The minimum a source has to carry to place a path or an entry. */
 interface Area {
   prefix: string;
+  repo?: string;
+  version?: string;
   generated?: unknown;
+}
+
+/** The documentation source that owns an area, without a generated section. */
+function documentationFor(source: Area | undefined, sources: Area[]) {
+  if (!source?.generated) return source;
+
+  const candidates = source.repo
+    ? sources.filter(
+        (other) =>
+          !other.generated &&
+          other.repo === source.repo &&
+          (!source.version || other.version === source.version)
+      )
+    : sources.filter(
+        (other) => !other.generated && isInside(source.prefix, other.prefix)
+      );
+
+  // A generated section belongs to the deepest documentation source it hangs
+  // under. A global section has no version of its own, so its area is the
+  // shallowest edition of that source instead.
+  return candidates.sort((a, b) =>
+    source.version || !source.repo
+      ? b.prefix.length - a.prefix.length
+      : a.prefix.length - b.prefix.length
+  )[0];
+}
+
+/** The version-neutral root of a documentation area. */
+function areaRoot(source: Area | undefined, sources: Area[]): string {
+  const documentation = documentationFor(source, sources);
+  if (!documentation) return '';
+
+  // A slug is the source identity and survives the version segment. All
+  // versions of `/demo` are therefore one area, whose shallowest prefix is
+  // the default edition. Sources without an identity retain their own prefix.
+  if (!documentation.repo) return documentation.prefix;
+
+  return sources
+    .filter((other) => !other.generated && other.repo === documentation.repo)
+    .reduce(
+      (root, other) =>
+        other.prefix.length < root.prefix.length ? other : root,
+      documentation
+    ).prefix;
 }
 
 /**
@@ -33,7 +79,11 @@ interface Area {
  * of the site and the row would empty out on it.
  */
 const areas = (sources: Area[]): string[] => [
-  ...new Set(sources.filter((source) => !source.generated).map((s) => s.prefix))
+  ...new Set(
+    sources
+      .filter((source) => !source.generated)
+      .map((source) => areaRoot(source, sources))
+  )
 ];
 
 /**
@@ -43,12 +93,7 @@ const areas = (sources: Area[]): string[] => [
  * never asked for any of this.
  */
 export function areaForPath(path: string, sources: Area[]): string {
-  return (
-    sourceForPath(
-      path,
-      areas(sources).map((prefix) => ({ prefix }))
-    )?.prefix ?? ''
-  );
+  return areaRoot(sourceForPath(path, sources), sources);
 }
 
 /**
@@ -66,13 +111,40 @@ export function sectionsForPath<T extends { to?: string }>(
   const area = areaForPath(path, sources);
   const all = areas(sources);
 
-  // Only when the site HAS two areas: with one, every entry is in it, and the
-  // filter is a walk over the list for an answer that cannot change.
-  if (all.length < 2) return sections;
+  // Only when the site HAS two areas does the filter change the membership.
+  // Even one area's hand-written entries may need their URL moved to the
+  // reader's version, so do not return before that mapping below.
+  const scoped =
+    all.length < 2
+      ? sections
+      : sections.filter(
+          (section) => !section.to || areaForPath(section.to, sources) === area
+        );
 
-  return sections.filter(
-    (section) => !section.to || areaForPath(section.to, sources) === area
-  );
+  const reader = documentationFor(sourceForPath(path, sources), sources);
+  if (!reader?.version) return scoped;
+
+  return scoped.map((section) => {
+    const target = section.to ? sourceForPath(section.to, sources) : undefined;
+
+    // A consumer declares the overview once, at the default edition. It is a
+    // part of every version of the same documentation source, so move it to
+    // the reader's edition. Generated sections already resolve their own
+    // per-version destination, and global generated sections must stay global.
+    if (
+      target &&
+      !target.generated &&
+      target.repo === reader.repo &&
+      target.version !== reader.version
+    ) {
+      return {
+        ...section,
+        to: versionPath(section.to!, target.prefix, reader.prefix)
+      } as T;
+    }
+
+    return section;
+  });
 }
 
 /**
