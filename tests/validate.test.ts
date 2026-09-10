@@ -73,6 +73,68 @@ describe('report', () => {
     expect(warnings).toEqual([]);
   });
 
+  it('does not treat a normal prefixed-source link as website-absolute', () => {
+    const { warnings } = report(
+      [
+        { collection: 'docs', prefix: '' },
+        { collection: 'docs_demo', prefix: '/demo' }
+      ],
+      [
+        page({
+          collection: 'docs_demo',
+          path: '/demo/reference',
+          links: [{ href: '/guide' }]
+        }),
+        page({ path: '/guide' })
+      ]
+    );
+
+    expect(warnings[0]).toMatch(/\/demo\/guide/);
+  });
+
+  it('resolves a tilde link from a prefixed source at the website root', () => {
+    const { warnings } = report(
+      [
+        { collection: 'docs', prefix: '' },
+        { collection: 'docs_demo', prefix: '/demo' }
+      ],
+      [
+        page({
+          collection: 'docs_demo',
+          path: '/demo/reference',
+          links: [{ href: '~/guide' }]
+        }),
+        page({ path: '/guide' })
+      ]
+    );
+
+    expect(warnings).toEqual([]);
+  });
+
+  it('keeps a tilde link query and anchor while it crosses sources', () => {
+    const { warnings } = report(
+      [
+        { collection: 'docs', prefix: '' },
+        { collection: 'docs_demo', prefix: '/demo' },
+        { collection: 'docs_api', prefix: '/api' }
+      ],
+      [
+        page({
+          collection: 'docs_demo',
+          path: '/demo/reference',
+          links: [{ href: '~/api/guide?version=v3#install' }]
+        }),
+        page({
+          collection: 'docs_api',
+          path: '/api/guide',
+          anchors: new Set(['install'])
+        })
+      ]
+    );
+
+    expect(warnings).toEqual([]);
+  });
+
   it('warns about an anchor the target page has not got', () => {
     const { warnings } = report(
       [{ collection: 'docs', prefix: '' }],
