@@ -31,19 +31,31 @@ export default defineAppConfig({
     },
 
     /**
-     * One source, and therefore no prefixes: with a single repository and a
-     * single ref the resolver serves `/getting-started` rather than
-     * `/duxt/v1/getting-started`, because a segment that can only ever hold one
-     * value distinguishes nothing. `sourceOptions.showRepo` and `showVersion`
-     * force them back on for a site that wants the segment anyway.
+     * The release is canonical; the work in `main` and the retired first
+     * release are explicitly reachable as editions. `latest` is resolved from
+     * the remote tags during every build, so release-please never needs to
+     * update this list when it cuts the next version.
      */
     sources: [
-      // This repository's own documentation. `origin` names the repository for
-      // the "Edit this page" link WITHOUT making Content download it — that is
-      // what `repo` would do, and it would clone the checkout we stand in.
+      // This repository's documentation at the release, the unreleased branch
+      // and the original release. `repo` deliberately makes Content fetch each
+      // ref: a versioned source cannot read three revisions from this checkout.
       {
+        repo: 'kirchDev/duxt',
         path: 'docs',
-        origin: { repo: 'kirchDev/duxt', ref: 'main' },
+        statusDefaults: {
+          latest: 'current',
+          branch: 'upcoming',
+          tag: 'deprecated'
+        },
+        refs: [
+          { tag: 'latest', default: true },
+          // Hidden while `latest` resolves to v0.2.0. The resolver retains it
+          // automatically as deprecated when v0.3.0 is cut.
+          { tag: 'v0.2.0' },
+          { branch: 'main' },
+          { tag: 'v0.1.0' }
+        ],
 
         // FOUR languages over one tree, named by LANGUAGE rather than locale.
         // `docs/pt/` serves both `pt-PT` and `pt-BR`, and `en-US` reads the
@@ -184,7 +196,16 @@ export default defineAppConfig({
         ]
       }
     ],
-    sourceOptions: { defaultLocale: 'en-GB', defaultRef: 'v3.x' },
+    // `latest` is the docs source's default (and therefore has no URL prefix);
+    // the concrete tag behind it moves automatically whenever a newer release
+    // exists. `v3.x` stays the default for the independently versioned demo.
+    // Its `slug` keeps it below `/demo` while `showRepo` keeps the remote docs
+    // source at the root.
+    sourceOptions: {
+      defaultLocale: 'en-GB',
+      defaultRef: 'v3.x',
+      showRepo: false
+    },
     // The feed, pointed at a section that has dated entries. Off by default in
     // the layer; this site turns it on so the route is exercised.
     feed: { path: '/adr', title: 'duxt — decisions' },

@@ -55,8 +55,8 @@ export interface DuxtSource {
    *
    * Named here, everything else follows the ref path exactly: the URL segment,
    * the switcher entry (scoped to the same artefact), the banner and the
-   * canonical. `sourceOptions.defaultRef` names which of them is served without
-   * a prefix, whether it is a ref or one of these.
+   * canonical. A ref may name itself as the default; otherwise
+   * `sourceOptions.defaultRef` names which is served without a prefix.
    *
    * Never beside `refs` — a source with both would have to be served at two
    * prefixes at once, and the resolver says so rather than picking one.
@@ -80,6 +80,12 @@ export interface DuxtSource {
    * otherwise. See `DuxtSourceStatus`.
    */
   status?: DuxtSourceStatus;
+  /**
+   * Lifecycle defaults by ref kind. An explicit ref `status` wins; `status`
+   * above remains the legacy all-refs fallback. A source opts in because only
+   * its maintainer knows whether an older release is really deprecated.
+   */
+  statusDefaults?: DuxtSourceStatusDefaults;
   /**
    * The repository these pages live in, for a source read off disk.
    *
@@ -134,6 +140,16 @@ export type DuxtSourceStatus =
   | 'deprecated'
   | 'eol';
 
+/** Lifecycle defaults a source may opt into for its different ref kinds. */
+export interface DuxtSourceStatusDefaults {
+  /** The moving `latest` shorthand, before it becomes a concrete tag. */
+  latest?: DuxtSourceStatus;
+  /** A tag explicitly listed beside `latest`. */
+  tag?: DuxtSourceStatus;
+  /** A named branch, such as `main` or a preview branch. */
+  branch?: DuxtSourceStatus;
+}
+
 /** A branch by name, or a tag stated as one. */
 export type DuxtRef =
   | string
@@ -143,6 +159,13 @@ export type DuxtRef =
 interface DuxtRefOptions {
   /** Shown in the switcher and used in the URL; defaults to the ref name. */
   label?: string;
+  /**
+   * Serve this ref without a version prefix, even when another source has its
+   * own default. A site with several independently versioned trees needs this:
+   * its docs can serve the newest release at `/` while an API stays at its own
+   * current edition.
+   */
+  default?: boolean;
   /** This one version's lifecycle, overriding the source's. */
   status?: DuxtSourceStatus;
   /**
@@ -577,7 +600,10 @@ export function resolveSources(
     const code = locale ? localeCode(locale) : defaultLocale;
     const isDefaultLocale = !code || code === defaultLocale;
     const version = name ? slugify(label ?? name) : undefined;
-    const isDefault = !name || name === defaultRef;
+    const isDefault =
+      !name ||
+      (ref && typeof ref === 'object' && Boolean(ref.default)) ||
+      name === defaultRef;
 
     const segments: string[] = [];
     if (segmented(source)) segments.push(repoSlug(source));
@@ -639,6 +665,11 @@ export function resolveSources(
       status:
         (ref && typeof ref === 'object' ? ref.status : undefined) ??
         source.status ??
+        (effectiveRef
+          ? refIsTag(effectiveRef)
+            ? source.statusDefaults?.tag
+            : source.statusDefaults?.branch
+          : undefined) ??
         'current',
       // A local source is a full checkout already; a remote one has to be
       // unshallowed, which is why it has to be asked for.

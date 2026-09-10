@@ -4,6 +4,8 @@ import {
   expandSources,
   isLatestRef,
   newestTag,
+  refIsTag,
+  refName,
   repoUrl
 } from './sources-resolve';
 
@@ -102,19 +104,33 @@ export function resolveLatestRefs(sources: DuxtSource[]): DuxtSource[] {
 
     return {
       ...source,
-      refs: source.refs.map((ref) =>
-        isLatestRef(ref)
-          ? {
-              tag: newest,
-              // The URL keeps saying `latest`, so a bookmark survives the next
-              // release; only the ref underneath moves. `label` is what the
-              // switcher and the prefix are built from.
-              label:
-                typeof ref === 'object' ? (ref.label ?? 'latest') : 'latest',
-              status: typeof ref === 'object' ? ref.status : undefined
-            }
-          : ref
-      )
+      refs: source.refs.flatMap((ref) => {
+        if (isLatestRef(ref)) {
+          return {
+            tag: newest,
+            // The URL keeps saying `latest`, so a bookmark survives the next
+            // release; only the ref underneath moves. `label` is what the
+            // switcher and the prefix are built from.
+            label: typeof ref === 'object' ? (ref.label ?? 'latest') : 'latest',
+            // `latest` stops being distinguishable from an ordinary tag after
+            // resolution, so settle its source-level default while that fact
+            // still exists. An explicit ref or all-refs source status wins.
+            status:
+              (typeof ref === 'object' ? ref.status : undefined) ??
+              source.status ??
+              source.statusDefaults?.latest,
+            locales: typeof ref === 'object' ? ref.locales : undefined,
+            default: typeof ref === 'object' ? ref.default : undefined
+          };
+        }
+
+        // Keep an older release ready in the declaration, without serving the
+        // current release twice. Once a newer tag exists this condition stops
+        // matching and the retained release becomes its own edition.
+        if (refIsTag(ref) && refName(ref) === newest) return [];
+
+        return ref;
+      })
     };
   });
 }

@@ -143,6 +143,16 @@ declare global {
     | 'deprecated'
     | 'eol';
 
+  /** Lifecycle defaults a source may opt into for its different ref kinds. */
+  type DuxtSourceStatusDefaultsInput = {
+    /** The moving `latest` shorthand. */
+    latest?: DuxtSourceStatusInput;
+    /** An explicitly listed tag. */
+    tag?: DuxtSourceStatusInput;
+    /** A named branch, such as `main`. */
+    branch?: DuxtSourceStatusInput;
+  };
+
   /**
    * A branch by name, or a tag stated as one.
    *
@@ -154,12 +164,16 @@ declare global {
     | {
         branch: string;
         label?: string;
+        /** Serve this ref without a version prefix. */
+        default?: boolean;
         status?: DuxtSourceStatusInput;
         locales?: DuxtSourceLocaleInput[];
       }
     | {
         tag: string;
         label?: string;
+        /** Serve this ref without a version prefix. */
+        default?: boolean;
         status?: DuxtSourceStatusInput;
         locales?: DuxtSourceLocaleInput[];
       };
@@ -215,8 +229,8 @@ declare global {
      *
      * Named here, everything else follows the ref path exactly: the URL segment,
      * the switcher entry (scoped to the same artefact), the banner and the
-     * canonical. `sourceOptions.defaultRef` names which of them is served without
-     * a prefix, whether it is a ref or one of these.
+     * canonical. A ref may name itself as the default; otherwise
+     * `sourceOptions.defaultRef` names which is served without a prefix.
      *
      * Never beside `refs` — a source with both would have to be served at two
      * prefixes at once, and the resolver says so rather than picking one.
@@ -234,6 +248,8 @@ declare global {
     slug?: string;
     /** Lifecycle of every version this entry publishes, unless a ref says otherwise. */
     status?: DuxtSourceStatusInput;
+    /** Lifecycle defaults by ref kind; an explicit ref status wins. */
+    statusDefaults?: DuxtSourceStatusDefaultsInput;
     /**
      * The repository a source read off disk lives in, for links back to it.
      * Not `repo`, which is what makes Content download a source.

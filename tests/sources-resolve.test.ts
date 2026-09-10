@@ -206,6 +206,59 @@ describe('refs', () => {
     expect(resolved[0]!.prefix).toBe('');
     expect(resolved[1]!.prefix).toBe('/main');
   });
+
+  it('allows a source ref to be default beside another source default', () => {
+    const resolved = resolveSources(
+      [
+        {
+          repo: 'acme/docs',
+          path: 'docs',
+          refs: [{ tag: 'v2.0.0', label: 'latest', default: true }, 'main']
+        },
+        { path: 'api', slug: 'api', version: 'v3' }
+      ],
+      { defaultRef: 'v3', showRepo: false }
+    );
+
+    expect(resolved[0]).toMatchObject({
+      version: 'latest',
+      prefix: '',
+      isDefault: true,
+      ref: 'v2.0.0',
+      refKind: 'tag'
+    });
+    expect(resolved[1]!.prefix).toBe('/main');
+    expect(resolved[2]).toMatchObject({ prefix: '/api', isDefault: true });
+  });
+
+  it('applies an opted-in lifecycle default by ref kind', () => {
+    const resolved = resolveSources([
+      {
+        repo: 'acme/docs',
+        path: 'docs',
+        refs: [{ tag: 'v2.0.0' }, { branch: 'main' }],
+        statusDefaults: { tag: 'deprecated', branch: 'upcoming' }
+      }
+    ]);
+
+    expect(resolved.map((source) => source.status)).toEqual([
+      'deprecated',
+      'upcoming'
+    ]);
+  });
+
+  it('lets a ref status override its source lifecycle default', () => {
+    const [source] = resolveSources([
+      {
+        repo: 'acme/docs',
+        path: 'docs',
+        refs: [{ tag: 'v2.0.0', status: 'maintained' }],
+        statusDefaults: { tag: 'deprecated' }
+      }
+    ]);
+
+    expect(source!.status).toBe('maintained');
+  });
 });
 
 describe('slugify and repoUrl, hardened', () => {
