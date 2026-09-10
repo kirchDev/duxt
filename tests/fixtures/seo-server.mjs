@@ -6,12 +6,55 @@ if (mode === 'startup-stall')
 if (mode === 'startup-exit') process.exit(17);
 const origin = process.env.NUXT_SITE_URL;
 const locales = ['en-GB', 'en-US', 'de-DE', 'es-ES', 'fr-FR', 'pt-PT', 'pt-BR'];
+const pages = new Map(
+  [
+    '/',
+    '/getting-started',
+    '/de-DE/getting-started',
+    '/does-not-exist',
+    '/demo',
+    '/en-US/demo',
+    '/de-DE/demo',
+    '/demo/api',
+    '/de-DE/demo/api',
+    '/demo/v1.x/api'
+  ].map((route) => [route, renderPage(route)])
+);
+
+function renderPage(route) {
+  const fallback = route === '/de-DE/demo' || route === '/de-DE/demo/api';
+  const noindex =
+    route === '/does-not-exist' || route === '/demo/v1.x/api' || fallback;
+  const title = route.endsWith('/api') ? 'Harbour' : 'Overview';
+  return `<html><head>
+    <link rel="canonical" href="${origin}${route}">
+    ${[...locales, 'x-default'].map((locale) => `<link rel="alternate" hreflang="${locale}" href="${origin}${route}">`).join('')}
+    <meta name="robots" content="${noindex ? 'noindex' : 'index'}">
+    <meta property="og:title" content="Title">
+    <meta property="og:description" content="Description">
+    <meta property="og:image" content="${origin}/image.png">
+    <meta property="og:locale" content="en_GB">
+    ${locales
+      .slice(mode === 'missing-alternate' ? 2 : 1)
+      .map(
+        (locale) =>
+          `<meta property="og:locale:alternate" content="${locale.replace('-', '_')}">`
+      )
+      .join('')}
+    <script type="application/ld+json">${JSON.stringify({ '@graph': [{ '@type': 'WebSite' }, { '@type': 'TechArticle' }, { '@type': 'BreadcrumbList' }] })}</script>
+  </head><body><h1>${title}</h1>${fallback ? '<div role="status">Reading English (UK)</div>' : ''}</body></html>`;
+}
+
 let docRequests = 0;
 const server = createServer((req, res) => {
   const route = req.url;
   if (route === '/getting-started') docRequests++;
-  if (mode === 'premature-exit' && route === '/getting-started')
-    process.exit(18);
+  if (mode === 'premature-exit') return;
+  if (!pages.has(route)) {
+    res.writeHead(404, { 'content-type': 'text/plain' });
+    res.end('Unknown fixture route');
+    return;
+  }
   if (mode === 'stall' && route === '/getting-started') return;
   if (mode === 'body-stall' && route === '/getting-started') {
     res.writeHead(200, { 'content-type': 'text/html' });
@@ -33,28 +76,9 @@ const server = createServer((req, res) => {
     res.setHeader('content-type', 'application/json');
   res.statusCode =
     route === '/does-not-exist' && mode !== 'wrong404' ? 404 : 200;
-  const fallback = route === '/de-DE/demo' || route === '/de-DE/demo/api';
-  const noindex =
-    route === '/does-not-exist' || route === '/demo/v1.x/api' || fallback;
-  const title = route.endsWith('/api') ? 'Harbour' : 'Overview';
-  res.end(`<html><head>
-    <link rel="canonical" href="${origin}${route}">
-    ${[...locales, 'x-default'].map((locale) => `<link rel="alternate" hreflang="${locale}" href="${origin}${route}">`).join('')}
-    <meta name="robots" content="${noindex ? 'noindex' : 'index'}">
-    <meta property="og:title" content="Title">
-    <meta property="og:description" content="Description">
-    <meta property="og:image" content="${origin}/image.png">
-    <meta property="og:locale" content="en_GB">
-    ${locales
-      .slice(mode === 'missing-alternate' ? 2 : 1)
-      .map(
-        (locale) =>
-          `<meta property="og:locale:alternate" content="${locale.replace('-', '_')}">`
-      )
-      .join('')}
-    <script type="application/ld+json">${JSON.stringify({ '@graph': [{ '@type': 'WebSite' }, { '@type': 'TechArticle' }, { '@type': 'BreadcrumbList' }] })}</script>
-  </head><body><h1>${title}</h1>${fallback ? '<div role="status">Reading English (UK)</div>' : ''}</body></html>`);
+  res.end(pages.get(route));
 });
 server.listen(Number(process.env.NITRO_PORT), process.env.NITRO_HOST, () => {
   console.log(`Listening on ${origin}`);
+  if (mode === 'premature-exit') setTimeout(() => process.exit(18), 50);
 });
