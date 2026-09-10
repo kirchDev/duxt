@@ -18,7 +18,9 @@
   // pay for a Worker invocation.
   "assets": {
     "directory": "./.output/public",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
+    // Match Content's paths and the prerendered payload keys.
+    "html_handling": "drop-trailing-slash"
   },
 
   "compatibility_date": "2026-09-02",

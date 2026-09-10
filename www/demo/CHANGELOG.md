@@ -6,10 +6,10 @@ numbers below mark this site's milestones rather than releases of the
 repository root, and the site serves it at `/releases`.
 
 It is also the fixture that keeps a generated section on the build's path: the
-site declares it under `duxt.sources[].generated` as one page at `/demo/changelog`.
-Together with the package's release pages, `pnpm check` renders both of the
-`changelog` type's granularities end to end rather than trusting a registry
-with nothing in it.
+site declares it under `duxt.sources[].generated` as release pages at
+`/demo/changelog` and as one page at `/demo/changelog-flat`. `pnpm check`
+renders both of the `changelog` type's granularities end to end rather than
+trusting a registry with nothing in it.
 
 Three things below are deliberate rather than historical. `0.5.0` carries **every
 section release-please can write** — the breaking-change block, the two visible

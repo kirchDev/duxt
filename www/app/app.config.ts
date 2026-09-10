@@ -163,14 +163,21 @@ export default defineAppConfig({
               { version: 'v1.x', path: 'www/demo/v1.yaml', status: 'eol' }
             ]
           },
-          // The fixture exercises flat rendering while /releases splits the
-          // package's own changelog into a page per version.
+          // The fixture shows every change category in the split layout.
           {
             type: 'changelog',
             path: 'www/demo/CHANGELOG.md',
             label: 'Demo Changelog',
             slug: 'changelog',
-            navigation: 'sections',
+            navigation: 'sections'
+          },
+          // Keep the full-file rendering available as a second demo.
+          {
+            type: 'changelog',
+            path: 'www/demo/CHANGELOG.md',
+            label: 'Demo Changelog (flat)',
+            slug: 'changelog-flat',
+            navigation: false,
             options: { granularity: 'flat' }
           }
         ]

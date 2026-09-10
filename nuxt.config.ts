@@ -376,10 +376,13 @@ export default defineNuxtConfig({
 
   /**
    * nuxt-seo-utils, whose defaults are written for a site that sets no head
-   * tags of its own. Three of them are wrong HERE, and each for a reason this
-   * layer cannot design away.
+   * tags of its own. These defaults need adjusting for this layer's rendering.
    */
   seo: {
+    // MDC hydrates its Shiki <style> text from the Content payload. Rewriting
+    // only the prerendered HTML makes that text differ on the client.
+    minify: false,
+
     /**
      * A LOCALE PREFIX IS CASE-SENSITIVE. i18n routes this site's locales under
      * their own codes — `/de-DE/guides`, `/pt-BR/guides` — and lowercasing a

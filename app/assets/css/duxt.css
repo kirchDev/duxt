@@ -331,10 +331,12 @@ details[open] > .duxt-schema-row .duxt-schema-tile .duxt-schema-minus {
    set at 0.6875rem in `muted-foreground`: the same idea, two sizes, two
    weights, two colours, on pages a reader moves between.
    
-   The colour is the DEFAULT and not the rule: a caller that has a tone of its
-   own — a changelog group — sets it after this class and wins. */
-.duxt-label {
-  @apply text-[0.6875rem] font-semibold tracking-[0.12em] text-muted-foreground uppercase;
+   Keep the defaults in the components layer so a caller's colour utilities
+   can override them. Unlayered rules beat utilities regardless of class order. */
+@layer components {
+  .duxt-label {
+    @apply text-[0.6875rem] font-semibold tracking-[0.12em] text-muted-foreground uppercase;
+  }
 }
 
 /* A release group's ENTRIES, which arrive as ordinary Markdown in

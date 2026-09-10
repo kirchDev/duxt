@@ -15,7 +15,10 @@ export function stripLocalePrefix(
   path: string,
   codes: Iterable<string>
 ): string {
-  return splitLocalePath(path, codes).path;
+  const documentPath = splitLocalePath(path, codes).path;
+  // Static hosts may append a slash; Content paths and prerendered async-data
+  // keys do not. Both URLs must reuse the same data during hydration.
+  return documentPath.replace(/\/+$/, '') || (documentPath ? '/' : '');
 }
 
 /**

@@ -6,6 +6,14 @@ const localeLink = useDuxtLink();
 
 const { data: navigation } = await useDuxtNavigation();
 
+// Nitro's HTML crawler treats v0.1.0 as a file with extension .0 and skips it.
+// Register known pages explicitly so their HTML and Nuxt payloads are emitted.
+if (import.meta.prerender) {
+  prerenderRoutes(
+    navigationPagePaths(navigation.value ?? []).map((path) => localeLink(path)!)
+  );
+}
+
 // The mobile sheet shows the same branch the sidebar does.
 const { items } = useDuxtSection(navigation);
 
