@@ -52,6 +52,7 @@ describe('resolved source metadata', () => {
   it('takes a lifecycle from the ref, falling back to the source', () => {
     const resolved = resolveSources([
       {
+        repo: 'acme/docs',
         path: 'docs',
         status: 'deprecated',
         refs: ['main', { tag: 'v0.1.0', status: 'eol' }]
@@ -66,7 +67,11 @@ describe('resolved source metadata', () => {
 
   it("lets a ref's own label name the version", () => {
     const resolved = resolveSources([
-      { path: 'docs', refs: ['main', { tag: 'v2.0.0', label: 'latest' }] }
+      {
+        repo: 'acme/docs',
+        path: 'docs',
+        refs: ['main', { tag: 'v2.0.0', label: 'latest' }]
+      }
     ]);
 
     expect(resolved[1]).toMatchObject({ version: 'latest', prefix: '/latest' });
@@ -75,7 +80,9 @@ describe('resolved source metadata', () => {
 
 describe('reservedSegments', () => {
   it('names the version segment a root source may not use as a folder', () => {
-    const resolved = resolveSources([{ path: 'docs', refs: ['main', 'v1'] }]);
+    const resolved = resolveSources([
+      { repo: 'acme/docs', path: 'docs', refs: ['main', 'v1'] }
+    ]);
     const reserved = reservedSegments(resolved);
 
     // `/v1` is a version, so the default version cannot also have a `v1/`
@@ -156,7 +163,12 @@ describe('a version without a ref', () => {
     // at once, and the reader would meet the same document twice.
     expect(() =>
       resolveSources([
-        { path: 'docs', version: 'v2', refs: [{ tag: 'v2.0.0' }] }
+        {
+          repo: 'acme/docs',
+          path: 'docs',
+          version: 'v2',
+          refs: [{ tag: 'v2.0.0' }]
+        }
       ])
     ).toThrow(/never from both/);
   });

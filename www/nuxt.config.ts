@@ -1,5 +1,12 @@
 import { readFileSync } from 'node:fs';
 import { defineNuxtConfig } from 'nuxt/config';
+import { fileURLToPath } from 'node:url';
+import { claimNuxtProcess } from '../scripts/nuxt-process-guard.ts';
+
+claimNuxtProcess(
+  fileURLToPath(new URL('.', import.meta.url)),
+  process.argv.slice(2).join(' ') || 'Nuxt'
+);
 
 /**
  * The version this site documents, read rather than typed.
