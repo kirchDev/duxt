@@ -192,12 +192,14 @@ function parseChangelog(
   context: DuxtSectionContext
 ): DuxtSectionPage[] {
   const lines = artefact.split(/\r?\n/);
-
-  if (granularityOf(context.options) === 'flat') return [flat(lines, context)];
-
   const headings = headingsOf(lines);
-
   const starts = headings.filter((heading) => release(heading.text));
+
+  const newest = starts[0] ? release(starts[0].text)?.version : undefined;
+
+  if (granularityOf(context.options) === 'flat') {
+    return [flat(lines, context, newest)];
+  }
 
   reportNearMisses(headings, starts, context);
   const releases: Release[] = starts.map((heading, index) => {
@@ -236,11 +238,15 @@ function parseChangelog(
  * exactly where the release tool put it — which is what "unchanged" has to
  * mean, or the mode is not the escape hatch it exists to be.
  */
-function flat(lines: string[], context: DuxtSectionContext): DuxtSectionPage {
+function flat(
+  lines: string[],
+  context: DuxtSectionContext,
+  newest?: string
+): DuxtSectionPage {
   return {
     file: 'index.md',
     body: [
-      frontmatter({ title: context.label }),
+      frontmatter({ title: context.label, release: newest }),
       '',
       ...trim(withoutTitle(lines)),
       ''
@@ -437,7 +443,11 @@ function index(
   return {
     file: 'index.md',
     body: [
-      frontmatter({ title: context.label }),
+      // The header stays outside this component, so it cannot read the MDC
+      // props below. Keep the newest release beside the page title instead:
+      // Content exposes frontmatter on the page query that `DuxtVersion` uses,
+      // and parsing the file again there would make the two answers drift.
+      frontmatter({ title: context.label, release: releases[0]?.version }),
       '',
       // NO `<h1>` OF ITS OWN. The page draws the docs header — breadcrumb,
       // title, description, the copy control beside it — for exactly the

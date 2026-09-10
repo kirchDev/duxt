@@ -279,6 +279,14 @@ describe('the changelog rendering', () => {
     });
   });
 
+  it('records the newest release on the index for the header badge', () => {
+    const [index] = parse(CHANGELOG);
+
+    expect(index!.body).toMatch(
+      /^---\ntitle: "Releases"\nrelease: "0.2.0"\n---/m
+    );
+  });
+
   it('quotes a date, which a plain one would reach the page as', () => {
     // YAML resolves `2026-02-01` to a timestamp under the schema remark-mdc
     // reads props with, and a `Date` in `<time :datetime>` prints the reader's

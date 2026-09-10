@@ -37,6 +37,8 @@ export const pageSchema = z.object({
   icon: z.string().optional(),
   /** `landing` renders the page without the docs chrome. */
   layout: z.string().optional(),
+  /** The latest release of a generated changelog overview. */
+  release: z.string().optional(),
   /** false hides the page from the navigation. */
   navigation: z.boolean().optional(),
   /**

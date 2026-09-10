@@ -24,6 +24,7 @@ const props = withDefaults(defineProps<{ variant?: 'badge' | 'block' }>(), {
 const duxt = useDuxtConfig();
 const path = useDuxtPath();
 const localeLink = useDuxtLink();
+const { collection, source } = useDuxtCollection();
 
 /**
  * Versions come from the resolved source manifest, so the control can only
@@ -34,11 +35,40 @@ const localeLink = useDuxtLink();
  */
 const { choices: versions } = useDuxtVersion();
 
+/**
+ * A changelog is one global history, so it deliberately has no version
+ * selector. Its current release is still useful context, though: read the
+ * latest one from the overview's generated frontmatter instead of falling
+ * back to the site's package version. The parser writes that value while
+ * turning the changelog into the overview and release pages.
+ */
+const changelog = computed(
+  () =>
+    source.value?.generated?.type === 'changelog' &&
+    source.value.generated.versioning === 'global'
+);
+
+const { data: changelogPage } = await useAsyncData(
+  () => `duxt-changelog-version-${collection.value}-${path.value}`,
+  async () => {
+    if (!changelog.value) return undefined;
+
+    return (await queryCollection(collection.value as DuxtCollectionArg)
+      .path(path.value)
+      .first()) as { release?: string } | null;
+  },
+  { watch: [collection, path, changelog] }
+);
+
 const current = computed(() =>
   sourceForPath(
     path.value,
     versions.value.map((version) => ({ ...version, prefix: version.to ?? '' }))
   )
+);
+
+const label = computed(
+  () => changelogPage.value?.release ?? current.value?.label ?? duxt.version
 );
 
 const { t, te } = useI18n();
@@ -94,7 +124,7 @@ function pathIn(version: { to?: string }) {
 
         <span class="grid min-w-0 flex-1 leading-tight">
           <span class="truncate font-mono text-sm font-medium">
-            {{ current?.label ?? duxt.version }}
+            {{ label }}
           </span>
           <span class="truncate text-xs text-muted-foreground">
             {{ (current && caption(current)) ?? $t('duxt.version.label') }}
@@ -112,7 +142,7 @@ function pathIn(version: { to?: string }) {
           variant="secondary"
           class="gap-1 font-mono text-[10px] hover:bg-accent"
         >
-          {{ current?.label ?? duxt.version }}
+          {{ label }}
           <Icon name="lucide:chevron-down" class="size-3 opacity-60" />
         </UiBadge>
       </button>
@@ -163,6 +193,6 @@ function pathIn(version: { to?: string }) {
     variant="secondary"
     class="font-mono text-[10px]"
   >
-    {{ duxt.version }}
+    {{ label }}
   </UiBadge>
 </template>
