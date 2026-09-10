@@ -150,3 +150,67 @@ export function generatedTitle(body: unknown): boolean {
 
   return value.some((node) => Array.isArray(node) && node[0] === 'h1');
 }
+
+/**
+ * The prose a generated page OPENS with, flattened to its words.
+ *
+ * The shell draws a page's description under its title, and for a generated
+ * page that was suppressed outright: Content derives a description from the
+ * body where the frontmatter names none, and the body then printed the same
+ * sentence again three lines below.
+ *
+ * Derived and written are indistinguishable once they are in `description`, so
+ * this answers the question that actually matters — does the body already open
+ * with it? A type that writes a real description (an API document's `summary`,
+ * which appears nowhere in its prose) gets the line every written page has; one
+ * whose description was lifted out of its own first paragraph does not.
+ *
+ * Walks INTO the first node, because a generated body opens on a component
+ * call: the prose is that component's children, not a sibling of it.
+ */
+export function generatedLead(body: unknown): string {
+  const value = (body as { value?: unknown })?.value;
+  if (!Array.isArray(value)) return '';
+
+  return collapse(lead(value));
+}
+
+/**
+ * Does the body already open with this description?
+ *
+ * `startsWith` rather than equality, because a page's description is often the
+ * FIRST LINE of prose the page then prints in full — the same sentence at two
+ * lengths, and printing both puts one above the rule and one under it.
+ *
+ * Both sides are collapsed first. Frontmatter folds a wrapped line into a
+ * space; the AST keeps the newline the author typed, so the two spellings of
+ * one sentence differ by exactly the whitespace nobody can see.
+ */
+export function generatedLeadsWith(
+  description: string,
+  body: unknown
+): boolean {
+  const opening = generatedLead(body);
+
+  return Boolean(opening) && opening.startsWith(collapse(description));
+}
+
+/** One sentence, however it was wrapped. */
+const collapse = (value: string) => value.replace(/\s+/g, ' ').trim();
+
+/** The first paragraph's words, however deep the components go. */
+function lead(nodes: unknown[]): string {
+  for (const node of nodes) {
+    if (!Array.isArray(node)) continue;
+
+    const [tag, ...rest] = node as unknown[];
+    if (typeof tag !== 'string') continue;
+
+    if (tag === 'p') return text(node).trim();
+
+    const found = lead(rest.slice(1));
+    if (found) return found;
+  }
+
+  return '';
+}

@@ -157,6 +157,18 @@ const allowed = inject(DUXT_ASIDE, true);
  */
 const titled = computed(() => owned.value && generatedTitle(page.value?.body));
 
+/**
+ * Does the shell draw the description, or has the body already said it?
+ *
+ * See `generatedLeadsWith`.
+ */
+const described = computed(() => {
+  const description = page.value?.description;
+  if (!owned.value || !description) return false;
+
+  return !generatedLeadsWith(description, page.value?.body);
+});
+
 const aside = computed(
   () =>
     allowed &&
@@ -299,11 +311,19 @@ useSchemaOrg([
           />
         </div>
 
-        <!-- NO DESCRIPTION LINE, and that is not an omission. A generated page
-             carries no `description` in its frontmatter, so Content derives one
-             from the body's first paragraph — which the body then renders
-             again, three lines below. The lead of a generated page is in its
-             body; the derived value still feeds the meta tags and the card. -->
+        <!-- THE DESCRIPTION, unless the body already opens with it — see
+             `generatedLead`. A page whose description Content derived from its
+             own first paragraph would print that sentence twice, three lines
+             apart; one whose type WROTE a description (an API document's
+             `summary`, which appears nowhere in its prose) reads like every
+             written page instead, with the lead under the title rather than
+             below the rule. -->
+        <p
+          v-if="described"
+          class="mt-3 text-lg text-muted-foreground text-pretty"
+        >
+          {{ page?.description }}
+        </p>
       </header>
 
       <!-- A type that DOES draw its own title keeps the compact row: where the

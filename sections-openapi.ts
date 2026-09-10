@@ -138,7 +138,9 @@ function overview(
 ): DuxtSectionPage {
   const props = {
     version: spec.info.version,
-    summary: spec.info.summary,
+    // NO `summary`: it is this page's `description` below, and the shell draws
+    // a description under the title. Handed to the component as well, it was
+    // printed a second time under the rule where the body starts.
     servers: spec.servers,
     securitySchemes: spec.securitySchemes,
     security: spec.security,
