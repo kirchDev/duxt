@@ -22,6 +22,7 @@ import type {
   DuxtSourcesOptions
 } from './sources-resolve';
 import {
+  assertCollectionIdentities,
   expandSources,
   identifier,
   resolveSources,
@@ -539,6 +540,7 @@ export function resolveGeneratedSections(
     }
   });
 
+  assertCollectionIdentities([...resolved, ...generated]);
   return generated;
 }
 

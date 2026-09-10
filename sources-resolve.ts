@@ -631,6 +631,7 @@ export function resolveSources(
     });
   }
 
+  assertCollectionIdentities(resolved);
   return resolved;
 }
 
@@ -905,4 +906,42 @@ function isInsidePrefix(path: string, prefix: string): boolean {
   if (!prefix) return true;
 
   return path === prefix || path.startsWith(`${prefix}/`);
+}
+
+/** Validate names before any collection map can overwrite a declaration. */
+export function assertCollectionIdentities(
+  entries: DuxtResolvedSource[]
+): void {
+  const taken = new Map<string, string>();
+  const claim = (name: string, declaration: string) => {
+    const previous = taken.get(name);
+    if (previous !== undefined) {
+      throw new Error(
+        `duxt: collection "${name}" is claimed by both ${previous} and ${declaration}. ` +
+          'Give one declaration a distinct `slug` or `label`.'
+      );
+    }
+    taken.set(name, declaration);
+  };
+
+  for (const entry of entries) {
+    const kind = entry.generated
+      ? `generated section "${entry.generated.label}"`
+      : 'documentation';
+    claim(
+      entry.collection,
+      `${kind} "${entry.path}" at "${entry.prefix || '/'}"` +
+        (entry.locale ? ` (locale "${entry.locale}")` : '')
+    );
+  }
+
+  // Shared partials are one declaration per language, even across sources.
+  const locales = new Set(
+    entries
+      .filter((entry) => !entry.generated)
+      .map((entry) => (entry.isDefaultLocale ? undefined : entry.locale))
+  );
+  for (const locale of locales) {
+    claim(partialsCollection(locale), `partials for "${locale ?? 'default'}"`);
+  }
 }
