@@ -28,6 +28,20 @@ cd duxt
 pnpm install   # wires husky hooks
 ```
 
+Run the site with `pnpm --filter www dev`. Stop it before `pnpm build:app`,
+`pnpm check`, or another command that loads the site's Nuxt configuration
+(including `pnpm typecheck:app`). These commands share Content's parse cache,
+runtime database and Nuxt build artifacts. The site claims ownership before
+loading modules; a conflicting command exits with the owning command and PID.
+Separate worktrees have separate ownership.
+
+After a crash, retry once the owning process has exited: the operating system
+releases the ownership transaction automatically. Nuxt also reclaims its own
+`www/node_modules/.cache/nuxt/.nuxt/nuxt.lock` when its recorded PID no longer
+exists. Never remove a live process's lock, `.data`, SQLite database or WAL files.
+If a Nuxt lock cannot be read, confirm the owning process is gone before removing
+that lock manually. A lock's age alone is not proof that its owner has stopped.
+
 ## Running the suite
 
 | Command              | What it does                                               |
