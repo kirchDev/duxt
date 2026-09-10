@@ -22,7 +22,7 @@ const manifest = duxtManifest([
       { type: 'changelog', path: 'CHANGELOG.md', label: 'Releases' }
     ]
   },
-  { path: 'other', slug: 'other', refs: ['main', 'v1'] }
+  { repo: 'acme/other', path: 'other', slug: 'other', refs: ['main', 'v1'] }
 ]);
 
 describe('site-wide search editions', () => {
@@ -50,7 +50,12 @@ it('keeps the current API edition and other artefacts at their defaults', () => 
 
 it('selects the page resolver language chain for every chosen edition', () => {
   const translated = duxtManifest([
-    { path: 'docs', locales: ['en', 'de', 'fr'], refs: ['main', 'v1'] }
+    {
+      repo: 'acme/docs',
+      path: 'docs',
+      locales: ['en', 'de', 'fr'],
+      refs: ['main', 'v1']
+    }
   ]);
   const current = translated.find(
     (entry) => entry.isDefault && entry.locale === 'de'
