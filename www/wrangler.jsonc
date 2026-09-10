@@ -55,14 +55,20 @@
   // the `/mcp` tools and `llms.txt` all call `queryCollection()` at runtime.
   // The prerendered pages never touch this binding.
   //
-  // `database_id` comes from `wrangler d1 create duxt-www-content` and is not a
-  // secret — it is an account-scoped identifier, and wrangler refuses to deploy
-  // without it.
+  // THE DATABASE IS TOFU'S, THE BINDING IS THIS FILE'S — the same seam the
+  // hostname runs along, and for the same reason: nothing in a wrangler config
+  // creates a D1 database, so one made with `wrangler d1 create` is a resource
+  // no state names and nothing ever deletes. Declared in the OpenTofu estate it
+  // shows up in a plan and goes away with the Worker it was made for.
+  //
+  // Only the id is repeated here, because a binding has to name one. It is an
+  // account-scoped identifier rather than a secret, and wrangler refuses to
+  // deploy without it.
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "duxt-www-content",
-      "database_id": "REPLACE_ME"
+      "database_id": "b6e4a7a8-4f9a-431e-be7c-5fe4f256accf"
     }
   ],
 

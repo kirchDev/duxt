@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { generatedTitle, generatedToc } from '../app/utils/generated-toc';
+import {
+  generatedLead,
+  generatedLeadsWith,
+  generatedTitle,
+  generatedToc
+} from '../app/utils/generated-toc';
 
 /**
  * The shape Content actually stores, which is the point of the test: a
@@ -106,5 +111,70 @@ describe('generatedTitle', () => {
     // What gives a release page the same header a written page has.
     expect(generatedTitle(releasePageWithoutTitle)).toBe(false);
     expect(generatedTitle(undefined)).toBe(false);
+  });
+});
+
+describe('generatedLead', () => {
+  const body = (value: unknown[]) => ({ value });
+
+  it('reads the first paragraph out of the component the body opens with', () => {
+    expect(
+      generatedLead(
+        body([['open-api-overview', {}, ['p', {}, 'A worked example.']]])
+      )
+    ).toBe('A worked example.');
+  });
+
+  it('flattens the markup inside it', () => {
+    expect(
+      generatedLead(
+        body([['p', {}, 'A ', ['strong', {}, 'worked'], ' example.']])
+      )
+    ).toBe('A worked example.');
+  });
+
+  it('answers nothing for a body with no prose in it at all', () => {
+    expect(
+      generatedLead(body([['changelog-releases', { ':releases': '[]' }]]))
+    ).toBe('');
+    expect(generatedLead(undefined)).toBe('');
+  });
+});
+
+describe('generatedLeadsWith', () => {
+  const body = (value: unknown[]) => ({ value });
+
+  /**
+   * The case this exists for: a tag page's description is the first line of the
+   * prose it then prints in full, and frontmatter folded the wrap into a space
+   * while the AST kept the newline. Compared as written, the two sentences
+   * looked different and the page printed both.
+   */
+  it('sees one sentence through the whitespace it was wrapped in', () => {
+    expect(
+      generatedLeadsWith(
+        'Everything that is a consignment, with a berth to end up at.',
+        body([
+          [
+            'p',
+            {},
+            'Everything that is a consignment, with a\nberth to end up at.'
+          ]
+        ])
+      )
+    ).toBe(true);
+  });
+
+  it('is false for a description the prose never says', () => {
+    expect(
+      generatedLeadsWith(
+        'An invented freight API.',
+        body([['open-api-overview', {}, ['p', {}, 'A worked example.']]])
+      )
+    ).toBe(false);
+  });
+
+  it('is false where there is no prose to compare against', () => {
+    expect(generatedLeadsWith('Anything', body([]))).toBe(false);
   });
 });

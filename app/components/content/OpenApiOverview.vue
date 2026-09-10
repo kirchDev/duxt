@@ -17,7 +17,6 @@ import type {
  */
 const props = defineProps<{
   version?: string;
-  summary?: string;
   servers?: DuxtOpenApiServer[];
   securitySchemes?: DuxtOpenApiSecurityScheme[];
   security?: DuxtOpenApiSecurity;
@@ -44,10 +43,10 @@ const operations = computed(() =>
 
 <template>
   <div>
-    <p v-if="summary" class="not-typeset mb-4 text-lg text-muted-foreground">
-      {{ summary }}
-    </p>
-
+    <!-- NO SUMMARY LINE. `info.summary` is this page's description, and the
+         shell draws a description under the title like it does on every written
+         page — printing it here as well put the lead below the rule, where the
+         body starts, and said the same sentence twice. -->
     <!-- The document's own description, as the Markdown it is written in. -->
     <slot />
 
