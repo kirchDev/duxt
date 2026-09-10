@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { versionChoices } from '../app/utils/version-choices';
+import { resolveSources } from '../sources-resolve';
+import { versionPath } from '../app/utils/version-paths';
 
 const base = {
   collection: 'docs',
@@ -23,6 +25,51 @@ const v2 = source({
 const v1 = source({ repo: 'duxt', version: '1.x', prefix: '/1.x' });
 
 describe('versionChoices', () => {
+  it('keeps a single translated version as one badge choice', () => {
+    const manifest = resolveSources([
+      {
+        repo: 'acme/docs',
+        path: 'docs',
+        refs: ['main'],
+        locales: ['en-GB', 'de', 'fr']
+      }
+    ]);
+
+    expect(versionChoices(manifest, manifest[0], undefined)).toEqual([
+      { label: 'main', to: '/', description: 'default' }
+    ]);
+  });
+
+  it('retains distinct targets even when their version labels match', () => {
+    const otherTarget = source({ ...v1, prefix: '/legacy' });
+
+    expect(
+      versionChoices([v2, v1, otherTarget], v2, undefined).map(
+        (choice) => choice.to
+      )
+    ).toEqual(['/', '/1.x', '/legacy']);
+  });
+
+  it.each(['en-GB', 'de'])(
+    'offers each translated edition once while reading %s',
+    (locale) => {
+      const manifest = resolveSources([
+        {
+          repo: 'acme/docs',
+          path: 'docs',
+          refs: ['main', 'v1'],
+          locales: ['en-GB', 'de']
+        }
+      ]);
+      const current = manifest.find((entry) => entry.locale === locale);
+
+      expect(versionChoices(manifest, current, undefined)).toEqual([
+        { label: 'main', to: '/', description: 'default' },
+        { label: 'v1', to: '/v1', description: undefined }
+      ]);
+    }
+  );
+
   it('offers the versions of the repository being read', () => {
     const other = source({ repo: 'other', version: '9.x', prefix: '/9.x' });
 
@@ -108,6 +155,39 @@ describe('a site that publishes a reference beside its documentation', () => {
   const apiV1 = api({ version: '1.x', prefix: '/1.x/api' });
 
   const all = [v2, v1, apiV2, apiV1];
+
+  it.each(['en-GB', 'de'])(
+    'keeps translated API editions within their declaration for %s',
+    (locale) => {
+      const independent = api({
+        version: '2026',
+        prefix: '/payments',
+        generated: { ...apiV2.generated!, declaration: 1 }
+      });
+      const translated = [...all, independent].flatMap((entry) =>
+        ['en-GB', 'de'].map((language) =>
+          source({ ...entry, locale: language })
+        )
+      );
+      const current = translated.find(
+        (entry) => entry.prefix === '/1.x/api' && entry.locale === locale
+      );
+      const choices = versionChoices(translated, current, undefined);
+
+      expect(choices).toEqual([
+        { label: '2.x', to: '/api', description: 'default' },
+        { label: '1.x', to: '/1.x/api', description: undefined }
+      ]);
+      expect(
+        versionPath('/1.x/api/pets/get', current?.prefix, choices[0]!.to!)
+      ).toBe('/api/pets/get');
+      expect(
+        versionChoices(translated, independent, undefined).map(
+          (choice) => choice.to
+        )
+      ).toEqual(['/payments']);
+    }
+  );
 
   it('does not offer the reference as a version of the documentation', () => {
     // Four entries with two labels between them, two of which moved the reader
