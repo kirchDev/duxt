@@ -10,15 +10,21 @@ on:
   push:
     branches:
       - main
+  # This follows the normal main deploy. The release tag exists by then, so a
+  # build-time `latest` source cannot race release-please and read the prior tag.
+  release:
+    types:
+      - published
   # First run, a rotated token, or a redeploy after `infrastructure` has applied
   # the hostname — none of which is a commit.
   workflow_dispatch:
 
-# ON EVERY PUSH TO MAIN, NOT ON EVERY RELEASE. `www/` reads `docs/` off the
-# CHECKOUT — `origin.ref` in its `app.config.ts` names the repository for the
-# "Edit this page" link and downloads nothing — so the site publishes the
-# documentation of the commit it is built from. Waiting for a release would hold
-# a documentation fix back for no reason.
+# ON EVERY PUSH TO MAIN, THEN AGAIN FOR A PUBLISHED RELEASE. `www/` reads
+# `docs/` off the CHECKOUT — `origin.ref` in its `app.config.ts` names the
+# repository for the edit links and downloads nothing — so a documentation fix
+# does not wait for a release. The second build is deliberately redundant: it
+# runs only after release-please has created the tag, which makes `latest`
+# deterministic rather than dependent on two workflows' scheduling.
 #
 # The consequence, stated rather than hidden: the version badge comes from
 # `package.json`, which release-please bumps, so between a promotion and its
