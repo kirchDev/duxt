@@ -27,7 +27,21 @@ import {
  * `git ls-remote` a second apart could otherwise straddle a release and leave
  * the site with a collection no route points at.
  */
-const cache = new Map<string, string[]>();
+const cache = new Map<string, RepoTags>();
+
+/**
+ * What one repository's tags came back as.
+ *
+ * A `git` that could not run and a repository that has never been tagged both
+ * leave an empty list, and only the second is a configuration mistake. Keeping
+ * the failure beside the list is what lets the callers below say which one
+ * happened instead of telling a maintainer to fix a source that is fine.
+ */
+interface RepoTags {
+  tags: string[];
+  /** Git's own reason, where the command failed outright. */
+  failure?: string;
+}
 
 /**
  * What a repository URL is allowed to look like before it is handed to `git`.
@@ -40,50 +54,103 @@ const cache = new Map<string, string[]>();
  */
 const REMOTE_URL = /^(?:https?:\/\/|ssh:\/\/|git@)[\w.~:/?#@!$&'()*+,;=%-]+$/;
 
-/** The tags of a remote, or nothing when its URL is not one we will run. */
-function remoteTags(repo: string): string {
+/**
+ * The URL a remote's tags are read from, refused unless it is one we will run.
+ *
+ * Separate from the command below, and called OUTSIDE its try: refusing a URL
+ * is this layer's own decision about a value a maintainer wrote, not git
+ * failing to read it, so it must reach the build as itself.
+ */
+function remoteUrl(repo: string): string {
   const url = repoUrl(repo);
 
   if (!REMOTE_URL.test(url)) {
     throw new Error(`duxt: refusing to read tags from ${JSON.stringify(url)}`);
   }
 
-  return execFileSync(
-    'git',
-    // `--end-of-options` so a URL that survived the test above is still read as
-    // a URL and never as an option.
-    ['ls-remote', '--tags', '--refs', '--end-of-options', url],
-    { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }
+  return url;
+}
+
+/** Git's own account of why it failed, as one line. */
+function gitFailure(error: unknown): string {
+  const stderr = (error as { stderr?: unknown }).stderr;
+  const text =
+    typeof stderr === 'string'
+      ? stderr
+      : Buffer.isBuffer(stderr)
+        ? stderr.toString('utf8')
+        : error instanceof Error
+          ? error.message
+          : String(error);
+
+  return (
+    text
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .at(-1) ?? 'git produced no output'
   );
 }
 
-function tagsOf(repo: string | undefined): string[] {
+function tagsOf(repo: string | undefined): RepoTags {
   const key = repo ?? '.';
   const cached = cache.get(key);
   if (cached) return cached;
 
-  let tags: string[] = [];
+  // Before the try, so a refused URL is never dressed up as a git failure.
+  const url = repo ? remoteUrl(repo) : undefined;
+
+  let found: RepoTags;
 
   try {
-    const output = repo
-      ? remoteTags(repo)
-      : execFileSync('git', ['tag', '--list'], {
-          encoding: 'utf8',
-          stdio: ['ignore', 'pipe', 'ignore']
-        });
+    const output = execFileSync(
+      'git',
+      url
+        ? // `--end-of-options` so a URL that survived the test above is still
+          // read as a URL and never as an option.
+          ['ls-remote', '--tags', '--refs', '--end-of-options', url]
+        : ['tag', '--list'],
+      // stderr is piped rather than dropped: it is the only place git says WHY
+      // it could not answer, and that reason is what the errors below carry.
+      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }
+    );
 
-    tags = output
-      .split('\n')
-      .map((line) => line.trim().split(/\s+/).pop() ?? '')
-      .map((ref) => ref.replace(/^refs\/tags\//, ''))
-      .filter(Boolean);
-  } catch {
+    found = {
+      tags: output
+        .split('\n')
+        .map((line) => line.trim().split(/\s+/).pop() ?? '')
+        .map((ref) => ref.replace(/^refs\/tags\//, ''))
+        .filter(Boolean)
+    };
+  } catch (error) {
     // Reported by the caller, which knows which source asked.
-    tags = [];
+    found = { tags: [], failure: gitFailure(error) };
   }
 
-  cache.set(key, tags);
-  return tags;
+  cache.set(key, found);
+  return found;
+}
+
+/**
+ * The tags a source publishes from, or an error naming git as the reason there
+ * are none.
+ *
+ * `what` is the caller's own words for the thing that asked — the `latest`
+ * shorthand or a release selection — so an unreachable remote reads as an
+ * unreachable remote in both, and neither sends a maintainer to edit a source
+ * that was never wrong.
+ */
+function tagsFor(source: DuxtSource, what: string): string[] {
+  const found = tagsOf(source.repo);
+
+  if (found.failure) {
+    throw new Error(
+      `duxt: ${what} on ${source.repo ?? 'this repository'} could not read ` +
+        `its tags — git failed: ${found.failure}`
+    );
+  }
+
+  return found.tags;
 }
 
 interface ParsedTag {
@@ -137,7 +204,10 @@ function releaseTags(tags: string[], releases: DuxtSourceReleases): string[] {
 function resolveReleaseRefs(source: DuxtSource): DuxtSource {
   if (!source.releases) return source;
 
-  const tags = releaseTags(tagsOf(source.repo), source.releases);
+  const tags = releaseTags(
+    tagsFor(source, `releases selection "${source.releases.select}"`),
+    source.releases
+  );
   if (!tags.length) {
     throw new Error(
       `duxt: releases selection "${source.releases.select}" on ` +
@@ -178,7 +248,7 @@ export function resolveLatestRefs(sources: DuxtSource[]): DuxtSource[] {
   return discovered.map((source) => {
     if (!source.refs?.some(isLatestRef)) return source;
 
-    const newest = newestTag(tagsOf(source.repo));
+    const newest = newestTag(tagsFor(source, "refs: ['latest']"));
 
     if (!newest) {
       throw new Error(

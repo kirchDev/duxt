@@ -1,12 +1,24 @@
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('node:child_process', () => ({
-  execFileSync: (_command: string, args: string[]) =>
-    args.at(-1)?.endsWith('/legacy')
+  execFileSync: (_command: string, args: string[]) => {
+    const url = args.at(-1) ?? '';
+
+    // An unreachable remote: git exits non-zero and says why on stderr.
+    if (url.endsWith('/offline')) {
+      throw Object.assign(new Error('Command failed: git ls-remote'), {
+        status: 128,
+        stderr:
+          "fatal: unable to access 'https://github.com/acme/offline/': " +
+          'Could not resolve host: github.com\n'
+      });
+    }
+
+    return url.endsWith('/legacy')
       ? 'deadbeef\trefs/tags/v0.2.0\n'
-      : args.at(-1)?.endsWith('/empty')
+      : url.endsWith('/empty')
         ? 'deadbeef\trefs/tags/nightly\n'
-        : args.at(-1)?.endsWith('/releases')
+        : url.endsWith('/releases')
           ? [
               'deadbeef\trefs/tags/v2.1.0',
               'deadbeef\trefs/tags/v2.0.1',
@@ -15,7 +27,8 @@ vi.mock('node:child_process', () => ({
               'deadbeef\trefs/tags/v1.3.4',
               'deadbeef\trefs/tags/nightly'
             ].join('\n')
-          : 'deadbeef\trefs/tags/v0.2.0\ndeadbeef\trefs/tags/v0.3.0\n'
+          : 'deadbeef\trefs/tags/v0.2.0\ndeadbeef\trefs/tags/v0.3.0\n';
+  }
 }));
 
 import { resolveLatestRefs } from '../sources-git';
@@ -153,5 +166,44 @@ describe('resolveLatestRefs', () => {
     expect(() =>
       resolveLatestRefs([{ repo: 'acme/empty', releases: { select: 'all' } }])
     ).toThrow(/all.*acme\/empty.*no SemVer/i);
+  });
+
+  it('blames git, not the ref, when the tags could not be read at all', () => {
+    expect(() =>
+      resolveLatestRefs([
+        { repo: 'acme/offline', refs: [{ tag: 'latest', default: true }] }
+      ])
+    ).toThrow(/acme\/offline.*git.*Could not resolve host/is);
+
+    expect(() =>
+      resolveLatestRefs([
+        { repo: 'acme/offline', refs: [{ tag: 'latest', default: true }] }
+      ])
+    ).not.toThrow(/Name a tag explicitly/i);
+  });
+
+  it('blames git, not the selection, when discovery cannot read the tags', () => {
+    expect(() =>
+      resolveLatestRefs([
+        { repo: 'acme/offline', releases: { select: 'minor' } }
+      ])
+    ).toThrow(/minor.*acme\/offline.*git.*Could not resolve host/is);
+
+    expect(() =>
+      resolveLatestRefs([
+        { repo: 'acme/offline', releases: { select: 'minor' } }
+      ])
+    ).not.toThrow(/no SemVer tags/i);
+  });
+
+  it('reports a refused repository URL as the refusal it is', () => {
+    expect(() =>
+      resolveLatestRefs([
+        {
+          repo: 'ftp://example.invalid/docs',
+          refs: [{ tag: 'latest', default: true }]
+        }
+      ])
+    ).toThrow(/refusing to read tags/i);
   });
 });
