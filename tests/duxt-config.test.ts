@@ -92,4 +92,19 @@ describe('consumer-owned layer controls', () => {
 
     expect(config.shortcuts).toEqual({ singleCharacter: false });
   });
+
+  // The layer ships NO analytics destination, because it cannot have one: a
+  // default here would send somebody else's readers somewhere nobody chose.
+  it('leaves analytics unconfigured, so a site reports nothing until it says so', () => {
+    expect(duxtDefaults.analytics).toBeUndefined();
+  });
+
+  it('takes a site that wires a callback, over defaults that name none', () => {
+    const track = () => undefined;
+    const config = mergeDuxtConfig({ analytics: { track } }, duxtDefaults);
+
+    expect(config.analytics?.track).toBe(track);
+    // And has not flattened the rest of the config on the way past it.
+    expect(config.toc).toEqual({ depth: 3, scrollOffset: 96 });
+  });
 });

@@ -11,8 +11,14 @@
  * A consumer that wants the answer kept listens for it:
  *
  *     <DuxtPageFeedback @feedback="(helpful) => track(helpful)" />
+ *
+ * A site that has wired `duxt.analytics.track` gets the same answer as a
+ * `feedback` event without wrapping anything — and the event above stays, so
+ * this component is usable either way and neither route needs the other.
  */
 const emit = defineEmits<{ feedback: [helpful: boolean] }>();
+
+const analytics = useDuxtAnalytics();
 
 const answered = ref<boolean | undefined>();
 
@@ -26,6 +32,7 @@ watch(
 
 function answer(helpful: boolean) {
   answered.value = helpful;
+  analytics.track({ name: 'feedback', helpful });
   emit('feedback', helpful);
 }
 </script>

@@ -21,6 +21,7 @@ const router = useRouter();
 const localeLink = useDuxtLink();
 
 const { search, init, labelled } = useDuxtSearch();
+const analytics = useDuxtAnalytics();
 
 const results = ref<DuxtSearchHit[]>([]);
 
@@ -51,16 +52,31 @@ watch(query, (term) => {
     const current = ++run;
 
     const settle = (hits: DuxtSearchHit[], fuzzy: boolean) => {
-      if (current !== run) return;
+      if (current !== run) return false;
       results.value = hits;
       approximate.value = fuzzy;
       matched.value = term;
+      return true;
     };
 
-    if (!term.trim()) return settle([], false);
+    if (!term.trim()) return void settle([], false);
 
     const found = await search(term, 20);
-    settle(found.hits, found.approximate);
+
+    // ONE EVENT PER SETTLED SEARCH, which is why it hangs off `settle` rather
+    // than off the call. The debounce already dropped the keystrokes nobody
+    // finished, and a run whose answer landed after a newer one shows the
+    // reader nothing — reporting it would count a search that never happened.
+    // A search that found nothing is reported like any other: "no result" is
+    // the finding a documentation site most needs out of this.
+    if (settle(found.hits, found.approximate)) {
+      analytics.track({
+        name: 'search',
+        query: term,
+        results: found.hits.length,
+        approximate: found.approximate
+      });
+    }
   }, 120);
 });
 
@@ -170,6 +186,31 @@ function go(id: string) {
   results.value = [];
   approximate.value = false;
   router.push(localeLink(id)!);
+}
+
+/**
+ * A hit the reader opened — not a section tile and not a recent page, which
+ * `go` also serves and which nobody searched for.
+ *
+ * The rank is the position in the MERGED list rather than in the group it is
+ * drawn in: the list is one ranking with headings and captions over it, so a
+ * hit's place in its section says nothing about how well the search did. Found
+ * by `id` rather than by identity, because a row is a COPY of its hit — it
+ * carries the context line and excerpt spread onto it — so the object the
+ * template hands back is never the one sitting in `results`. Reported before
+ * `go`, which clears the term this hit was found with.
+ */
+function openResult(hit: DuxtSearchHit) {
+  analytics.track({
+    name: 'search-result',
+    query: query.value,
+    rank: results.value.findIndex((entry) => entry.id === hit.id) + 1,
+    // The path, never the hit's rendered text.
+    to: hit.id,
+    collection: hit.source?.collection
+  });
+
+  go(hit.id);
 }
 
 const { hint, on } = useDuxtShortcuts();
@@ -325,7 +366,7 @@ const searchHint = computed(() => hint('search'));
           <UiCommandItem
             :value="row.hit.id"
             class="items-start gap-2"
-            @select="go(row.hit.id)"
+            @select="openResult(row.hit)"
           >
             <Icon
               :name="row.hit.level > 1 ? 'lucide:hash' : 'lucide:file-text'"

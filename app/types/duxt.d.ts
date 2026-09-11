@@ -905,6 +905,132 @@ declare global {
     alt?: DuxtText;
   }
 
+  /**
+   * What every analytics event says about WHERE it happened, and nothing else.
+   *
+   * A closed shape rather than a free record, because this is the privacy
+   * surface: a reader of `duxt.analytics.track` has to be able to see, in one
+   * place, the whole of what duxt is willing to say about them. Nothing here
+   * identifies a browser or a person, and nothing is added per event — the
+   * event's own fields carry what it is, this carries where it was.
+   *
+   * Nested rather than spread into each event on purpose: `api-request` has a
+   * `path` of its own — the operation's declared template — and flattening the
+   * two would put the page and the endpoint under one name.
+   */
+  interface DuxtAnalyticsContext {
+    /** The documentation path, without the locale prefix, query or fragment. */
+    path: string;
+    /** The locale the page was read in. */
+    locale: string;
+    /** Which source the page came out of, where the site has more than one. */
+    source?: string;
+    /** Which version, where the source has more than one. */
+    version?: string;
+  }
+
+  /** The class of an HTTP status, which is all an event reports of one. */
+  type DuxtAnalyticsStatusClass = '1xx' | '2xx' | '3xx' | '4xx' | '5xx';
+
+  /** Which layer-owned code example was copied. */
+  type DuxtAnalyticsCopyKind =
+    | 'code'
+    | 'code-group'
+    | 'package-manager'
+    | 'request-sample';
+
+  /**
+   * One settled search.
+   *
+   * Emitted once per debounced, non-empty query that actually settled — a run
+   * the reader typed past never arrives, because its results were never shown.
+   * A search that found nothing is emitted like any other: "no result" is the
+   * finding a documentation site most needs.
+   */
+  interface DuxtAnalyticsSearchEvent {
+    name: 'search';
+    /** The term as the reader typed it. */
+    query: string;
+    /** How many hits were shown. */
+    results: number;
+    /** True where full-text found nothing and these are near-misses. */
+    approximate: boolean;
+  }
+
+  /** A hit the reader opened, by position rather than by content. */
+  interface DuxtAnalyticsSearchResultEvent {
+    name: 'search-result';
+    /** The term the hit was found with. */
+    query: string;
+    /** Where it sat in the ranked list, counting from one. */
+    rank: number;
+    /** The documentation path it leads to — never its rendered text. */
+    to: string;
+    /** Which collection it came out of, where a site has more than one. */
+    collection?: string;
+  }
+
+  /**
+   * A copied code example.
+   *
+   * The copied TEXT is never carried. "Copy page as Markdown" is not in this
+   * family at all and emits nothing: it is the page, not an example in it.
+   */
+  interface DuxtAnalyticsCopyEvent {
+    name: 'copy';
+    kind: DuxtAnalyticsCopyKind;
+    /** The example's language, where the block declares one. */
+    language?: string;
+    /** Which manager a command block was copied for. */
+    manager?: DuxtPackageManager;
+    /** Which request sample — its configured id, never its code. */
+    sample?: string;
+  }
+
+  /**
+   * A try-it request, after it settled.
+   *
+   * Everything here is DECLARED — the operation as the document names it —
+   * never what the reader typed: not the server they chose, not the concrete
+   * URL, not a header, not a credential, not a body. The client's whole promise
+   * is that a token stays in the component, and an event carrying one would
+   * break it from the other side.
+   */
+  interface DuxtAnalyticsApiRequestEvent {
+    name: 'api-request';
+    /** The document's own `operationId`, where it declares one. */
+    operation?: string;
+    /** The declared method. */
+    method: string;
+    /** The declared path template — `/pets/{id}`, not the URL that was called. */
+    path: string;
+    /** Whether the request came back at all. */
+    outcome: 'response' | 'failed';
+    /** The class of the status, absent where nothing came back. */
+    statusClass?: DuxtAnalyticsStatusClass;
+    /** Milliseconds the request itself took, without the button's own floor. */
+    duration: number;
+  }
+
+  /** The answer to "Was this page helpful?". */
+  interface DuxtAnalyticsFeedbackEvent {
+    name: 'feedback';
+    helpful: boolean;
+  }
+
+  /** An event before `useDuxtAnalytics` stamps the context onto it. */
+  type DuxtAnalyticsEventInput =
+    | DuxtAnalyticsSearchEvent
+    | DuxtAnalyticsSearchResultEvent
+    | DuxtAnalyticsCopyEvent
+    | DuxtAnalyticsApiRequestEvent
+    | DuxtAnalyticsFeedbackEvent;
+
+  /** What `duxt.analytics.track` is handed. Discriminated by `name`. */
+  type DuxtAnalyticsEvent = DuxtAnalyticsEventInput & {
+    context: DuxtAnalyticsContext;
+  };
+
   interface DuxtConfig {
     title: DuxtText;
     /**
@@ -1011,6 +1137,34 @@ declare global {
     announcementOptions?: {
       /** How many a placement may show at once. Unlimited unless set. */
       maxVisible?: DuxtAnnouncementMaxVisible;
+    };
+    /**
+     * Where reader interactions go, if a site wants them anywhere.
+     *
+     * OFF UNTIL A SITE WRITES `track`, and off is the whole default. duxt ships
+     * no provider, no SDK, no script and no adapter; it transmits nothing,
+     * buffers nothing, persists nothing, sets no cookie and asks for no
+     * consent — because a documentation layer cannot know what a consumer's
+     * privacy policy promises, and a theme that phoned home by default is not
+     * one to publish (ADR 0005, and the same reason `DuxtPageFeedback` has an
+     * event and no backend).
+     *
+     * So this is one function and nothing else. The site's `track` is the only
+     * thing that ever leaves the page, which puts the consent gate, the
+     * provider and the decision to send at all on the side that owns them.
+     */
+    analytics?: {
+      /**
+       * Called once per reader interaction duxt reports.
+       *
+       * Runs in the BROWSER only — a build and a prerender emit nothing, so a
+       * static render never calls a site's analytics with a page nobody read.
+       *
+       * Never awaited and never retried: whatever it throws or rejects with is
+       * swallowed, because a failed analytics call must not take the search,
+       * the copy, the feedback or the request down with it.
+       */
+      track?: (event: DuxtAnalyticsEvent) => unknown;
     };
     navigation?: DuxtLink[];
     /** The second navbar row: top-level parts of the documentation. */

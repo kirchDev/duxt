@@ -29,6 +29,8 @@ interface Entry {
   label: string;
   icon: string;
   code: string;
+  /** The fence's own language, where it declared one — for the copy event. */
+  language?: string;
   node: VNode;
 }
 
@@ -56,6 +58,7 @@ const entries = computed<Entry[]>(() => {
           props.language ? 'lucide:terminal' : 'lucide:file'
         ),
         code: props.code ?? '',
+        language: props.language,
         node
       };
     });
@@ -90,6 +93,7 @@ useDuxtAnimatedHeight(shell, body);
 const copied = ref(false);
 const notify = useDuxtToast();
 const { t } = useI18n();
+const analytics = useDuxtAnalytics();
 
 async function copy() {
   const text =
@@ -100,6 +104,13 @@ async function copy() {
   try {
     await navigator.clipboard.writeText(text);
     copied.value = true;
+    // Which tab was showing is the interesting part — a group exists because
+    // the same thing is spelled several ways, and this says which spelling won.
+    analytics.track({
+      name: 'copy',
+      kind: 'code-group',
+      language: current.value?.language
+    });
     notify.success(t('duxt.code.copiedToast'));
     setTimeout(() => (copied.value = false), 2000);
   } catch {

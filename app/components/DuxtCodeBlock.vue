@@ -68,6 +68,7 @@ const copied = ref(false);
 const notify = useDuxtToast();
 const { t } = useI18n();
 const root = useTemplateRef<HTMLElement>('root');
+const analytics = useDuxtAnalytics();
 
 async function copy() {
   const text =
@@ -76,6 +77,9 @@ async function copy() {
   try {
     await navigator.clipboard.writeText(text);
     copied.value = true;
+    // After the write, so a copy the clipboard refused is not reported as one —
+    // and the language only: the copied TEXT never travels.
+    analytics.track({ name: 'copy', kind: 'code', language: props.language });
     notify.success(t('duxt.code.copiedToast'));
     setTimeout(() => (copied.value = false), 2000);
   } catch {
