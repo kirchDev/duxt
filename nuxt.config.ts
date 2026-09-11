@@ -305,8 +305,10 @@ export default defineNuxtConfig({
   mcp: {
     description: 'The documentation this site publishes, readable by an agent.',
     instructions:
-      'Call list_pages for the table of contents, search_docs to find a page by ' +
-      'term, and read_page for the full text of one page.'
+      'Call list_versions first: it gives the URL prefix that scopes one ' +
+      'documentation version. Pass that prefix to list_pages for its table of ' +
+      'contents or to search_docs to find a page by term, then read_page for ' +
+      'one page as Markdown.'
   },
 
   nitro: wasm ? { externals: { traceInclude: [wasm] } } : {},
