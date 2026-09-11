@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import {
-  contributorsOf,
-  githubUsername,
-  parseGitLog
-} from '../modules/git-meta';
+import { contributorsOf, githubUsername } from '../git-contributors';
+import { parseGitLog } from '../modules/git-meta';
 
 describe('githubUsername', () => {
   it('reads a username out of a numbered noreply address', () => {

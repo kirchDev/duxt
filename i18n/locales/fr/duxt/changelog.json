@@ -5,7 +5,7 @@
       "filter": "Filtrer par type de modification",
       "latest": "Plus récente",
       "changes": "Modifications",
-      "kinds": "Types de modification",
+      "contributors": "Contributeurs",
       "last": "Dernière version",
       "more": "et {count} de plus",
       "kind": "Type de modification",

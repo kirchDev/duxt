@@ -2,6 +2,8 @@ import { execFileSync } from 'node:child_process';
 import { dirname, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Nuxt } from '@nuxt/schema';
+import type { DuxtContributor } from '../git-contributors';
+import { contributorsOf } from '../git-contributors';
 import { readDuxtBuildConfig } from '../duxt-app-config';
 import { duxtManifest, duxtSectionTypes } from '../sections-resolve';
 import { resolveLatestRefs } from '../sources-git';
@@ -31,11 +33,7 @@ interface AfterParseContext {
   file?: { path?: string; id?: string };
 }
 
-export interface DuxtContributor {
-  name: string;
-  commits: number;
-  username?: string;
-}
+export type { DuxtContributor };
 
 export default function duxtGitMeta(_options: unknown, nuxt: Nuxt) {
   const layerDir = fileURLToPath(new URL('..', import.meta.url));
@@ -317,43 +315,4 @@ function gitLog(file: string): Commit[] {
   const path = relative(root, file).split(sep).join('/');
 
   return historyOf(root).get(path) ?? [];
-}
-
-/**
- * One entry per person, most commits first.
- *
- * Identity is the email, not the name — the same person commits as "Titus
- * Kirch" and as "titus" and would otherwise appear twice. The GitHub username
- * is read out of a noreply address, which is the only place git actually
- * carries one; without it there is a name and no avatar, which is the truth.
- */
-export function contributorsOf(commits: Commit[]): DuxtContributor[] {
-  const people = new Map<string, DuxtContributor>();
-
-  for (const commit of commits) {
-    const key = commit.email.toLowerCase();
-    const existing = people.get(key);
-
-    if (existing) {
-      existing.commits += 1;
-      continue;
-    }
-
-    people.set(key, {
-      name: commit.name,
-      commits: 1,
-      username: githubUsername(commit.email)
-    });
-  }
-
-  return [...people.values()].sort((a, b) => b.commits - a.commits);
-}
-
-/** `1234567+octocat@users.noreply.github.com` becomes `octocat`. */
-export function githubUsername(email: string): string | undefined {
-  const match = /^(?:\d+\+)?([^@]+)@users\.noreply\.github\.com$/i.exec(
-    email.trim()
-  );
-
-  return match?.[1];
 }

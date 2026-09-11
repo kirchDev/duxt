@@ -55,15 +55,23 @@ export function sectionArtefactExists(
  * once and kept, because a type reads it more than once — a Bruno collection
  * asks for `bruno.json`, then for every `folder.bru`, then for every request —
  * and a second walk between two of those could see a different tree.
+ *
+ * `root` is the checkout `path` resolves against, and is PASSED RATHER THAN
+ * DERIVED from `absolute`: the caller already holds it, and subtracting one
+ * path from another is string arithmetic that goes wrong on the first symlink.
+ * Omitted for a remote checkout, which is what tells a type not to read its
+ * history — see `DuxtSectionInput.root`.
  */
 export function diskSectionInput(
   absolute: string,
   path: string,
-  kind: 'file' | 'directory'
+  kind: 'file' | 'directory',
+  root?: string
 ): DuxtSectionInput {
   if (kind === 'file') {
     return {
       path,
+      root,
       kind,
       text: () => readFileSync(absolute, 'utf8'),
       files: () => [],
@@ -77,6 +85,7 @@ export function diskSectionInput(
 
   return {
     path,
+    root,
     kind,
     text: () => {
       throw new Error(

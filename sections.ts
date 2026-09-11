@@ -83,11 +83,15 @@ export function duxtGeneratedCollections(
  * neither.
  */
 function localCollection(entry: DuxtResolvedSource, type: DuxtSectionType) {
-  const file = join(repositoryRoot(), entry.path);
+  // The checkout goes with the handle, which is what lets the release history
+  // read the commits between two tags. Only here: `remoteCollection` below has
+  // a `--depth 1` clone and deliberately passes none.
+  const root = repositoryRoot();
+  const file = join(root, entry.path);
   const kind = sectionInputKind(type);
 
   const pages = sectionArtefactExists(file, kind)
-    ? sectionPages(entry, type, diskSectionInput(file, entry.path, kind))
+    ? sectionPages(entry, type, diskSectionInput(file, entry.path, kind, root))
     : missingSectionArtefact(entry, file);
 
   const source = defineCollectionSource({

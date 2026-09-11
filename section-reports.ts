@@ -42,7 +42,8 @@ export function readSectionReports(
 
     if (!type || entry.generated!.remote) continue;
 
-    const file = join(repositoryRoot(), entry.path);
+    const root = repositoryRoot();
+    const file = join(root, entry.path);
     const kind = sectionInputKind(type);
 
     // Both calls record the report on the entry; the return value is the
@@ -50,7 +51,7 @@ export function readSectionReports(
     // here exactly as it throws while the collections are declared — the same
     // error, from whichever of the two runs first.
     if (sectionArtefactExists(file, kind)) {
-      sectionPages(entry, type, diskSectionInput(file, entry.path, kind));
+      sectionPages(entry, type, diskSectionInput(file, entry.path, kind, root));
     } else {
       missingSectionArtefact(entry, file);
     }

@@ -109,7 +109,7 @@ const contributorConfig = duxt.contributors as unknown as
   | { avatarUrl?: string }
   | undefined;
 const avatar = (username: string) =>
-  contributorConfig?.avatarUrl?.replace('{username}', username);
+  contributorAvatar(contributorConfig?.avatarUrl, username);
 
 /**
  * What this page lets a reader DO with where it came from.

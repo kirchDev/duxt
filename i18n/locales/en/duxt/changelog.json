@@ -5,7 +5,7 @@
       "filter": "Filter by kind of change",
       "latest": "Latest",
       "changes": "Changes",
-      "kinds": "Kinds of change",
+      "contributors": "Contributors",
       "last": "Last release",
       "more": "and {count} more",
       "kind": "Kind of change",

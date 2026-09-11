@@ -192,6 +192,24 @@ export interface DuxtSectionPage {
 export interface DuxtSectionInput {
   /** The declared path, relative to the source's own root. */
   path: string;
+  /**
+   * The checkout `path` resolves against, where the artefact was read out of a
+   * repository whose history this build is allowed to read.
+   *
+   * ABSENT IS THE DEFAULT, AND MEANS "DO NOT LOOK". It is filled in only for an
+   * artefact read out of the repository being built. A remote source is a
+   * `--depth 1` clone, where every commit looks as though one person wrote it
+   * — wrong data rather than missing data, which is the line
+   * `modules/git-meta.ts` already draws and for the same reason. An in-memory
+   * input leaves it unset too, so a type under test never reaches a real
+   * repository and a fixture version that happens to match a real tag cannot
+   * quietly pick up real people.
+   *
+   * A type that only turns a file into pages never asks. The release history
+   * does: which people a release carries is a fact about the commits between
+   * two tags, and no changelog file holds it.
+   */
+  root?: string;
   /** Whether the declared path is one file or a tree. */
   kind: 'file' | 'directory';
   /** The whole file. Throws when the input is a directory. */

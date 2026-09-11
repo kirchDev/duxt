@@ -20,11 +20,23 @@
  * further than the page count: a flat changelog is an ORDINARY docs page and
  * keeps the docs shell, which is why `layout` is answered per declaration.
  *
- * Pure text in, files out. What the split history LOOKS like — the timeline,
+ * Text in, files out — plus ONE FACT THE FILE DOES NOT HOLD. A release is a
+ * range of commits, and who wrote them is in the repository rather than in the
+ * changelog; the authors of the changelog FILE are whoever ran the release
+ * tool, which is not the same set of people and is the wrong answer given
+ * confidently. So where an input names a checkout the build may read
+ * (`DuxtSectionInput.root`) the people behind each tag are read out of git;
+ * where it does not — a remote clone, a test, a fixture — nothing is read and
+ * no release names anybody. What the split history LOOKS like — the timeline,
  * the group badges, the filters — belongs to `layouts/changelog.vue` and the
  * two components this file writes calls to.
  */
 import { stringify as stringifyYaml } from 'yaml';
+import type { DuxtContributor } from './git-contributors';
+import {
+  contributorsForVersion,
+  releaseContributors
+} from './git-contributors';
 import type {
   DuxtSectionContext,
   DuxtSectionInput,
@@ -223,7 +235,15 @@ function parseChangelog(
   const width = String(releases.length).length;
 
   return [
-    index(preamble, releases, context),
+    // Read once for the whole file, not once per release: the answer is a map
+    // over every tag the checkout has, and asking git per release would be one
+    // process per release for the same bytes.
+    index(
+      preamble,
+      releases,
+      context,
+      input.root ? releaseContributors(input.root) : undefined
+    ),
     ...releases.map((entry, position) =>
       page(entry, String(position + 1).padStart(width, '0'))
     )
@@ -425,20 +445,40 @@ function entries(lines: string[]): number {
 function index(
   preamble: string[],
   releases: Release[],
-  context: DuxtSectionContext
+  context: DuxtSectionContext,
+  contributors?: Map<string, DuxtContributor[]>
 ): DuxtSectionPage {
   const body = trim(withoutTitle(preamble));
 
   const props = {
-    releases: releases.map((entry) => ({
-      version: entry.version,
-      date: entry.date,
-      to: `${context.prefix}/${segment(entry.version)}`,
-      groups: groupsOf(trim(entry.body)).groups.map((group) => ({
-        name: group.name,
-        count: group.count
-      }))
-    }))
+    releases: releases.map((entry) => {
+      const people = contributorsForVersion(contributors, entry.version);
+
+      return {
+        version: entry.version,
+        date: entry.date,
+        to: `${context.prefix}/${segment(entry.version)}`,
+        groups: groupsOf(trim(entry.body)).groups.map((group) => ({
+          name: group.name,
+          count: group.count
+        })),
+        // A NAME AND, WHERE GIT CARRIES ONE, A HANDLE. Not the address the
+        // identity was computed from: these props are written into a page that
+        // is prerendered, crawled, indexed, put into `llms-full.txt` and handed
+        // to a model on request, and an email that reaches all of that is a
+        // different object from the same email inside a commit. Not the commit
+        // COUNT either — the order already carries it, and a per-release tally
+        // is a number nobody asked this page for.
+        ...(people?.length
+          ? {
+              contributors: people.map((person) => ({
+                name: person.name,
+                ...(person.username ? { username: person.username } : {})
+              }))
+            }
+          : {})
+      };
+    })
   };
 
   return {
