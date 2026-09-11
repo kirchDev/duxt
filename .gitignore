@@ -116,3 +116,10 @@ $RECYCLE.BIN/
 # nuxt-og-image would put them by default: they survive a wiped install on
 # purpose, and a deploy carries this directory between runs by name.
 www/.cache
+
+# The benchmark harness writes these beside the repo root when its commands
+# are run by hand rather than by `.github/workflows/prerender-bench.yml` — the
+# OG report it reads and the run records it appends to. `*.log` above already
+# covers the captured build log beside them.
+/og.txt
+/runs-*.jsonl

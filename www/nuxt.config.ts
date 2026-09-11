@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { defineNuxtConfig } from 'nuxt/config';
 import { fileURLToPath } from 'node:url';
 import { claimNuxtProcess } from '../scripts/nuxt-process-guard.ts';
+import { prerenderConcurrency } from '../scripts/prerender-bench.ts';
 import {
   duxtOgImageBuildCache,
   duxtOgImageFingerprint,
@@ -338,8 +339,19 @@ export default defineNuxtConfig({
                * build's 335 down to 140. It is the right direction and not the
                * whole fix, and the other lever is the renderer's budget below —
                * the combination has not been measured on a green build yet.
+               *
+               * THE NUMBER IS OVERRIDABLE SO THAT IT CAN BE MEASURED RATHER
+               * THAN ARGUED OVER. `DUXT_PRERENDER_CONCURRENCY` is set by
+               * `.github/workflows/prerender-bench.yml` and by nothing else:
+               * every ordinary build, this repository's deploy included, leaves
+               * it unset and prerenders at the default. The reader is
+               * deliberately strict — a bad spelling that fell back to 8 would
+               * build at 8 and be RECORDED as 12, which is worse than having no
+               * benchmark at all.
                */
-              concurrency: 8
+              concurrency: prerenderConcurrency(
+                process.env.DUXT_PRERENDER_CONCURRENCY
+              )
             }
           }
         : {},

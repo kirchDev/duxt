@@ -1,9 +1,12 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 
-# NOT A STUB, AND THE ONE EXCEPTION IN THIS DIRECTORY. Every other workflow here
-# calls a body in kirchDev/workflows; there is no body for a Cloudflare deploy,
-# so this one carries its own jobs. If a second repo ever deploys a Nuxt site to
-# Workers, this is what moves out.
+# NOT A STUB. Every other workflow here calls a body in kirchDev/workflows;
+# there is no body for a Cloudflare deploy, so this one carries its own jobs. If
+# a second repo ever deploys a Nuxt site to Workers, this is what moves out.
+#
+# One other file in this directory is also not a stub — `prerender-bench.yml`,
+# which measures what the prerender pass below costs at a given concurrency.
+# Two is the whole list, and each states its own reason in its own header.
 name: Deploy
 
 on:
