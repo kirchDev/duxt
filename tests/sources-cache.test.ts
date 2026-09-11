@@ -166,7 +166,7 @@ describe('what may be cached at all', () => {
 
       expect(result.cacheable).toBe(false);
       expect(result.key).toBe('');
-      expect(result.reason).toMatch(/github\.com/);
+      expect(result.reason).toContain('github.com');
       expect(result.reason).toMatch(/not a public/);
     }
   });
@@ -185,7 +185,7 @@ describe('what may be cached at all', () => {
     // The reason is printed into a CI log, so it names the source WITHOUT the
     // credential that made it private.
     expect(result.reason).not.toContain('secret');
-    expect(result.reason).toMatch(/github\.com\/o\/r/);
+    expect(result.reason).toContain('github.com/o/r');
   });
 
   it('declines the whole list for one private source, never part of it', () => {
