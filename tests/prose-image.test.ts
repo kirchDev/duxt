@@ -4,7 +4,8 @@ import {
   PROSE_IMAGE_SIZES,
   PROSE_IMAGE_ZOOM_SIZES,
   proseImagePassThrough,
-  proseImageSizes
+  proseImageSizes,
+  proseImageZoomPrerenderSources
 } from '../app/utils/prose-image';
 
 /**
@@ -218,5 +219,54 @@ describe('proseImagePassThrough', () => {
   it('says nothing about an image that has no source', () => {
     expect(proseImagePassThrough()).toBe(false);
     expect(proseImagePassThrough('')).toBe(false);
+  });
+});
+
+describe('proseImageZoomPrerenderSources', () => {
+  /**
+   * WHAT THIS IS FOR. A static build learns which variants to write from the
+   * URLs a render emitted, and the zoom dialog is not rendered until someone
+   * opens it — so `ProseImg` asks for the dialog's sizes during prerender to
+   * get them registered. This is the list it asks for, and the whole question
+   * is which images belong on it.
+   */
+  it('registers the image a dialog will actually ask for', () => {
+    expect(proseImageZoomPrerenderSources(true, ['/shot.png'])).toEqual([
+      '/shot.png'
+    ]);
+  });
+
+  it('registers a dark twin too, because either may be the one on screen', () => {
+    expect(
+      proseImageZoomPrerenderSources(true, ['/shot.png', '/shot-dark.png'])
+    ).toEqual(['/shot.png', '/shot-dark.png']);
+  });
+
+  /**
+   * An image with `zoom="false"` has no dialog to open, so every variant
+   * written for it is output nobody can request — the same inflation the
+   * provider discussion is careful about.
+   */
+  it('writes nothing for an image that cannot be zoomed', () => {
+    expect(
+      proseImageZoomPrerenderSources(false, ['/shot.png', '/shot-dark.png'])
+    ).toEqual([]);
+  });
+
+  /** A pass-through file is served as committed; there is no variant to write. */
+  it('skips the formats no provider may touch', () => {
+    expect(
+      proseImageZoomPrerenderSources(true, ['/diagram.svg', '/loop.gif'])
+    ).toEqual([]);
+  });
+
+  it('keeps the raster half of a mixed pair', () => {
+    expect(
+      proseImageZoomPrerenderSources(true, ['/shot.png', '/diagram.svg'])
+    ).toEqual(['/shot.png']);
+  });
+
+  it('has nothing to register for an image with no source', () => {
+    expect(proseImageZoomPrerenderSources(true, [undefined, ''])).toEqual([]);
   });
 });

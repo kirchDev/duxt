@@ -36,25 +36,55 @@
  * button does by its label, and two focus stops for one image is worse than
  * none.
  *
+ * ITS SURFACE IS OPAQUE, AND THAT IS THE WHOLE REASON. The chip used to be
+ * `bg-background/75`, which let arbitrary image pixels through behind the
+ * glyph — and a contrast ratio against an unknown photograph is not a ratio at
+ * all. Opaque, the pair is `--muted-foreground` on `--background`, which
+ * `tests/contrast.test.ts` already measures; the border is what separates the
+ * chip itself from whatever it sits on. `check:a11y` cannot judge either
+ * (jsdom has no computed colour), so the guarantee has to come from the
+ * palette rather than from the rendered page.
+ *
  * `zoom="false"` has to leave an image looking inert: no indicator, no ring,
  * no cursor, and no dialog to tab into.
  */
-const props = defineProps<{
-  src?: string;
-  alt?: string;
-  width?: string | number;
-  height?: string | number;
-  /** A second file for dark mode. */
-  dark?: string;
-  /** `false` turns the zoom off for a decorative image. */
-  zoom?: boolean | string;
-  /**
-   * The in-page policy, in `@nuxt/image`'s own `sizes` syntax — `sm:50vw
-   * md:400px`. For the image that is NOT as wide as the prose column: a logo,
-   * a badge, a diagram set in a margin.
-   */
-  sizes?: string;
-}>();
+const props = withDefaults(
+  defineProps<{
+    src?: string;
+    alt?: string;
+    width?: string | number;
+    height?: string | number;
+    /** A second file for dark mode. */
+    dark?: string;
+    /** `false` turns the zoom off for a decorative image. */
+    zoom?: boolean | string;
+    /**
+     * The in-page policy, in `@nuxt/image`'s own `sizes` syntax — `sm:50vw
+     * md:400px`. For the image that is NOT as wide as the prose column: a logo,
+     * a badge, a diagram set in a margin.
+     */
+    sizes?: string;
+  }>(),
+  {
+    /**
+     * ZOOM IS ON UNLESS A PAGE TURNS IT OFF, AND SAYING SO IS NOT OPTIONAL.
+     *
+     * Vue casts an ABSENT prop whose declared type includes `Boolean` to
+     * `false` rather than to `undefined`. `zoom?: boolean | string` compiles to
+     * `type: [Boolean, String]`, so every image that did not write `zoom="true"`
+     * arrived here with `zoom === false` — and the zoom, the indicator, the
+     * focus ring and the dialog were all switched off on every image in the
+     * site. It survived from the day the component was written because nothing
+     * in the repository rendered one: every `![…]` in the reference sits inside
+     * a code block. `www/demo/docs/3.images.md` and `check:images` are the two
+     * halves of making sure it cannot again.
+     *
+     * A default is what suppresses the cast — `isAbsent && !hasDefault` is the
+     * condition on it — so this line is load-bearing, not documentation.
+     */
+    zoom: true
+  }
+);
 
 const { t } = useI18n();
 
@@ -132,6 +162,9 @@ const zoomSizes = PROSE_IMAGE_ZOOM_SIZES;
  * appends the header. The browser downloads none of it: no markup carries these
  * URLs until the dialog mounts.
  *
+ * `prose-image.ts` decides WHICH images are on the list — an image with no
+ * dialog to open must not have a set of dialog-sized files written for it.
+ *
  * Prerender only. On a server that transforms on demand there is nothing to
  * generate ahead of time, and on the client this would be a wasted pass over
  * every image on the page.
@@ -139,10 +172,11 @@ const zoomSizes = PROSE_IMAGE_ZOOM_SIZES;
 if (import.meta.server && import.meta.prerender) {
   const image = useImage();
 
-  for (const variant of variants.value) {
-    if (!variant.plain) {
-      image.getSizes(variant.src, { sizes: PROSE_IMAGE_ZOOM_SIZES });
-    }
+  for (const src of proseImageZoomPrerenderSources(
+    zoomable.value,
+    variants.value.map((variant) => variant.src)
+  )) {
+    image.getSizes(src, { sizes: PROSE_IMAGE_ZOOM_SIZES });
   }
 }
 </script>
@@ -190,7 +224,7 @@ if (import.meta.server && import.meta.prerender) {
       <span
         v-if="zoomable"
         aria-hidden="true"
-        class="pointer-events-none absolute top-2 right-2 flex size-7 items-center justify-center rounded-md border bg-background/75 text-muted-foreground shadow-sm backdrop-blur-sm transition-colors group-hover:bg-background group-hover:text-foreground"
+        class="pointer-events-none absolute top-2 right-2 flex size-7 items-center justify-center rounded-md border bg-background text-muted-foreground shadow-sm transition-colors group-hover:text-foreground"
       >
         <Icon name="lucide:zoom-in" class="size-4" />
       </span>

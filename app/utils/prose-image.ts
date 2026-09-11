@@ -95,3 +95,34 @@ export function proseImagePassThrough(src?: string): boolean {
 
   return /\.(?:svg|gif)$/i.test(path);
 }
+
+/**
+ * The images whose DIALOG variants a static build has to write ahead of time.
+ *
+ * A generated site learns which variants to produce from the URLs a render
+ * emitted — `NuxtImg` appends each one to an `x-nitro-prerender` header and
+ * Nitro's crawler prerenders what that header names. The dialog is not rendered
+ * until someone opens it, so on a generated site its variants were requested by
+ * nobody, written by nobody, and the first click found a 404.
+ *
+ * `ProseImg` therefore asks the provider for the dialog's sizes during
+ * prerender, which registers the URLs without putting them in any markup. This
+ * is the list it asks for, and it is a function rather than a loop in the
+ * component because WHICH images belong on it is the part worth stating:
+ *
+ * - An image that cannot be zoomed has no dialog to open. Registering it writes
+ *   a full set of dialog-sized files nobody can ever request — output inflation
+ *   for a feature that is switched off on that image.
+ * - A pass-through format is served exactly as committed, so there is no
+ *   variant to write and asking for one would rasterise a vector.
+ */
+export function proseImageZoomPrerenderSources(
+  zoomable: boolean,
+  srcs: (string | undefined)[]
+): string[] {
+  if (!zoomable) return [];
+
+  return srcs.filter(
+    (src): src is string => Boolean(src) && !proseImagePassThrough(src)
+  );
+}
