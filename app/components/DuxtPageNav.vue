@@ -32,7 +32,24 @@ const next = computed(() =>
  * chance to disagree with what the links say.
  */
 const router = useRouter();
-const { on } = useDuxtShortcuts();
+const { hint, on } = useDuxtShortcuts();
+
+/**
+ * And they say so, on the two links they move between.
+ *
+ * These were the least findable keys in the theme: the search button at least
+ * carried `⌘K`, while `[` and `]` appeared nowhere a reader would look — only
+ * in a sheet they had to already know `?` to open. The cap goes on the link that
+ * does the same thing, which is where a reader is already looking when they
+ * want it.
+ *
+ * Nothing is drawn where the policy unbound the keys, and nothing is read out:
+ * `aria-hidden` keeps the link's accessible name the page it leads to, since
+ * "Next page ] Collections" is a worse thing to hear than the title, and the
+ * sheet announces the binding properly.
+ */
+const previousHint = computed(() => hint('previous'));
+const nextHint = computed(() => hint('next'));
 
 on(['previous', 'next'], (action) => {
   const target = action === 'previous' ? previous.value : next.value;
@@ -54,6 +71,13 @@ on(['previous', 'next'], (action) => {
       <span class="flex items-center gap-1 text-xs text-muted-foreground">
         <Icon name="lucide:arrow-left" class="size-3.5" />
         {{ $t('duxt.nav.previous') }}
+        <kbd
+          v-if="previousHint"
+          aria-hidden="true"
+          class="ml-auto rounded border bg-muted px-1.5 font-mono text-[10px]"
+        >
+          {{ previousHint }}
+        </kbd>
       </span>
       <span class="font-medium">{{ previous.title }}</span>
     </NuxtLink>
@@ -67,6 +91,13 @@ on(['previous', 'next'], (action) => {
       <span
         class="flex items-center justify-end gap-1 text-xs text-muted-foreground"
       >
+        <kbd
+          v-if="nextHint"
+          aria-hidden="true"
+          class="mr-auto rounded border bg-muted px-1.5 font-mono text-[10px]"
+        >
+          {{ nextHint }}
+        </kbd>
         {{ $t('duxt.nav.next') }}
         <Icon name="lucide:arrow-right" class="size-3.5" />
       </span>

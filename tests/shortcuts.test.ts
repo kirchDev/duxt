@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   activeDuxtShortcuts,
   duxtPlatform,
+  duxtShortcutFor,
   duxtShortcuts,
   findDuxtShortcut,
   shortcutHint,
@@ -213,5 +214,18 @@ describe('shortcutHint', () => {
 
   it('leaves a lone key alone', () => {
     expect(shortcutHint(['?'])).toBe('?');
+  });
+});
+
+describe('duxtShortcutFor', () => {
+  it('finds the binding behind an action', () => {
+    expect(duxtShortcutFor(duxtShortcuts, 'next')?.key).toBe(']');
+  });
+
+  it('finds nothing where the policy unbound the action', () => {
+    const active = activeDuxtShortcuts({ singleCharacter: false });
+
+    expect(duxtShortcutFor(active, 'search')?.key).toBe('k');
+    expect(duxtShortcutFor(active, 'next')).toBeUndefined();
   });
 });

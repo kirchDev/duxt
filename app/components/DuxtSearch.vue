@@ -172,17 +172,20 @@ function go(id: string) {
   router.push(localeLink(id)!);
 }
 
-const { keys, on } = useDuxtShortcuts();
+const { hint, on } = useDuxtShortcuts();
 
 on('search', () => {
   if (open.value) open.value = false;
   else void show();
 });
 
-/** The hint on the button, from the same definition the handler binds. */
-const searchHint = computed(() =>
-  shortcutHint(keys(duxtShortcuts.find((s) => s.action === 'search')!))
-);
+/**
+ * The hint on the button, from the same definition the handler binds.
+ *
+ * Through the LIVE list rather than the raw table, so a site that has unbound
+ * the key draws no cap at all instead of advertising a chord nothing answers.
+ */
+const searchHint = computed(() => hint('search'));
 </script>
 
 <template>
@@ -196,6 +199,7 @@ const searchHint = computed(() =>
     <Icon name="lucide:search" class="size-4" />
     <span class="text-sm">{{ $t('duxt.search.label') }}</span>
     <kbd
+      v-if="searchHint"
       class="ml-auto hidden rounded border bg-muted px-1.5 font-mono text-[10px] sm:inline-block"
     >
       {{ searchHint }}

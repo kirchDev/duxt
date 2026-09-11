@@ -1,13 +1,18 @@
 <script setup lang="ts">
 /**
- * The shortcut sheet, on `?`.
+ * The shortcut sheet — on `?`, and on the control that opens it.
  *
  * It lists what `useDuxtShortcuts()` reports as live — the same list, under the
  * same policy, that the handlers bind — so it cannot advertise a key nothing
- * listens to. A site with `shortcuts.singleCharacter: false` binds no `?`, and
- * the sheet then opens only from whatever visible control a site gives it.
+ * listens to.
+ *
+ * Its open state lives in `useDuxtShortcutSheet()` rather than in a `ref` here,
+ * because `?` is no longer the only way in: `DuxtShortcutsTrigger` opens the
+ * same sheet from the header, and on a site with
+ * `shortcuts.singleCharacter: false` it is the only thing that can — there is
+ * no `?` binding left.
  */
-const open = ref(false);
+const { open } = useDuxtShortcutSheet();
 const { shortcuts, keys, on } = useDuxtShortcuts();
 
 on('help', () => (open.value = !open.value));

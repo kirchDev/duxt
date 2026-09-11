@@ -118,6 +118,22 @@ export function activeDuxtShortcuts(
     : duxtShortcuts;
 }
 
+/**
+ * The live binding behind one action, or nothing.
+ *
+ * Every visible hint goes through this rather than through `duxtShortcuts`
+ * directly, and the difference is the whole point: a hint read off the raw
+ * table would keep drawing `[` on a site whose policy unbound it — a label for
+ * a key that does nothing, which is the sheet's own defect one level further
+ * out.
+ */
+export function duxtShortcutFor<T extends Pick<DuxtShortcut, 'action'>>(
+  shortcuts: readonly T[],
+  action: DuxtShortcutAction
+): T | undefined {
+  return shortcuts.find((shortcut) => shortcut.action === action);
+}
+
 /** Is the reader typing? Then the key belongs to whatever they are typing in. */
 export function isTyping(target: EventTarget | null): boolean {
   const element = target as HTMLElement | null;
@@ -288,6 +304,20 @@ export function useDuxtShortcuts() {
   const keys = (shortcut: Pick<DuxtShortcut, 'key' | 'meta'>) =>
     shortcutKeys(shortcut, platform.value);
 
+  /**
+   * What to print beside a control, or nothing where the key is not bound.
+   *
+   * `undefined` rather than an empty string, so a template writes
+   * `v-if="hint('next')"` and draws no `<kbd>` at all — an empty key cap beside
+   * a link is worse than no hint, and a site with `singleCharacter: false` has
+   * two of them on every page.
+   */
+  const hint = (action: DuxtShortcutAction) => {
+    const shortcut = duxtShortcutFor(shortcuts.value, action);
+
+    return shortcut ? shortcutHint(keys(shortcut)) : undefined;
+  };
+
   /** Bind one action, or several that share a handler. */
   const on = (
     actions: DuxtShortcutAction | DuxtShortcutAction[],
@@ -302,5 +332,26 @@ export function useDuxtShortcuts() {
     );
   };
 
-  return { shortcuts, keys, on, platform };
+  return { shortcuts, keys, hint, on, platform };
+}
+
+/**
+ * Whether the shortcut sheet is open — shared, because the key is no longer the
+ * only way in.
+ *
+ * The sheet used to own a `ref` of its own, which worked while `?` was the only
+ * opener. A visible control has to reach the same boolean from elsewhere in the
+ * tree, and it has to be ONE boolean: a second instance of the sheet would be a
+ * second dialog, and two dialogs listening to `?` is the drift this file
+ * exists to prevent. `useState` rather than a module-level `ref` because a
+ * module-level one is shared between requests on the server.
+ *
+ * It matters most where `?` is not bound at all. With
+ * `shortcuts.singleCharacter: false` the visible control is the ONLY entry
+ * point, so nothing about the sheet may depend on the key having fired.
+ */
+export function useDuxtShortcutSheet() {
+  const open = useState('duxt-shortcuts', () => false);
+
+  return { open, toggle: () => (open.value = !open.value) };
 }
