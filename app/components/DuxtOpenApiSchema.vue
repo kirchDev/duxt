@@ -35,9 +35,12 @@ const props = withDefaults(
 );
 
 const DEPTH = 8;
+const duxt = useDuxtConfig();
 
 const schema = computed(() => props.schema);
-const deep = computed(() => props.depth >= DEPTH);
+const deep = computed(
+  () => props.depth >= (duxt.openapi?.schemaDepth ?? DEPTH)
+);
 
 const type = computed(() => openApiTypeLabel(schema.value));
 const constraints = computed(() => openApiConstraints(schema.value));

@@ -19,6 +19,34 @@ export const duxtDefaults: DuxtConfig = {
   // until a consumer sets its own. It names nobody, which is the whole test.
   title: 'duxt.defaults.title',
 
+  copy: {
+    models: [
+      {
+        label: 'duxt.page.copy.chatgpt',
+        icon: 'simple-icons:openai',
+        url: 'https://chatgpt.com/?q='
+      },
+      {
+        label: 'duxt.page.copy.claude',
+        icon: 'simple-icons:claude',
+        url: 'https://claude.ai/new?q='
+      }
+    ]
+  },
+  contributors: { avatarUrl: 'https://github.com/{username}.png?size=40' },
+  toc: { depth: 3, scrollOffset: 96 },
+  search: {
+    fuzzy: { threshold: 0.35, minMatchCharLength: 3, limit: 20 },
+    recentPages: 5
+  },
+  openapi: { exampleDepth: 6, schemaDepth: 8 },
+  shortcuts: [
+    { action: 'search', key: 'k', meta: true, keys: ['⌘', 'K'] },
+    { action: 'help', key: '?', keys: ['?'] },
+    { action: 'previous', key: '[', keys: ['['] },
+    { action: 'next', key: ']', keys: [']'] }
+  ],
+
   // No `version`. The layer knows nothing about the state of somebody else's
   // project, and a default made every site that extended it wear a number it
   // had never set — in the hero pill and, for a site with at most one source,

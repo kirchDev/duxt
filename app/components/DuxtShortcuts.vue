@@ -6,9 +6,10 @@
  * the sheet cannot come to advertise a key nothing binds.
  */
 const open = ref(false);
+const duxt = useDuxtConfig();
 
 onDuxtShortcut(
-  (event) => event.key === '?' && !event.metaKey && !event.ctrlKey,
+  (event) => matchesDuxtShortcut(duxt.shortcuts ?? [], 'help', event),
   () => (open.value = !open.value)
 );
 </script>
@@ -25,11 +26,11 @@ onDuxtShortcut(
 
       <ul class="flex flex-col gap-2 text-sm">
         <li
-          v-for="shortcut in duxtShortcuts"
-          :key="shortcut.label"
+          v-for="shortcut in duxt.shortcuts"
+          :key="`${shortcut.action}:${shortcut.key}`"
           class="flex items-center justify-between gap-4"
         >
-          <span>{{ $t(shortcut.label) }}</span>
+          <span>{{ $t(shortcutLabel(shortcut.action)) }}</span>
           <span class="flex gap-1">
             <kbd
               v-for="key in shortcut.keys"

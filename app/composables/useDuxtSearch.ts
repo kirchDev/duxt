@@ -78,7 +78,8 @@ export function useDuxtSearch() {
   const approximate = searchable.map((entry) => ({
     entry,
     search: useFuzzySearch(entry.collection as DuxtCollectionName, {
-      ignoredTags: ['table']
+      ignoredTags: ['table'],
+      ...duxt.search?.fuzzy
     }).search
   }));
 

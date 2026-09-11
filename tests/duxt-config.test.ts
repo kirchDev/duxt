@@ -1,17 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { mergeDuxtConfig } from '../app/utils/duxt-config';
+import { duxtDefaults, mergeDuxtConfig } from '../app/utils/duxt-config';
 
 describe('mergeDuxtConfig', () => {
   it('replaces an array instead of appending to it', () => {
-    // The whole reason this exists: defu concatenates, so a consumer setting
-    // `navigation` would get the layer's entries appended to its own.
     const merged = mergeDuxtConfig(
       { navigation: [{ label: 'Mine' }] },
-      {
-        navigation: [{ label: 'Theirs' }, { label: 'Also theirs' }]
-      }
+      { navigation: [{ label: 'Theirs' }, { label: 'Also theirs' }] }
     );
-
     expect(merged.navigation).toEqual([{ label: 'Mine' }]);
   });
 
@@ -20,7 +15,6 @@ describe('mergeDuxtConfig', () => {
       { footer: { copyright: 'Mine' } },
       { footer: { copyright: 'Theirs', legal: [{ label: 'Kept' }] } }
     );
-
     expect(merged.footer).toEqual({
       copyright: 'Mine',
       legal: [{ label: 'Kept' }]
@@ -41,8 +35,6 @@ describe('mergeDuxtConfig', () => {
   });
 
   it('lets false through, rather than treating it as absent', () => {
-    // `breadcrumb: false` is the point of the switch; a truthiness check here
-    // would make it impossible to turn off.
     expect(
       mergeDuxtConfig({ breadcrumb: false }, { breadcrumb: true }).breadcrumb
     ).toBe(false);
@@ -58,7 +50,6 @@ describe('mergeDuxtConfig', () => {
         }
       }
     );
-
     expect(merged.landing).toEqual({
       headline: 'Kept',
       features: [{ title: 'One' }]
@@ -68,7 +59,34 @@ describe('mergeDuxtConfig', () => {
   it('does not mutate the base it merges over', () => {
     const base = { navigation: [{ label: 'Theirs' }] };
     mergeDuxtConfig({ navigation: [{ label: 'Mine' }] }, base);
-
     expect(base.navigation).toEqual([{ label: 'Theirs' }]);
+  });
+});
+
+describe('consumer-owned layer controls', () => {
+  it('ships the issue defaults', () => {
+    expect(duxtDefaults.copy?.models).toHaveLength(2);
+    expect(duxtDefaults.contributors?.avatarUrl).toContain('{username}');
+    expect(duxtDefaults.toc).toEqual({ depth: 3, scrollOffset: 96 });
+    expect(duxtDefaults.search).toEqual({
+      fuzzy: { threshold: 0.35, minMatchCharLength: 3, limit: 20 },
+      recentPages: 5
+    });
+    expect(duxtDefaults.openapi).toEqual({ exampleDepth: 6, schemaDepth: 8 });
+  });
+
+  it('replaces model and shortcut lists', () => {
+    const config = mergeDuxtConfig(
+      {
+        copy: { models: [] },
+        shortcuts: [{ action: 'search', key: '/', keys: ['/'] }]
+      },
+      duxtDefaults
+    );
+
+    expect(config.copy?.models).toEqual([]);
+    expect(config.shortcuts).toEqual([
+      { action: 'search', key: '/', keys: ['/'] }
+    ]);
   });
 });

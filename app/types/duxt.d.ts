@@ -206,6 +206,8 @@ declare global {
      * then share the default URL prefix of a versioned documentation source.
      */
     content?: boolean;
+    /** Per-source conventions for files that are not documentation pages. */
+    exclude?: { drafts?: string; partials?: string };
     /** A layer-owned Markdown dialect, such as tfplugindocs. */
     flavor?: 'tfplugindocs';
     /** `owner/name` or a full git URL. Omitted means this repository. */
@@ -867,6 +869,31 @@ declare global {
     pageIcon?: string;
     /** Shown as a badge beside the title. */
     version?: string;
+    /** Model hand-off entries, in display order. */
+    copy?: { models?: { label: DuxtText; icon: string; url: string }[] };
+    /** URL template for contributor avatars; `{username}` is replaced. */
+    contributors?: { avatarUrl?: string };
+    /** Generated-outline and active-heading controls. */
+    toc?: { depth?: number; scrollOffset?: number };
+    /** Search behaviour that depends on a site's corpus. */
+    search?: {
+      fuzzy?: {
+        threshold?: number;
+        minMatchCharLength?: number;
+        limit?: number;
+      };
+      /** `0` disables the visible recent-pages list. */
+      recentPages?: number;
+    };
+    /** Separate limits for derived examples and schema-tree rendering. */
+    openapi?: { exampleDepth?: number; schemaDepth?: number };
+    /** Replaces the default bindings, including any conflicting one. */
+    shortcuts?: {
+      action: 'search' | 'help' | 'previous' | 'next';
+      key: string;
+      meta?: boolean;
+      keys: string[];
+    }[];
     navigation?: DuxtLink[];
     /** The second navbar row: top-level parts of the documentation. */
     sections?: DuxtSection[];

@@ -74,7 +74,13 @@ const ALLOW = new Set([
 ]);
 
 /** An internal key resolved at render time, not a rendered string. */
-const isKey = (value: string) => value.startsWith('duxt.defaults.');
+const isKey = (value: string) => value.startsWith('duxt.');
+
+const DEFAULT_URLS = new Set([
+  'copy.models.0.url',
+  'copy.models.1.url',
+  'contributors.avatarUrl'
+]);
 
 const named = (value: string) =>
   PRODUCTS.test(value) && ![...ALLOW].some((word) => value.includes(word));
@@ -82,8 +88,11 @@ const named = (value: string) =>
 describe('the layer ships no site content', () => {
   const defaults = strings(duxtDefaults);
 
-  it.each(defaults)('duxtDefaults.%s holds no URL', (_path, value) => {
-    expect(URL_LIKE.test(value), `"${value}" carries a URL`).toBe(false);
+  it.each(defaults)('duxtDefaults.%s holds no URL', (path, value) => {
+    expect(
+      DEFAULT_URLS.has(path) || !URL_LIKE.test(value),
+      `"${value}" carries a URL`
+    ).toBe(true);
   });
 
   it.each(defaults)('duxtDefaults.%s names no product', (_path, value) => {
@@ -241,11 +250,17 @@ describe('the layer draws exactly this much text', () => {
       [
         'aside',
         'breadcrumb',
+        'contributors',
+        'copy',
         'landing',
         'links',
         'navigation',
+        'openapi',
         'packageManagers',
+        'search',
         'sections',
+        'shortcuts',
+        'toc',
         'title'
       ].sort()
     );

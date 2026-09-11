@@ -81,7 +81,7 @@ if (!page.value) {
 }
 
 // Feeds the search dialog's empty state.
-const { remember } = useRecentPages();
+const { remember } = useRecentPages(duxt.search?.recentPages);
 onMounted(() =>
   remember({ path: path.value, title: page.value?.title ?? path.value })
 );
@@ -129,7 +129,7 @@ const owned = computed(() =>
  * genuinely have no outline.
  */
 const generated = computed(() =>
-  owned.value ? generatedToc(page.value?.body) : []
+  owned.value ? generatedToc(page.value?.body, duxt.toc?.depth) : []
 );
 
 /**

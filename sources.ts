@@ -136,7 +136,12 @@ const PARTIALS = '**/_partials/**';
 /** The dev server shows drafts; a build does not. */
 const includeDrafts = () => process.env.NODE_ENV !== 'production';
 
-const excluded = () => (includeDrafts() ? [PARTIALS] : [PARTIALS, DRAFTS]);
+const excluded = (source: DuxtSource) => {
+  const partials = source.exclude?.partials ?? PARTIALS;
+  const drafts = source.exclude?.drafts ?? DRAFTS;
+
+  return includeDrafts() ? [partials] : [partials, drafts];
+};
 
 /**
  * Turn a compact source list into Content collections.
@@ -195,7 +200,7 @@ export function duxtSources(
       source: effective.repo
         ? {
             exclude: [
-              ...excluded(),
+              ...excluded(source),
               ...nested.map((glob) => `${effective.path}/${glob}`)
             ],
             // A tag lives outside refs/heads, so it has to be passed as a tag —
@@ -209,7 +214,7 @@ export function duxtSources(
             prefix: entry.prefix
           }
         : {
-            exclude: [...excluded(), ...nested],
+            exclude: [...excluded(source), ...nested],
             include: '**/*.md',
             cwd: join(repositoryRoot(), effective.path),
             prefix: entry.prefix
@@ -230,10 +235,13 @@ export function duxtSources(
 function partialFolders(
   resolved: DuxtResolvedSource[],
   expanded: ReturnType<typeof expandSources>
-): Map<string | undefined, { repo?: string; path: string }[]> {
+): Map<
+  string | undefined,
+  { repo?: string; path: string; partials: string }[]
+> {
   const byLocale = new Map<
     string | undefined,
-    { repo?: string; path: string }[]
+    { repo?: string; path: string; partials: string }[]
   >();
   const seen = new Set<string>();
 
@@ -245,12 +253,13 @@ function partialFolders(
     // One entry per REPOSITORY AND FOLDER, not per version: a partial is a
     // block of prose, and reading three versions of it into one collection
     // would give three blocks under one name.
-    const claim = `${key ?? ''}|${effective.repo ?? ''}:${effective.path}`;
+    const partials = source.exclude?.partials ?? PARTIALS;
+    const claim = `${key ?? ''}|${effective.repo ?? ''}:${effective.path}:${partials}`;
     if (seen.has(claim)) return;
     seen.add(claim);
 
     const list = byLocale.get(key) ?? [];
-    list.push({ repo: effective.repo, path: effective.path });
+    list.push({ repo: effective.repo, path: effective.path, partials });
     byLocale.set(key, list);
   });
 
@@ -271,15 +280,17 @@ function partialFolders(
  * Two sources defining the same name is a collision the build reports rather
  * than resolves; see `modules/validate.ts`.
  */
-function definePartials(folders: { repo?: string; path: string }[]) {
+function definePartials(
+  folders: { repo?: string; path: string; partials: string }[]
+) {
   const entries = folders.map((folder) =>
     folder.repo
       ? {
           repository: repoUrl(folder.repo),
-          include: `${folder.path}/_partials/**/*.md`
+          include: `${folder.path}/${folder.partials}`
         }
       : {
-          include: '_partials/**/*.md',
+          include: folder.partials,
           cwd: join(repositoryRoot(), folder.path)
         }
   ) as NonNullable<Parameters<typeof defineCollection>[0]['source']>[];

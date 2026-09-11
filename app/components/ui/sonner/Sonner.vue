@@ -14,6 +14,10 @@ const {
   ...forwarded
 } = defineProps<ToasterProps>();
 
+// 4000 ms is part of this layer-owned component's notification behaviour.
+// A site needing different notification UX overrides the component instead of
+// taking on a one-purpose configuration key.
+
 const theme = computed(() => (colorMode.value === 'dark' ? 'dark' : 'light'));
 </script>
 

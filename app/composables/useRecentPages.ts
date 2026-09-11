@@ -1,7 +1,5 @@
 /** Where the list is kept. Namespaced so a consumer's own keys cannot collide. */
 const STORAGE_KEY = 'duxt:recent-pages';
-const LIMIT = 5;
-
 export interface RecentPage {
   path: string;
   title: string;
@@ -15,7 +13,7 @@ export interface RecentPage {
  * request. It stays in the browser, identifies nobody, and clearing site data
  * forgets it.
  */
-export function useRecentPages() {
+export function useRecentPages(limit = 5) {
   const recent = useState<RecentPage[]>('duxt-recent-pages', () => []);
 
   function read(): RecentPage[] {
@@ -34,7 +32,7 @@ export function useRecentPages() {
     const next = [
       page,
       ...read().filter((entry) => entry.path !== page.path)
-    ].slice(0, LIMIT);
+    ].slice(0, Math.max(0, limit));
     recent.value = next;
 
     try {
@@ -45,7 +43,7 @@ export function useRecentPages() {
   }
 
   function load() {
-    if (import.meta.client) recent.value = read();
+    if (import.meta.client) recent.value = read().slice(0, Math.max(0, limit));
   }
 
   return { recent, remember, load };

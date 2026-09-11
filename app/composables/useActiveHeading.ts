@@ -24,12 +24,10 @@
  * `getBoundingClientRect` per heading, coalesced into an animation frame, so at
  * most one pass per painted frame however fast the wheel turns.
  */
-export function useActiveHeading(ids: Ref<string[]>) {
+export function useActiveHeading(ids: Ref<string[]>, scrollOffset = 96) {
   const active = ref<string>();
 
   /** Where a heading counts as reached: reading position, not the top edge. */
-  const TRIGGER = 96;
-
   let frame = 0;
 
   function measure() {
@@ -58,7 +56,7 @@ export function useActiveHeading(ids: Ref<string[]>) {
 
     let current = headings[0]!;
     for (const heading of headings) {
-      if (heading.getBoundingClientRect().top > TRIGGER) break;
+      if (heading.getBoundingClientRect().top > scrollOffset) break;
       current = heading;
     }
 

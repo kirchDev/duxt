@@ -114,7 +114,12 @@ const values = ref<Record<string, string>>(
       // what is sent say the same thing about every parameter.
       .filter((parameter) => parameter.in !== 'cookie')
       .map((parameter) => {
-        const derived = openApiExampleValue(parameter.schema, 'request');
+        const derived = openApiExampleValue(
+          parameter.schema,
+          'request',
+          0,
+          duxt.openapi?.exampleDepth
+        );
         const example = parameter.examples?.[0]?.value ?? derived;
 
         return [
@@ -244,7 +249,12 @@ const body = ref(
   bodies.value.length
     ? openApiJson(
         bodies.value[0]!.examples?.[0]?.value ??
-          openApiExampleValue(bodies.value[0]!.schema, 'request')
+          openApiExampleValue(
+            bodies.value[0]!.schema,
+            'request',
+            0,
+            duxt.openapi?.exampleDepth
+          )
       )
     : ''
 );

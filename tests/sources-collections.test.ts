@@ -67,6 +67,25 @@ it('selects explicit remote branches and tags for documentation collections', ()
   });
 });
 
+it('uses a source’s custom draft and partial patterns', () => {
+  vi.stubEnv('NODE_ENV', 'production');
+  try {
+    const collections = duxtSources([
+      {
+        path: 'docs',
+        exclude: { drafts: '**/*.wip.md', partials: '**/_includes/**' }
+      }
+    ]);
+
+    expect(collections.docs.source?.[0]?.exclude).toEqual([
+      '**/_includes/**',
+      '**/*.wip.md'
+    ]);
+  } finally {
+    vi.unstubAllEnvs();
+  }
+});
+
 it('allows a remote locale ref beside the unversioned local checkout', async () => {
   const collections = duxtSources([
     {

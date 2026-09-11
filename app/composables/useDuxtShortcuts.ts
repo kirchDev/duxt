@@ -10,6 +10,7 @@
  * the single most common bug in this kind of feature.
  */
 export interface DuxtShortcut {
+  action: 'search' | 'help' | 'previous' | 'next';
   /** The key, as `KeyboardEvent.key` reports it. */
   key: string;
   /** Requires ⌘ on a Mac, Ctrl elsewhere. */
@@ -21,11 +22,44 @@ export interface DuxtShortcut {
 }
 
 export const duxtShortcuts: DuxtShortcut[] = [
-  { key: 'k', meta: true, label: 'duxt.shortcuts.search', keys: ['⌘', 'K'] },
-  { key: '?', label: 'duxt.shortcuts.help', keys: ['?'] },
-  { key: '[', label: 'duxt.shortcuts.previous', keys: ['['] },
-  { key: ']', label: 'duxt.shortcuts.next', keys: [']'] }
+  {
+    action: 'search',
+    key: 'k',
+    meta: true,
+    label: 'duxt.shortcuts.search',
+    keys: ['⌘', 'K']
+  },
+  { action: 'help', key: '?', label: 'duxt.shortcuts.help', keys: ['?'] },
+  {
+    action: 'previous',
+    key: '[',
+    label: 'duxt.shortcuts.previous',
+    keys: ['[']
+  },
+  { action: 'next', key: ']', label: 'duxt.shortcuts.next', keys: [']'] }
 ];
+
+const labels = {
+  search: 'duxt.shortcuts.search',
+  help: 'duxt.shortcuts.help',
+  previous: 'duxt.shortcuts.previous',
+  next: 'duxt.shortcuts.next'
+} as const;
+
+export const shortcutLabel = (action: DuxtShortcut['action']) => labels[action];
+
+export function matchesDuxtShortcut(
+  shortcuts: readonly Pick<DuxtShortcut, 'action' | 'key' | 'meta'>[],
+  action: DuxtShortcut['action'],
+  event: KeyboardEvent
+) {
+  return shortcuts.some(
+    (shortcut) =>
+      shortcut.action === action &&
+      shortcut.key.toLowerCase() === event.key.toLowerCase() &&
+      Boolean(shortcut.meta) === Boolean(event.metaKey || event.ctrlKey)
+  );
+}
 
 /** Is the reader typing? Then the key belongs to whatever they are typing in. */
 export function isTyping(target: EventTarget | null): boolean {

@@ -20,6 +20,8 @@ export interface DuxtSource {
    * default URL prefix without declaring two page collections for it.
    */
   content?: boolean;
+  /** Per-source conventions for draft pages and reusable Markdown blocks. */
+  exclude?: { drafts?: string; partials?: string };
   /**
    * The Markdown dialect this source was generated in.
    *

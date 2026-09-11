@@ -44,6 +44,7 @@ const page = computed(() => props.page);
 
 const { source } = useDuxtCollection();
 const { locale, t } = useI18n();
+const duxt = useDuxtConfig();
 
 const file = computed(() => {
   // A GENERATED SECTION has no file per page: every page in it was split out of
@@ -101,6 +102,14 @@ const updated = computed(() => {
 });
 
 const contributors = computed(() => page.value?.contributors ?? []);
+// `DuxtText` also permits a record of strings, so the resolved-config mapped
+// type narrows this all-optional object too far. It remains an object at
+// runtime; only its template is configurable.
+const contributorConfig = duxt.contributors as unknown as
+  | { avatarUrl?: string }
+  | undefined;
+const avatar = (username: string) =>
+  contributorConfig?.avatarUrl?.replace('{username}', username);
 
 /**
  * What this page lets a reader DO with where it came from.
@@ -171,8 +180,8 @@ const notes = computed(() => {
           class="flex items-center gap-1.5"
         >
           <img
-            v-if="person.username"
-            :src="`https://github.com/${person.username}.png?size=40`"
+            v-if="person.username && avatar(person.username)"
+            :src="avatar(person.username)"
             alt=""
             width="18"
             height="18"

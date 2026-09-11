@@ -44,14 +44,16 @@ const next = computed(() =>
  * chance to disagree with what the links say.
  */
 const router = useRouter();
+const duxt = useDuxtConfig();
 
 onDuxtShortcut(
   (event) =>
-    (event.key === '[' || event.key === ']') &&
-    !event.metaKey &&
-    !event.ctrlKey,
+    matchesDuxtShortcut(duxt.shortcuts ?? [], 'previous', event) ||
+    matchesDuxtShortcut(duxt.shortcuts ?? [], 'next', event),
   (event) => {
-    const target = event.key === '[' ? previous.value : next.value;
+    const target = matchesDuxtShortcut(duxt.shortcuts ?? [], 'previous', event)
+      ? previous.value
+      : next.value;
     if (target?.path) void router.push(localeLink(target.path)!);
   }
 );

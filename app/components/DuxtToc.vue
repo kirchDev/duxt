@@ -19,7 +19,7 @@ const ids = computed(() =>
   ])
 );
 
-const active = useActiveHeading(ids);
+const active = useActiveHeading(ids, duxt.toc?.scrollOffset);
 </script>
 
 <template>

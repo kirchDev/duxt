@@ -55,7 +55,7 @@ watch(query, (term) => {
 });
 
 const duxt = useDuxtConfig();
-const { recent, load } = useRecentPages();
+const { recent, load } = useRecentPages(duxt.search?.recentPages);
 
 /** Which section a path belongs to, for grouping the hits. */
 function sectionOf(path: string) {
@@ -112,22 +112,13 @@ function context(result: DuxtSearchSection) {
   return [page, ...between].filter(Boolean).join(' › ');
 }
 
-onMounted(() => {
-  const handler = (event: KeyboardEvent) => {
-    if (event.key.toLowerCase() === 'k' && (event.metaKey || event.ctrlKey)) {
-      event.preventDefault();
-
-      if (open.value) {
-        open.value = false;
-      } else {
-        void show();
-      }
-    }
-  };
-
-  window.addEventListener('keydown', handler);
-  onBeforeUnmount(() => window.removeEventListener('keydown', handler));
-});
+onDuxtShortcut(
+  (event) => matchesDuxtShortcut(duxt.shortcuts ?? [], 'search', event),
+  () => {
+    if (open.value) open.value = false;
+    else void show();
+  }
+);
 </script>
 
 <template>

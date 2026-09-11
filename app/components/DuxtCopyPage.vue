@@ -22,12 +22,14 @@ const props = defineProps<{
 const { t } = useI18n();
 const notify = useDuxtToast();
 const localeLink = useDuxtLink();
+const duxt = useDuxtConfig();
 
 const copied = ref(false);
 
 const markdownPath = computed(
   () => `${localeLink(props.path) ?? props.path}.md`
 );
+const models = computed(() => duxt.copy?.models ?? []);
 
 /** The prompt both models get: fetch the source, then answer about it. */
 function prompt() {
@@ -94,22 +96,14 @@ function open(base: string) {
           </a>
         </UiDropdownMenuItem>
 
-        <UiDropdownMenuSeparator />
-
         <UiDropdownMenuItem
+          v-for="model in models"
+          :key="model.url"
           class="gap-2"
-          @select="open('https://chatgpt.com/?q=')"
+          @select="open(model.url)"
         >
-          <Icon name="simple-icons:openai" class="size-4" />
-          {{ $t('duxt.page.copy.chatgpt') }}
-        </UiDropdownMenuItem>
-
-        <UiDropdownMenuItem
-          class="gap-2"
-          @select="open('https://claude.ai/new?q=')"
-        >
-          <Icon name="simple-icons:claude" class="size-4" />
-          {{ $t('duxt.page.copy.claude') }}
+          <Icon :name="model.icon" class="size-4" />
+          {{ model.label }}
         </UiDropdownMenuItem>
       </UiDropdownMenuContent>
     </UiDropdownMenu>
