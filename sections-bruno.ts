@@ -121,19 +121,66 @@ function parseBrunoSection(
   for (const warning of collection.warnings) context.warn?.(warning);
 
   const options = readOptions(context.options);
-  const width = collection.folders.length + collection.requests.length;
 
-  let position = 0;
+  // ONE NAMESPACE FOR BOTH. A folder and a request at the same level are
+  // siblings in the URL — `/api/shipments` and `/api/ping` — so the slugs have
+  // to be unique across the two lists together, not within each.
+  const level = slugsFor(collection.folders, collection.requests);
 
-  const folders = collection.folders.map((folder) =>
-    folderPages(folder, options, context, `${order(position++, width)}.`, '')
-  );
+  return [
+    overview(collection, context, options, level),
+    ...collection.folders.flatMap((folder, index) =>
+      folderPages(
+        folder,
+        options,
+        level.slugs[index]!,
+        `${order(index, level.width)}.`,
+        '',
+        context.prefix
+      )
+    ),
+    ...collection.requests.map((request, index) =>
+      requestPage(
+        request,
+        options,
+        level.slugs[collection.folders.length + index]!,
+        `${order(collection.folders.length + index, level.width)}.`,
+        ''
+      )
+    )
+  ];
+}
 
-  const loose = collection.requests.map((request) =>
-    requestPage(request, options, `${order(position++, width)}.`, '')
-  );
+/**
+ * Unique URL segments for one level of the tree.
+ *
+ * Two requests called `Get user` and `Get User` slugify to the same segment,
+ * and without this the second one's page would overwrite the first's — a
+ * request silently missing from the reference, which is the failure mode the
+ * OpenAPI type already answers for tags and operations. Numbered in the order
+ * they are read, so the first keeps the clean name.
+ */
+function slugsFor(
+  folders: DuxtBrunoFolder[],
+  requests: DuxtBrunoRequest[]
+): { slugs: string[]; width: number } {
+  const taken = new Set<string>();
 
-  return [overview(collection, context, options), ...folders.flat(), ...loose];
+  const slugs = [
+    ...folders.map((folder) => folder.name || folder.dir),
+    ...requests.map((request) => request.name)
+  ].map((name) => {
+    const base = segment(name);
+
+    let candidate = base;
+    let attempt = 2;
+    while (taken.has(candidate)) candidate = `${base}-${attempt++}`;
+    taken.add(candidate);
+
+    return candidate;
+  });
+
+  return { slugs, width: folders.length + requests.length };
 }
 
 /* ------------------------------------------------------------------ pages */
@@ -142,7 +189,8 @@ function parseBrunoSection(
 function overview(
   collection: DuxtBrunoCollection,
   context: DuxtSectionContext,
-  options: BrunoOptions
+  options: BrunoOptions,
+  level: { slugs: string[] }
 ): DuxtSectionPage {
   const props = {
     name: collection.name,
@@ -159,17 +207,17 @@ function overview(
     fetch: options.fetch
       ? `${FETCH_IN_BRUNO}${encodeURIComponent(options.fetch)}`
       : undefined,
-    groups: collection.folders.map((folder) => ({
+    groups: collection.folders.map((folder, index) => ({
       name: folder.name,
       description: firstLine(folder.docs),
       requests: count(folder),
-      to: `${context.prefix}/${segment(folder.name || folder.dir)}`
+      to: `${context.prefix}/${level.slugs[index]}`
     })),
-    requests: collection.requests.map((request) => ({
+    requests: collection.requests.map((request, index) => ({
       name: request.name,
       method: request.method,
       url: request.url,
-      to: `${context.prefix}/${segment(request.name)}`
+      to: `${context.prefix}/${level.slugs[collection.folders.length + index]}`
     }))
   };
 
@@ -189,29 +237,39 @@ function overview(
 function folderPages(
   folder: DuxtBrunoFolder,
   options: BrunoOptions,
-  context: DuxtSectionContext,
+  slug: string,
   prefix: string,
-  parent: string
+  parent: string,
+  parentUrl: string
 ): DuxtSectionPage[] {
-  const slug = segment(folder.name || folder.dir);
+  // The FILE path carries the `NN.` ordering prefixes; the URL does not,
+  // because Content strips them. Two values rather than one derived from the
+  // other by a regex — which is what this was, and a folder legitimately named
+  // `1.x` walked straight into it.
   const dir = `${parent}${prefix}${slug}`;
-  const to = `${context.prefix}/${parent.replace(/\d+\./g, '')}${slug}`;
-  const width = folder.folders.length + folder.requests.length;
+  const to = `${parentUrl}/${slug}`;
 
-  let position = 0;
+  const level = slugsFor(folder.folders, folder.requests);
 
-  const children = folder.folders.map((child) =>
+  const children = folder.folders.flatMap((child, index) =>
     folderPages(
       child,
       options,
-      context,
-      `${order(position++, width)}.`,
-      `${dir}/`
+      level.slugs[index]!,
+      `${order(index, level.width)}.`,
+      `${dir}/`,
+      to
     )
   );
 
-  const requests = folder.requests.map((request) =>
-    requestPage(request, options, `${order(position++, width)}.`, `${dir}/`)
+  const requests = folder.requests.map((request, index) =>
+    requestPage(
+      request,
+      options,
+      level.slugs[folder.folders.length + index]!,
+      `${order(folder.folders.length + index, level.width)}.`,
+      `${dir}/`
+    )
   );
 
   const index: DuxtSectionPage = {
@@ -220,17 +278,17 @@ function folderPages(
       component(
         'bruno-requests',
         {
-          requests: folder.requests.map((request) => ({
+          requests: folder.requests.map((request, position) => ({
             name: request.name,
             method: request.method,
             url: request.url,
-            to: `${to}/${segment(request.name)}`
+            to: `${to}/${level.slugs[folder.folders.length + position]}`
           })),
-          groups: folder.folders.map((child) => ({
+          groups: folder.folders.map((child, position) => ({
             name: child.name,
             description: firstLine(child.docs),
             requests: count(child),
-            to: `${to}/${segment(child.name || child.dir)}`
+            to: `${to}/${level.slugs[position]}`
           }))
         },
         folder.docs
@@ -238,13 +296,14 @@ function folderPages(
     ])
   };
 
-  return [index, ...children.flat(), ...requests];
+  return [index, ...children, ...requests];
 }
 
 /** One request, as one page. */
 function requestPage(
   request: DuxtBrunoRequest,
   options: BrunoOptions,
+  slug: string,
   prefix: string,
   parent: string
 ): DuxtSectionPage {
@@ -256,7 +315,7 @@ function requestPage(
   const client = tryIt(request, options);
 
   return {
-    file: `${parent}${prefix}${segment(request.name)}.md`,
+    file: `${parent}${prefix}${slug}.md`,
     body: page(
       {
         title: request.name,

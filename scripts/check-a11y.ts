@@ -79,6 +79,12 @@ const ROUTES = [
   // unlabelled control in either.
   '/demo/api',
   '/demo/api/consignments/listconsignments',
+  // The SECOND type in that layout, and the reason it is worth a third entry
+  // here rather than trusted to the two above: the request page draws the same
+  // client from different props, and the overview draws two controls — a
+  // download and an outbound link — that no other page on this list has.
+  '/demo/collection',
+  '/demo/collection/consignments/create-a-consignment',
   '/does-not-exist'
 ];
 

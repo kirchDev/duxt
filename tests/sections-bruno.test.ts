@@ -287,6 +287,75 @@ describe('try-it, which is off until a site turns it on', () => {
   });
 });
 
+describe('two things that slugify the same way', () => {
+  it('numbers the second rather than overwriting the first', () => {
+    // `Get user` and `Get User` are one URL segment, and without this the
+    // second page would take the first one's file — a request silently missing
+    // from the reference, which is what `openapi` already answers for tags.
+    const pages = parse(
+      {},
+      {
+        'bruno.json': '{"name":"X"}',
+        'a.bru':
+          'meta {\n  name: Get user\n  seq: 1\n}\n\nget {\n  url: /a\n}\n',
+        'b.bru':
+          'meta {\n  name: Get User\n  seq: 2\n}\n\nget {\n  url: /b\n}\n'
+      }
+    );
+
+    expect(pages.map((entry) => entry.file)).toEqual([
+      'index.md',
+      '1.get-user.md',
+      '2.get-user-2.md'
+    ]);
+  });
+
+  it('shares one namespace between a folder and a request beside it', () => {
+    // They are siblings in the URL, so uniqueness has to span both lists — not
+    // hold within each of them separately.
+    const pages = parse(
+      {},
+      {
+        'bruno.json': '{"name":"X"}',
+        'users/folder.bru': 'meta {\n  name: Users\n}\n',
+        'users/a.bru': 'meta {\n  name: A\n}\n\nget {\n  url: /a\n}\n',
+        'b.bru': 'meta {\n  name: Users\n}\n\nget {\n  url: /b\n}\n'
+      }
+    );
+
+    expect(pages.map((entry) => entry.file)).toEqual([
+      'index.md',
+      '1.users/index.md',
+      '1.users/1.a.md',
+      '2.users-2.md'
+    ]);
+
+    const overview = props(page(pages, 'index.md')!.body);
+
+    expect(overview.groups).toMatchObject([{ to: '/demo/collection/users' }]);
+    expect(overview.requests).toMatchObject([
+      { to: '/demo/collection/users-2' }
+    ]);
+  });
+
+  it('keeps a folder named like an ordering prefix out of its own URL', () => {
+    // The URL is built from the parent's URL rather than by stripping `NN.`
+    // out of the file path, which a folder legitimately called `1.x` breaks.
+    const pages = parse(
+      {},
+      {
+        'bruno.json': '{"name":"X"}',
+        '1.x/folder.bru': 'meta {\n  name: 1.x\n}\n',
+        '1.x/a.bru': 'meta {\n  name: A\n}\n\nget {\n  url: /a\n}\n'
+      }
+    );
+
+    const folder = props(page(pages, '1.1-x/index.md')!.body);
+
+    expect(folder.requests).toMatchObject([{ to: '/demo/collection/1-x/a' }]);
+  });
+});
+
 describe('what the type refuses to read', () => {
   it('carries no script and no test into a page', () => {
     const pages = parse(
