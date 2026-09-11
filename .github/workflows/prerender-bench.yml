@@ -20,6 +20,15 @@
 # hour of runner time. On any automatic trigger that is not a measurement, it is
 # a bill.
 #
+# IT CANNOT BE RUN UNTIL THIS FILE IS ON `main`, and that is GitHub's rule
+# rather than this repository's: a `workflow_dispatch` workflow is only
+# triggerable once it exists on the DEFAULT branch, whatever ref the run is
+# then pointed at. Dispatching it from `dev` answers
+# `HTTP 404: workflow prerender-bench.yml not found on the default branch`.
+# So the first benchmark happens after the promotion PR merges — and the `ref`
+# it is dispatched with is still free, so a later experiment can measure a
+# branch without that branch's copy of this file mattering.
+#
 # BUILD-ONLY. Nothing here publishes: the artefact is measured and thrown away.
 name: Prerender benchmark
 
