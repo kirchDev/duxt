@@ -54,6 +54,7 @@
     "sources-git.ts",
     "sources-resolve.ts",
     "sources.ts",
+    "tfplugindocs.ts",
     "validate-report.ts"
   ],
   "type": "module",
