@@ -83,6 +83,7 @@ it('includes the real www Terraform, API and release sources from getting-starte
       '/tf',
       '/releases',
       '/demo/api',
+      '/demo/collection',
       '/demo/changelog',
       '/demo/changelog-flat'
     ]);
