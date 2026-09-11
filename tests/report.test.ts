@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { DuxtReport } from '../report';
-import { duxtReportMarkdown, runDuxtReportCli } from '../report';
+import { duxtReportMarkdown, duxtReportOutput } from '../report';
 
 const source = (over: Partial<DuxtReport['sources'][number]> = {}) =>
   ({
@@ -133,17 +133,17 @@ describe('the command', () => {
       findings: { errors: ['something'], warnings: [], notes: [] }
     });
 
-    expect(runDuxtReportCli([], warned).exitCode).toBe(0);
-    expect(runDuxtReportCli([], failed).exitCode).toBe(1);
+    expect(duxtReportOutput(warned).exitCode).toBe(0);
+    expect(duxtReportOutput(failed).exitCode).toBe(1);
   });
 
   it('serialises the anchor set --json can otherwise not carry', () => {
     // A Set stringifies as `{}`, which is a silently empty anchor list rather
     // than an error.
     const parsed = JSON.parse(
-      runDuxtReportCli(
-        ['--json'],
-        data({ pages: [page({ anchors: new Set(['install']) })] })
+      duxtReportOutput(
+        data({ pages: [page({ anchors: new Set(['install']) })] }),
+        'json'
       ).output
     ) as { pages: { anchors: string[] }[] };
 

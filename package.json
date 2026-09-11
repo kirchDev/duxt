@@ -26,12 +26,13 @@
     "url": "git+https://github.com/kirchDev/duxt.git"
   },
   "bin": {
-    "duxt-cache-key": "./bin/duxt-cache-key.mjs",
-    "duxt-report": "./bin/duxt-report.mjs"
+    "duxt": "./bin/duxt.mjs",
+    "duxt-cache-key": "./bin/duxt-cache-key.mjs"
   },
   "files": [
     "bin",
     "app",
+    "cli.ts",
     "components.json",
     "content-cache.ts",
     "content.config.ts",
@@ -94,7 +95,7 @@
     "typecheck:app": "pnpm --filter www typecheck",
     "test": "vitest run",
     "test:watch": "vitest",
-    "report": "pnpm --filter www exec duxt-report",
+    "report": "pnpm --filter www exec duxt report",
     "cache:key": "node ./bin/duxt-cache-key.mjs --root www",
     "build:app": "pnpm --filter www build",
     "deploy:www": "pnpm --filter www run deploy",
@@ -127,6 +128,7 @@
     "@shikijs/transformers": "^4.4.3",
     "@tailwindcss/vite": "^4.3.3",
     "@vueuse/core": "^14.4.0",
+    "citty": "^0.2.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "fuse.js": "^7.5.0",

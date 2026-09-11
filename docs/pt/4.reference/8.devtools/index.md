@@ -45,7 +45,7 @@ algo corre mal.
 
 ## Sem servidor de desenvolvimento
 
-`pnpm exec duxt-report` imprime as fontes, as verificações e os
+`pnpm exec duxt report` imprime as fontes, as verificações e os
 redireccionamentos em Markdown — os mesmos dados que estes painéis desenham,
 numa forma que podes colar num ticket ou entregar a um modelo. `--json` dá-os
 sem desenhar. Vê [O que a compilação verifica](/concepts/build-checks).
