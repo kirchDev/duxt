@@ -184,12 +184,19 @@ export default defineNuxtConfig({
    *
    * The point of this deployment: a page rendered at build time is written to
    * `.output/public` and served by the assets binding, so the Worker is never
-   * invoked for it — static delivery out of an SSR build. What is left running
-   * is exactly what cannot be a file: the `.md` middleware, `/mcp`, and the
-   * demo endpoint in `server/routes/`.
+   * invoked for it — static delivery out of an SSR build.
    *
-   * Nitro crawls from `/` and follows links, so the set is whatever the site
-   * actually links to. A page nobody links to is served by the Worker and is
+   * WHICH ROUTES END UP ON WHICH SIDE IS STATED ONCE, IN
+   * `scripts/check-routes.ts`, AND NOT RESTATED HERE. Two lists of "the dynamic
+   * routes" lived in this file and in `wrangler.jsonc`, they named different
+   * sets, and between them `llms-full.txt` and `rss.xml` went unaccounted for.
+   * The table there answers asset-or-Worker, D1-or-not and the fallback for
+   * each route, and `pnpm check:routes` proves it against the artifact this
+   * build produces.
+   *
+   * The short of it: documentation pages are files, and `llms.txt`,
+   * `llms-full.txt`, `rss.xml`, every `…/page.md`, `/mcp` and `POST
+   * /demo/echo` are not. A page nobody links to is served by the Worker and is
    * still correct — just slower, and that is the right failure.
    */
   routeRules: cloudflare ? { '/**': { prerender: true } } : {},
@@ -200,10 +207,14 @@ export default defineNuxtConfig({
    * dumps it always writes and not one page, which looks like a working build
    * and is a fully dynamic site.
    *
-   * So the crawler is turned on and pointed at `/`. What it reaches is what the
-   * site links: every page in the sidebar, and the `.md` twin of each one,
-   * because "View as Markdown" is a real link on the page.
-   *
+   * So the crawler is turned on and pointed at `/`. What it reaches is every
+   * page in the sidebar — and ONLY pages. Nitro follows a discovered link only
+   * when its extension is `""` or `.json`, so the `.md` twin beside each page,
+   * the `llms.txt` in the footer and the feed are all skipped however
+   * prominently they are linked. That is not a defect to work around: each of
+   * them is a function of the content rather than of the build, and the Worker
+   * is where they belong. `scripts/check-routes.ts` is where that is written
+   * down and checked.
    */
   nitro: cloudflare
     ? {

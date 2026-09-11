@@ -13,9 +13,15 @@
 
   // The static half. Every prerendered page, every OG image and every asset
   // Nitro emits is served straight from Cloudflare's edge storage; the Worker
-  // is only reached for what is left — `/mcp`, the `.md` middleware and the
-  // demo endpoint. `run_worker_first` stays off: an asset that exists must not
-  // pay for a Worker invocation.
+  // is only reached for what is left. WHAT IS LEFT IS LISTED IN
+  // `scripts/check-routes.ts` AND NOT REPEATED HERE — this comment and the one
+  // in `www/nuxt.config.ts` each carried their own list, the two disagreed, and
+  // that is the ambiguity the table replaced. `pnpm check:routes` verifies it
+  // against `.output/public` as the last step of `build:cf`, so an artifact that
+  // disagrees never reaches the publish job.
+  //
+  // `run_worker_first` stays off: an asset that exists must not pay for a
+  // Worker invocation.
   "assets": {
     "directory": "./.output/public",
     "binding": "ASSETS",
@@ -53,9 +59,12 @@
   // neither a filesystem nor `node:sqlite`, so the same dump is loaded into D1
   // on the first request after a deploy.
   //
-  // Only the three dynamic endpoints ever read it — the `.md` middleware,
-  // the `/mcp` tools and `llms.txt` all call `queryCollection()` at runtime.
-  // The prerendered pages never touch this binding.
+  // Five of the six runtime routes read it — `llms.txt`, `llms-full.txt`,
+  // `rss.xml`, the `.md` middleware and the `/mcp` tools all call
+  // `queryCollection()` at request time; `POST /demo/echo` answers from the
+  // request body and is the one that does not. The prerendered pages never
+  // touch this binding. Which route is which, and why:
+  // `scripts/check-routes.ts`.
   //
   // THE DATABASE IS TOFU'S, THE BINDING IS THIS FILE'S — the same seam the
   // hostname runs along, and for the same reason: nothing in a wrangler config
