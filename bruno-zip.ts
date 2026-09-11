@@ -43,7 +43,21 @@ export interface DuxtZipEntry {
  * here so the two cannot drift.
  */
 export function brunoZipPath(collection: string): string {
-  return `/_duxt/bruno/${collection}.zip`;
+  return `${DUXT_BRUNO_ASSETS}/${brunoZipName(collection)}`;
+}
+
+/**
+ * The directory the archives are served from.
+ *
+ * Exported because the module that WRITES them needs the same two halves the
+ * page's link is built from. Composed rather than spelled out twice: the two
+ * agreeing by coincidence is how a download 404s after somebody renames one.
+ */
+export const DUXT_BRUNO_ASSETS = '/_duxt/bruno';
+
+/** One archive's file name inside that directory. */
+export function brunoZipName(collection: string): string {
+  return `${collection}.zip`;
 }
 
 /**

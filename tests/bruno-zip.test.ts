@@ -3,7 +3,13 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { brunoZipEntries, brunoZipPath, zipStore } from '../bruno-zip';
+import {
+  DUXT_BRUNO_ASSETS,
+  brunoZipEntries,
+  brunoZipName,
+  brunoZipPath,
+  zipStore
+} from '../bruno-zip';
 import { duxtSectionInput } from '../sections-resolve';
 
 /** The archive, as the `unzip` on this machine reads it back. */
@@ -80,5 +86,11 @@ describe('brunoZipPath', () => {
     expect(brunoZipPath('demo_api_v2_de')).toBe(
       '/_duxt/bruno/demo_api_v2_de.zip'
     );
+  });
+
+  it('is the same two halves the module writing the file uses', () => {
+    // The page links one string and the module writes a directory and a name.
+    // Composed, so renaming either cannot leave a link pointing at nothing.
+    expect(brunoZipPath('x')).toBe(`${DUXT_BRUNO_ASSETS}/${brunoZipName('x')}`);
   });
 });
