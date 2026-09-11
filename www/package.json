@@ -8,7 +8,8 @@
   "scripts": {
     "dev": "nuxt dev",
     "build": "nuxt build",
-    "build:cf": "NITRO_PRESET=cloudflare-module nuxt build",
+    "build:cf": "NITRO_PRESET=cloudflare-module nuxt build && pnpm run check:routes",
+    "check:routes": "node ../scripts/check-routes.ts",
     "deploy": "pnpm run build:cf && pnpm run publish:cf",
     "publish:cf": "wrangler deploy",
     "preview:cf": "pnpm run build:cf && wrangler dev",
