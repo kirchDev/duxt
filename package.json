@@ -30,8 +30,10 @@
     "duxt-cache-key": "./bin/duxt-cache-key.mjs"
   },
   "files": [
-    "bin",
     "app",
+    "bruno-model.ts",
+    "bruno-parse.ts",
+    "bruno-zip.ts",
     "cli.ts",
     "components.json",
     "content-cache.ts",
@@ -47,10 +49,12 @@
     "public",
     "report.ts",
     "repository-root.ts",
+    "section-input.ts",
+    "section-reports.ts",
+    "sections-bruno.ts",
     "sections-changelog.ts",
     "sections-openapi.ts",
     "sections-resolve.ts",
-    "section-reports.ts",
     "sections.ts",
     "server",
     "sources-cache.ts",
@@ -64,15 +68,18 @@
   "main": "./nuxt.config.ts",
   "exports": {
     ".": "./nuxt.config.ts",
+    "./bruno-model": "./bruno-model.ts",
+    "./bruno-parse": "./bruno-parse.ts",
     "./openapi-model": "./openapi-model.ts",
     "./openapi-parse": "./openapi-parse.ts",
     "./sections": "./sections.ts",
+    "./sections-bruno": "./sections-bruno.ts",
     "./sections-openapi": "./sections-openapi.ts",
     "./sections-resolve": "./sections-resolve.ts",
     "./sources": "./sources.ts",
     "./sources-cache": "./sources-cache.ts",
-    "./sources-resolve": "./sources-resolve.ts",
-    "./sources-git": "./sources-git.ts"
+    "./sources-git": "./sources-git.ts",
+    "./sources-resolve": "./sources-resolve.ts"
   },
   "publishConfig": {
     "access": "public"
