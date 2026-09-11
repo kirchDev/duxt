@@ -1,4 +1,6 @@
 import { readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { defineNuxtConfig } from 'nuxt/config';
 import { fileURLToPath } from 'node:url';
 import { claimNuxtProcess } from '../scripts/nuxt-process-guard.ts';
@@ -51,6 +53,73 @@ const version = (() => {
  * the ordinary Node server. `pnpm --filter www deploy` sets the variable.
  */
 const cloudflare = (process.env.NITRO_PRESET ?? '').startsWith('cloudflare');
+
+/**
+ * Which Content database adapter this build targets.
+ *
+ * Unset — every ordinary build, `pnpm build:app` included — leaves Content on
+ * its own default, and this variable does not exist as far as the site is
+ * concerned. It is set only by the adapter matrix
+ * (`.github/workflows/adapters.yml`), which builds this same site against
+ * `libsql` and `postgresql` and then probes the endpoints that read the
+ * database at runtime. That is the whole mechanism behind the compatibility table in
+ * `docs/2.concepts/11.databases.md`: the table says "verified in CI" only for
+ * the adapters this switch is exercised with.
+ *
+ * It deliberately does NOT cover `d1`, which is the `cloudflare` branch below
+ * and is not something a Node build can be pointed at.
+ */
+const adapter = process.env.DUXT_CONTENT_ADAPTER;
+
+/**
+ * The runtime database for a non-default adapter.
+ *
+ * `postgresql` and a remote `libsql` both need a URL, and both take it from the
+ * environment rather than from a literal — a connection string is per-machine
+ * and, for Turso, carries a token. A `libsql` URL that is missing falls back to
+ * a local `file:` database, which is the form that needs no server and is what
+ * makes the libsql leg of the matrix runnable on a bare runner.
+ */
+const adapterDatabase = () => {
+  if (adapter === 'postgresql' || adapter === 'postgres') {
+    const url = process.env.DUXT_CONTENT_DATABASE_URL;
+
+    if (!url) {
+      throw new Error(
+        'DUXT_CONTENT_ADAPTER=postgresql needs DUXT_CONTENT_DATABASE_URL — ' +
+          'PostgreSQL has no local-file form to fall back to.'
+      );
+    }
+
+    return { type: 'postgresql' as const, url };
+  }
+
+  if (adapter === 'libsql') {
+    /**
+     * AN ABSOLUTE PATH, AND IT HAS TO BE.
+     *
+     * A `file:` URL is opened relative to the SERVER's working directory, not
+     * to the build's, and libsql creates the database but not the directory
+     * above it. `file:.data/content/libsql.db` therefore looked right and died
+     * with `Unable to open connection … : 14` (SQLITE_CANTOPEN) the moment the
+     * server was started from anywhere but `www/`. The temp directory is the
+     * one place guaranteed to exist and be writable on both.
+     */
+    return {
+      type: 'libsql' as const,
+      url:
+        process.env.DUXT_CONTENT_DATABASE_URL ||
+        `file:${join(tmpdir(), 'duxt-content-libsql.db')}`,
+      ...(process.env.DUXT_CONTENT_DATABASE_TOKEN
+        ? { authToken: process.env.DUXT_CONTENT_DATABASE_TOKEN }
+        : {})
+    };
+  }
+
+  throw new Error(
+    `DUXT_CONTENT_ADAPTER=${adapter} is not one of libsql, postgresql.`
+  );
+};
 
 // Consumes the layer exactly as a downstream repo does. Modules, the Content
 // driver and the theme all arrive with the extend.
@@ -186,7 +255,11 @@ export default defineNuxtConfig({
    * same dump — this only decides where it is restored, and Content loads it
    * into D1 on the first request after a deploy.
    */
-  content: cloudflare ? { database: { type: 'd1', bindingName: 'DB' } } : {},
+  content: cloudflare
+    ? { database: { type: 'd1', bindingName: 'DB' } }
+    : adapter
+      ? { database: adapterDatabase() }
+      : {},
 
   /**
    * OG images are rendered at build time and never at runtime.

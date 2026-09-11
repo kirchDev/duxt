@@ -20,7 +20,9 @@
     "nuxt": "^4.5.2"
   },
   "devDependencies": {
+    "@libsql/client": "^0.18.0",
     "nuxtseo-layer-devtools": "^5.3.14",
+    "pg": "^8.23.0",
     "typescript": "^6.0.3",
     "vue-tsc": "^3.3.11",
     "wrangler": "^4.114.0"
