@@ -1,0 +1,25 @@
+{
+  "duxt": {
+    "bruno": {
+      "auth": "Autenticação",
+      "body": "Corpo",
+      "download": "Transferir a coleção",
+      "downloadHint": "A coleção exatamente como esta versão e este idioma a descrevem.",
+      "environments": "Ambientes",
+      "fetch": "Abrir no Bruno",
+      "fetchHint": "Clona o repositório no Bruno. Segue o ramo predefinido e não está fixado nesta versão.",
+      "folders": "Pastas",
+      "format": "Formato",
+      "getIt": "Obter a coleção",
+      "hasCode": "Este pedido também tem scripts ou testes. Aqui não são mostrados nem executados; estão na transferência.",
+      "headers": "Cabeçalhos",
+      "name": "Nome",
+      "notPublished": "Ambientes, credenciais, scripts e testes nunca são publicados neste site nem executados no seu navegador.",
+      "parameters": "Parâmetros",
+      "requests": "Pedidos",
+      "shared": "Comum a todos os pedidos",
+      "value": "Valor",
+      "withheld": "retido"
+    }
+  }
+}

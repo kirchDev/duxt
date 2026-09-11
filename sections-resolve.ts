@@ -28,6 +28,7 @@ import {
   resolveSources,
   slugify
 } from './sources-resolve';
+import { brunoSectionType } from './sections-bruno';
 import { changelogSectionType } from './sections-changelog';
 import { openapiSectionType } from './sections-openapi';
 
@@ -249,6 +250,25 @@ export function duxtSectionInput(
 export interface DuxtSectionContext {
   /** The declared label, which is also the index page's title. */
   label: string;
+  /**
+   * The Content collection these pages land in.
+   *
+   * The one identity that is unique per version AND per locale — a prefix is
+   * not, since two languages deliberately claim the same one. A type that has
+   * to name a build-time artefact of its own (the Bruno collection's ZIP) needs
+   * a name the module emitting it can compute the same way, and this is it.
+   */
+  collection: string;
+  /**
+   * Whether the artefact came out of a repository Content downloads.
+   *
+   * A type that only turns a file into pages never asks. One whose section
+   * offers something built BESIDE the pages does: `section-reports.ts` states
+   * the limit this reflects — a remote checkout lands wherever Content's
+   * hash-cache put it, which is a directory known only inside the collection
+   * that declared it, so nothing outside can read the artefact a second time.
+   */
+  remote: boolean;
   /** The URL prefix its pages are served at, e.g. `/releases`. */
   prefix: string;
   /** The declaration's own `options`, empty where it named none. */
@@ -363,6 +383,7 @@ export type DuxtSectionTypes = Record<string, DuxtSectionType>;
 
 /** The types the layer ships. */
 export const duxtBuiltinSectionTypes: DuxtSectionTypes = {
+  bruno: brunoSectionType,
   changelog: changelogSectionType,
   openapi: openapiSectionType
 };
@@ -743,6 +764,8 @@ export function sectionPages(
 
   const pages = type.parse(input, {
     label: entry.generated!.label,
+    collection: entry.collection,
+    remote: entry.generated!.remote,
     prefix: entry.prefix,
     options: entry.generated!.options ?? {},
     warn: (message) => {

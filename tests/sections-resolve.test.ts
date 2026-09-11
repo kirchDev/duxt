@@ -463,6 +463,7 @@ describe('duxtSectionTypes', () => {
     const registry = duxtSectionTypes({ stub: stub() });
 
     expect(Object.keys(registry).sort()).toEqual([
+      'bruno',
       'changelog',
       'openapi',
       'stub'
@@ -573,6 +574,8 @@ describe('the severity of a section that produces nothing', () => {
 
     expect(parse).toHaveBeenCalledWith(input, {
       label: 'Releases',
+      collection: 'docs_releases',
+      remote: false,
       prefix: '/releases',
       options: { granularity: 'flat' },
       warn: expect.any(Function)
