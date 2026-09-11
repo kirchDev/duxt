@@ -50,8 +50,16 @@ const { headerOffset } = useDuxtSectionRow();
     <DuxtProgress />
     <DuxtShortcuts />
 
+    <!-- The site the layer is rendering may have something to say. Both strips
+         draw nothing at all until `duxt.announcements` holds one, space
+         included; the third placement, `above-content`, belongs to the page
+         rather than to the shell. -->
+    <DuxtAnnouncements placement="above-header" />
+
     <DuxtHeader />
     <DuxtSections />
+
+    <DuxtAnnouncements placement="below-header" />
 
     <div class="mx-auto flex w-full max-w-[90rem] flex-1 gap-8 px-4 lg:px-8">
       <!-- A section with one page has nothing to navigate, exactly as in the

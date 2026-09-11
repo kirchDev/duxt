@@ -21,11 +21,19 @@ const { headerOffset } = useDuxtSectionRow();
     <DuxtProgress />
     <DuxtShortcuts />
 
+    <!-- The site the layer is rendering may have something to say. Both strips
+         draw nothing at all until `duxt.announcements` holds one, space
+         included; the third placement, `above-content`, belongs to the page
+         rather than to the shell. -->
+    <DuxtAnnouncements placement="above-header" />
+
     <DuxtHeader />
 
     <!-- The section row sits with the docs, not in the global header: the
          landing page has no sections to show. -->
     <DuxtSections />
+
+    <DuxtAnnouncements placement="below-header" />
 
     <!-- Three columns inside one centred container, not a sidebar pinned to the
          window edge: on a wide screen the docs stay a readable block instead of

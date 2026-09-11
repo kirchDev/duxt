@@ -44,6 +44,10 @@ const TEXT_KEYS = new Set([
   // `repo`, `slug` — are absent from this list and stay untouched, which is
   // the whole reason it is an allowlist rather than a walk.
   'name',
+  // An announcement's sentence. Neither `label` nor `description`, because it
+  // is the whole of what the banner says rather than a caption on something
+  // else — and it needs the line here for the same reason the entry above does.
+  'text',
   'title'
 ]);
 

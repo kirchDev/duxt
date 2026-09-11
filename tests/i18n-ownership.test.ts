@@ -248,6 +248,10 @@ describe('the layer draws exactly this much text', () => {
   it('defaults no config field the inventory does not cover', () => {
     expect(Object.keys(duxtDefaults).sort()).toEqual(
       [
+        // An empty list, so it adds nothing to the INVENTORY above: the layer
+        // ships no announcement of its own, and the key exists only so the
+        // Config panel shows a consumer where theirs would go.
+        'announcements',
         'aside',
         'breadcrumb',
         'contributors',

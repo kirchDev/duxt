@@ -61,6 +61,7 @@ const locales = [
     language: 'en-GB',
     name: 'English (UK)',
     files: [
+      'en/duxt/announcement.json',
       'en/duxt/changelog.json',
       'en/duxt/code.json',
       'en/duxt/devtools.json',
@@ -83,6 +84,7 @@ const locales = [
     language: 'en-US',
     name: 'English (US)',
     files: [
+      'en/duxt/announcement.json',
       'en/duxt/changelog.json',
       'en/duxt/code.json',
       'en/duxt/devtools.json',
@@ -105,6 +107,7 @@ const locales = [
     language: 'de-DE',
     name: 'Deutsch',
     files: [
+      'de/duxt/announcement.json',
       'de/duxt/changelog.json',
       'de/duxt/code.json',
       'de/duxt/devtools.json',
@@ -127,6 +130,7 @@ const locales = [
     language: 'es-ES',
     name: 'Español',
     files: [
+      'es/duxt/announcement.json',
       'es/duxt/changelog.json',
       'es/duxt/code.json',
       'es/duxt/devtools.json',
@@ -149,6 +153,7 @@ const locales = [
     language: 'fr-FR',
     name: 'Français',
     files: [
+      'fr/duxt/announcement.json',
       'fr/duxt/changelog.json',
       'fr/duxt/code.json',
       'fr/duxt/devtools.json',
@@ -171,6 +176,7 @@ const locales = [
     language: 'pt-PT',
     name: 'Português',
     files: [
+      'pt/duxt/announcement.json',
       'pt/duxt/changelog.json',
       'pt/duxt/code.json',
       'pt/duxt/devtools.json',
@@ -193,6 +199,7 @@ const locales = [
     language: 'pt-BR',
     name: 'Português (Brasil)',
     files: [
+      'pt/duxt/announcement.json',
       'pt/duxt/changelog.json',
       'pt/duxt/code.json',
       'pt/duxt/devtools.json',

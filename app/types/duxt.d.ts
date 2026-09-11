@@ -526,6 +526,77 @@ declare global {
     pageIcon?: string;
   }
 
+  /**
+   * Where an announcement is drawn.
+   *
+   * Three, because they answer three different questions about how loud a
+   * notice is. `above-header` sits at the browser edge over everything, which
+   * is what a release or an outage wants; `below-header` keeps the navbar at
+   * the top of the window and puts the notice over the sidebars and the page;
+   * `above-content` is quietest — it sits in the document column with the
+   * version and translation banners, and scrolls with the page.
+   */
+  type DuxtAnnouncementPlacement =
+    | 'above-header'
+    | 'below-header'
+    | 'above-content';
+
+  /**
+   * How many announcements a placement may draw at once.
+   *
+   * Three shapes for three answers: a number caps EVERY placement at that many
+   * — one release notice above the header and one outage below it, not one
+   * between them — an object caps each placement on its own, and `null` (or no
+   * value at all) means unlimited. A placement the object says nothing about is
+   * unlimited too.
+   *
+   * The cap is on what is DRAWN, not on what is due: dismissing the notice at
+   * the top of a capped placement lets the next one take its slot, so a queue
+   * of announcements is read rather than silently dropped.
+   */
+  type DuxtAnnouncementMaxVisible =
+    | number
+    | null
+    | Partial<Record<DuxtAnnouncementPlacement, number | null>>;
+
+  /**
+   * One site-wide notice, drawn around the page rather than in it.
+   *
+   * Deliberately NOT the version and translation banners beside it: those
+   * describe the page a reader is on and are the layer's to decide. This is the
+   * site's own sentence — a release, a migration window, a maintenance
+   * notice — and duxt knows nothing about it until a consumer writes one.
+   */
+  interface DuxtAnnouncement {
+    /**
+     * The dismissal identity, and the only reason to set one.
+     *
+     * Locale-independent, so a reader who dismissed the notice in English does
+     * not meet it again in German. Omit it and duxt derives the identity from
+     * the announcement's own content — see `duxtAnnouncementKey` — which is the
+     * right default: rewriting the sentence IS a new announcement. Set it where
+     * a typo may be corrected without the notice counting as new, and change it
+     * to make an otherwise unchanged announcement visible again.
+     */
+    id?: string;
+    text: DuxtText;
+    /** One call to action. More than one belongs on the page it links to. */
+    link?: DuxtLink;
+    /** Where the notice is drawn. Defaults to `above-header`. */
+    placement?: DuxtAnnouncementPlacement;
+    /**
+     * When the notice starts and stops showing, as anything `Date` parses —
+     * `2026-03-01`, or a full ISO timestamp with an offset.
+     *
+     * Read in the BROWSER, against the reader's own clock, so an announcement
+     * opens and closes on time without a rebuild and without the page being
+     * reloaded. A date with no time zone is local to the reader, which is
+     * usually what a maintenance window means; write an offset where it is not.
+     */
+    startsAt?: string;
+    endsAt?: string;
+  }
+
   interface DuxtAction extends DuxtLink {
     variant?:
       | 'default'
@@ -922,6 +993,24 @@ declare global {
        * bare characters the reader never meant as a command.
        */
       singleCharacter?: boolean;
+    };
+    /**
+     * Site-wide notices, in the order they are drawn.
+     *
+     * Empty by default: an announcement is the site's own sentence, and a layer
+     * that shipped one would put somebody else's words at the top of every page
+     * — the same rule `sections` and `links` follow.
+     *
+     * A list, not a single notice, because a release and a maintenance window
+     * are two announcements and one of them ending should not take the other
+     * with it. `announcementOptions.maxVisible` is how a site keeps that list
+     * from stacking up on screen.
+     */
+    announcements?: DuxtAnnouncement[];
+    /** How the list above is drawn, as opposed to what is in it. */
+    announcementOptions?: {
+      /** How many a placement may show at once. Unlimited unless set. */
+      maxVisible?: DuxtAnnouncementMaxVisible;
     };
     navigation?: DuxtLink[];
     /** The second navbar row: top-level parts of the documentation. */

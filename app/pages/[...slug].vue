@@ -287,6 +287,8 @@ useSchemaOrg([
        the layout, because only the page holds the body it is read from. -->
   <div v-if="owned" class="flex min-w-0 flex-1 gap-10">
     <div class="min-w-0 flex-1 py-8">
+      <DuxtAnnouncements placement="above-content" />
+
       <DuxtVersionBanner />
 
       <DuxtTranslationBanner v-if="untranslated" :from="found?.from" />
@@ -388,6 +390,8 @@ useSchemaOrg([
 
   <div v-else class="flex min-w-0 flex-1 justify-center gap-10">
     <article class="min-w-0 max-w-3xl flex-1 py-8">
+      <DuxtAnnouncements placement="above-content" />
+
       <DuxtVersionBanner />
 
       <DuxtTranslationBanner v-if="untranslated" :from="found?.from" />

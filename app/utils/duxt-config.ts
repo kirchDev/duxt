@@ -54,6 +54,20 @@ export const duxtDefaults: DuxtConfig = {
   // in the header badge beside the search. A site that has a version says so
   // in its own `app.config.ts`; `DuxtVersion` draws nothing until it does.
 
+  /**
+   * Empty, like `sections` and `links` below.
+   *
+   * An announcement is the SITE's own sentence — a release, a migration window,
+   * an outage — and a layer that shipped one would put its words at the top of
+   * every page extending it. Left empty the strip draws nothing at all: no
+   * banner, and no space held open for one.
+   *
+   * Written out rather than left absent so the key appears in the devtools
+   * Config panel, where a consumer meets it without reading the reference
+   * first — the same reason `sections` and `links` are spelled out below.
+   */
+  announcements: [],
+
   navigation: [
     // No `to`: the header resolves it to the first section, so the entry works
     // whether or not the consumer's URLs carry a prefix.
