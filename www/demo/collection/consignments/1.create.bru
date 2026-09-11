@@ -1,0 +1,31 @@
+meta {
+  name: Create a consignment
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/demo/echo
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+    "reference": "AB-1029",
+    "mode": "air"
+  }
+}
+
+docs {
+  The one request in this collection a reader can actually send: the try-it
+  client beside it is pointed at an endpoint this very site answers.
+
+  `{{token}}` is a variable rather than a value — the collection names the
+  secret, and never carries it.
+}
