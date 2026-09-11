@@ -293,7 +293,7 @@ describe('a site that publishes a reference beside its documentation', () => {
     );
   });
 
-  it('still offers nothing where a section is version-neutral', () => {
+  it('uses the source default on a global changelog', () => {
     const changelog = api({
       version: undefined,
       prefix: '/releases',
@@ -310,8 +310,9 @@ describe('a site that publishes a reference beside its documentation', () => {
       }
     } as Partial<DuxtResolvedSource>);
 
-    expect(versionChoices([...all, changelog], changelog, undefined)).toEqual(
-      []
-    );
+    expect(versionChoices([...all, changelog], changelog, undefined)).toEqual([
+      { label: '2.x', to: '/', description: 'default' },
+      { label: '1.x', to: '/1.x', description: undefined }
+    ]);
   });
 });

@@ -106,6 +106,12 @@ describe('versionPath', () => {
     expect(versionPath('/v1.x', '/v1.x', '/')).toBe('/');
   });
 
+  it('takes a global changelog to the selected version overview', () => {
+    expect(versionPath('/demo/changelog', '/demo', '/demo/v2.x', true)).toBe(
+      '/demo/v2.x'
+    );
+  });
+
   it('round-trips through every version of a source', () => {
     const versions = sources
       .filter((source) => source.version)

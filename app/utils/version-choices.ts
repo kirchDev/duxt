@@ -65,11 +65,22 @@ export function versionChoices(
   current: DuxtResolvedSource | undefined,
   configured: DuxtLink[] | undefined
 ): DuxtLink[] {
-  // A version-neutral generated section suppresses the control entirely, and
-  // that is the point of the policy rather than a tidy-up: a changelog is one
-  // global history, so every entry the switcher could offer would move the
-  // reader to a URL that section does not serve.
-  if (current?.generated?.versioning === 'global') return [];
+  // A global generated section has no version of its own, but its reader still
+  // needs the documentation context of the source that owns it. Start from
+  // that source's default edition: its choices lead to the version overviews,
+  // never to non-existent versioned copies of the generated section.
+  const global = current?.generated?.versioning === 'global';
+
+  if (global && current?.generated?.type !== 'changelog') return [];
+
+  const context = global
+    ? sources.find(
+        (source) =>
+          source.repo === current.repo && source.isDefault && !source.generated
+      )
+    : current;
+
+  if (!context) return [];
 
   // `versions` in the config still wins where a label needs to read differently
   // from the URL segment.
@@ -81,8 +92,8 @@ export function versionChoices(
     .filter(
       (source) =>
         source.version &&
-        source.repo === current?.repo &&
-        sameArtefact(source, current)
+        source.repo === context.repo &&
+        sameArtefact(source, context)
     )
     .filter((source) => {
       // Repository and artefact are scoped above; translations share the

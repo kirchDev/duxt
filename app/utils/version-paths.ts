@@ -43,8 +43,11 @@ export function isInside(path: string, prefix: string): boolean {
 export function versionPath(
   path: string,
   from: string | undefined,
-  to: string
+  to: string,
+  overview = false
 ): string {
+  if (overview) return to || '/';
+
   const rest =
     from && from !== '/' && isInside(path, from)
       ? path.slice(from.length)
