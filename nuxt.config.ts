@@ -254,6 +254,12 @@ export default defineNuxtConfig({
     // no `bruno` section.
     layer('./modules/bruno.ts'),
 
+    // The layer's one build-time extension point: every parsed page of every
+    // source, version and language, handed to `duxt:search:records` so an
+    // external search provider can be a layer rather than a fork. Builds
+    // nothing while no consumer is listening, which is every site until one is.
+    layer('./modules/search-records.ts'),
+
     /**
      * The SEO half, BEFORE Content on purpose.
      *
