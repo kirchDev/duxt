@@ -26,6 +26,7 @@
     "url": "git+https://github.com/kirchDev/duxt.git"
   },
   "bin": {
+    "duxt-cache-key": "./bin/duxt-cache-key.mjs",
     "duxt-report": "./bin/duxt-report.mjs"
   },
   "files": [
@@ -51,6 +52,7 @@
     "section-reports.ts",
     "sections.ts",
     "server",
+    "sources-cache.ts",
     "sources-git.ts",
     "sources-resolve.ts",
     "sources.ts",
@@ -67,6 +69,7 @@
     "./sections-openapi": "./sections-openapi.ts",
     "./sections-resolve": "./sections-resolve.ts",
     "./sources": "./sources.ts",
+    "./sources-cache": "./sources-cache.ts",
     "./sources-resolve": "./sources-resolve.ts",
     "./sources-git": "./sources-git.ts"
   },
@@ -92,6 +95,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "report": "pnpm --filter www exec duxt-report",
+    "cache:key": "node ./bin/duxt-cache-key.mjs --root www",
     "build:app": "pnpm --filter www build",
     "deploy:www": "pnpm --filter www run deploy",
     "check:a11y": "node scripts/check-a11y.ts",
