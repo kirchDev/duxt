@@ -111,3 +111,8 @@ $RECYCLE.BIN/
 # writes beside the config. No stack in gitignore-sync carries it, so it lives
 # here in the free zone rather than inside the managed region above.
 .wrangler
+
+# The rendered OG images kept between builds. Not `node_modules/.cache`, where
+# nuxt-og-image would put them by default: they survive a wiped install on
+# purpose, and a deploy carries this directory between runs by name.
+www/.cache

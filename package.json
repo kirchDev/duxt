@@ -27,7 +27,8 @@
   },
   "bin": {
     "duxt": "./bin/duxt.mjs",
-    "duxt-cache-key": "./bin/duxt-cache-key.mjs"
+    "duxt-cache-key": "./bin/duxt-cache-key.mjs",
+    "duxt-og-cache": "./bin/duxt-og-cache.mjs"
   },
   "files": [
     "app",
@@ -44,6 +45,7 @@
     "mdc.config.ts",
     "modules",
     "nuxt.config.ts",
+    "og-image-cache.ts",
     "openapi-model.ts",
     "openapi-parse.ts",
     "public",
@@ -70,6 +72,7 @@
     ".": "./nuxt.config.ts",
     "./bruno-model": "./bruno-model.ts",
     "./bruno-parse": "./bruno-parse.ts",
+    "./og-image-cache": "./og-image-cache.ts",
     "./openapi-model": "./openapi-model.ts",
     "./openapi-parse": "./openapi-parse.ts",
     "./sections": "./sections.ts",
@@ -104,9 +107,10 @@
     "test:watch": "vitest",
     "report": "pnpm --filter www exec duxt report",
     "cache:key": "node ./bin/duxt-cache-key.mjs --root www",
+    "og:cache": "node ./bin/duxt-og-cache.mjs --root www",
     "build:app": "pnpm --filter www build",
-    "deploy:www": "pnpm --filter www run deploy",
     "build:www": "pnpm --filter www run build:cf",
+    "deploy:www": "pnpm --filter www run deploy",
     "publish:www": "pnpm --filter www run publish:cf",
     "check:a11y": "node scripts/check-a11y.ts",
     "check:seo": "node scripts/check-seo.ts",

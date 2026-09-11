@@ -4,11 +4,16 @@ import { join } from 'node:path';
 import { defineNuxtConfig } from 'nuxt/config';
 import { fileURLToPath } from 'node:url';
 import { claimNuxtProcess } from '../scripts/nuxt-process-guard.ts';
+import {
+  duxtOgImageBuildCache,
+  duxtOgImageFingerprint,
+  duxtOgImageRendererVersions
+} from '@kirchdev/duxt/og-image-cache';
 
-claimNuxtProcess(
-  fileURLToPath(new URL('.', import.meta.url)),
-  process.argv.slice(2).join(' ') || 'Nuxt'
-);
+/** This site's own directory — what every path below resolves against. */
+const siteDir = fileURLToPath(new URL('.', import.meta.url));
+
+claimNuxtProcess(siteDir, process.argv.slice(2).join(' ') || 'Nuxt');
 
 /**
  * The version this site documents, read rather than typed.
@@ -152,6 +157,51 @@ const adapterDatabase = () => {
     `DUXT_CONTENT_ADAPTER=${adapter} is not one of libsql, postgresql.`
   );
 };
+
+/**
+ * OG images are rendered at build time and never at runtime.
+ *
+ * `@resvg/resvg-js` is a native Node binding — it cannot run on workerd at
+ * all. `zeroRuntime` strips the renderer out of the bundle entirely and leaves
+ * the images the prerender pass already wrote, which is the honest shape for
+ * this site: every OG image here is a function of a page, and every page is
+ * prerendered below.
+ *
+ * The render budget is the other half of the timeout problem the prerender
+ * concurrency comment describes. 15 seconds is a sensible ceiling for one image
+ * rendered on demand; it is the wrong one for hundreds rendered at once on a CI
+ * runner with two cores, where the budget is spent waiting for a core rather
+ * than rendering. Nothing is served from this path at runtime, so a slow render
+ * costs build time and nobody's request.
+ */
+const ogImage = cloudflare
+  ? { zeroRuntime: true, security: { renderTimeout: 60_000 } }
+  : {};
+
+/**
+ * WHERE THE RENDERED IMAGES SURVIVE A BUILD.
+ *
+ * One deploy rendered 1,053 of them and spent 158 seconds in the prerender
+ * pass doing it, almost all of it redrawing images no page had changed.
+ * nuxt-og-image can keep them — it keys each one by the page's own options, the
+ * template's source and its own version — and does nothing with that until a
+ * directory is named and that directory outlives the runner.
+ *
+ * NOT INSIDE THE CLOUDFLARE BRANCH, though only that build renders anything.
+ * The switch above is about where the site is going; this is about not doing
+ * work twice, which is as true of a local `build:cf` as it is of the deploy.
+ *
+ * The call also EMPTIES the directory when the inputs its key cannot see have
+ * moved — the fonts, the renderer options, the renderer packages themselves.
+ * That is the half that makes the cache safe rather than merely fast.
+ */
+const ogImageCache = duxtOgImageBuildCache({
+  rootDir: siteDir,
+  fingerprint: duxtOgImageFingerprint({
+    options: ogImage,
+    dependencies: duxtOgImageRendererVersions(siteDir)
+  })
+});
 
 // Consumes the layer exactly as a downstream repo does. Modules, the Content
 // driver and the theme all arrive with the extend.
@@ -309,27 +359,15 @@ export default defineNuxtConfig({
       : {},
 
   /**
-   * OG images are rendered at build time and never at runtime.
+   * OG images are rendered at build time and never at runtime, and KEPT.
    *
-   * `@resvg/resvg-js` is a native Node binding — it cannot run on workerd at
-   * all. `zeroRuntime` strips the renderer out of the bundle entirely and
-   * leaves the images the prerender pass already wrote, which is the honest
-   * shape for this site: every OG image here is a function of a page, and every
-   * page is prerendered above.
+   * `ogImage` above is what decides how they look; `buildCache` is what decides
+   * whether a build has to render them again. The base carries a digest of
+   * every rendering input nuxt-og-image's own cache key leaves out, so a font
+   * or a renderer option that moves empties the directory rather than serving
+   * a thousand images of the previous design — see `og-image-cache.ts`.
    */
-  ogImage: cloudflare
-    ? {
-        zeroRuntime: true,
-
-        // The other half of the timeout problem above. 15 seconds is a
-        // sensible ceiling for one image rendered on demand; it is the wrong
-        // one for hundreds rendered at once on a CI runner with two cores,
-        // where the budget is spent waiting for a core rather than rendering.
-        // Nothing is served from this path at runtime, so a slow render costs
-        // build time and nobody's request.
-        security: { renderTimeout: 60_000 }
-      }
-    : {},
+  ogImage: { ...ogImage, buildCache: { base: ogImageCache.base } },
 
   // Dev over a public tunnel: the HMR client otherwise dials ws://localhost,
   // which a phone on the other side of the tunnel cannot reach — the page

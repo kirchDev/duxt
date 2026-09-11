@@ -141,12 +141,101 @@ jobs:
             echo "sha=$(git rev-parse HEAD)"
           } >> "$GITHUB_OUTPUT"
 
+      # THE RENDERED IMAGES, NOT THE PAGES, and a different cache from the one
+      # above: that one holds what was DOWNLOADED, this one what was DRAWN.
+      # Every page of this site carries an OG image rendered through satori
+      # during the prerender crawl, and deploy #4 drew 1,053 of them in a
+      # 158-second pass, almost all redrawing something no commit had touched.
+      # nuxt-og-image can keep them and does nothing with that until the
+      # directory outlives the runner, which is what this is.
+      #
+      # A ROLLING KEY, where the sources cache uses an exact one. That one holds
+      # a function of the source list: pin the list and one save serves every
+      # later run. This holds a function of the PAGES, so a commit that adds one
+      # has something new to save, and an exact key would hit, never re-save,
+      # and freeze the cache at whatever the first build wrote.
+      #
+      # The key's namespace is the renderer VERSIONS, so a satori bump misses
+      # the restore instead of downloading images it is about to discard. What
+      # the command cannot see — the site's own renderer options, which live in
+      # a `nuxt.config.ts` that would claim a Nuxt process if a command loaded
+      # it — the BUILD sees, and empties the directory over. Two levels, and the
+      # one that decides whether an image may be served is the build's.
+      #
+      # `steps.source.outputs.sha` rather than `github.sha`, for the reason the
+      # step above exists: two of the three triggers build `main` rather than
+      # the ref they fired from.
+      - name: Resolve the OG image cache key
+        id: og
+        env:
+          SOURCE_SHA: ${{ steps.source.outputs.sha }}
+        run: |
+          node ./bin/duxt-og-cache.mjs --root www --run "$SOURCE_SHA" --github \
+            >> "$GITHUB_OUTPUT"
+
+      - name: Restore the rendered OG images
+        uses: actions/cache@v6
+        with:
+          path: ${{ steps.og.outputs.path }}
+          key: ${{ steps.og.outputs.key }}
+          restore-keys: ${{ steps.og.outputs['restore-keys'] }}
+
       # THE BUILD HAPPENS HERE, NOT AT CLOUDFLARE. No Pages git integration and
       # no build on their side: the artefact is produced by this runner, with
       # this lockfile and this Node, and wrangler only uploads it — one place
       # builds, and it is the one whose logs we keep.
+      #
+      # TIMED, AND ITS LOG KEPT, because the step after it has nothing else to
+      # read. A render that ran out of time is a line in this output and nowhere
+      # else — no file is written, nothing fails — so the count only exists if
+      # the log does. `pipefail` because the log is teed: without it the step's
+      # status is `tee`'s, and a failed build reads as a green one.
       - name: Build www for Workers
-        run: pnpm build:www
+        id: build
+        run: |
+          set -o pipefail
+          started=$(date +%s%3N)
+          # BEFORE the build rather than after it: a build that FAILED is
+          # exactly the one whose render count wants reporting, and the report
+          # is a function of this timestamp.
+          echo "started=$started" >> "$GITHUB_OUTPUT"
+          pnpm build:www 2>&1 | tee build.log
+          echo "ms=$(($(date +%s%3N) - started))" >> "$GITHUB_OUTPUT"
+
+      # AFTER THE BUILD, WHETHER OR NOT IT PASSED. What this counts — images in
+      # the output, entries the build wrote, renders that ran out of time — is
+      # exactly what a failed build needs reported, and the numbers are what
+      # makes the cache's worth readable off a run rather than asserted here.
+      #
+      # No `--upload-ms`: the upload is a job of its own now, on another runner,
+      # and the run already shows each job's duration. The option stays on the
+      # command for whoever runs both halves by hand.
+      - name: Report the OG image cache
+        id: og-report
+        if: always() && steps.build.outputs.started != ''
+        env:
+          SINCE: ${{ steps.build.outputs.started }}
+          BUILD_MS: ${{ steps.build.outputs.ms }}
+        run: |
+          report() {
+            node ./bin/duxt-og-cache.mjs --root www --report \
+              --since "$SINCE" --log build.log --build-ms "$BUILD_MS" "$@"
+          }
+          report >> "$GITHUB_STEP_SUMMARY"
+          report --github >> "$GITHUB_OUTPUT"
+
+      # A MISSING OG IMAGE FAILS NOTHING, which is why it needs saying out loud.
+      # A render that exceeds its budget is logged and dropped, the page ships
+      # without an image, and the build is green. This does not fail the deploy
+      # either — the site is still correct — it makes the count visible in the
+      # run's annotations instead of on line 9,000 of a log nobody opens.
+      - name: Flag the renders that ran out of time
+        if: always() && steps.og-report.outputs.complete == 'false'
+        env:
+          TIMEOUTS: ${{ steps.og-report.outputs.timeouts }}
+        run: |
+          echo "::warning::$TIMEOUTS OG image renders timed out; that many" \
+            "pages shipped with no image."
 
       # The build/publication boundary, made literal. `.output` is the whole of
       # what wrangler uploads: the module Worker and the prerendered assets
