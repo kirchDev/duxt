@@ -85,6 +85,13 @@ const ROUTES = [
   // download and an outbound link — that no other page on this list has.
   '/demo/collection',
   '/demo/collection/consignments/create-a-consignment',
+  // THE ONLY PAGE THAT RENDERS AN IMAGE. Every `![…]` in the component
+  // reference sits inside a fenced code block, so without this route the gate
+  // never reaches `ProseImg` at all — and what it draws is a `<button>` around
+  // an image with a decorative indicator inside it, which is precisely the
+  // shape axe has an opinion about: the button's name, the image's
+  // alternative, and whether the indicator is hidden from the tree.
+  '/demo/images',
   '/does-not-exist'
 ];
 

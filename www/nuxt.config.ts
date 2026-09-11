@@ -72,6 +72,38 @@ const cloudflare = (process.env.NITRO_PRESET ?? '').startsWith('cloudflare');
 const adapter = process.env.DUXT_CONTENT_ADAPTER;
 
 /**
+ * Routes to prerender instead of crawling the site, comma-separated.
+ *
+ * A STATIC BUILD IS THE ONLY PLACE SOME OF THIS CODE EXISTS. `@nuxt/image`
+ * resolves its provider from the preset — `ipxStatic` when nitro is static,
+ * `ipx` on a Node server, nothing at all on a Worker — so a claim about what a
+ * generated site writes to disk can only be settled by generating one. That is
+ * the gap this lever closes: `ProseImg` registers its zoom dialog's variants
+ * with the prerender crawler, and nothing but a static `.output/public` can say
+ * whether those files are actually there.
+ *
+ * It exists because the whole site is not a tractable thing to generate for one
+ * question. `www` is seven locales over 38 collections, every page of which
+ * renders an OG image through satori during the crawl — the run that produced
+ * `prerender.concurrency: 8` below. Narrowing the crawl to the routes under
+ * examination turns an hours-long build into a minute and changes nothing about
+ * which code path runs.
+ *
+ * It narrows the crawl and does nothing else — which preset is built stays
+ * `NITRO_PRESET`'s to say, so the same lever serves the static question above
+ * and a Node build that wants one page rendered.
+ *
+ * A verification lever, not a deployment setting: the Cloudflare branch ignores
+ * it, because a deploy must crawl the whole site.
+ *
+ *     NITRO_PRESET=static DUXT_PRERENDER_ROUTES=/demo/images pnpm --filter www build
+ */
+const prerenderRoutes = (process.env.DUXT_PRERENDER_ROUTES ?? '')
+  .split(',')
+  .map((route) => route.trim())
+  .filter(Boolean);
+
+/**
  * The runtime database for a non-default adapter.
  *
  * `postgresql` and a remote `libsql` both need a URL, and both take it from the
@@ -216,47 +248,51 @@ export default defineNuxtConfig({
    * is where they belong. `scripts/check-routes.ts` is where that is written
    * down and checked.
    */
-  nitro: cloudflare
-    ? {
-        prerender: {
-          crawlLinks: true,
-          routes: ['/'],
+  nitro:
+    !cloudflare && prerenderRoutes.length
+      ? // The named routes and nothing else — see `DUXT_PRERENDER_ROUTES` above.
+        { prerender: { crawlLinks: false, routes: prerenderRoutes } }
+      : cloudflare
+        ? {
+            prerender: {
+              crawlLinks: true,
+              routes: ['/'],
 
-          /*
-           * A BROKEN LINK COSTS ONE PAGE, NOT THE DEPLOY.
-           *
-           * Nuxt's default is to exit the build on the first prerender error,
-           * and crawling every link finds every dead one by construction: this
-           * site currently reaches `/demo/api/shipments` and its two
-           * operations — unversioned paths the versioned demo section links to
-           * and nothing serves — 42 times across the locales.
-           *
-           * That wants fixing where the links are generated, and it is not
-           * worth a documentation site that cannot ship until it is. Such a
-           * page is left to the Worker, which answers it exactly as it would
-           * have anyway. Every one of them is still printed, so the list does
-           * not go quiet.
-           */
-          failOnError: false,
+              /*
+               * A BROKEN LINK COSTS ONE PAGE, NOT THE DEPLOY.
+               *
+               * Nuxt's default is to exit the build on the first prerender error,
+               * and crawling every link finds every dead one by construction: this
+               * site currently reaches `/demo/api/shipments` and its two
+               * operations — unversioned paths the versioned demo section links to
+               * and nothing serves — 42 times across the locales.
+               *
+               * That wants fixing where the links are generated, and it is not
+               * worth a documentation site that cannot ship until it is. Such a
+               * page is left to the Worker, which answers it exactly as it would
+               * have anyway. Every one of them is still printed, so the list does
+               * not go quiet.
+               */
+              failOnError: false,
 
-          /*
-           * NITRO'S DEFAULT IS FOUR PER CORE, AND THIS SITE CANNOT PAY IT.
-           * Every page renders an OG image through satori during the crawl,
-           * and at the default width hundreds of renders contend for one
-           * process until they blow through the renderer's 15-second budget:
-           * 335 pages came out of one build with `createImage timeout` and
-           * therefore no image at all — silently, because a missing OG image
-           * fails nothing.
-           *
-           * MEASURED, NOT ASSUMED, AND NOT YET FINISHED: eight brought that
-           * build's 335 down to 140. It is the right direction and not the
-           * whole fix, and the other lever is the renderer's budget below —
-           * the combination has not been measured on a green build yet.
-           */
-          concurrency: 8
-        }
-      }
-    : {},
+              /*
+               * NITRO'S DEFAULT IS FOUR PER CORE, AND THIS SITE CANNOT PAY IT.
+               * Every page renders an OG image through satori during the crawl,
+               * and at the default width hundreds of renders contend for one
+               * process until they blow through the renderer's 15-second budget:
+               * 335 pages came out of one build with `createImage timeout` and
+               * therefore no image at all — silently, because a missing OG image
+               * fails nothing.
+               *
+               * MEASURED, NOT ASSUMED, AND NOT YET FINISHED: eight brought that
+               * build's 335 down to 140. It is the right direction and not the
+               * whole fix, and the other lever is the renderer's budget below —
+               * the combination has not been measured on a green build yet.
+               */
+              concurrency: 8
+            }
+          }
+        : {},
 
   /**
    * D1, because a Worker has no filesystem.
