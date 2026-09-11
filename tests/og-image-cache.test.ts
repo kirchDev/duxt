@@ -3,6 +3,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readdirSync,
+  rmSync,
   utimesSync,
   writeFileSync
 } from 'node:fs';
@@ -141,6 +142,36 @@ describe('duxtOgImageBuildCache', () => {
 
     expect(second.reset).toBe(true);
     expect(existsSync(join(second.dir, 'stale.png'))).toBe(false);
+  });
+
+  it('reports a site that had no cache as having thrown nothing away', () => {
+    // `reset` is read off the removal rather than off a check before it, so the
+    // one case a removal has to get right is the one where there is nothing to
+    // remove. A first build must not claim it emptied anything.
+    const rootDir = site();
+
+    expect(
+      duxtOgImageBuildCache({ rootDir, fingerprint: 'abc123' }).reset
+    ).toBe(false);
+  });
+
+  it('throws away a directory that holds images and no stamp', () => {
+    // A build killed between the mkdir and the stamp leaves images whose fonts
+    // and renderer nothing can name. Unstamped is not "unchanged": the images
+    // go, because the stamp is the only thing that ever licensed serving them.
+    // This is the case a `held !== ''` guard would silently keep, and it passes
+    // every other test in this block.
+    const rootDir = site();
+    const first = duxtOgImageBuildCache({ rootDir, fingerprint: 'abc123' });
+    writeFileSync(join(first.dir, 'orphan.png'), 'rendered');
+    for (const entry of readdirSync(first.dir)) {
+      if (entry.startsWith('.')) rmSync(join(first.dir, entry));
+    }
+
+    const second = duxtOgImageBuildCache({ rootDir, fingerprint: 'abc123' });
+
+    expect(second.reset).toBe(true);
+    expect(existsSync(join(second.dir, 'orphan.png'))).toBe(false);
   });
 
   it('stamps the fingerprint where the module will not read it as an image', () => {

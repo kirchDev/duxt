@@ -172,15 +172,49 @@ export function duxtOgImageBuildCache(
   const dir = join(options.rootDir, base);
   const stamp = join(dir, STAMP);
 
-  const held = existsSync(stamp) ? readFileSync(stamp, 'utf8').trim() : '';
-  const reset = existsSync(dir) && held !== options.fingerprint;
+  // Read the stamp rather than ask whether it is there. An absent stamp and an
+  // unreadable one say the same thing here — nothing is proven about what this
+  // directory holds — and a question asked before the read is answered about a
+  // moment that has already passed by the time the read runs.
+  let held = '';
+  try {
+    held = readFileSync(stamp, 'utf8').trim();
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+  }
 
-  if (reset) rmSync(dir, { recursive: true, force: true });
+  // AN UNSTAMPED DIRECTORY IS EMPTIED, and that is the rule rather than an edge
+  // case it falls through. A cache a killed build half-wrote, or one someone
+  // deleted the stamp out of, holds images whose fonts and renderer nobody can
+  // name — the silent wrong image this whole file exists to prevent. `held` is
+  // '' there, which no fingerprint equals, so it goes.
+  const stale = held !== options.fingerprint;
+  const reset = stale && discardOgImageCacheDir(dir);
 
   mkdirSync(dir, { recursive: true });
-  if (held !== options.fingerprint) writeFileSync(stamp, options.fingerprint);
+  if (stale) writeFileSync(stamp, options.fingerprint);
 
   return { base, dir, fingerprint: options.fingerprint, reset };
+}
+
+/**
+ * Empty the cache directory, and report whether there was one to empty.
+ *
+ * `reset` is a claim about what this call DID — that a previous build's images
+ * were thrown away — so it is taken from the removal itself rather than from an
+ * `existsSync` before it: a check answers about a moment that has passed by the
+ * time the removal runs, while the removal answers about its own. `force` is
+ * off for exactly that reason. It is the flag that turns "there was nothing
+ * here" from an answer into silence, and that answer is the whole return value.
+ */
+function discardOgImageCacheDir(dir: string): boolean {
+  try {
+    rmSync(dir, { recursive: true });
+    return true;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return false;
+    throw error;
+  }
 }
 
 export interface DuxtOgImageCacheReportInput {
