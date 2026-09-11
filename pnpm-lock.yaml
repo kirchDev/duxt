@@ -169,6 +169,9 @@ importers:
       '@nuxtjs/seo':
         specifier: ^5.3.14
         version: 5.3.14(852f0d7b73f1580d3952e07e98c9c7d6)
+      '@nuxtjs/sitemap':
+        specifier: ^8.5.0
+        version: 8.5.0(ef1886db586ac14be550910f5b69d4dc)
       '@resvg/resvg-js':
         specifier: ^2.6.2
         version: 2.6.2
