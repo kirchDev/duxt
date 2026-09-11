@@ -359,7 +359,7 @@ export default defineNuxtConfig({
   /**
    * D1, because a Worker has no filesystem.
    *
-   * Content keeps its pages in SQL; the layer's `experimental.nativeSqlite`
+   * Content keeps its pages in SQL; the layer's `experimental.sqliteConnector`
    * covers the local case and means nothing here. The build still produces the
    * same dump — this only decides where it is restored, and Content loads it
    * into D1 on the first request after a deploy.

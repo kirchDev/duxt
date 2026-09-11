@@ -350,10 +350,14 @@ export default defineNuxtConfig({
     },
 
     // Content's default driver, better-sqlite3, is a native addon compiled
-    // through node-gyp. Node 24 ships node:sqlite, so no driver package is
-    // needed — see CLAUDE.md for the fallback if this flag ever goes away.
+    // through node-gyp. `native` is Node 24's own node:sqlite, so no driver
+    // package is needed — see CLAUDE.md for the fallback if this option ever
+    // goes away. It replaced `nativeSqlite: true`, which Content still honours
+    // but marks deprecated; a layer is the worst place to carry a deprecation,
+    // so tests/sqlite-connector.test.ts holds this block to whatever the
+    // installed Content declares current.
     experimental: {
-      nativeSqlite: true
+      sqliteConnector: 'native'
     }
   },
 
