@@ -41,6 +41,15 @@ export interface DuxtSource {
    */
   refs?: DuxtRef[];
   /**
+   * Discover release tags to publish as versions.
+   *
+   * Discovery is opt-in: a source still needs to say whether every release,
+   * one release per minor, or one per major belongs in its public URLs. Explicit
+   * `refs` stay available beside this object and override a discovered tag's
+   * label, lifecycle, default and locales.
+   */
+  releases?: DuxtSourceReleases;
+  /**
    * Languages this source is available in, beyond the one written in `path`.
    *
    * A string is the folder inside `path`: `'de-DE'` reads `docs/de-DE/`. An
@@ -168,6 +177,14 @@ export type DuxtRef =
   | string
   | ({ branch: string } & DuxtRefOptions)
   | ({ tag: string } & DuxtRefOptions);
+
+/** The release lines a source publishes when it discovers Git tags. */
+export interface DuxtSourceReleases {
+  /** Every release, or the newest release in each minor or major line. */
+  select: 'all' | 'minor' | 'major';
+  /** Include SemVer pre-releases; stable releases are the default. */
+  prereleases?: boolean;
+}
 
 interface DuxtRefOptions {
   /** Shown in the switcher and used in the URL; defaults to the ref name. */

@@ -1,6 +1,11 @@
 import { execFileSync } from 'node:child_process';
-import type { DuxtSource } from './sources-resolve';
+import type {
+  DuxtRef,
+  DuxtSource,
+  DuxtSourceReleases
+} from './sources-resolve';
 import {
+  compareVersionTags,
   expandSources,
   isLatestRef,
   newestTag,
@@ -81,6 +86,85 @@ function tagsOf(repo: string | undefined): string[] {
   return tags;
 }
 
+interface ParsedTag {
+  major: number;
+  minor: number;
+  prerelease: boolean;
+}
+
+function parseTag(tag: string): ParsedTag | undefined {
+  const match = /^v?(\d+)\.(\d+)\.\d+(?:-(.+))?$/.exec(tag.trim());
+  if (!match) return undefined;
+
+  return {
+    major: Number(match[1]),
+    minor: Number(match[2]),
+    prerelease: Boolean(match[3])
+  };
+}
+
+/** Tags selected by a source's explicit release policy, newest first. */
+function releaseTags(tags: string[], releases: DuxtSourceReleases): string[] {
+  const parsed = tags
+    .map((tag) => ({ tag, version: parseTag(tag) }))
+    .filter(
+      (entry): entry is { tag: string; version: ParsedTag } =>
+        Boolean(entry.version) &&
+        (releases.prereleases || !entry.version!.prerelease)
+    )
+    .sort((left, right) => compareVersionTags(left.tag, right.tag));
+
+  if (releases.select === 'all') return parsed.map((entry) => entry.tag);
+
+  const selected = new Set<string>();
+  const result: string[] = [];
+  for (const entry of parsed) {
+    const line =
+      releases.select === 'major'
+        ? String(entry.version.major)
+        : `${entry.version.major}.${entry.version.minor}`;
+    if (selected.has(line)) continue;
+    selected.add(line);
+    result.push(entry.tag);
+  }
+  return result;
+}
+
+/**
+ * Add release-discovered tags to explicit refs without giving discovery control
+ * over a tag a maintainer has written out by hand.
+ */
+function resolveReleaseRefs(source: DuxtSource): DuxtSource {
+  if (!source.releases) return source;
+
+  const tags = releaseTags(tagsOf(source.repo), source.releases);
+  if (!tags.length) {
+    throw new Error(
+      `duxt: releases selection "${source.releases.select}" on ` +
+        `${source.repo ?? 'this repository'} found no SemVer tags to publish.`
+    );
+  }
+
+  // Keep the newest selected stable tag first. `resolveSources` already makes
+  // the first ref the default and lets sourceOptions.defaultRef replace that
+  // fallback; marking it explicit would make discovery outrank that option.
+  const refs: DuxtRef[] = tags.map((tag) => ({ tag }));
+  const indexByTag = new Map(tags.map((tag, index) => [tag, index]));
+
+  for (const ref of source.refs ?? []) {
+    if (refIsTag(ref)) {
+      const index = indexByTag.get(refName(ref));
+      if (index !== undefined) {
+        refs[index] = ref;
+        continue;
+      }
+    }
+    refs.push(ref);
+  }
+
+  return { ...source, refs };
+}
+
 /**
  * The source list with every `latest` replaced by a concrete tag.
  *
@@ -89,8 +173,9 @@ function tagsOf(repo: string | undefined): string[] {
  */
 export function resolveLatestRefs(sources: DuxtSource[]): DuxtSource[] {
   // Reject local refs before a missing tag can hide the configuration error.
-  expandSources(sources);
-  return sources.map((source) => {
+  const discovered = sources.map(resolveReleaseRefs);
+  expandSources(discovered);
+  return discovered.map((source) => {
     if (!source.refs?.some(isLatestRef)) return source;
 
     const newest = newestTag(tagsOf(source.repo));
