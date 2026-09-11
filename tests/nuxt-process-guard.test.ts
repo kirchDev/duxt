@@ -7,6 +7,7 @@ import {
   rmSync,
   writeFileSync
 } from 'node:fs';
+import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -35,6 +36,17 @@ function start(root: string, command: string) {
     output += data;
   });
   return { child, output: () => output };
+}
+
+async function reservePort(): Promise<number> {
+  const reservation = createServer();
+  await new Promise<void>((resolve) =>
+    reservation.listen(0, '127.0.0.1', resolve)
+  );
+  const address = reservation.address();
+  if (!address || typeof address === 'string') throw new Error('No test port');
+  await new Promise<void>((resolve) => reservation.close(() => resolve()));
+  return address.port;
 }
 
 async function stopProcessGroup(child: ChildProcess): Promise<void> {
@@ -135,7 +147,7 @@ it('does not expire a live legacy Nuxt lock based on its age', async () => {
 });
 
 it('keeps serving when a .env change restarts Nuxt dev', async () => {
-  const port = 33432;
+  const port = await reservePort();
   const root = mkdtempSync(join(tmpdir(), 'duxt-env-'));
   roots.push(root);
   const env = join(root, '.env');
