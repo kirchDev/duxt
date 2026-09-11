@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ConfigProvider } from 'reka-ui';
+
 /**
  * The locale's head tags.
  *
@@ -19,17 +21,10 @@
  */
 const { locale, locales } = useI18n();
 const duxt = useDuxtConfig();
+const direction = useDuxtDirection();
 
 const baseUrl = (useRuntimeConfig().public as { i18n?: { baseUrl?: string } })
   .i18n?.baseUrl;
-
-const direction = computed(() => {
-  const current = locales.value.find(
-    (entry) => (typeof entry === 'string' ? entry : entry.code) === locale.value
-  );
-
-  return (typeof current === 'object' && current?.dir) || 'ltr';
-});
 
 useHead(() => ({
   htmlAttrs: { lang: locale.value, dir: direction.value },
@@ -116,7 +111,14 @@ useSchemaOrg([
        navigation; the focus half of the same problem is useDuxtPageFocus. -->
   <NuxtRouteAnnouncer />
 
-  <NuxtLayout>
-    <NuxtPage />
-  </NuxtLayout>
+  <!-- reka-ui reads its direction from HERE and from nowhere else: its
+       `useDirection` injects this context and falls back to `ltr` without ever
+       consulting the document, so `<html dir>` alone leaves every menu, select,
+       tooltip and scroll area laid out left-to-right under a right-to-left
+       page. Renderless — it draws no element and changes no landmark. -->
+  <ConfigProvider :dir="direction">
+    <NuxtLayout>
+      <NuxtPage />
+    </NuxtLayout>
+  </ConfigProvider>
 </template>

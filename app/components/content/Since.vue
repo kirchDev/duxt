@@ -15,7 +15,7 @@ defineProps<{ version?: string }>();
 </script>
 
 <template>
-  <UiBadge variant="secondary" class="ml-2 align-middle font-mono text-[10px]">
+  <UiBadge variant="secondary" class="ms-2 align-middle font-mono text-[10px]">
     {{ $t('duxt.page.since', { version }) }}
   </UiBadge>
 </template>

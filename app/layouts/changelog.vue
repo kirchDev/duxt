@@ -67,7 +67,7 @@ const { headerOffset } = useDuxtSectionRow();
            the whole overview of a changelog with a single release. -->
       <div v-if="items.length > 1" class="hidden w-56 shrink-0 lg:block">
         <div
-          class="sticky top-[var(--duxt-header-offset)] max-h-[calc(100vh-var(--duxt-header-offset)-1.5rem)] overflow-y-auto py-8 pr-2"
+          class="sticky top-[var(--duxt-header-offset)] max-h-[calc(100vh-var(--duxt-header-offset)-1.5rem)] overflow-y-auto py-8 pe-2"
         >
           <DuxtNavigation
             :items="items"

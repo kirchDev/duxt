@@ -241,7 +241,7 @@ const searchHint = computed(() => hint('search'));
     <span class="text-sm">{{ $t('duxt.search.label') }}</span>
     <kbd
       v-if="searchHint"
-      class="ml-auto hidden rounded border bg-muted px-1.5 font-mono text-[10px] sm:inline-block"
+      class="ms-auto hidden rounded border bg-muted px-1.5 font-mono text-[10px] sm:inline-block"
     >
       {{ searchHint }}
     </kbd>

@@ -69,7 +69,7 @@ function open(base: string) {
     <UiButton
       variant="outline"
       size="sm"
-      class="gap-1.5 rounded-r-none border-r-0"
+      class="gap-1.5 rounded-e-none border-e-0"
       @click="copy"
     >
       <Icon :name="copied ? 'lucide:check' : 'lucide:copy'" class="size-3.5" />
@@ -81,7 +81,7 @@ function open(base: string) {
         <UiButton
           variant="outline"
           size="sm"
-          class="rounded-l-none px-1.5"
+          class="rounded-s-none px-1.5"
           :aria-label="$t('duxt.page.copy.more')"
         >
           <Icon name="lucide:chevron-down" class="size-3.5 opacity-60" />

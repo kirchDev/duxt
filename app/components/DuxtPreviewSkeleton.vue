@@ -81,7 +81,7 @@ withDefaults(
       <!-- The navbar row, then a clear gap, then the version pill, the search
            box at its real `w-56` and the three icons. Measured off the page
            this stands in for, not sketched. -->
-      <div class="ml-auto hidden items-center gap-6 @2xl:flex">
+      <div class="ms-auto hidden items-center gap-6 @2xl:flex">
         <div
           v-for="width in [32, 62, 50, 42]"
           :key="width"
@@ -90,7 +90,7 @@ withDefaults(
         />
       </div>
 
-      <div class="ml-6 flex items-center gap-6">
+      <div class="ms-6 flex items-center gap-6">
         <div class="h-5 w-12 rounded-full bg-muted/60" />
         <div class="h-8 w-56 rounded-md border bg-muted/30 @max-2xl:w-24" />
         <div class="hidden gap-6 @2xl:flex">
@@ -181,7 +181,7 @@ withDefaults(
                 :style="{ width: `${row.path}px` }"
               />
               <div
-                class="ml-auto h-2.5 rounded bg-muted/40"
+                class="ms-auto h-2.5 rounded bg-muted/40"
                 :style="{ width: `${row.summary}px` }"
               />
             </div>

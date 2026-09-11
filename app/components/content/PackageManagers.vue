@@ -169,7 +169,7 @@ async function copy() {
       <UiButton
         variant="ghost"
         size="icon"
-        class="ml-auto size-7"
+        class="ms-auto size-7"
         :aria-label="
           copied ? $t('duxt.code.copied') : $t('duxt.code.copyCommand')
         "

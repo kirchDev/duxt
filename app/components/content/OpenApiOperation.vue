@@ -107,7 +107,7 @@ const clientAnchor = computed(() =>
             {{ $t('duxt.openapi.requestBody') }}
             <span
               v-if="operation.requestBody.required"
-              class="ml-1 text-xs font-medium text-destructive"
+              class="ms-1 text-xs font-medium text-destructive"
             >
               {{ $t('duxt.openapi.required') }}
             </span>
@@ -171,7 +171,7 @@ const clientAnchor = computed(() =>
       class="not-typeset min-w-0 scroll-mt-[var(--duxt-header-offset)]"
     >
       <div
-        class="xl:sticky xl:top-[calc(var(--duxt-header-offset)+1rem)] xl:max-h-[calc(100vh-var(--duxt-header-offset)-2.5rem)] xl:overflow-y-auto xl:pr-1"
+        class="xl:sticky xl:top-[calc(var(--duxt-header-offset)+1rem)] xl:max-h-[calc(100vh-var(--duxt-header-offset)-2.5rem)] xl:overflow-y-auto xl:pe-1"
       >
         <DuxtOpenApiClient
           :operation="operation"

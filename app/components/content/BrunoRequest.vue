@@ -77,7 +77,7 @@ defineProps<{
         <section v-if="request.body" class="mt-8">
           <h2 class="duxt-label">
             {{ $t('duxt.bruno.body') }}
-            <span class="ml-1 font-mono text-xs text-muted-foreground">
+            <span class="ms-1 font-mono text-xs text-muted-foreground">
               {{ request.body.type }}
             </span>
           </h2>
@@ -124,7 +124,7 @@ defineProps<{
       class="not-typeset min-w-0 scroll-mt-[var(--duxt-header-offset)]"
     >
       <div
-        class="xl:sticky xl:top-[calc(var(--duxt-header-offset)+1rem)] xl:max-h-[calc(100vh-var(--duxt-header-offset)-2.5rem)] xl:overflow-y-auto xl:pr-1"
+        class="xl:sticky xl:top-[calc(var(--duxt-header-offset)+1rem)] xl:max-h-[calc(100vh-var(--duxt-header-offset)-2.5rem)] xl:overflow-y-auto xl:pe-1"
       >
         <DuxtOpenApiClient :operation="operation" :servers="servers" />
       </div>

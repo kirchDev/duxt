@@ -227,7 +227,7 @@ const open = computed(() => size.value < MANY);
              said. -->
         <span
           v-if="collapsible && size >= MANY"
-          class="ml-auto rounded-md bg-muted px-1.5 font-mono text-[0.6875rem] text-muted-foreground tabular-nums"
+          class="ms-auto rounded-md bg-muted px-1.5 font-mono text-[0.6875rem] text-muted-foreground tabular-nums"
           :aria-label="$t('duxt.openapi.fields', { count: size })"
         >
           {{ size }}
@@ -271,7 +271,7 @@ const open = computed(() => size.value < MANY);
     <template v-else-if="!schema?.circular">
       <ul
         v-if="schema?.properties?.length"
-        class="mt-3 space-y-3 border-l pl-4"
+        class="mt-3 space-y-3 border-s ps-4"
       >
         <li v-for="property in schema.properties" :key="property.name">
           <DuxtOpenApiSchema
@@ -284,7 +284,7 @@ const open = computed(() => size.value < MANY);
         </li>
       </ul>
 
-      <div v-if="items" class="mt-3 border-l pl-4">
+      <div v-if="items" class="mt-3 border-s ps-4">
         <p class="mb-1 text-xs font-medium text-muted-foreground">
           {{ $t('duxt.openapi.items') }}
         </p>
@@ -295,7 +295,7 @@ const open = computed(() => size.value < MANY);
         />
       </div>
 
-      <div v-if="additional" class="mt-3 border-l pl-4">
+      <div v-if="additional" class="mt-3 border-s ps-4">
         <p class="mb-1 text-xs font-medium text-muted-foreground">
           {{ $t('duxt.openapi.additionalProperties') }}
         </p>
@@ -316,7 +316,7 @@ const open = computed(() => size.value < MANY);
       <div
         v-for="[kind, list] in branches"
         :key="kind"
-        class="mt-3 border-l pl-4"
+        class="mt-3 border-s ps-4"
       >
         <p class="mb-1 text-xs font-medium text-muted-foreground">
           {{ $t(`duxt.openapi.composition.${kind}`) }}
@@ -332,7 +332,7 @@ const open = computed(() => size.value < MANY);
         </ul>
       </div>
 
-      <div v-if="schema?.not" class="mt-3 border-l pl-4">
+      <div v-if="schema?.not" class="mt-3 border-s ps-4">
         <p class="mb-1 text-xs font-medium text-muted-foreground">
           {{ $t('duxt.openapi.composition.not') }}
         </p>

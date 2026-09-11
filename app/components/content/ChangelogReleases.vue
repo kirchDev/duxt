@@ -303,7 +303,7 @@ const rows = computed(() =>
                 />
                 <span class="truncate">{{ changelogLabel(name) }}</span>
                 <span
-                  class="ml-auto pl-2 text-xs text-muted-foreground tabular-nums"
+                  class="ms-auto ps-2 text-xs text-muted-foreground tabular-nums"
                 >
                   {{ totals[name] }}
                 </span>
@@ -560,7 +560,7 @@ const rows = computed(() =>
                   ·
                 </span>
                 {{ changelogLabel(group.name) }}
-                <span class="ml-0.5 font-medium text-foreground tabular-nums">
+                <span class="ms-0.5 font-medium text-foreground tabular-nums">
                   {{ group.count }}
                 </span>
               </span>
@@ -589,7 +589,7 @@ const rows = computed(() =>
               <span
                 v-for="person in people"
                 :key="identity(person)"
-                class="-ml-1.5 first:ml-0"
+                class="-ms-1.5 first:ms-0"
               >
                 <img
                   v-if="avatar(person.username)"
@@ -616,7 +616,7 @@ const rows = computed(() =>
 
               <span
                 v-if="others"
-                class="-ml-1.5 flex h-[18px] items-center rounded-full bg-muted px-1.5 text-[9px] font-medium text-muted-foreground ring-2 ring-background tabular-nums"
+                class="-ms-1.5 flex h-[18px] items-center rounded-full bg-muted px-1.5 text-[9px] font-medium text-muted-foreground ring-2 ring-background tabular-nums"
               >
                 <span aria-hidden="true">+{{ others }}</span>
                 <span class="sr-only">
@@ -631,7 +631,7 @@ const rows = computed(() =>
           <Icon
             name="lucide:arrow-right"
             aria-hidden="true"
-            class="col-start-2 row-start-1 size-3.5 shrink-0 self-center text-muted-foreground transition-transform group-hover:translate-x-0.5 sm:col-start-4"
+            class="col-start-2 row-start-1 size-3.5 shrink-0 self-center text-muted-foreground rtl:-scale-x-100 transition-transform ltr:group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5 sm:col-start-4"
           />
         </NuxtLink>
       </li>

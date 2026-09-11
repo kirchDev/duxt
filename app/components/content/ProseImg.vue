@@ -224,7 +224,7 @@ if (import.meta.server && import.meta.prerender) {
       <span
         v-if="zoomable"
         aria-hidden="true"
-        class="pointer-events-none absolute top-2 right-2 flex size-7 items-center justify-center rounded-md border bg-background text-muted-foreground shadow-sm transition-colors group-hover:text-foreground"
+        class="pointer-events-none absolute top-2 end-2 flex size-7 items-center justify-center rounded-md border bg-background text-muted-foreground shadow-sm transition-colors group-hover:text-foreground"
       >
         <Icon name="lucide:zoom-in" class="size-4" />
       </span>

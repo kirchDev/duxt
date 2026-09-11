@@ -12,20 +12,20 @@ const props = withDefaults(
 );
 
 const variants = {
-  info: { icon: 'lucide:info', rule: 'border-l-sky-500', text: 'text-sky-500' },
+  info: { icon: 'lucide:info', rule: 'border-s-sky-500', text: 'text-sky-500' },
   tip: {
     icon: 'lucide:lightbulb',
-    rule: 'border-l-emerald-500',
+    rule: 'border-s-emerald-500',
     text: 'text-emerald-500'
   },
   warning: {
     icon: 'lucide:triangle-alert',
-    rule: 'border-l-amber-500',
+    rule: 'border-s-amber-500',
     text: 'text-amber-500'
   },
   danger: {
     icon: 'lucide:octagon-alert',
-    rule: 'border-l-red-500',
+    rule: 'border-s-red-500',
     text: 'text-red-500'
   }
 };
@@ -35,7 +35,7 @@ const variant = computed(() => variants[props.type]);
 
 <template>
   <UiAlert
-    class="my-5 flex items-start gap-2.5 rounded-md border border-l-2 bg-muted/30 px-3 py-2.5"
+    class="my-5 flex items-start gap-2.5 rounded-md border border-s-2 bg-muted/30 px-3 py-2.5"
     :class="variant.rule"
   >
     <Icon

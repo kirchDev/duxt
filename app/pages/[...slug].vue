@@ -391,7 +391,7 @@ useSchemaOrg([
 
         <DuxtCopyPage
           v-if="controls.copyPage"
-          class="-mt-1 ml-auto"
+          class="-mt-1 ms-auto"
           :path="path"
           :title="page?.title"
           :rawbody="(page as { rawbody?: string })?.rawbody"

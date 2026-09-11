@@ -69,12 +69,12 @@ on(['previous', 'next'], (action) => {
       class="flex flex-col gap-1 rounded-lg border p-4 transition-colors hover:bg-accent"
     >
       <span class="flex items-center gap-1 text-xs text-muted-foreground">
-        <Icon name="lucide:arrow-left" class="size-3.5" />
+        <Icon name="lucide:arrow-left" class="size-3.5 rtl:-scale-x-100" />
         {{ $t('duxt.nav.previous') }}
         <kbd
           v-if="previousHint"
           aria-hidden="true"
-          class="ml-auto rounded border bg-muted px-1.5 font-mono text-[10px]"
+          class="ms-auto rounded border bg-muted px-1.5 font-mono text-[10px]"
         >
           {{ previousHint }}
         </kbd>
@@ -86,7 +86,7 @@ on(['previous', 'next'], (action) => {
     <NuxtLink
       v-if="next"
       :to="localeLink(next.path)"
-      class="flex flex-col gap-1 rounded-lg border p-4 text-right transition-colors hover:bg-accent"
+      class="flex flex-col gap-1 rounded-lg border p-4 text-end transition-colors hover:bg-accent"
     >
       <span
         class="flex items-center justify-end gap-1 text-xs text-muted-foreground"
@@ -94,12 +94,12 @@ on(['previous', 'next'], (action) => {
         <kbd
           v-if="nextHint"
           aria-hidden="true"
-          class="mr-auto rounded border bg-muted px-1.5 font-mono text-[10px]"
+          class="me-auto rounded border bg-muted px-1.5 font-mono text-[10px]"
         >
           {{ nextHint }}
         </kbd>
         {{ $t('duxt.nav.next') }}
-        <Icon name="lucide:arrow-right" class="size-3.5" />
+        <Icon name="lucide:arrow-right" class="size-3.5 rtl:-scale-x-100" />
       </span>
       <span class="font-medium">{{ next.title }}</span>
     </NuxtLink>

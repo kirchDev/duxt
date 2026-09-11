@@ -963,11 +963,11 @@ function pretty(text: string): string {
               </label>
 
               <!-- Beside the label, not beside the toggle. It belongs to the JSON
-               view, so it comes and goes with it — and on the LEFT that costs
-               nothing: the toggle is pinned to the right edge by `ml-auto`, so
-               the control the reader just clicked cannot move out from under
-               the pointer, which is what happened when the two shared the right
-               end of this row. -->
+               view, so it comes and goes with it — and at the START of the row
+               that costs nothing: the toggle is pinned to the far END by
+               `ms-auto`, so the control the reader just clicked cannot move out
+               from under the pointer, which is what happened when the two
+               shared the end of this row. -->
               <UiButton
                 v-if="mode === 'json'"
                 type="button"
@@ -985,7 +985,7 @@ function pretty(text: string): string {
                about what it does. -->
               <div
                 v-if="formable"
-                class="ml-auto flex items-center gap-0.5 rounded-md border p-0.5"
+                class="ms-auto flex items-center gap-0.5 rounded-md border p-0.5"
               >
                 <button
                   v-for="view in ['form', 'json'] as const"
@@ -1151,7 +1151,7 @@ function pretty(text: string): string {
                   <span class="text-muted-foreground">
                     {{ result.statusText }}
                   </span>
-                  <span class="ml-auto font-mono text-xs text-muted-foreground">
+                  <span class="ms-auto font-mono text-xs text-muted-foreground">
                     {{ result.duration }}&nbsp;ms
                   </span>
                 </div>
@@ -1273,7 +1273,7 @@ function pretty(text: string): string {
                 <UiButton
                   variant="ghost"
                   size="icon"
-                  class="ml-auto size-7 hover:bg-accent hover:text-foreground"
+                  class="ms-auto size-7 hover:bg-accent hover:text-foreground"
                   :aria-label="
                     copiedSample ? $t('duxt.code.copied') : $t('duxt.code.copy')
                   "

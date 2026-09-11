@@ -20,10 +20,10 @@ defineProps<{ entries?: DuxtBrunoEntry[] }>();
 </script>
 
 <template>
-  <table v-if="entries?.length" class="w-full text-left text-sm">
+  <table v-if="entries?.length" class="w-full text-start text-sm">
     <thead>
       <tr class="border-b border-border/60">
-        <th scope="col" class="py-2 pr-4 font-medium">
+        <th scope="col" class="py-2 pe-4 font-medium">
           {{ $t('duxt.bruno.name') }}
         </th>
         <th scope="col" class="py-2 font-medium">
@@ -38,7 +38,7 @@ defineProps<{ entries?: DuxtBrunoEntry[] }>();
         :key="`${entry.name}-${entry.value}`"
         class="border-b border-border/40 last:border-b-0"
       >
-        <td class="py-2 pr-4 align-top font-mono text-xs break-all">
+        <td class="py-2 pe-4 align-top font-mono text-xs break-all">
           <span :class="entry.disabled && 'text-muted-foreground line-through'">
             {{ entry.name }}
           </span>

@@ -63,7 +63,7 @@ const localeLink = useDuxtLink();
             <Icon
               name="lucide:arrow-right"
               aria-hidden="true"
-              class="mt-1 size-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"
+              class="mt-1 size-3.5 shrink-0 text-muted-foreground rtl:-scale-x-100 transition-transform ltr:group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5"
             />
           </NuxtLink>
         </li>
@@ -85,10 +85,14 @@ const localeLink = useDuxtLink();
           >
             <DuxtOpenApiMethod :method="entry.method" class="w-16" />
 
-            <span class="font-medium">{{ entry.name }}</span>
+            <span class="font-medium sm:me-auto">{{ entry.name }}</span>
 
+            <!-- The auto margin is on the NAME above, not here: this is a
+                 `<code>`, which the stylesheet pins to left-to-right, and a
+                 `ms-auto` resolved against that would push the URL back to the
+                 start of a right-to-left row. -->
             <code
-              class="w-full font-mono text-xs break-all text-muted-foreground sm:ml-auto sm:w-auto sm:text-right"
+              class="w-full font-mono text-xs break-all text-muted-foreground sm:w-auto"
             >
               {{ entry.url }}
             </code>

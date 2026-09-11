@@ -105,7 +105,7 @@ async function close(key: string) {
         <UiButton
           variant="ghost"
           size="icon"
-          class="-my-1 -mr-2 size-8 shrink-0 text-muted-foreground hover:text-foreground"
+          class="-my-1 -me-2 size-8 shrink-0 text-muted-foreground hover:text-foreground"
           :aria-label="$t('duxt.announcement.dismiss')"
           @click="close(entry.key)"
         >

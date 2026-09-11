@@ -74,12 +74,12 @@ function setOpen(item: ContentNavigationItem, value: boolean) {
             <span class="truncate">{{ item.title }}</span>
             <Icon
               name="lucide:chevron-right"
-              class="ml-auto size-3.5 text-muted-foreground transition-transform group-data-[state=open]:rotate-90"
+              class="ms-auto size-3.5 text-muted-foreground transition-transform group-data-[state=open]:rotate-90"
             />
           </UiCollapsibleTrigger>
 
           <UiCollapsibleContent>
-            <ul class="mt-0.5 ml-3.5 space-y-0.5 border-l pl-2.5">
+            <ul class="mt-0.5 ms-3.5 space-y-0.5 border-s ps-2.5">
               <li v-for="child in item.children" :key="child.path">
                 <DuxtNavigationLink :item="child" />
               </li>
