@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -43,11 +43,12 @@ describe('zipStore', () => {
     const file = join(dir, 'c.zip');
 
     writeFileSync(file, zipStore([{ name: 'a/b.json', data: body }]));
+    // The subprocess is the assertion: a real unzip, not our own reader,
+    // decides whether the archive is readable. Reading the extracted file back
+    // is not part of that, so it is an fs call rather than a second process.
     execFileSync('unzip', ['-q', file, '-d', dir]);
 
-    expect(
-      execFileSync('cat', [join(dir, 'a/b.json')], { encoding: 'utf8' })
-    ).toBe(body);
+    expect(readFileSync(join(dir, 'a/b.json'), 'utf8')).toBe(body);
   });
 
   it('is byte-identical for the same input', () => {
