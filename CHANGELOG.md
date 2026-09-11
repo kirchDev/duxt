@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.4](https://github.com/kirchDev/duxt/compare/v0.3.3...v0.3.4) (2026-09-11)
+
+
+### Bug Fixes
+
+* preserve section navigation across doc versions ([92d6a3c](https://github.com/kirchDev/duxt/commit/92d6a3c29aef796237c5a4cffcb8d7e37c789237)), closes [#76](https://github.com/kirchDev/duxt/issues/76)
+* **version:** preserve docs context on global changelogs ([8d5d9b6](https://github.com/kirchDev/duxt/commit/8d5d9b6f059539131f1df82a69bab6523e3d2fb7)), closes [#77](https://github.com/kirchDev/duxt/issues/77)
+
 ## [0.3.3](https://github.com/kirchDev/duxt/compare/v0.3.2...v0.3.3) (2026-09-10)
 
 
