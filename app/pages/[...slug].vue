@@ -227,6 +227,19 @@ useHead(() => ({
     {
       rel: 'canonical',
       href: absolute(localeLink(preferredPath.value) ?? preferredPath.value)
+    },
+    {
+      // Static HTML retains these relations when an edge serves a prerendered
+      // page, unlike an HTTP Link header configured only at runtime.
+      rel: 'alternate',
+      type: 'text/markdown',
+      href: `${localeLink(path.value) ?? path.value}.md`
+    },
+    {
+      // Unhead's narrow relation union does not yet include this standard
+      // relation, but it still renders arbitrary link relation values.
+      rel: 'describedby' as never,
+      href: '/llms.txt'
     }
   ]
 }));

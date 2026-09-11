@@ -109,6 +109,7 @@ async function main() {
         return [
           ...(await checkCanonicals()),
           ...(await checkAlternates()),
+          ...(await checkMachineReadableLinks()),
           ...(await checkRobots()),
           ...(await checkSourceLanguage()),
           ...(await checkSocial()),
@@ -302,6 +303,27 @@ async function checkAlternates() {
       failures.push(
         `${route}: no x-default, so no locale is named as the fallback`
       );
+    }
+  }
+
+  return failures;
+}
+
+/** Every documentation page advertises its source Markdown and site index. */
+async function checkMachineReadableLinks() {
+  const failures: string[] = [];
+
+  for (const route of [PAGES.doc, PAGES.translated, '/demo/v1.x/api']) {
+    const document = await head(route);
+    const markdown = document.querySelector(
+      'link[rel="alternate"][type="text/markdown"]'
+    );
+    if (markdown?.getAttribute('href') !== `${route}.md`) {
+      failures.push(`${route}: no Markdown alternate for its public URL`);
+    }
+    const index = document.querySelector('link[rel="describedby"]');
+    if (index?.getAttribute('href') !== '/llms.txt') {
+      failures.push(`${route}: no llms.txt describedby link`);
     }
   }
 

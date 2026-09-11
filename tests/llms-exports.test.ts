@@ -74,10 +74,10 @@ it('links translations to the represented public URL in both exports', async () 
   ];
   const text = await exportsText();
   expect(text.index).toContain(
-    '[Einführung](https://docs.example/de-DE/getting-started)'
+    '[Einführung](https://docs.example/de-DE/getting-started.md)'
   );
   expect(
-    text.index.match(/https:\/\/docs.example\/getting-started/g)
+    text.index.match(/https:\/\/docs.example\/getting-started\.md/g)
   ).toHaveLength(1);
   expect(text.full).toContain(
     'Source: https://docs.example/de-DE/getting-started\n\nDeutscher Text'
@@ -100,13 +100,13 @@ it('exports incomplete translations and regional aliases with their actual fallb
     { path: '/unserved', title: 'Italian only', rawbody: 'Hidden' }
   ];
   const text = await exportsText();
-  expect(text.index).toContain('[Guide](https://docs.example/de-DE/guide)');
+  expect(text.index).toContain('[Guide](https://docs.example/de-DE/guide.md)');
   expect(text.full).toContain(
     'Source: https://docs.example/de-DE/guide\n\nOriginal guide'
   );
   for (const locale of ['pt-PT', 'pt-BR']) {
     expect(text.index).toContain(
-      `[Guia](https://docs.example/${locale}/guide)`
+      `[Guia](https://docs.example/${locale}/guide.md)`
     );
     expect(text.full).toContain(
       `Source: https://docs.example/${locale}/guide\n\nGuia português`
@@ -117,7 +117,7 @@ it('exports incomplete translations and regional aliases with their actual fallb
   expect(text.index.match(/https:\/\/docs.example/g)).toHaveLength(4);
 });
 
-it('keeps old versions and generated sections in both exports', async () => {
+it('exports only default-version Markdown twins, including their generated sections', async () => {
   sources = duxtManifest(
     [
       {
@@ -141,9 +141,11 @@ it('keeps old versions and generated sections in both exports', async () => {
       }
     ];
   const text = await exportsText();
-  expect(text.index).toContain('https://docs.example/de-DE/v1/guide');
-  expect(text.index).toContain('https://docs.example/de-DE/releases/guide');
-  expect(text.full).toContain('Source: https://docs.example/de-DE/v1/guide');
+  expect(text.index).toContain('https://docs.example/de-DE/releases/guide.md');
+  expect(text.index).not.toContain('https://docs.example/de-DE/v1/guide.md');
+  expect(text.full).not.toContain(
+    'Source: https://docs.example/de-DE/v1/guide'
+  );
   expect(text.full).toContain(
     'Source: https://docs.example/de-DE/releases/guide'
   );
@@ -172,7 +174,7 @@ it.each([
     const urls = [
       ...text.index.matchAll(/\]\(https:\/\/docs.example([^)]*)\)/g)
     ].map((match) => match[1]);
-    expect(urls.sort()).toEqual(expected.sort());
+    expect(urls.sort()).toEqual(expected.map((path) => `${path}.md`).sort());
     const germanPath = strategy === 'prefix' ? '/de-DE/guide' : '/guide';
     expect(text.full).toContain(
       `Source: https://docs.example${germanPath}\n\nDeutscher Text`
@@ -206,7 +208,7 @@ it('uses the configured fallback before the original for an incomplete translati
   ];
   const text = await exportsText();
   expect(text.index).toContain(
-    '[Guide français](https://docs.example/de-DE/guide)'
+    '[Guide français](https://docs.example/de-DE/guide.md)'
   );
   expect(text.full).toContain(
     'Source: https://docs.example/de-DE/guide\n\nTexte français'

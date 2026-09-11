@@ -28,6 +28,7 @@ function renderPage(route) {
   const title = route.endsWith('/api') ? 'Harbour' : 'Overview';
   return `<html><head>
     <link rel="canonical" href="${origin}${route}">
+    ${mode === 'missing-machine-links' ? '' : `<link rel="alternate" type="text/markdown" href="${route}.md"><link rel="describedby" href="/llms.txt">`}
     ${[...locales, 'x-default'].map((locale) => `<link rel="alternate" hreflang="${locale}" href="${origin}${route}">`).join('')}
     <meta name="robots" content="${noindex ? 'noindex' : 'index'}">
     <meta property="og:title" content="Title">

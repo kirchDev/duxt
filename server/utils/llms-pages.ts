@@ -10,6 +10,10 @@ export async function llmsPages(
   event: H3Event,
   sources: DuxtResolvedSource[] = []
 ) {
+  // llms.txt is a map of the documentation a reader should start with. Older
+  // versions stay published at their own URLs, but making an agent choose
+  // between them repeats a decision the source manifest has already made.
+  const defaultSources = sources.filter((source) => source.isDefault);
   const i18n = (
     useRuntimeConfig(event).public as unknown as {
       i18n?: {
@@ -29,7 +33,7 @@ export async function llmsPages(
   const locales =
     strategy === 'no_prefix' || !codes.length ? [defaultLocale] : codes;
   const collections = sources.length
-    ? [...new Set(sources.map((source) => source.collection))]
+    ? [...new Set(defaultSources.map((source) => source.collection))]
     : ['docs'];
   const entries = await Promise.all(
     collections.map(
@@ -63,7 +67,7 @@ export async function llmsPages(
   for (const locale of locales) {
     for (const path of paths) {
       const chain = sources.length
-        ? sourcesForRoute(path, locale, sources, fallbackLocale).map(
+        ? sourcesForRoute(path, locale, defaultSources, fallbackLocale).map(
             (source) => source.collection
           )
         : ['docs'];

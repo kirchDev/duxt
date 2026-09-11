@@ -38,7 +38,7 @@ export default defineEventHandler(async (event) => {
       .sort((a, b) => a.path!.localeCompare(b.path!))
       .map(
         (page) =>
-          `- [${page.title ?? page.path}](${origin}${page.path})` +
+          `- [${page.title ?? page.path}](${origin}${page.path}.md)` +
           (page.description ? `: ${page.description}` : '')
       ),
     ''
