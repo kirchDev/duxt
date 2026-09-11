@@ -264,21 +264,77 @@ function responsive(
    * column is the failure this fixture exists for.
    */
   const badge = found.get(FIXTURES.badge)!;
-  const badgeSrcset = badge.getAttribute('srcset');
 
-  if (badgeSrcset) {
-    for (const { url } of candidates(badgeSrcset)) {
-      const dimensions = url.match(/_s_(\d+)x(\d+)\//);
+  failures.push(...undistorted(badge.getAttribute('srcset'), BADGE_RATIO));
 
-      if (dimensions) {
-        const ratio = Number(dimensions[1]) / Number(dimensions[2]);
+  return failures;
+}
 
-        if (Math.abs(ratio - 4) > 0.02) {
-          failures.push(
-            `the badge is distorted at ${dimensions[1]}x${dimensions[2]}`
-          );
-        }
-      }
+/**
+ * The size ipx writes into its parameter segment, or null when none is there.
+ *
+ * `@nuxt/image`'s ipx provider maps `resize` to `s` and formats it
+ * `s_WIDTHxHEIGHT`, then builds the URL as `joinURL(baseURL, params, src)` — so
+ * the parameters are ONE PATH SEGMENT and the delimiter before `s_` is a slash,
+ * never an underscore. Operations join with `&`, so a second modifier would put
+ * it mid-segment (`f_webp&s_160x40`); both delimiters are accepted here so that
+ * adding a format or a quality does not quietly blind the check.
+ *
+ * A candidate carrying only `w_` returns null on purpose: with no height in the
+ * URL there is no ratio to read, and that is an unanswered question rather than
+ * a pass.
+ */
+export function candidateSize(
+  url: string
+): { width: number; height: number } | null {
+  const size = url.match(/(?:^|[/&])s_(\d+)x(\d+)(?=[/&]|$)/);
+
+  if (!size) return null;
+
+  return { width: Number(size[1]), height: Number(size[2]) };
+}
+
+/** The fixture badge's own ratio: a 160x40 original is 4:1. */
+const BADGE_RATIO = 4;
+
+/** How far a candidate may drift from the original's ratio before it is a defect. */
+const RATIO_TOLERANCE = 0.02;
+
+/**
+ * Every candidate of an original narrower than the column keeps its ratio.
+ *
+ * SILENCE IS A FAILURE HERE, and that is the whole point of the function. The
+ * assertion this replaces looked for `_s_` where the page ships `/s_`, so it
+ * matched nothing, skipped every candidate and reported success — and its call
+ * site read `if (badgeSrcset)`, so an image that had lost its `srcset` was
+ * skipped too. It passed loudest exactly when it had learned nothing, which is
+ * the finding this file was written to answer, reproduced inside the file. Both
+ * silences are defects now: an unreadable candidate means the URL grammar moved
+ * under the check, and a missing `srcset` is the regression the fixture is for.
+ */
+export function undistorted(srcset: string | null, ratio: number): string[] {
+  if (!srcset?.trim()) {
+    return [
+      'the badge ships no srcset, so nothing says a small original keeps its ' +
+        'shape — that is the regression this fixture exists to catch'
+    ];
+  }
+
+  const failures: string[] = [];
+
+  for (const { url } of candidates(srcset)) {
+    const size = candidateSize(url);
+
+    if (!size) {
+      failures.push(
+        `no size can be read from the badge candidate ${url}, so its ratio ` +
+          'went unchecked — the URL grammar has moved under this check'
+      );
+      continue;
+    }
+
+    if (Math.abs(size.width / size.height - ratio) > RATIO_TOLERANCE) {
+      failures.push(`the badge is distorted at ${size.width}x${size.height}`);
     }
   }
 
@@ -376,4 +432,6 @@ async function waitForServer() {
   );
 }
 
-await main();
+// Guarded so the seams above can be imported by `tests/check-images.test.ts`
+// without this starting a server. `pnpm check:images` still runs it.
+if (process.argv[1] === fileURLToPath(import.meta.url)) await main();
