@@ -84,6 +84,22 @@ export interface DuxtSource {
   /** Shown in the version switcher and used in the URL; defaults to the ref. */
   label?: string;
   /**
+   * What to CALL this source where the site names it to a reader.
+   *
+   * Display only — it never reaches a collection name, a URL prefix, a version
+   * or the ranking, which is what separates it from `label` and `slug`. Those
+   * two are addresses that happen to be readable; this is a name that is
+   * nothing else, so it is free to be prose and free to be translated.
+   *
+   * The one thing no rule can derive. A segment is an abbreviation as often as
+   * it is a word — `tf`, `sdk`, `api` — and a search result labelled with one
+   * tells a reader which URL they are in rather than which project. Unset, the
+   * ladder in `app/utils/search-display.ts` falls back to the segment and then
+   * to the site's own name, so a site that sets nothing is still never shown
+   * the bare `/` this key was added for.
+   */
+  name?: string | Record<string, string>;
+  /**
    * Segment used in the URL for this source; defaults to the repository name.
    *
    * NAMING ONE IS A CLAIM ON A SEGMENT, and that is what makes it more than a
@@ -299,6 +315,14 @@ export interface DuxtResolvedSource {
   repo?: string;
   /** Version label, when the list has more than one version. */
   version?: string;
+  /**
+   * The source's display name, as the consumer wrote it — see `DuxtSource`.
+   *
+   * Carried through UNRESOLVED, because a locale record cannot be collapsed at
+   * build time: the manifest is one object for every language the site serves,
+   * and `useDuxtConfig` resolves it per request like every other text field.
+   */
+  name?: string | Record<string, string>;
   /** True for the version served without a prefix. */
   isDefault: boolean;
   /**
@@ -678,6 +702,7 @@ export function resolveSources(
       prefix,
       repo: segmented(source) ? repoSlug(source) : undefined,
       version,
+      name: source.name,
       isDefault,
       repository: entry.repo ?? source.origin?.repo,
       repositoryUrl: entry.repo

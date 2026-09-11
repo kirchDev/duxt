@@ -24,6 +24,15 @@ const { search, init, labelled } = useDuxtSearch();
 
 const results = ref<DuxtSearchHit[]>([]);
 
+/**
+ * The term the current results were produced for.
+ *
+ * Not `query`, which moves with every keystroke: the excerpts window themselves
+ * around a literal match, and windowing them against a term newer than the
+ * results already on screen makes the previews jump while the reader types.
+ */
+const matched = ref('');
+
 /** True while the list shows near-misses rather than actual matches. */
 const approximate = ref(false);
 
@@ -45,6 +54,7 @@ watch(query, (term) => {
       if (current !== run) return;
       results.value = hits;
       approximate.value = fuzzy;
+      matched.value = term;
     };
 
     if (!term.trim()) return settle([], false);
@@ -66,6 +76,19 @@ function sectionOf(path: string) {
 }
 
 /**
+ * What each source is CALLED, rather than which URL segment it occupies.
+ *
+ * The context line below used to spell its source slot out of the manifest's
+ * `repo`, which is an address: documentation served at the root had none and
+ * showed nothing, and a source whose segment is an abbreviation showed the
+ * abbreviation. See `sourceDisplayNames` for the ladder, and `sources[].name`
+ * for the one rung a consumer writes.
+ */
+const names = computed(() =>
+  sourceDisplayNames(sources.value, asText(duxt.title) ?? '')
+);
+
+/**
  * The line under every row's title, and deliberately the SAME line in both
  * lists.
  *
@@ -77,7 +100,7 @@ function sectionOf(path: string) {
  * answering them the same way is what makes the palette scannable.
  */
 const contextOf = (path: string) =>
-  searchContext(path, sections.value, sources.value);
+  searchContext(path, sections.value, sources.value, { names: names.value });
 
 const history = computed(() =>
   recent.value.map((page) => ({ ...page, context: contextOf(page.path) }))
@@ -91,7 +114,16 @@ const history = computed(() =>
 const grouped = computed(() => {
   const rows = results.value.map((hit) => ({
     ...hit,
-    context: contextOf(hit.id)
+    // WITHOUT the source slot wherever a caption above the run already states
+    // it — see `searchRows`. The section and the route stay, because those are
+    // the row's own and are what tell two editions of one title apart.
+    context: searchContext(hit.id, sections.value, sources.value, {
+      names: names.value,
+      source: !labelled.value
+    }),
+    // A title and a route say where a result IS; they do not say whether it
+    // answers the question, which is the judgement made before opening a page.
+    excerpt: searchExcerpt(hit.content, matched.value)
   }));
 
   // With several sources the list is ONE ranked list whose rows say where they
@@ -110,6 +142,21 @@ const grouped = computed(() => {
 
   return [...bySection.entries()].map(([label, hits]) => ({ label, hits }));
 });
+
+/**
+ * The groups above, with each one's repeated source label lifted into captions.
+ *
+ * Per GROUP rather than over the flat list: a caption opens a run, and a run
+ * reaching across a section heading would be opened by a caption sitting under
+ * the wrong heading. `searchRows` keeps the order and the count of what it is
+ * given either way — see there for why provenance must never re-sort.
+ */
+const groups = computed(() =>
+  grouped.value.map((group) => ({
+    label: group.label,
+    rows: searchRows(group.hits)
+  }))
+);
 
 async function show() {
   load();
@@ -246,37 +293,68 @@ const searchHint = computed(() =>
         {{ $t('duxt.search.approximate', { query }) }}
       </div>
 
-      <!-- Two lines per hit, grouped by section: the title, and under it the
-           same context line the history above carries. The repository badge
-           that used to sit at the end is gone with it — provenance is in the
-           context now, and printing the edition twice per row was the noise
-           this was meant to remove. -->
+      <!-- THREE LINES per hit: the title, the same context line the history
+           above carries, and an excerpt of the section's own text. The
+           repository badge is gone — provenance is stated once at the head of
+           each run of results that share it, rather than printed onto every
+           row, which was the repetition both halves of this dialog were asked
+           to remove. -->
       <UiCommandGroup
-        v-for="group in grouped"
+        v-for="group in groups"
         :key="group.label"
         :heading="group.label || undefined"
       >
-        <UiCommandItem
-          v-for="hit in group.hits"
-          :key="hit.id"
-          :value="hit.id"
-          class="items-start gap-2"
-          @select="go(hit.id)"
-        >
-          <Icon
-            :name="hit.level > 1 ? 'lucide:hash' : 'lucide:file-text'"
-            class="mt-0.5 size-3.5 shrink-0 text-muted-foreground"
-          />
-          <span class="flex min-w-0 flex-col">
-            <span class="truncate">{{ hit.title }}</span>
-            <span
-              v-if="hit.context"
-              class="truncate text-xs text-muted-foreground"
-            >
-              {{ hit.context }}
+        <template v-for="row in group.rows" :key="row.hit.id">
+          <!-- Opens a run of hits from one source. `aria-hidden`, because the
+               same text reaches a screen reader on every row below through
+               `row.provenance` — a caption is a way of not repeating something
+               visually, and repeating it to one reader while hiding it from
+               another is how a shared label becomes a lie. -->
+          <div
+            v-if="row.caption"
+            aria-hidden="true"
+            class="truncate px-2 pt-3 pb-1 text-[11px] font-medium text-muted-foreground/80 first:pt-1"
+          >
+            {{ row.caption }}
+          </div>
+
+          <UiCommandItem
+            :value="row.hit.id"
+            class="items-start gap-2"
+            @select="go(row.hit.id)"
+          >
+            <Icon
+              :name="row.hit.level > 1 ? 'lucide:hash' : 'lucide:file-text'"
+              class="mt-0.5 size-3.5 shrink-0 text-muted-foreground"
+            />
+            <!-- `min-w-0` is what actually lets the lines truncate: a flex item
+                 defaults to `min-width: auto`, which refuses to shrink below
+                 its content and pushes the dialog into a horizontal scroll on a
+                 320px screen instead. -->
+            <span class="flex min-w-0 flex-col">
+              <span class="truncate">{{ row.hit.title }}</span>
+              <span
+                v-if="row.hit.context"
+                class="truncate text-xs text-muted-foreground"
+              >
+                {{ row.hit.context }}
+              </span>
+              <!-- Interpolated, never `v-html`: this is a document's own text,
+                   and a page that writes about `<script>` must read as prose
+                   rather than run as markup. Dropped entirely when the section
+                   has no text, so an empty preview leaves no empty row. -->
+              <span
+                v-if="row.hit.excerpt"
+                class="line-clamp-2 text-xs text-muted-foreground/80"
+              >
+                {{ row.hit.excerpt }}
+              </span>
+              <span v-if="row.provenance" class="sr-only">
+                {{ row.provenance }}
+              </span>
             </span>
-          </span>
-        </UiCommandItem>
+          </UiCommandItem>
+        </template>
       </UiCommandGroup>
     </UiCommandList>
   </UiCommandDialog>

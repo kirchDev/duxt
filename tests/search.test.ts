@@ -130,3 +130,57 @@ it('lazily searches selected artefacts in both passes with page-level translatio
   );
   expect(exact.mock.calls.map(([name]) => name)).not.toContain(api.collection);
 });
+
+it('labels hits with the source display name, its artefact and its version', async () => {
+  const manifest = duxtManifest(
+    [
+      { path: 'docs', name: 'Handbook' },
+      {
+        path: 'www/demo/docs',
+        slug: 'demo',
+        name: { 'en-GB': 'Demo', de: 'Demonstration' },
+        version: 'v3.x',
+        generated: [
+          { type: 'changelog', path: 'CHANGELOG.md', label: 'Releases' }
+        ]
+      }
+    ],
+    { showRepo: false, defaultRef: 'v3.x' }
+  );
+  const docs = manifest.find((entry) => entry.collection === 'docs')!;
+  const found = vi.fn(async (collection: string) => [hit(`/${collection}#x`)]);
+
+  vi.stubGlobal('computed', computed);
+  vi.stubGlobal('useDuxtConfig', () => ({
+    // Already resolved for the locale by `useDuxtConfig` in the real app.
+    title: 'duxt',
+    resolvedSources: manifest.map((entry) => ({
+      ...entry,
+      name: typeof entry.name === 'string' ? entry.name : entry.name?.['en-GB']
+    }))
+  }));
+  vi.stubGlobal('useDuxtCollection', () => ({ source: ref(docs) }));
+  vi.stubGlobal('useI18n', () => ({
+    locale: ref('en-GB'),
+    fallbackLocale: ref('en-GB')
+  }));
+  vi.stubGlobal('useSearchCollection', (collection: string) => ({
+    status: ref('idle'),
+    init: () => {},
+    search: () => found(collection)
+  }));
+  vi.stubGlobal('useFuzzySearch', () => ({ search: async () => [] }));
+  vi.stubGlobal('queryCollection', () => ({
+    select: () => ({ all: async () => [] })
+  }));
+
+  const results = await useDuxtSearch().search('x');
+  const sources = results.hits.map((entry) => entry.source);
+
+  // The site's own documentation is NAMED, not labelled `/`.
+  expect(sources[0]).toMatchObject({ name: 'Handbook' });
+  expect(sources.some((entry) => entry?.name === '/')).toBe(false);
+  // The demo carries its own name, and its changelog the artefact beside it.
+  expect(sources.map((entry) => entry?.name)).toContain('Demo');
+  expect(sources.map((entry) => entry?.artefact)).toContain('Releases');
+});

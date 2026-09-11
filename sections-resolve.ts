@@ -485,6 +485,10 @@ export function resolveGeneratedSections(
             }`,
             prefix,
             repo: base.entry.repo,
+            // The SOURCE's name, not the artefact's. A generated section is
+            // published by the project its source is, and the artefact has a
+            // label of its own that the search caption draws beside this.
+            name: base.entry.name,
             // `global` is version-NEUTRAL, so it carries no version at all: the
             // switcher lists what has a version, and a changelog must not be
             // offered as one of the versions of the documentation beside it.

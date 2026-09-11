@@ -243,6 +243,23 @@ declare global {
     /** Shown in the version switcher and used in the URL; defaults to the ref. */
     label?: DuxtText;
     /**
+     * What to CALL this source where the site names it to a reader — today the
+     * search dialog's result captions.
+     *
+     * DISPLAY ONLY. It reaches no collection name, no URL prefix, no version
+     * and no ranking, which is what separates it from `label` and `slug`: those
+     * two are addresses that happen to be readable, and a translated address is
+     * not a stable URL. This is a name and nothing else, so it may be prose and
+     * it may be translated.
+     *
+     * Unset, the name falls back to the source's own segment and then to
+     * `duxt.title` — itself the localized "Documentation" label on a site that
+     * sets no title. Worth setting where the segment is an abbreviation (`tf`,
+     * `sdk`, `api`): a result captioned with one tells a reader which URL they
+     * are in rather than which project they are about to open.
+     */
+    name?: DuxtText;
+    /**
      * Segment used in the URL for this source; defaults to the repository name.
      *
      * A claim on a segment, not a spelling: a source that names one is served
@@ -438,6 +455,8 @@ declare global {
     prefix: string;
     repo?: string;
     version?: string;
+    /** The source's display name, as written — see `DuxtSourceInput.name`. */
+    name?: DuxtText;
     isDefault: boolean;
     /** Where the pages came from — what "Edit this page" links back to. */
     repository?: string;

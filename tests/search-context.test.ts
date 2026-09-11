@@ -62,6 +62,52 @@ describe('searchContext', () => {
     expect(new Set(rows).size).toBe(rows.length);
   });
 
+  it('says what a source is called, where it has been given a name', () => {
+    // The slot used to be the URL segment, so the documentation at the root —
+    // which has no segment — said nothing, and `tf` said `tf`.
+    const named = [
+      { prefix: '', collection: 'docs' },
+      { prefix: '/harbour', repo: 'harbour', collection: 'docs_harbour' }
+    ];
+    const names = new Map([
+      ['docs', 'duxt documentation'],
+      ['docs_harbour', 'Harbour handbook']
+    ]);
+
+    expect(searchContext('/getting-started', [], named, { names })).toBe(
+      'duxt documentation · /getting-started'
+    );
+    expect(searchContext('/harbour/ports', SECTIONS, named, { names })).toBe(
+      'Harbour · Harbour handbook · /harbour/ports'
+    );
+  });
+
+  it('keeps the version beside a name it has been given', () => {
+    const named = [
+      {
+        prefix: '/harbour/v1.x',
+        repo: 'harbour',
+        version: 'v1.x',
+        collection: 'h1'
+      }
+    ];
+
+    expect(
+      searchContext('/harbour/v1.x/ports', SECTIONS, named, {
+        names: new Map([['h1', 'Harbour handbook']])
+      })
+    ).toBe('Harbour · Harbour handbook · v1.x · /harbour/v1.x/ports');
+  });
+
+  it('leaves the source out where a caption above the row already says it', () => {
+    // The search list captions each run of results that share a source, so
+    // repeating it per row is the repetition this line exists to remove. What
+    // is the ROW's own — its section and its route — stays.
+    expect(
+      searchContext('/harbour/v1.x/ports', SECTIONS, SOURCES, { source: false })
+    ).toBe('Harbour · /harbour/v1.x/ports');
+  });
+
   it('reads a hit at a heading as the page it is in', () => {
     // A search hit is addressed `/page#heading`; the anchor is the row's title
     // already, and repeating it as part of the route says nothing.

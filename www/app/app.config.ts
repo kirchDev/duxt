@@ -4,6 +4,22 @@
 //
 // This is also the example: legal links belong to whoever runs the site, never
 // to the template, so the layer ships the row empty and kirchDev fills it here.
+
+/**
+ * The demo tree's display name, shared by its four editions and the source that
+ * carries its generated sections.
+ *
+ * One constant because five copies of one name drift, and a drifted copy does
+ * not look like a typo in the search captions — it looks like a second project.
+ */
+const DEMO_NAME = {
+  'en-GB': 'Demo documentation',
+  de: 'Demo-Dokumentation',
+  es: 'Documentación de demostración',
+  fr: 'Documentation de démonstration',
+  pt: 'Documentação de demonstração'
+};
+
 export default defineAppConfig({
   duxt: {
     /**
@@ -43,6 +59,18 @@ export default defineAppConfig({
       {
         repo: 'kirchDev/duxt',
         path: 'docs',
+        // What the search captions call this source. Without it the fallback
+        // is `title` above, which says "duxt" — the SITE. These are its
+        // documentation pages specifically, and the demo tree below is the
+        // other half of the same site. A record rather than a literal, because
+        // unlike the wordmark this one is a noun that translates.
+        name: {
+          'en-GB': 'duxt documentation',
+          de: 'duxt-Dokumentation',
+          es: 'Documentación de duxt',
+          fr: 'Documentation duxt',
+          pt: 'Documentação do duxt'
+        },
         statusDefaults: {
           latest: 'current',
           branch: 'upcoming',
@@ -96,6 +124,7 @@ export default defineAppConfig({
       {
         path: 'www/demo/docs',
         slug: 'demo',
+        name: DEMO_NAME,
         version: 'main',
         status: 'upcoming',
         origin: { repo: 'kirchDev/duxt', ref: 'main' }
@@ -103,12 +132,14 @@ export default defineAppConfig({
       {
         path: 'www/demo/docs',
         slug: 'demo',
+        name: DEMO_NAME,
         version: 'v3.x',
         origin: { repo: 'kirchDev/duxt', ref: 'main' }
       },
       {
         path: 'www/demo/docs',
         slug: 'demo',
+        name: DEMO_NAME,
         version: 'v2.x',
         status: 'deprecated',
         origin: { repo: 'kirchDev/duxt', ref: 'main' }
@@ -116,6 +147,7 @@ export default defineAppConfig({
       {
         path: 'www/demo/docs',
         slug: 'demo',
+        name: DEMO_NAME,
         version: 'v1.x',
         status: 'eol',
         origin: { repo: 'kirchDev/duxt', ref: 'main' }
@@ -127,6 +159,10 @@ export default defineAppConfig({
         repo: 'kirchDev/terraform-provider-linear',
         path: 'docs',
         slug: 'tf',
+        // The segment is an abbreviation, so without this the search would
+        // caption every provider page `Tf`. A literal rather than a record:
+        // the product name is the same word in every language.
+        name: 'Terraform Provider',
         flavor: 'tfplugindocs',
         refs: [{ tag: 'v0.2.6', default: true }]
       },
@@ -136,6 +172,7 @@ export default defineAppConfig({
       {
         path: 'www/demo/docs',
         slug: 'demo',
+        name: DEMO_NAME,
         content: false,
         origin: { repo: 'kirchDev/duxt', ref: 'main' },
         generated: [

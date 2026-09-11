@@ -1,11 +1,23 @@
 import type { DuxtResolvedSource } from '../../sources-resolve';
 import { searchSources } from '../utils/search-scope';
+// Imported rather than auto-imported, the same as `searchSources` above: this
+// composable is covered by a plain node test, which has no Nuxt globals.
+import { asText } from '../utils/duxt-text';
+import { sourceDisplayNames } from '../utils/search-display';
+import type { DuxtSearchProvenance } from '../utils/search-display';
 import type { DuxtSearchSection } from '@duxt/composables/useFuzzySearch';
 
 /** A hit, with the source it came out of. */
 export interface DuxtSearchHit extends DuxtSearchSection {
-  /** Undefined on a site with one source: there is nothing to distinguish. */
-  source?: { label: string; collection: string };
+  /**
+   * Undefined on a site with one source: there is nothing to distinguish.
+   *
+   * A NAME and the two facts that qualify it, rather than the one string this
+   * used to carry. That string was `[repo, version].join(' ')` with the URL
+   * prefix behind it as a fallback, so the site's own documentation announced
+   * itself as `/` — see `sourceDisplayNames` for the ladder that replaced it.
+   */
+  source?: DuxtSearchProvenance & { collection: string };
 }
 
 /**
@@ -132,10 +144,32 @@ export function useDuxtSearch() {
     () => new Set(active.value.map((entry) => entry.prefix)).size > 1
   );
 
-  const labelOf = (entry: (typeof searchable)[number]) =>
-    [entry.repo, entry.version].filter(Boolean).join(' ') ||
-    entry.prefix ||
-    '/';
+  /**
+   * What each collection is CALLED, by collection name.
+   *
+   * Computed over the whole searchable set once rather than per hit: the
+   * collision qualifier needs to see every source at the same time to know
+   * whether a name is ambiguous at all.
+   */
+  const names = computed(() =>
+    sourceDisplayNames(searchable, asText(duxt.title) ?? '')
+  );
+
+  const provenanceOf = (
+    entry: (typeof searchable)[number]
+  ): DuxtSearchProvenance => ({
+    name: names.value.get(entry.collection) ?? '',
+    // The artefact keeps its own label beside the source's name: a reader
+    // looking at a hit from a changelog wants to be told it is the changelog,
+    // and which project's changelog it is.
+    artefact: entry.generated?.label,
+    version: entry.version
+  });
+
+  const sourceOf = (entry: (typeof searchable)[number]) =>
+    labelled.value
+      ? { ...provenanceOf(entry), collection: entry.collection }
+      : undefined;
 
   async function init() {
     await Promise.all(
@@ -211,12 +245,7 @@ export function useDuxtSearch() {
 
           return hits.map((hit) => ({
             ...hit,
-            source: labelled.value
-              ? {
-                  label: labelOf(entry.entry),
-                  collection: entry.entry.collection
-                }
-              : undefined
+            source: sourceOf(entry.entry)
           }));
         })
     );
@@ -238,12 +267,7 @@ export function useDuxtSearch() {
 
           return hits.map((hit) => ({
             ...hit,
-            source: labelled.value
-              ? {
-                  label: labelOf(entry.entry),
-                  collection: entry.entry.collection
-                }
-              : undefined
+            source: sourceOf(entry.entry)
           }));
         })
     );
