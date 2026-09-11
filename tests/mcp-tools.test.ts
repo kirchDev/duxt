@@ -21,6 +21,7 @@ interface Row {
   title?: string;
   description?: string;
   rawbody?: string;
+  search?: boolean;
 }
 
 const database = vi.hoisted(() => ({ pages: {} as Record<string, Row[]> }));
@@ -310,6 +311,28 @@ describe('search_docs', () => {
     const found = await call('search-docs', { query: 'nothing here at all' });
     expect(found.result.isError).toBeFalsy();
     expect(found.text.toLowerCase()).toContain('nothing');
+  });
+
+  /**
+   * `search: false` makes a page UN-FINDABLE, not unpublished — decided, and
+   * the reason the filter sits in this tool rather than in `duxtScopedPages`
+   * where all three listing tools would have inherited it. An agent handed a
+   * link to the page still gets the page; it simply is not offered.
+   */
+  it('hides a page that opted out, while the tree and the page stay', async () => {
+    const pages = database.pages[Object.keys(database.pages)[0]!] as Row[];
+    const deploying = pages.find((row) => row.path === '/app/deploying')!;
+    deploying.search = false;
+
+    expect(await text('search-docs', { query: 'Cloudflare' })).not.toContain(
+      '/app/deploying'
+    );
+    expect(await text('list-pages', { limit: 100 })).toContain(
+      '/app/deploying'
+    );
+    expect(await text('read-page', { path: '/app/deploying' })).toContain(
+      'Cloudflare'
+    );
   });
 });
 

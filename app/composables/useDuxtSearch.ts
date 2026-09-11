@@ -3,6 +3,7 @@ import { searchSources } from '../utils/search-scope';
 // Imported rather than auto-imported, the same as `searchSources` above: this
 // composable is covered by a plain node test, which has no Nuxt globals.
 import { asText } from '../utils/duxt-text';
+import { duxtPageSearchable } from '../utils/page-controls';
 import { sourceDisplayNames } from '../utils/search-display';
 import type { DuxtSearchProvenance } from '../utils/search-display';
 import type { DuxtSearchSection } from '@duxt/composables/useFuzzySearch';
@@ -105,14 +106,33 @@ export function useDuxtSearch() {
     )
   );
 
-  const pagePaths = new Map<string, Promise<Set<string>>>();
+  /**
+   * What a collection holds, and what it holds back.
+   *
+   * `all` answers the translation question — which pages this edition has, so a
+   * worse language is not offered for one a better language already answers.
+   * `excluded` answers a different one: which pages wrote `search: false`, and
+   * so belong in no result list at all. Both are read in the one query that was
+   * already being made, because the index the FTS and the fuzzy pass search is
+   * built from Content's search sections and carries no frontmatter — a page
+   * can only be dropped here, by path, after the fact.
+   */
+  const pagePaths = new Map<
+    string,
+    Promise<{ all: Set<string>; excluded: Set<string> }>
+  >();
   function paths(collection: string) {
     let pending = pagePaths.get(collection);
     if (!pending) {
       pending = queryCollection(collection as DuxtCollectionArg)
-        .select('path')
+        .select('path', 'search')
         .all()
-        .then((pages) => new Set(pages.map((page) => page.path)))
+        .then((pages) => ({
+          all: new Set(pages.map((page) => page.path)),
+          excluded: new Set(
+            pages.filter((page) => !duxtPageSearchable(page)).map((p) => p.path)
+          )
+        }))
         .catch((error) => {
           pagePaths.delete(collection);
           throw error;
@@ -124,17 +144,25 @@ export function useDuxtSearch() {
 
   // A fallback may answer only for a PAGE absent from every better language,
   // even when a heading or the search term exists only in the original.
+  //
+  // A page that opted out of search is hidden in its OWN edition too, which is
+  // the difference between the two halves of this set: one suppresses a
+  // duplicate, the other suppresses the page itself.
   async function visiblePages(wanted: DuxtResolvedSource[]) {
     return Promise.all(
       wanted.map(async (entry, index) => {
         const preferred = wanted
           .slice(0, index)
           .filter((other) => other.prefix === entry.prefix);
-        return new Set(
-          (
-            await Promise.all(preferred.map((other) => paths(other.collection)))
-          ).flatMap((pages) => [...pages])
-        );
+        const [covered, own] = await Promise.all([
+          Promise.all(preferred.map((other) => paths(other.collection))),
+          paths(entry.collection)
+        ]);
+
+        return new Set([
+          ...covered.flatMap((pages) => [...pages.all]),
+          ...own.excluded
+        ]);
       })
     );
   }

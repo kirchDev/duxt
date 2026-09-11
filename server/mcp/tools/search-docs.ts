@@ -13,6 +13,7 @@ import {
   duxtUnknownScope,
   duxtValidCursor
 } from '../../utils/mcp-docs';
+import { duxtPageSearchable } from '../../../app/utils/page-controls';
 
 /**
  * Search, so a model does not have to read every page to find one.
@@ -69,11 +70,16 @@ export default defineMcpTool({
     const holds = (value: string | undefined) =>
       Boolean(value?.toLowerCase().includes(term));
 
+    // `search: false` is applied HERE rather than in `duxtScopedPages`, which
+    // also feeds `list_pages` and `list_versions`: the opt-out makes a page
+    // un-findable, not unpublished, so the tree and the page itself are left
+    // alone. Same predicate the client search and the llms indexes use.
     const matches = (
       await duxtScopedPages(extra.event, scope, setup, true)
     ).filter(
       (page) =>
-        holds(page.title) || holds(page.description) || holds(page.rawbody)
+        duxtPageSearchable(page) &&
+        (holds(page.title) || holds(page.description) || holds(page.rawbody))
     );
 
     if (!matches.length)

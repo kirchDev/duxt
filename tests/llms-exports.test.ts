@@ -81,8 +81,34 @@ it('does not load page bodies for the llms index', async () => {
   await indexText();
 
   expect(database.selections).toHaveLength(2);
-  for (const { fields } of database.selections)
-    expect(fields).toEqual(['path', 'title', 'description']);
+  // The claim is about the BODY, not about the exact column list: `search`
+  // joined it so the per-page opt-out is applied where the pages are read, and
+  // a boolean is not the thing this test exists to keep out of memory.
+  for (const { fields } of database.selections) {
+    expect(fields).not.toContain('rawbody');
+    expect(fields).toContain('search');
+  }
+});
+
+/**
+ * `search: false` is one rule over four surfaces, and these two are the pair
+ * that would drift apart unnoticed: nobody reads llms-full.txt to check whether
+ * a page llms.txt omitted is in it anyway.
+ */
+it('omits a page that opted out of search from both exports', async () => {
+  database.pages.docs = [
+    { path: '/guide', title: 'Guide', rawbody: 'Findable' },
+    { path: '/legal', title: 'Legal', rawbody: 'Hidden', search: false }
+  ];
+
+  const index = await indexText();
+  const { default: full } = await import('../server/routes/llms-full.txt.get');
+  const bodies = (await full(event as never)) as string;
+
+  expect(index).toContain('/guide');
+  expect(index).not.toContain('/legal');
+  expect(bodies).toContain('Findable');
+  expect(bodies).not.toContain('Hidden');
 });
 
 it('links translations to the represented public URL in both exports', async () => {

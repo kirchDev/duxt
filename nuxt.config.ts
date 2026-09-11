@@ -345,7 +345,26 @@ export default defineNuxtConfig({
             dark: 'github-dark'
           },
           langs: highlightLangs
-        }
+        },
+
+        /**
+         * PARSE the whole outline; decide how much of it to draw later.
+         *
+         * MDC's `depth` is a COUNT from `h2` over `[h2,h3,h4,h5,h6]`, and its
+         * default of `2` stops at `h3` — so a page writing `toc: { maxDepth: 5 }`
+         * would have asked for headings Content never put in `body.toc`, and
+         * the field would be a promise the build quietly broke. Parsing all
+         * five costs a few rows in a table nobody queries by depth.
+         *
+         * It does NOT change what a reader sees: `duxtTocLinks` cuts the tree
+         * back to `duxt.toc.depth` — still `h3` — before `DuxtToc` draws it, so
+         * a page that asks for nothing gets exactly the column it always had.
+         *
+         * `searchDepth` is deliberately left alone. It bounds how deep into the
+         * node tree headings are looked for, not which levels count, so raising
+         * it would change which pages have an outline at all.
+         */
+        toc: { depth: 5 }
       }
     },
 

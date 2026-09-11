@@ -334,6 +334,16 @@ export interface DuxtScopedPage {
   title?: string;
   description?: string;
   rawbody?: string;
+  /**
+   * `false` when the page opted out of search.
+   *
+   * Carried on every scoped page and applied by `search_docs` alone, because
+   * the decided rule is that `search: false` makes a page un-findable rather
+   * than unpublished. `list_pages` still enumerates it — that listing is the
+   * tree, which is the thing `navigation: false` governs — and `read_page`
+   * still answers for it at its unchanged URL.
+   */
+  search?: boolean;
   /** The source that answered — which language the text is actually in. */
   source: DuxtResolvedSource;
 }
@@ -354,8 +364,8 @@ export async function duxtScopedPages(
   withBody = false
 ): Promise<DuxtScopedPage[]> {
   const fields = withBody
-    ? (['path', 'title', 'description', 'rawbody'] as const)
-    : (['path', 'title', 'description'] as const);
+    ? (['path', 'title', 'description', 'rawbody', 'search'] as const)
+    : (['path', 'title', 'description', 'search'] as const);
   const found = new Map<string, DuxtScopedPage>();
 
   for (const group of scope.groups) {
@@ -370,6 +380,7 @@ export async function duxtScopedPages(
         title?: string;
         description?: string;
         rawbody?: string;
+        search?: boolean;
       }[];
 
       for (const page of pages) {

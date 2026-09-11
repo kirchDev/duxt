@@ -48,6 +48,46 @@ export const pageSchema = z.object({
   release: z.string().optional(),
   /** false hides the page from the navigation. */
   navigation: z.boolean().optional(),
+  //
+  // THE PAGE CONTROLS — the parts of the docs shell a page gets to refuse.
+  // What each one means, and how they compose, is `app/utils/page-controls.ts`;
+  // they are declared here because the schema is the gate, and an undeclared
+  // `toc: false` is dropped before the page component could ever read it. Flat
+  // fields rather than one nested object, which was decided: it is what an
+  // author writes in every comparable generator.
+  //
+  /**
+   * `false` drops the contents column; `{ maxDepth }` sets how deep it goes.
+   *
+   * `@nuxtjs/mdc` reads this same key out of the frontmatter and skips building
+   * `body.toc` at all on `false` — the same answer from the other end. The
+   * object form is ours alone: MDC's own `depth` is a count from `h2`, and
+   * `maxDepth` is the heading level an author actually counts.
+   */
+  toc: z
+    .union([z.boolean(), z.object({ maxDepth: z.number().optional() })])
+    .optional(),
+  /** false hides the trail above the title, whatever `duxt.breadcrumb` says. */
+  breadcrumb: z.boolean().optional(),
+  /** false hides the previous/next pair under the article. */
+  prevNext: z.boolean().optional(),
+  /** false hides the "was this helpful?" row. */
+  feedback: z.boolean().optional(),
+  /** false hides the edit link, the last-updated line and the contributors. */
+  pageInfo: z.boolean().optional(),
+  /** false hides the copy-page and hand-to-a-model control. */
+  copyPage: z.boolean().optional(),
+  /** true removes the reading-width cap, and nothing else. */
+  fullWidth: z.boolean().optional(),
+  /**
+   * false removes the page from every duxt-owned discovery surface — the client
+   * search, its fuzzy fallback, MCP `search_docs` and the two llms indexes.
+   *
+   * It changes no URL. The page is still served, still canonical, still in the
+   * sitemap, still `noindex`-free, and `read_page` still answers for it: this
+   * makes a page un-findable, not unpublished.
+   */
+  search: z.boolean().optional(),
   /**
    * URLs this page used to be served at. The layer turns them into redirects,
    * because it is the only thing that knows which prefixes exist — the

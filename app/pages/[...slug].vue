@@ -118,6 +118,22 @@ const owned = computed(() =>
 );
 
 /**
+ * What THIS page says about the docs shell around it.
+ *
+ * Eight frontmatter fields, resolved over the site's own switches in one place
+ * — see `app/utils/page-controls.ts`. The alternative was eight `v-if`s each
+ * reading a different field off `page.value` with its own idea of what an
+ * absent value means, which is how `duxt.breadcrumb` ended up being the only
+ * one of the eight that existed at all.
+ */
+const controls = computed(() =>
+  duxtPageControls(page.value, {
+    breadcrumb: duxt?.breadcrumb,
+    tocMaxDepth: duxt.toc?.depth
+  })
+);
+
+/**
  * The contents of a page whose headings a component draws.
  *
  * `body.toc` is Content's outline of the MARKDOWN it parsed, and a generated
@@ -129,7 +145,22 @@ const owned = computed(() =>
  * genuinely have no outline.
  */
 const generated = computed(() =>
-  owned.value ? generatedToc(page.value?.body, duxt.toc?.depth) : []
+  owned.value && controls.value.toc
+    ? generatedToc(page.value?.body, controls.value.tocMaxDepth)
+    : []
+);
+
+/**
+ * The written page's outline, cut to the depth the page asked for.
+ *
+ * Content parses every level down to `h6` — see `content.build.markdown.toc` in
+ * `nuxt.config.ts` — so this is where the column is decided rather than at
+ * parse time, and `toc: { maxDepth: 5 }` has something to show.
+ */
+const outline = computed(() =>
+  controls.value.toc
+    ? duxtTocLinks(page.value?.body?.toc?.links, controls.value.tocMaxDepth)
+    : []
 );
 
 /**
@@ -173,6 +204,21 @@ const aside = computed(
   () =>
     allowed &&
     (generated.value.length > 0 || (duxt.aside?.links?.length ?? 0) > 0)
+);
+
+/**
+ * Is there anything left to put in a written page's right-hand column?
+ *
+ * It was drawn unconditionally, which was right while nothing could empty it —
+ * a page that turns off both the contents and the provenance on a site with no
+ * aside links would otherwise reserve fourteen rems for nothing. Page info is
+ * on by default, so the ordinary page keeps exactly the column it had.
+ */
+const column = computed(
+  () =>
+    outline.value.length > 0 ||
+    (duxt.aside?.links?.length ?? 0) > 0 ||
+    controls.value.pageInfo
 );
 
 // The social card. Rendered from the layer's own template unless the consumer
@@ -303,11 +349,7 @@ useSchemaOrg([
            does not — and a header narrower than the parameter tables under it
            draws a rule that stops halfway across the page. -->
       <header v-if="!titled" class="mb-8 border-b pb-8">
-        <DuxtBreadcrumb
-          v-if="duxt?.breadcrumb !== false"
-          :path="path"
-          class="mb-3"
-        />
+        <DuxtBreadcrumb v-if="controls.breadcrumb" :path="path" class="mb-3" />
 
         <div class="flex items-start justify-between gap-4">
           <h1
@@ -319,6 +361,7 @@ useSchemaOrg([
           </h1>
 
           <DuxtCopyPage
+            v-if="controls.copyPage"
             class="mt-1"
             :path="path"
             :title="page?.title"
@@ -344,9 +387,10 @@ useSchemaOrg([
       <!-- A type that DOES draw its own title keeps the compact row: where the
            reader is, and what they can do with the page. -->
       <div v-else class="mb-6 flex items-start justify-between gap-4">
-        <DuxtBreadcrumb v-if="duxt?.breadcrumb !== false" :path="path" />
+        <DuxtBreadcrumb v-if="controls.breadcrumb" :path="path" />
 
         <DuxtCopyPage
+          v-if="controls.copyPage"
           class="-mt-1 ml-auto"
           :path="path"
           :title="page?.title"
@@ -364,7 +408,7 @@ useSchemaOrg([
            at the section's edge, so the links can only be siblings — and a
            release page that ended in whitespace now ends in the release before
            it, which is how a history is read. -->
-      <DuxtPageNav :path="path" />
+      <DuxtPageNav v-if="controls.prevNext" :path="path" />
 
       <!-- Provenance survives the header, because it is the one part of it that
            is still true: every page of a generated section came out of one
@@ -374,7 +418,7 @@ useSchemaOrg([
       <!-- As a row, and as wide as the page: with no column to sit in it is a
            footer, and a rule that stopped at the reading measure under a page
            set wider than that ended halfway across. -->
-      <DuxtPageInfo v-if="!aside" row :page="page" />
+      <DuxtPageInfo v-if="!aside && controls.pageInfo" row :page="page" />
     </div>
 
     <div v-if="aside" class="hidden w-56 shrink-0 xl:block">
@@ -383,13 +427,21 @@ useSchemaOrg([
       >
         <DuxtToc :links="generated" />
 
-        <DuxtPageInfo :page="page" />
+        <DuxtPageInfo v-if="controls.pageInfo" :page="page" />
       </div>
     </div>
   </div>
 
   <div v-else class="flex min-w-0 flex-1 justify-center gap-10">
-    <article class="min-w-0 max-w-3xl flex-1 py-8">
+    <!-- `fullWidth` removes the reading measure and NOTHING else: the header,
+         the left navigation and the column beside the article all stay, and a
+         page that wants those gone says so with their own controls. It is the
+         one page control that is off until asked for, because it removes a
+         constraint rather than something the shell draws. -->
+    <article
+      class="min-w-0 flex-1 py-8"
+      :class="controls.fullWidth ? undefined : 'max-w-3xl'"
+    >
       <DuxtAnnouncements placement="above-content" />
 
       <DuxtVersionBanner />
@@ -397,11 +449,7 @@ useSchemaOrg([
       <DuxtTranslationBanner v-if="untranslated" :from="found?.from" />
 
       <header class="mb-8 border-b pb-8">
-        <DuxtBreadcrumb
-          v-if="duxt?.breadcrumb !== false"
-          :path="path"
-          class="mb-3"
-        />
+        <DuxtBreadcrumb v-if="controls.breadcrumb" :path="path" class="mb-3" />
         <!-- The copy action sits with the title, not under the article: it is
              what a reader does with the page BEFORE reading it, and a control
              for that at the bottom is a control nobody finds. -->
@@ -415,6 +463,7 @@ useSchemaOrg([
           </h1>
 
           <DuxtCopyPage
+            v-if="controls.copyPage"
             class="mt-1"
             :path="path"
             :title="page?.title"
@@ -433,25 +482,26 @@ useSchemaOrg([
         <ContentRenderer v-if="page" :value="page" />
       </div>
 
-      <DuxtPageNav :path="path" />
+      <DuxtPageNav v-if="controls.prevNext" :path="path" />
 
-      <DuxtPageFeedback />
+      <DuxtPageFeedback v-if="controls.feedback" />
     </article>
 
     <!-- A div for the same reason as the sidebar's: DuxtToc's two <nav>s are
          the landmarks, and both are labelled. -->
-    <div class="hidden w-56 shrink-0 xl:block">
+    <!-- It drops out entirely once a page has emptied it — see `column`. -->
+    <div v-if="column" class="hidden w-56 shrink-0 xl:block">
       <div
         class="sticky top-[var(--duxt-header-offset)] max-h-[calc(100vh-var(--duxt-header-offset)-1.5rem)] overflow-y-auto py-8"
       >
-        <DuxtToc :links="page?.body?.toc?.links ?? []" />
+        <DuxtToc :links="outline" />
 
         <!-- Provenance under the contents: where this page came from, when it
              last changed and who wrote it. On the right rather than under the
              article, where it read as an afterthought below the prev/next
              links — this column is already the one answering what a page IS
              rather than what it says. -->
-        <DuxtPageInfo :page="page" />
+        <DuxtPageInfo v-if="controls.pageInfo" :page="page" />
       </div>
     </div>
   </div>
