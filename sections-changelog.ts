@@ -18,7 +18,7 @@
  * the one page it was written as, for a project that just wants it shown. The
  * cost of two rendering paths was weighed and accepted, and the difference runs
  * further than the page count: a flat changelog is an ORDINARY docs page and
- * keeps the docs chrome, which is why `layout` is answered per declaration.
+ * keeps the docs shell, which is why `layout` is answered per declaration.
  *
  * Pure text in, files out. What the split history LOOKS like — the timeline,
  * the group badges, the filters — belongs to `layouts/changelog.vue` and the
@@ -40,7 +40,7 @@ import { slugify } from './sources-resolve';
  * A layout and two MDC components, because that is the whole of what a
  * consumer can override: dropping a `ChangelogGroup.vue` of their own into
  * `app/components/content/` replaces the layer's, exactly as it does for a
- * callout, and a `layouts/changelog.vue` replaces the chrome around it.
+ * callout, and a `layouts/changelog.vue` replaces the shell around it.
  */
 export const DUXT_CHANGELOG_LAYOUT = 'changelog';
 export const DUXT_CHANGELOG_RELEASES = 'changelog-releases';
@@ -142,7 +142,7 @@ export const changelogSectionType: DuxtSectionType = {
    *
    * The split history is a timeline: the releases in the sidebar, a page per
    * release, no table of contents over four bullet points. The flat file is a
-   * long ordinary page, and the docs chrome is exactly what it wants — a
+   * long ordinary page, and the docs shell is exactly what it wants — a
    * contents column listing the releases most of all. Same type, two products,
    * so the question is answered from the declaration's own options.
    */

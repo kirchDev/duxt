@@ -289,7 +289,7 @@ describe('generatedLayout', () => {
     expect(generatedLayout('/releases/v1.0.0', sources)).toBe('changelog');
   });
 
-  it('leaves every other page in the docs chrome', () => {
+  it('leaves every other page in the docs layout', () => {
     const sources = [
       base,
       section({ generated: { ...section().generated!, layout: 'changelog' } })

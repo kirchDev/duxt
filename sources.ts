@@ -42,7 +42,7 @@ export const pageSchema = z.object({
   subcategory: z.string().optional(),
   /** Set by a source dialect; useful to navigation consumers, not authors. */
   category: z.string().optional(),
-  /** `landing` renders the page without the docs chrome. */
+  /** `landing` renders the page without the docs shell. */
   layout: z.string().optional(),
   /** The latest release of a generated changelog overview. */
   release: z.string().optional(),

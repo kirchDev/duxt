@@ -36,10 +36,11 @@ const server = join(root, 'www', '.output', 'server', 'index.mjs');
 /**
  * One page of each KIND, not a crawl.
  *
- * The chrome is what this checks, and the chrome differs by layout: the landing
- * page has no sidebar, a section root has no table of contents, a deep page has
- * everything, an embedded panel has an iframe, a generated section's markup is
- * a parser's output rather than a written page, and the 404 has its own view.
+ * The page shell is what this checks, and the shell differs by layout: the
+ * landing page has no sidebar, a section root has no table of contents, a deep
+ * page has everything, an embedded panel has an iframe, a generated section's
+ * markup is a parser's output rather than a written page, and the 404 has its
+ * own view.
  * Another page of a shape already here would add runtime and no coverage.
  *
  * WRITE THE ROUTES THE SITE ACTUALLY SERVES. Three of these carried a `/duxt/`
@@ -68,7 +69,7 @@ const ROUTES = [
   '/demo/changelog',
   '/demo/changelog/v0.5.0',
   // The fixture changelog at the other granularity — one page, in the ordinary
-  // docs chrome. A type that names no layout for the options it was given is a
+  // docs layout. A type that names no layout for the options it was given is a
   // decision only a rendered page proves, and its headings run three levels
   // deep where the split pages run two.
   '/demo/changelog-flat',

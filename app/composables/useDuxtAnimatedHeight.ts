@@ -69,10 +69,10 @@ export function useDuxtAnimatedHeight(
 
     // The box carries the border and `box-sizing: border-box`, so its height
     // has to include what that border takes; the content's height does not.
-    const chrome = box.offsetHeight - box.clientHeight;
+    const borderHeight = box.offsetHeight - box.clientHeight;
 
     const step = (height: number) =>
-      Math.ceil((height + chrome) / HEIGHT_STEP) * HEIGHT_STEP;
+      Math.ceil((height + borderHeight) / HEIGHT_STEP) * HEIGHT_STEP;
 
     let last = step(content.offsetHeight);
 

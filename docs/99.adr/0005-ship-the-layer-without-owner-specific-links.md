@@ -21,8 +21,8 @@ show an imprint and it is unmistakably not the template's to provide.
 
 Any default that would name a specific project or organisation ships **empty**.
 The theme's own links live in the consuming site's config, where they are an
-example rather than a default. Generic chrome that names nobody — a column
-heading, a "read the docs" action — stays in the layer.
+example rather than a default. Generic interface text that names nobody — a
+column heading, a "read the docs" action — stays in the layer.
 
 ## Consequences
 

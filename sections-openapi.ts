@@ -4,7 +4,7 @@
  * The second type in the registry, and the first one that answers the questions
  * the registry was built to ask. A changelog is one global history in the
  * language it was written in; a reference is **per version** and **per locale**,
- * and it needs a **layout** the docs chrome does not give it. Those three
+ * and it needs a **layout** the docs shell does not give it. Those three
  * differences are policies on the type rather than branches in the scaffold,
  * which is exactly what #9 claimed they would be — so this file adds a parser
  * and three declarations, and nothing else.

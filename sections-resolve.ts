@@ -365,11 +365,11 @@ export interface DuxtSectionType {
    * The layout its pages render in, through the shared slot.
    *
    * A layout name a type binds is PUBLIC SURFACE — renaming one later is a
-   * `feat!:`. Unset renders the section in the ordinary docs chrome.
+   * `feat!:`. Unset renders the section in the ordinary docs shell.
    *
    * A FUNCTION where the declaration's own options decide: the same type can
    * produce two different things, and a changelog is the case that proves it —
-   * split into a page per release it is a timeline with chrome of its own,
+   * split into a page per release it is a timeline with a layout of its own,
    * rendered as the one file it was written as it is an ordinary docs page and
    * wants the sidebar, the breadcrumb and the table of contents back.
    */

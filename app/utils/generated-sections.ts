@@ -171,11 +171,11 @@ const depth = (prefix: string) => (prefix ? prefix.split('/').length - 1 : 0);
  *
  * THE SHARED SLOT. Each type names its own layout and every type renders
  * through this one lookup, which is what stops two types inventing two
- * unrelated ways to escape the docs chrome. A type that names none renders in
- * the ordinary chrome, and the lookup answers `undefined`.
+ * unrelated ways to escape the docs layout. A type that names none renders in
+ * the ordinary docs layout, and the lookup answers `undefined`.
  *
  * Filtered to the sections that name a layout before the prefix match, so a
- * site whose types all render in the docs chrome does no work at all.
+ * site whose types all render in the docs layout does no work at all.
  */
 export function generatedLayout(
   path: string,

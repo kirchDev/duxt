@@ -395,7 +395,7 @@ describe('the flat changelog', () => {
     expect(only!.body).not.toContain('::changelog-group');
   });
 
-  it('is an ordinary page, so it keeps the docs chrome', () => {
+  it('is an ordinary page, so it keeps the docs shell', () => {
     // No layout, and therefore the header, the breadcrumb, the table of
     // contents and the prev/next pair the docs shell draws — which is the
     // whole point of asking for the file as it stands.

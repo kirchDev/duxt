@@ -22,7 +22,7 @@ const { visible, dismiss } = useDuxtAnnouncements(props.placement);
 const localeLink = useDuxtLink();
 
 /**
- * The two full-width placements are chrome; the third is part of the page.
+ * The two full-width placements belong to the header; the third to the page.
  *
  * `above-header` and `below-header` run to the browser edge and align their
  * contents with the header above or below them, so the sentence starts where

@@ -151,7 +151,7 @@ const clientAnchor = computed(() =>
          client sits after the description, which is the order a phone reads.
 
          AND IT SCROLLS ITSELF, the way the sidebar and the table of contents
-         already do — same expression, `100vh` less the chrome above it. Sticky
+         already do — same expression, `100vh` less the header above it. Sticky
          alone pinned a panel taller than the viewport, so the request samples
          under the send button were cut off and only came into view once the
          reader had scrolled the whole page to its end: the panel is beside the
@@ -161,7 +161,7 @@ const clientAnchor = computed(() =>
          normal flow and a second scrollbar inside the page would be one nobody
          asked for.
 
-         AND IT KEEPS A REM OFF THE CHROME. Pinned at exactly `--duxt-header-offset`
+         AND IT KEEPS A REM OFF THE HEADER. Pinned at exactly `--duxt-header-offset`
          the card's top border sat against the navbar's bottom border, so the
          two read as one thick line and the panel looked attached to the header
          rather than floating under it. The `max-h` gives the same rem back at

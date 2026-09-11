@@ -425,7 +425,7 @@ declare global {
      * The layout its pages render in. A name bound here is public surface.
      *
      * A function where the declaration's own options decide it — a changelog
-     * split into a page per release draws chrome of its own, the same file
+     * split into a page per release draws a layout of its own, the same file
      * rendered whole is an ordinary docs page.
      */
     layout?:

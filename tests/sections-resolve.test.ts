@@ -278,7 +278,7 @@ describe('resolveGeneratedSections', () => {
 
   it('lets the type name a layout per those options', () => {
     // The knob a declaration turns can change what the pages ARE — a changelog
-    // asked for as one file is an ordinary page and wants the docs chrome, the
+    // asked for as one file is an ordinary page and wants the docs shell, the
     // same one split into releases is not. So the layout is resolved from the
     // options rather than fixed per type.
     const layout = (options: DuxtSectionOptions) =>

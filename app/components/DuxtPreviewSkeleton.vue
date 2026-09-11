@@ -42,7 +42,7 @@ withDefaults(
     /**
      * `docs` — a Markdown page: two sidebars, prose, a code card.
      * `api` — an operation list: a run of method-and-path rows.
-     * `text` — a plain-text artefact such as `llms.txt`: no chrome at all,
+     * `text` — a plain-text artefact such as `llms.txt`: no layout at all,
      * because the browser renders one in a bare monospace document.
      */
     variant?: DuxtSkeletonVariant;

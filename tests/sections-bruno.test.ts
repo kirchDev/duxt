@@ -89,7 +89,7 @@ describe('the policies the registry asks every type for', () => {
     expect(brunoSectionType.input).toBe('directory');
   });
 
-  it('renders in the shared reference chrome', () => {
+  it('renders in the shared reference layout', () => {
     // The whole point of a second API type: one rendering path, two parsers.
     expect(brunoSectionType.layout).toBe(DUXT_BRUNO_LAYOUT);
   });

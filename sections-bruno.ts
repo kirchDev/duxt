@@ -3,7 +3,7 @@
  *
  * The third type in the registry and the second API one, and the question it
  * was filed to answer is whether a second API type is a second RENDERING PATH.
- * It is not: a Bruno request page renders in the same `reference` chrome an
+ * It is not: a Bruno request page renders in the same `reference` layout an
  * OpenAPI operation does, and the try-it column is the same component fed a
  * different parser's output. What this file adds is a parser, two policies and
  * an adapter — which is the registry doing the job it was built for.
@@ -49,7 +49,7 @@ import type {
  * The layout this type binds — the SAME one `openapi` binds.
  *
  * Deliberately not a name of its own. The two types produce the same kind of
- * page and want the same chrome: the full column width, the request list on the
+ * page and want the same layout: the full column width, the request list on the
  * left, no reading measure. A second layout would be a copy that drifts, and a
  * consumer who overrode `reference` to brand their API pages would find half of
  * them unbranded.
