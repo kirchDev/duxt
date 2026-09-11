@@ -61,6 +61,40 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # THE DOWNLOAD CACHE, NOT THE PARSE CACHE. Content clones every remote
+      # source into `www/.data/content` and keys the directory by repository AND
+      # ref, so what a run downloads is a function of the RESOLVED source list —
+      # which is exactly what this command prints, `latest` already replaced by
+      # the tag it means. `contents.sqlite` lives in the same directory and is
+      # excluded by the `paths` it emits: that one is the OUTPUT of the parse,
+      # so a restored copy hides a content change rather than saving a download.
+      #
+      # PUBLIC SOURCES ONLY, decided by the command rather than here. An Actions
+      # cache written on this branch is readable by every pull request against
+      # it, so a list holding an SSH or credential-bearing remote gets no key at
+      # all and both steps below skip.
+      #
+      # HERE AND NOT IN `ci.yml`, which is a stub: a reusable workflow runs in
+      # its own job with its own filesystem, so a restore beside the call cannot
+      # reach it. That half is an input on the body in kirchDev/workflows.
+      - name: Resolve the remote-source cache key
+        id: sources
+        run: node ./bin/duxt-cache-key.mjs --root www --github >> "$GITHUB_OUTPUT"
+
+      # NO `restore-keys`, deliberately. An exact key means a hit never re-saves,
+      # which is right for the tags this site pins — they cannot move, so one
+      # save serves every later run. A `branch:` source is the exception and
+      # keeps re-downloading, because Content compares the remote's hash on every
+      # build and re-clones a moved branch: no worse than today for that one
+      # entry, where the alternative — a key carrying the run id — would write a
+      # fresh copy of the whole directory on every single deploy.
+      - name: Restore the downloaded sources
+        if: steps.sources.outputs.cacheable == 'true'
+        uses: actions/cache@v6
+        with:
+          path: ${{ steps.sources.outputs.paths }}
+          key: ${{ steps.sources.outputs.key }}
+
       # The Cloudflare deploy token from the kirchDev-ci Bitwarden project. It
       # needs `Workers Scripts: Edit` AND `D1: Edit`; the D1 half is newer than
       # the token, so verify it is there before blaming the build.
