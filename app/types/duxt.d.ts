@@ -887,13 +887,23 @@ declare global {
     };
     /** Separate limits for derived examples and schema-tree rendering. */
     openapi?: { exampleDepth?: number; schemaDepth?: number };
-    /** Replaces the default bindings, including any conflicting one. */
+    /**
+     * What the site allows duxt to bind globally.
+     *
+     * Not the bindings themselves: those are the layer's, so the sheet, the
+     * handlers and the guards cannot come to disagree about them.
+     */
     shortcuts?: {
-      action: 'search' | 'help' | 'previous' | 'next';
-      key: string;
-      meta?: boolean;
-      keys: string[];
-    }[];
+      /**
+       * Whether a bare keystroke — `?`, `[`, `]` — is bound at all.
+       *
+       * `false` leaves `⌘/Ctrl+K`. Worth turning off where a site's own pages
+       * put something under an unmodified character, or where readers arrive
+       * through switch access, voice control or dictation — all of which emit
+       * bare characters the reader never meant as a command.
+       */
+      singleCharacter?: boolean;
+    };
     navigation?: DuxtLink[];
     /** The second navbar row: top-level parts of the documentation. */
     sections?: DuxtSection[];

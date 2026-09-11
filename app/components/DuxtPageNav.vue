@@ -32,19 +32,12 @@ const next = computed(() =>
  * chance to disagree with what the links say.
  */
 const router = useRouter();
-const duxt = useDuxtConfig();
+const { on } = useDuxtShortcuts();
 
-onDuxtShortcut(
-  (event) =>
-    matchesDuxtShortcut(duxt.shortcuts ?? [], 'previous', event) ||
-    matchesDuxtShortcut(duxt.shortcuts ?? [], 'next', event),
-  (event) => {
-    const target = matchesDuxtShortcut(duxt.shortcuts ?? [], 'previous', event)
-      ? previous.value
-      : next.value;
-    if (target?.path) void router.push(localeLink(target.path)!);
-  }
-);
+on(['previous', 'next'], (action) => {
+  const target = action === 'previous' ? previous.value : next.value;
+  if (target?.path) void router.push(localeLink(target.path)!);
+});
 </script>
 
 <template>

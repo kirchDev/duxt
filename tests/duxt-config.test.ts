@@ -75,18 +75,21 @@ describe('consumer-owned layer controls', () => {
     expect(duxtDefaults.openapi).toEqual({ exampleDepth: 6, schemaDepth: 8 });
   });
 
-  it('replaces model and shortcut lists', () => {
+  it('replaces a model list', () => {
+    const config = mergeDuxtConfig({ copy: { models: [] } }, duxtDefaults);
+    expect(config.copy?.models).toEqual([]);
+  });
+
+  it('leaves global single-character shortcuts on until a site says otherwise', () => {
+    expect(duxtDefaults.shortcuts).toEqual({ singleCharacter: true });
+  });
+
+  it('takes a site opting out of unmodified global keys', () => {
     const config = mergeDuxtConfig(
-      {
-        copy: { models: [] },
-        shortcuts: [{ action: 'search', key: '/', keys: ['/'] }]
-      },
+      { shortcuts: { singleCharacter: false } },
       duxtDefaults
     );
 
-    expect(config.copy?.models).toEqual([]);
-    expect(config.shortcuts).toEqual([
-      { action: 'search', key: '/', keys: ['/'] }
-    ]);
+    expect(config.shortcuts).toEqual({ singleCharacter: false });
   });
 });

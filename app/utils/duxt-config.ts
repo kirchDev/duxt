@@ -40,12 +40,13 @@ export const duxtDefaults: DuxtConfig = {
     recentPages: 5
   },
   openapi: { exampleDepth: 6, schemaDepth: 8 },
-  shortcuts: [
-    { action: 'search', key: 'k', meta: true, keys: ['⌘', 'K'] },
-    { action: 'help', key: '?', keys: ['?'] },
-    { action: 'previous', key: '[', keys: ['['] },
-    { action: 'next', key: ']', keys: [']'] }
-  ],
+  // A policy, not a binding table. WHICH keys duxt listens to is the layer's
+  // and lives in `duxtShortcuts`; whether the unmodified ones are live at all
+  // is the site's, because only a site knows what else its pages put under a
+  // bare keystroke. One boolean rather than four rewritable rows: a consumer
+  // that could move `?` would have to move it in the handler, the sheet and
+  // the guards at once, and those three drifting apart is what this replaces.
+  shortcuts: { singleCharacter: true },
 
   // No `version`. The layer knows nothing about the state of somebody else's
   // project, and a default made every site that extended it wear a number it

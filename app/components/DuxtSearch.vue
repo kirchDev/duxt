@@ -112,12 +112,16 @@ function context(result: DuxtSearchSection) {
   return [page, ...between].filter(Boolean).join(' › ');
 }
 
-onDuxtShortcut(
-  (event) => matchesDuxtShortcut(duxt.shortcuts ?? [], 'search', event),
-  () => {
-    if (open.value) open.value = false;
-    else void show();
-  }
+const { keys, on } = useDuxtShortcuts();
+
+on('search', () => {
+  if (open.value) open.value = false;
+  else void show();
+});
+
+/** The hint on the button, from the same definition the handler binds. */
+const searchHint = computed(() =>
+  shortcutHint(keys(duxtShortcuts.find((s) => s.action === 'search')!))
 );
 </script>
 
@@ -134,7 +138,7 @@ onDuxtShortcut(
     <kbd
       class="ml-auto hidden rounded border bg-muted px-1.5 font-mono text-[10px] sm:inline-block"
     >
-      ⌘K
+      {{ searchHint }}
     </kbd>
   </UiButton>
 

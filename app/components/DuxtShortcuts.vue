@@ -2,16 +2,15 @@
 /**
  * The shortcut sheet, on `?`.
  *
- * Its list is `duxtShortcuts`, the same array the handlers match against, so
- * the sheet cannot come to advertise a key nothing binds.
+ * It lists what `useDuxtShortcuts()` reports as live — the same list, under the
+ * same policy, that the handlers bind — so it cannot advertise a key nothing
+ * listens to. A site with `shortcuts.singleCharacter: false` binds no `?`, and
+ * the sheet then opens only from whatever visible control a site gives it.
  */
 const open = ref(false);
-const duxt = useDuxtConfig();
+const { shortcuts, keys, on } = useDuxtShortcuts();
 
-onDuxtShortcut(
-  (event) => matchesDuxtShortcut(duxt.shortcuts ?? [], 'help', event),
-  () => (open.value = !open.value)
-);
+on('help', () => (open.value = !open.value));
 </script>
 
 <template>
@@ -26,14 +25,14 @@ onDuxtShortcut(
 
       <ul class="flex flex-col gap-2 text-sm">
         <li
-          v-for="shortcut in duxt.shortcuts"
-          :key="`${shortcut.action}:${shortcut.key}`"
+          v-for="shortcut in shortcuts"
+          :key="shortcut.action"
           class="flex items-center justify-between gap-4"
         >
-          <span>{{ $t(shortcutLabel(shortcut.action)) }}</span>
+          <span>{{ $t(shortcut.label) }}</span>
           <span class="flex gap-1">
             <kbd
-              v-for="key in shortcut.keys"
+              v-for="key in keys(shortcut)"
               :key="key"
               class="rounded border bg-muted px-1.5 py-0.5 font-mono text-xs"
             >
