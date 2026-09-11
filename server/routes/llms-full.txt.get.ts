@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
     mergeDuxtConfig(appConfig.duxt, duxtDefaults)
   );
 
-  const pages = await llmsPages(event, duxt.resolvedSources);
+  const pages = await llmsPages(event, duxt.resolvedSources, true);
 
   const origin = getRequestURL(event).origin;
 

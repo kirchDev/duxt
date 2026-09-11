@@ -5,11 +5,13 @@ const database = vi.hoisted(() => ({
   pages: {} as Record<
     string,
     { path: string; title: string; rawbody: string }[]
-  >
+  >,
+  selections: [] as { name: string; fields: string[] }[]
 }));
 vi.mock('@nuxt/content/nitro', () => ({
   queryCollection: (_event: unknown, name: string) => ({
-    select() {
+    select(...fields: string[]) {
+      database.selections.push({ name, fields });
       return this;
     },
     async all() {
@@ -44,6 +46,7 @@ beforeEach(() => {
   );
   vi.stubGlobal('setHeader', vi.fn());
   database.pages = {};
+  database.selections = [];
   event.context.nuxtI18n.vueI18nOptions.fallbackLocale = 'en';
   sources = duxtManifest([{ path: 'docs', locales: ['en', 'de'] }], {
     defaultLocale: 'en'
@@ -64,6 +67,23 @@ async function exportsText() {
     full: await full(event as never)
   };
 }
+
+async function indexText() {
+  const { default: index } = await import('../server/routes/llms.txt.get');
+  return index(event as never);
+}
+
+it('does not load page bodies for the llms index', async () => {
+  database.pages.docs = [
+    { path: '/guide', title: 'Guide', rawbody: 'Only the full export needs me' }
+  ];
+
+  await indexText();
+
+  expect(database.selections).toHaveLength(2);
+  for (const { fields } of database.selections)
+    expect(fields).toEqual(['path', 'title', 'description']);
+});
 
 it('links translations to the represented public URL in both exports', async () => {
   database.pages.docs = [

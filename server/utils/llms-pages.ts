@@ -8,7 +8,8 @@ import {
 /** Enumerate public pages, selecting the same collection chain as HTML. */
 export async function llmsPages(
   event: H3Event,
-  sources: DuxtResolvedSource[] = []
+  sources: DuxtResolvedSource[] = [],
+  includeRawbody = false
 ) {
   // llms.txt is a map of the documentation a reader should start with. Older
   // versions stay published at their own URLs, but making an agent choose
@@ -35,6 +36,9 @@ export async function llmsPages(
   const collections = sources.length
     ? [...new Set(defaultSources.map((source) => source.collection))]
     : ['docs'];
+  const fields = includeRawbody
+    ? (['path', 'title', 'description', 'rawbody'] as const)
+    : (['path', 'title', 'description'] as const);
   const entries = await Promise.all(
     collections.map(
       async (name) =>
@@ -44,7 +48,7 @@ export async function llmsPages(
             event,
             name as Parameters<typeof queryCollection>[1]
           )
-            .select('path', 'title', 'description', 'rawbody')
+            .select(...fields)
             .all()
         ] as const
     )
