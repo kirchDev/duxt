@@ -34,6 +34,7 @@ import type {
 import { compactOpenApi, parseOpenApiDocument } from './openapi-parse';
 import type {
   DuxtSectionContext,
+  DuxtSectionInput,
   DuxtSectionPage,
   DuxtSectionType
 } from './sections-resolve';
@@ -75,13 +76,13 @@ export const openapiSectionType: DuxtSectionType = {
 };
 
 function parseOpenApiSection(
-  artefact: string,
+  input: DuxtSectionInput,
   context: DuxtSectionContext
 ): DuxtSectionPage[] {
   let spec: DuxtOpenApiSpec;
 
   try {
-    spec = parseOpenApiDocument(artefact);
+    spec = parseOpenApiDocument(input.text());
   } catch (error) {
     // Rethrown rather than swallowed into an empty section: the scaffold turns
     // "no pages" into the right severity for local and remote alike, but a

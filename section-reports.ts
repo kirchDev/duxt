@@ -1,4 +1,3 @@
-import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { DuxtResolvedSource } from './sources-resolve';
 import type { DuxtSectionTypes } from './sections-resolve';
@@ -7,6 +6,11 @@ import {
   missingSectionArtefact,
   sectionPages
 } from './sections-resolve';
+import {
+  diskSectionInput,
+  sectionArtefactExists,
+  sectionInputKind
+} from './section-input';
 import { repositoryRoot } from './repository-root';
 
 /**
@@ -39,13 +43,14 @@ export function readSectionReports(
     if (!type || entry.generated!.remote) continue;
 
     const file = join(repositoryRoot(), entry.path);
+    const kind = sectionInputKind(type);
 
     // Both calls record the report on the entry; the return value is the
     // collection's business, not this one's. A missing local artefact throws
     // here exactly as it throws while the collections are declared — the same
     // error, from whichever of the two runs first.
-    if (existsSync(file)) {
-      sectionPages(entry, type, readFileSync(file, 'utf8'));
+    if (sectionArtefactExists(file, kind)) {
+      sectionPages(entry, type, diskSectionInput(file, entry.path, kind));
     } else {
       missingSectionArtefact(entry, file);
     }

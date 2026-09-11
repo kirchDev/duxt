@@ -169,7 +169,9 @@ it('keeps local generated sections versioned by their files', async () => {
         test: {
           versioning: 'per-version',
           localisation: 'original',
-          parse: (raw: string) => [{ file: 'index.md', body: raw }]
+          parse: (input: { text: () => string }) => [
+            { file: 'index.md', body: input.text() }
+          ]
         }
       }
     );

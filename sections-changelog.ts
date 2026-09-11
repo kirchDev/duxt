@@ -27,6 +27,7 @@
 import { stringify as stringifyYaml } from 'yaml';
 import type {
   DuxtSectionContext,
+  DuxtSectionInput,
   DuxtSectionOptions,
   DuxtSectionPage,
   DuxtSectionType
@@ -188,10 +189,10 @@ function granularityOf(options: DuxtSectionOptions): Granularity {
 }
 
 function parseChangelog(
-  artefact: string,
+  input: DuxtSectionInput,
   context: DuxtSectionContext
 ): DuxtSectionPage[] {
-  const lines = artefact.split(/\r?\n/);
+  const lines = input.text().split(/\r?\n/);
   const headings = headingsOf(lines);
   const starts = headings.filter((heading) => release(heading.text));
 
