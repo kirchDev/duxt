@@ -142,6 +142,7 @@ function groupSubcategories(
     .map(([title, members], index) => ({
       title,
       path: `${item.path ?? ''}/__duxt-subcategory-${index}`,
+      page: false as const,
       children: [...members].sort((left, right) =>
         left.title.localeCompare(right.title)
       )

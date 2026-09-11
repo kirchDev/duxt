@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ContentNavigationItem } from '@nuxt/content';
+import { flattenedNavigationPages } from '../utils/navigation-tree';
 // Previous and next within the current section only. Content's own
 // surroundings query walks the whole collection in one flat order, so the last
 // page of one section would offer a "next" that lands in another — crossing a
@@ -12,19 +12,7 @@ const { items } = useDuxtSection(navigation);
 const localeLink = useDuxtLink();
 
 /** The section's pages in reading order, groups flattened into their children. */
-const pages = computed(() => {
-  const flat: ContentNavigationItem[] = [];
-
-  const walk = (entries: ContentNavigationItem[]) => {
-    for (const entry of entries) {
-      if (entry.page !== false) flat.push(entry);
-      if (entry.children?.length) walk(entry.children);
-    }
-  };
-
-  walk(items.value);
-  return flat;
-});
+const pages = computed(() => flattenedNavigationPages(items.value));
 
 const index = computed(() =>
   pages.value.findIndex((page) => page.path === props.path)

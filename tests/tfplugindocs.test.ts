@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { ContentNavigationItem } from '@nuxt/content';
 import { describe, expect, it } from 'vitest';
+import { flattenedNavigationPages } from '../app/utils/navigation-tree';
 import {
   normaliseTfplugindocsPage,
   tfplugindocsNavigation
@@ -114,5 +115,9 @@ describe('tfplugindocsNavigation', () => {
     expect(
       result[2]?.children?.[2]?.children?.map((item) => item.title)
     ).toEqual(['Account', 'User']);
+    expect(result[2]?.children?.[2]).toMatchObject({ page: false });
+    expect(
+      flattenedNavigationPages(result).map((item) => item.path)
+    ).not.toContain('/tf/resources/__duxt-subcategory-0');
   });
 });

@@ -1,12 +1,38 @@
 import type { ContentNavigationItem } from '@nuxt/content';
 import { describe, expect, it } from 'vitest';
 import {
+  flattenedNavigationPages,
   findByPath,
   navigationPagePaths,
   overlayTranslations,
   sectionItems,
   trailBelowPrefix
 } from '../app/utils/navigation-tree';
+
+describe('flattenedNavigationPages', () => {
+  it('keeps tfplugindocs subcategory members but excludes their synthetic group path', () => {
+    expect(
+      flattenedNavigationPages([
+        {
+          title: 'Resources',
+          path: '/tf/resources',
+          page: false,
+          children: [
+            {
+              title: 'People',
+              path: '/tf/resources/__duxt-subcategory-0',
+              page: false,
+              children: [
+                { title: 'Account', path: '/tf/resources/account' },
+                { title: 'User', path: '/tf/resources/user' }
+              ]
+            }
+          ]
+        }
+      ] as ContentNavigationItem[]).map((item) => item.path)
+    ).toEqual(['/tf/resources/account', '/tf/resources/user']);
+  });
+});
 
 describe('navigationPagePaths', () => {
   it('keeps versioned pages that a file-extension-based crawler skips', () => {

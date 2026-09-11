@@ -1,5 +1,21 @@
 import type { ContentNavigationItem } from '@nuxt/content';
 
+/** Pages in reading order, with non-page groups expanded into their members. */
+export function flattenedNavigationPages(
+  items: ContentNavigationItem[]
+): ContentNavigationItem[] {
+  const pages: ContentNavigationItem[] = [];
+
+  for (const item of items) {
+    if (item.page !== false) pages.push(item);
+    if (item.children?.length) {
+      pages.push(...flattenedNavigationPages(item.children));
+    }
+  }
+
+  return pages;
+}
+
 /** Actual pages, including dotted version paths; folder wrappers are not pages. */
 export function navigationPagePaths(items: ContentNavigationItem[]): string[] {
   const paths = new Set<string>();
