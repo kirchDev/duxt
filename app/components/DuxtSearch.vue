@@ -57,13 +57,31 @@ watch(query, (term) => {
 const duxt = useDuxtConfig();
 const { recent, load } = useRecentPages(duxt.search?.recentPages);
 
+const sections = computed(() => duxt.sections ?? []);
+const sources = computed(() => duxt.resolvedSources ?? []);
+
 /** Which section a path belongs to, for grouping the hits. */
 function sectionOf(path: string) {
-  return (
-    duxt.sections?.find((section) => section.to && path.startsWith(section.to))
-      ?.label ?? 'Documentation'
-  );
+  return sectionLabelForPath(path, sections.value) ?? 'Documentation';
 }
+
+/**
+ * The line under every row's title, and deliberately the SAME line in both
+ * lists.
+ *
+ * "Recently viewed" showed a title and its section, which on a site serving
+ * several editions of one repository is three identical rows — the reader saw
+ * `Harbour` three times and had to open them to find out which was which. A hit
+ * had the opposite problem: it named the page it sat in but not the edition
+ * that page came from. One `section · source/version · route` answers both, and
+ * answering them the same way is what makes the palette scannable.
+ */
+const contextOf = (path: string) =>
+  searchContext(path, sections.value, sources.value);
+
+const history = computed(() =>
+  recent.value.map((page) => ({ ...page, context: contextOf(page.path) }))
+);
 
 /**
  * Hits grouped by section rather than by page. Grouping by page produced one
@@ -71,19 +89,22 @@ function sectionOf(path: string) {
  * and the reader already thinks in sections, because the navbar shows them.
  */
 const grouped = computed(() => {
-  // With several sources the list is ONE ranked list with a badge per hit —
-  // grouping it by section would re-sort exactly the ranking the merge just
-  // produced. See `useDuxtSearch` for why ranking beats grouping here.
+  const rows = results.value.map((hit) => ({
+    ...hit,
+    context: contextOf(hit.id)
+  }));
+
+  // With several sources the list is ONE ranked list whose rows say where they
+  // came from — grouping it by section would re-sort exactly the ranking the
+  // merge just produced. See `useDuxtSearch` for why ranking beats grouping.
   if (labelled.value) {
-    return [{ label: '', hits: results.value }];
+    return [{ label: '', hits: rows }];
   }
 
-  const bySection = new Map<string, DuxtSearchHit[]>();
+  const bySection = new Map<string, typeof rows>();
 
-  for (const hit of results.value) {
-    // A section label may be configured per locale; the group key has to be a
-    // plain string, and by this point useDuxtConfig has resolved it.
-    const label = asText(sectionOf(hit.id)) ?? 'Documentation';
+  for (const hit of rows) {
+    const label = sectionOf(hit.id);
     bySection.set(label, [...(bySection.get(label) ?? []), hit]);
   }
 
@@ -102,14 +123,6 @@ function go(id: string) {
   results.value = [];
   approximate.value = false;
   router.push(localeLink(id)!);
-}
-
-/** Where a hit sits: the page, and the headings above it inside that page. */
-function context(result: DuxtSearchSection) {
-  const page = result.titles[0];
-  const between = result.titles.slice(1);
-
-  return [page, ...between].filter(Boolean).join(' › ');
 }
 
 const { keys, on } = useDuxtShortcuts();
@@ -175,19 +188,24 @@ const searchHint = computed(() =>
           :heading="$t('duxt.search.recent')"
         >
           <UiCommandItem
-            v-for="page in recent"
+            v-for="page in history"
             :key="page.path"
             :value="`recent ${page.path}`"
-            class="gap-2"
+            class="items-start gap-2"
             @select="go(page.path)"
           >
             <Icon
               name="lucide:history"
-              class="size-3.5 shrink-0 text-muted-foreground"
+              class="mt-0.5 size-3.5 shrink-0 text-muted-foreground"
             />
-            <span class="truncate">{{ page.title }}</span>
-            <span class="ml-auto truncate pl-3 text-xs text-muted-foreground">
-              {{ sectionOf(page.path) }}
+            <span class="flex min-w-0 flex-col">
+              <span class="truncate">{{ page.title }}</span>
+              <span
+                v-if="page.context"
+                class="truncate text-xs text-muted-foreground"
+              >
+                {{ page.context }}
+              </span>
             </span>
           </UiCommandItem>
         </UiCommandGroup>
@@ -228,8 +246,11 @@ const searchHint = computed(() =>
         {{ $t('duxt.search.approximate', { query }) }}
       </div>
 
-      <!-- One line per hit, grouped by section: the page is context on the
-           right, not a heading of its own. -->
+      <!-- Two lines per hit, grouped by section: the title, and under it the
+           same context line the history above carries. The repository badge
+           that used to sit at the end is gone with it — provenance is in the
+           context now, and printing the edition twice per row was the noise
+           this was meant to remove. -->
       <UiCommandGroup
         v-for="group in grouped"
         :key="group.label"
@@ -239,26 +260,22 @@ const searchHint = computed(() =>
           v-for="hit in group.hits"
           :key="hit.id"
           :value="hit.id"
-          class="gap-2"
+          class="items-start gap-2"
           @select="go(hit.id)"
         >
           <Icon
             :name="hit.level > 1 ? 'lucide:hash' : 'lucide:file-text'"
-            class="size-3.5 shrink-0 text-muted-foreground"
+            class="mt-0.5 size-3.5 shrink-0 text-muted-foreground"
           />
-          <span class="truncate">{{ hit.title }}</span>
-          <span class="ml-auto truncate pl-3 text-xs text-muted-foreground">
-            {{ context(hit) }}
+          <span class="flex min-w-0 flex-col">
+            <span class="truncate">{{ hit.title }}</span>
+            <span
+              v-if="hit.context"
+              class="truncate text-xs text-muted-foreground"
+            >
+              {{ hit.context }}
+            </span>
           </span>
-          <!-- Which repository and version this came out of. Only drawn where
-               there is more than one, so a single-source site sees nothing. -->
-          <UiBadge
-            v-if="hit.source"
-            variant="secondary"
-            class="shrink-0 font-mono text-[10px]"
-          >
-            {{ hit.source.label }}
-          </UiBadge>
         </UiCommandItem>
       </UiCommandGroup>
     </UiCommandList>
