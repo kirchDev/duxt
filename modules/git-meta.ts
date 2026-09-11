@@ -5,6 +5,7 @@ import type { Nuxt } from '@nuxt/schema';
 import { readDuxtBuildConfig } from '../duxt-app-config';
 import { duxtManifest, duxtSectionTypes } from '../sections-resolve';
 import { resolveLatestRefs } from '../sources-git';
+import { normaliseTfplugindocsPage } from '../tfplugindocs';
 
 /**
  * "Last updated" and the contributor list, from the git history the file
@@ -54,8 +55,8 @@ export default function duxtGitMeta(_options: unknown, nuxt: Nuxt) {
     duxtSectionTypes(config?.sectionTypes)
   );
 
-  const wanted = new Map(
-    sources.map((source) => [source.collection, source.history])
+  const sourceByCollection = new Map(
+    sources.map((source) => [source.collection, source])
   );
 
   nuxt.hook(
@@ -65,10 +66,19 @@ export default function duxtGitMeta(_options: unknown, nuxt: Nuxt) {
       const content = ctx.content;
       if (!file || !content) return;
 
+      const source = sourceByCollection.get(ctx.collection?.name ?? '');
+      if (!source) return;
+
+      // Source flavours alter metadata only. Their Markdown remains portable to
+      // the generator's own publisher, so the body is never rewritten here.
+      if (source.flavor === 'tfplugindocs') {
+        normaliseTfplugindocsPage(content, ctx.file?.id ?? file);
+      }
+
       // A source that has not asked for its history is left alone — for a
       // downloaded one that would otherwise answer out of a single-commit
       // clone, which is wrong data rather than missing data.
-      if (!wanted.get(ctx.collection?.name ?? '')) return;
+      if (!source.history) return;
 
       if (file.includes('/.data/content/')) unshallow(dirname(file));
 

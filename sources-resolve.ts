@@ -20,6 +20,14 @@ export interface DuxtSource {
    * default URL prefix without declaring two page collections for it.
    */
   content?: boolean;
+  /**
+   * The Markdown dialect this source was generated in.
+   *
+   * Dialects are layer-owned normalisers, not consumer-supplied transforms:
+   * one compact marker keeps an upstream repository readable without making
+   * its generator emit duxt-specific Markdown.
+   */
+  flavor?: DuxtSourceFlavor;
   /** `owner/name` or a full git URL. Omitted reads the local checkout. */
   repo?: string;
   /**
@@ -118,6 +126,9 @@ export interface DuxtSource {
    */
   generated?: DuxtGeneratedSection[];
 }
+
+/** Source dialects the layer understands. */
+export type DuxtSourceFlavor = 'tfplugindocs';
 
 /**
  * Where a version sits in its life.
@@ -298,6 +309,8 @@ export interface DuxtResolvedSource {
   status: DuxtSourceStatus;
   /** Whether the build may read this source's git history. */
   history: boolean;
+  /** The layer-owned Markdown dialect this collection is normalised from. */
+  flavor?: DuxtSourceFlavor;
   /**
    * Present when this collection is a GENERATED SECTION rather than a docs
    * tree — see `resolveGeneratedSections`.
@@ -673,7 +686,8 @@ export function resolveSources(
         'current',
       // A local source is a full checkout already; a remote one has to be
       // unshallowed, which is why it has to be asked for.
-      history: entry.repo ? (source.history ?? false) : true
+      history: entry.repo ? (source.history ?? false) : true,
+      flavor: source.flavor
     });
   }
 

@@ -206,6 +206,8 @@ declare global {
      * then share the default URL prefix of a versioned documentation source.
      */
     content?: boolean;
+    /** A layer-owned Markdown dialect, such as tfplugindocs. */
+    flavor?: 'tfplugindocs';
     /** `owner/name` or a full git URL. Omitted means this repository. */
     repo?: string;
     /** Refs to publish as versions. Omitted means the current checkout. */
@@ -447,6 +449,8 @@ declare global {
     isDefaultLocale: boolean;
     status: DuxtSourceStatusInput;
     history: boolean;
+    /** The layer-owned Markdown dialect this collection is normalised from. */
+    flavor?: 'tfplugindocs';
     /**
      * Present when this collection is a generated section rather than a docs
      * tree. `path` is then the artefact itself rather than a folder.

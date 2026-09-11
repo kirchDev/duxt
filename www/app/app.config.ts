@@ -120,6 +120,16 @@ export default defineAppConfig({
         status: 'eol',
         origin: { repo: 'kirchDev/duxt', ref: 'main' }
       },
+      // A real provider reference, taken directly from the generator output
+      // a consumer has in their repository. `v0.2.6` is the newest published
+      // tag while this demo exists; a tag makes the example reproducible.
+      {
+        repo: 'kirchDev/terraform-provider-linear',
+        path: 'docs',
+        slug: 'tf',
+        flavor: 'tfplugindocs',
+        refs: [{ tag: 'v0.2.6', default: true }]
+      },
       // Generated sections use the same default prefix but do not publish a
       // second Markdown collection there. Their API declaration owns the four
       // edition-specific artefacts; changelogs remain one global history.
@@ -325,6 +335,13 @@ export default defineAppConfig({
       // reference — takes over from there. The highlight is a prefix match, so
       // the entry stays lit across every version of the reference under it.
       { label: 'Demo', to: '/demo', icon: 'lucide:flask-conical' },
+      // A source dialect remains ordinary documentation, so this points to
+      // the provider overview instead of introducing a second kind of page.
+      {
+        label: 'Terraform demo',
+        to: '/tf',
+        icon: 'vscode-icons:file-type-terraform'
+      },
       // A navbar entry of its own rather than an item inside the dropdown: a
       // link buried in a menu is a link nobody opens the menu for, and this one
       // is a page of the site while the five above leave it. It sits after

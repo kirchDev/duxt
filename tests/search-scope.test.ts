@@ -67,7 +67,7 @@ it('selects the page resolver language chain for every chosen edition', () => {
   ).toEqual(['de', 'fr', 'en']);
 });
 
-it('includes the real www API and release sections from getting-started', async () => {
+it('includes the real www Terraform, API and release sources from getting-started', async () => {
   vi.stubGlobal('defineAppConfig', <T>(config: T) => config);
   try {
     const { default: config } = await import('../www/app/app.config');
@@ -80,6 +80,7 @@ it('includes the real www API and release sections from getting-started', async 
     expect(active.map((entry) => entry.prefix)).toEqual([
       '',
       '/demo',
+      '/tf',
       '/releases',
       '/demo/api',
       '/demo/changelog',

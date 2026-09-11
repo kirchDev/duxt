@@ -17,6 +17,7 @@ export { repositoryRoot };
 export type {
   DuxtResolvedSource,
   DuxtSource,
+  DuxtSourceFlavor,
   DuxtSourcesOptions
 } from './sources-resolve';
 export { duxtSourceManifest } from './sources-resolve';
@@ -35,6 +36,12 @@ export { PARTIALS_COLLECTION, partialsCollection };
 export const pageSchema = z.object({
   /** Shown beside the entry in the sidebar, the section row and page cards. */
   icon: z.string().optional(),
+  /** Preserved long enough for the tfplugindocs dialect to normalise it. */
+  page_title: z.string().optional(),
+  /** A tfplugindocs navigation group within its directory category. */
+  subcategory: z.string().optional(),
+  /** Set by a source dialect; useful to navigation consumers, not authors. */
+  category: z.string().optional(),
   /** `landing` renders the page without the docs chrome. */
   layout: z.string().optional(),
   /** The latest release of a generated changelog overview. */

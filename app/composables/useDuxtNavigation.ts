@@ -1,4 +1,5 @@
 import type { ContentNavigationItem } from '@nuxt/content';
+import { tfplugindocsNavigation } from '../../tfplugindocs';
 
 /**
  * Which collections the navigation is being fetched from.
@@ -40,14 +41,22 @@ const handler = async (): Promise<ContentNavigationItem[]> => {
 
   const tree = await queryCollectionNavigation(base as DuxtCollectionArg, [
     'icon',
-    'description'
+    'description',
+    'subcategory'
   ]);
 
   // Before the overlay: a folder's title comes from its own index page, and a
   // translated index has to be able to carry that up with it.
   const named = titleFoldersFromIndex(tree);
+  const baseSource = useDuxtConfig().resolvedSources?.find(
+    (source) => source.collection === base
+  );
+  const navigable =
+    baseSource?.flavor === 'tfplugindocs'
+      ? tfplugindocsNavigation(named, baseSource.prefix)
+      : named;
 
-  if (translation === base) return named;
+  if (translation === base) return navigable;
 
   const translated = await queryCollection(translation as DuxtCollectionArg)
     .select('path', 'title', 'description')
@@ -55,7 +64,7 @@ const handler = async (): Promise<ContentNavigationItem[]> => {
 
   return titleFoldersFromIndex(
     overlayTranslations(
-      named,
+      navigable,
       new Map(translated.map((page) => [page.path, page]))
     )
   );
