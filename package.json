@@ -99,6 +99,8 @@
     "cache:key": "node ./bin/duxt-cache-key.mjs --root www",
     "build:app": "pnpm --filter www build",
     "deploy:www": "pnpm --filter www run deploy",
+    "build:www": "pnpm --filter www run build:cf",
+    "publish:www": "pnpm --filter www run publish:cf",
     "check:a11y": "node scripts/check-a11y.ts",
     "check:seo": "node scripts/check-seo.ts",
     "check:adapters": "node scripts/check-adapters.ts"

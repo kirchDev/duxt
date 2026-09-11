@@ -2,7 +2,7 @@
 
 # NOT A STUB, AND THE ONE EXCEPTION IN THIS DIRECTORY. Every other workflow here
 # calls a body in kirchDev/workflows; there is no body for a Cloudflare deploy,
-# so this one carries its own job. If a second repo ever deploys a Nuxt site to
+# so this one carries its own jobs. If a second repo ever deploys a Nuxt site to
 # Workers, this is what moves out.
 name: Deploy
 
@@ -31,22 +31,57 @@ on:
 # release the site shows the last released number while documenting what is
 # already on main. main only moves when the promotion PR merges, so that window
 # is short — but it is real, and it is the price of this trigger.
-concurrency:
-  group: deploy-www
-  cancel-in-progress: false
+#
+# ── WHY THERE IS NO WORKFLOW-LEVEL `concurrency` ──────────────────────────────
+#
+# There was one — `deploy-www`, `cancel-in-progress: false` — and it serialized
+# whole RUNS. A build for the newest commit could not even start while an older
+# publication was still uploading, so a burst of pushes to main delivered the
+# newest state one full build-and-upload late, every time.
+#
+# The two halves want opposite answers, so they are now two jobs with a policy
+# each: a build is disposable and a newer push supersedes it, a publication is
+# not and is never interrupted. See each job's `concurrency` block.
 
 permissions:
   contents: read
 
 jobs:
-  deploy:
-    name: Deploy www
+  build:
+    name: Build www
     runs-on: ubuntu-latest
-    environment:
-      name: production
+    # DISPOSABLE WORK, BUT ONLY WHEN A COMMIT ASKED FOR IT. A newer push to
+    # main makes this build's artefact stale before it exists, so the runner
+    # drops it rather than finishing it and queueing an upload nobody wants —
+    # every push to main therefore shares one group.
+    #
+    # Anything else is somebody asking for production to be refreshed on
+    # purpose: a first run, a rotated token, a hostname `infrastructure` has
+    # just applied, or the release build that makes `latest` resolve from the
+    # new tag. Those get `github.run_id`, which no other run can collide with,
+    # so `cancel-in-progress` has nothing to match and they always publish.
+    concurrency:
+      group: deploy-www-build-${{ github.event_name == 'push' && 'main' || github.run_id }}
+      cancel-in-progress: true
+    outputs:
+      # The publish job checks out `main` and unpacks an artefact; neither tells
+      # it how old the commit inside that artefact is. This is the only way the
+      # freshness row gets a start time.
+      committed-at: ${{ steps.source.outputs.committed-at }}
+      sha: ${{ steps.source.outputs.sha }}
     steps:
       - uses: actions/checkout@v6
         with:
+          # WHAT PRODUCTION IS, RATHER THAN WHAT STARTED THE RUN. A push builds
+          # its own commit; everything else builds `main` as it stands now.
+          #
+          # A release event points at the tag, and building that would roll the
+          # site back whenever main has moved past it — the build exists to
+          # refresh `latest`, not to republish the tag. A `workflow_dispatch`
+          # points at whichever branch the dropdown was left on, and honouring
+          # that makes the Run button a two-click route from any branch into
+          # production.
+          ref: ${{ github.event_name == 'push' && github.sha || 'main' }}
           # The layer reads git for "last updated" and the edit links. A shallow
           # clone gives every page the same commit date.
           fetch-depth: 0
@@ -95,6 +130,91 @@ jobs:
           path: ${{ steps.sources.outputs.paths }}
           key: ${{ steps.sources.outputs.key }}
 
+      # Read off the CHECKOUT, not off the event: a release run and a manual one
+      # both build `main` rather than the ref they were triggered from, so
+      # `github.sha` is the wrong commit for two of the three triggers.
+      - name: Record the source commit
+        id: source
+        run: |
+          {
+            echo "committed-at=$(git log -1 --format=%cI)"
+            echo "sha=$(git rev-parse HEAD)"
+          } >> "$GITHUB_OUTPUT"
+
+      # THE BUILD HAPPENS HERE, NOT AT CLOUDFLARE. No Pages git integration and
+      # no build on their side: the artefact is produced by this runner, with
+      # this lockfile and this Node, and wrangler only uploads it — one place
+      # builds, and it is the one whose logs we keep.
+      - name: Build www for Workers
+        run: pnpm build:www
+
+      # The build/publication boundary, made literal. `.output` is the whole of
+      # what wrangler uploads: the module Worker and the prerendered assets
+      # beside it, exactly as `www/wrangler.jsonc` names them.
+      #
+      # This round trip is the price of being able to cancel a build without
+      # risking an upload, and it is paid on every deploy. `retention-days: 1`
+      # keeps it from also being paid in storage — nothing reads this artefact
+      # after the publish job that follows it.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: www-output
+          path: www/.output
+          retention-days: 1
+          # Nitro emits dotfiles into `.output/public` — `_headers`' neighbours,
+          # and whatever a module drops under `.well-known`. The action skips
+          # hidden files unless told otherwise, and a deploy missing one of them
+          # fails at the edge rather than here.
+          include-hidden-files: true
+          if-no-files-found: error
+
+  publish:
+    name: Publish www
+    # A cancelled or failed build never reaches here, which is what keeps an
+    # older artefact from going out behind a newer commit: if the newest build
+    # fails, production stays on the last published version rather than falling
+    # back to a stale one that happens to be sitting in a queue.
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    # NOT DISPOSABLE. One publication at a time, and an upload that has started
+    # runs to completion — a newer successful build publishes after it, never
+    # over it. GitHub keeps a single pending job per group, so when two builds
+    # finish behind one upload it is the newer one that gets to go next.
+    #
+    # The accepted edge, stated rather than hidden: a manual or release build
+    # is never superseded, so one started before a push can publish after it
+    # and leave production a commit behind until the next deploy. Both build
+    # `main`, so the gap is whatever landed in between — and the alternative is
+    # a manual deploy that a push can silently throw away, which is the thing
+    # the Run button exists to rule out.
+    concurrency:
+      group: deploy-www-publish
+      cancel-in-progress: false
+    steps:
+      # wrangler, `www/wrangler.jsonc` and the workspace it resolves from. The
+      # site itself is not rebuilt here; it arrives as the artefact below, so
+      # this checkout follows the build's ref rather than the trigger's.
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event_name == 'push' && github.sha || 'main' }}
+
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: www-output
+          path: www/.output
+
       # The Cloudflare deploy token from the kirchDev-ci Bitwarden project. It
       # needs `Workers Scripts: Edit` AND `D1: Edit`; the D1 half is newer than
       # the token, so verify it is there before blaming the build.
@@ -109,25 +229,19 @@ jobs:
           secrets: |
             1c906de8-7fb1-4d43-9996-b4810165cacf > CLOUDFLARE_API_TOKEN
 
-      # THE BUILD HAPPENS HERE, NOT AT CLOUDFLARE. No Pages git integration and
-      # no build on their side: the artefact is produced by this runner, with
-      # this lockfile and this Node, and wrangler only uploads it — one place
-      # builds, and it is the one whose logs we keep.
-      #
-      # `pnpm run deploy` (not `pnpm deploy` — that is pnpm's own built-in)
-      # builds with the cloudflare preset and then uploads the Worker together
-      # with `.output/public`. wrangler reads CLOUDFLARE_API_TOKEN from the env.
-      - name: Build and deploy
-        run: pnpm deploy:www
+      # wrangler reads CLOUDFLARE_API_TOKEN from the env and uploads the Worker
+      # together with `.output/public`.
+      - name: Publish to Cloudflare
+        run: pnpm publish:www
 
+      # Freshness is REPORTED, NOT GATED — see the header of the script. The
+      # upload has already happened when this runs, so nothing it prints can
+      # fail the deploy, and there is no threshold for it to fail against.
       - name: Deployment summary
         if: success()
-        run: |
-          {
-            echo "## 🚀 www deployed"
-            echo ""
-            echo "| Property | Value |"
-            echo "|----------|-------|"
-            echo "| Commit | \`${{ github.sha }}\` |"
-            echo "| Worker | \`duxt-www\` |"
-          } >> "$GITHUB_STEP_SUMMARY"
+        env:
+          DEPLOY_SHA: ${{ needs.build.outputs.sha }}
+          DEPLOY_COMMITTED_AT: ${{ needs.build.outputs.committed-at }}
+          DEPLOY_TRIGGER: ${{ github.event_name }}
+          DEPLOY_WORKER: duxt-www
+        run: node scripts/deploy-summary.ts >> "$GITHUB_STEP_SUMMARY"
