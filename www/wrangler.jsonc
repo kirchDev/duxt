@@ -65,8 +65,9 @@
   // request time. The other runtime routes do not: `POST /demo/echo` answers
   // from the request body, `robots.txt` composes itself from the site config,
   // and `/mcp/deeplink`, `/mcp/badge.svg` and `/__sitemap__/style.xsl` answer
-  // from the query string or the request headers. The prerendered pages never
-  // touch this binding.
+  // from the query string or the request headers. A prerendered page never
+  // touches this binding; one the crawl did not reach falls through to the
+  // Worker, which renders it from here exactly as it would have anyway.
   //
   // Do not count runtime routes from this comment — `scripts/check-routes.ts`
   // classifies every handler the build registers and is checked against the
