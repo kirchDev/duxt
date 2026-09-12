@@ -2,7 +2,13 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { ContentNavigationItem } from '@nuxt/content';
 import { describe, expect, it } from 'vitest';
-import { flattenedNavigationPages } from '../app/utils/navigation-tree';
+import {
+  findByPath,
+  flattenedNavigationPages,
+  navigationCardItems,
+  trailBelowPrefix
+} from '../app/utils/navigation-tree';
+import { nearestPages } from '../app/utils/nearest-page';
 import {
   normaliseTfplugindocsPage,
   tfplugindocsNavigation
@@ -119,5 +125,61 @@ describe('tfplugindocsNavigation', () => {
     expect(
       flattenedNavigationPages(result).map((item) => item.path)
     ).not.toContain('/tf/resources/__duxt-subcategory-0');
+  });
+
+  // The synthetic groups are Vue keys, never routes, so EVERY traversal has to
+  // honour the marker — a consumer that reads the tree without checking `page`
+  // links to a path that 404s, and the breadcrumb also ships its trail as
+  // JSON-LD. One generated tree, read by each of them.
+  describe('the synthetic groups reach no consumer as a link', () => {
+    const nav = tfplugindocsNavigation(
+      [
+        {
+          title: 'Resources',
+          path: '/tf/resources',
+          children: [
+            { title: 'Team', path: '/tf/resources/team' },
+            {
+              title: 'User',
+              path: '/tf/resources/user',
+              subcategory: 'People'
+            }
+          ]
+        }
+      ] as ContentNavigationItem[],
+      '/tf'
+    );
+
+    it('leaves the group out of the breadcrumb trail to a member page', () => {
+      const trail = trailBelowPrefix(nav, '/tf/resources/user', '/tf');
+
+      expect(trail.map((item) => item.path)).toEqual([
+        '/tf/resources',
+        '/tf/resources/user'
+      ]);
+    });
+
+    it('never suggests the group as a near miss on a 404', () => {
+      const candidates = flattenedNavigationPages(nav).map((item) => ({
+        path: item.path,
+        title: item.title
+      }));
+
+      expect(
+        nearestPages('/tf/resources/users', candidates).map((page) => page.path)
+      ).not.toContain('/tf/resources/__duxt-subcategory-0');
+    });
+
+    it('shows the member pages as cards rather than the group', () => {
+      const cards = navigationCardItems(
+        findByPath(nav, '/tf/resources'),
+        '/tf/resources'
+      );
+
+      expect(cards.map((item) => item.path)).toEqual([
+        '/tf/resources/team',
+        '/tf/resources/user'
+      ]);
+    });
   });
 });

@@ -45,25 +45,20 @@ useSeoMeta({ robots: 'noindex, follow' });
  */
 const { data: navigation } = await useDuxtNavigation();
 
+// `flattenedNavigationPages` rather than a walk of its own: it honours
+// `page: false`, and a group that is not a route — a tfplugindocs `subcategory`
+// is the standing example — was being offered here as a near miss, which is a
+// 404 suggesting another 404.
 const suggestions = computed(() => {
   if (props.error.statusCode !== 404) return [];
 
-  const pages: { path: string; title?: string }[] = [];
-
-  const walk = (
-    items: { path?: string; title?: string; children?: unknown[] }[]
-  ) => {
-    for (const item of items) {
-      if (item.path) pages.push({ path: item.path, title: item.title });
-      if (Array.isArray(item.children)) {
-        walk(item.children as { path?: string; title?: string }[]);
-      }
-    }
-  };
-
-  walk((navigation.value ?? []) as { path?: string; title?: string }[]);
-
-  return nearestPages(path.value, pages);
+  return nearestPages(
+    path.value,
+    flattenedNavigationPages(navigation.value ?? []).map((item) => ({
+      path: item.path,
+      title: item.title
+    }))
+  );
 });
 
 // A page missing from one version but present in another is the interesting

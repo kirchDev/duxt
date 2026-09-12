@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   flattenedNavigationPages,
   findByPath,
+  navigationCardItems,
   navigationPagePaths,
   overlayTranslations,
   sectionItems,
@@ -178,6 +179,23 @@ describe('sectionItems', () => {
   });
 });
 
+/** A tfplugindocs category whose pages carry a `subcategory`. */
+const groupedTree: ContentNavigationItem[] = [
+  {
+    title: 'Resources',
+    path: '/tf/resources',
+    children: [
+      { title: 'Team', path: '/tf/resources/team' },
+      {
+        title: 'People',
+        path: '/tf/resources/__duxt-subcategory-0',
+        page: false,
+        children: [{ title: 'User', path: '/tf/resources/user' }]
+      }
+    ]
+  }
+] as ContentNavigationItem[];
+
 describe('trailBelowPrefix', () => {
   it('drops the wrapper nodes on a versioned page', () => {
     const trail = trailBelowPrefix(
@@ -208,6 +226,54 @@ describe('trailBelowPrefix', () => {
 
   it('returns nothing for a page that is not in the tree', () => {
     expect(trailBelowPrefix(branchTree, '/missing', '/workflows')).toEqual([]);
+  });
+
+  it('walks through a non-page group without putting it in the trail', () => {
+    const trail = trailBelowPrefix(groupedTree, '/tf/resources/user', '/tf');
+
+    expect(trail.map((item) => item.title)).toEqual(['Resources', 'User']);
+    expect(trail.map((item) => item.path)).not.toContain(
+      '/tf/resources/__duxt-subcategory-0'
+    );
+  });
+});
+
+describe('navigationCardItems', () => {
+  it('lists a non-page group’s members rather than the group itself', () => {
+    const items = navigationCardItems(groupedTree[0], '/tf/resources');
+
+    expect(items.map((item) => item.path)).toEqual([
+      '/tf/resources/team',
+      '/tf/resources/user'
+    ]);
+  });
+
+  it('drops the branch’s own index page and keeps ordinary folders', () => {
+    const items = navigationCardItems(
+      {
+        title: 'Guides',
+        path: '/guides',
+        children: [
+          { title: 'Guides', path: '/guides' },
+          { title: 'Add a body', path: '/guides/add-a-body' },
+          {
+            title: 'Nested',
+            path: '/guides/nested',
+            children: [{ title: 'Deep', path: '/guides/nested/deep' }]
+          }
+        ]
+      } as ContentNavigationItem,
+      '/guides'
+    );
+
+    expect(items.map((item) => item.path)).toEqual([
+      '/guides/add-a-body',
+      '/guides/nested'
+    ]);
+  });
+
+  it('has nothing to show without a branch', () => {
+    expect(navigationCardItems(undefined, '/guides')).toEqual([]);
   });
 });
 
