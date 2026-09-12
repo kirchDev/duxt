@@ -96,6 +96,13 @@ function open(base: string) {
           </a>
         </UiDropdownMenuItem>
 
+        <!--
+          Only when there is a second group to divide: `copy.models` is a
+          consumer-owned list, and an empty one would otherwise leave a rule
+          drawn under the last item with nothing beneath it.
+        -->
+        <UiDropdownMenuSeparator v-if="models.length" />
+
         <UiDropdownMenuItem
           v-for="model in models"
           :key="model.url"
