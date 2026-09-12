@@ -25,8 +25,10 @@
  * - An `auth:<mode>` block's contents are a credential as often as a
  *   placeholder. The mode is kept, the value is dropped.
  *
- * The same rule is applied by NAME to header and parameter values, which is the
- * one place a live token is written in the open — see `redactEntry`.
+ * The same rule is applied by NAME to header and parameter values, and to the
+ * URL itself — see `redactEntry` and `redactUrl`. The URL matters as much as
+ * the tables do, because Bruno writes a query parameter into BOTH and userinfo
+ * (`https://user:pass@host`) into the URL alone.
  */
 import type {
   DuxtBrunoAuth,
@@ -96,28 +98,76 @@ const LANGUAGES: Record<string, string> = {
 };
 
 /**
- * Header and parameter names whose value is withheld.
+ * Names whose value is withheld, wherever the value is written.
  *
  * By NAME rather than by looking for something token-shaped, because a token is
  * not shaped like anything: `sk-live-…`, a bare JWT and a base64 basic pair
  * have no form in common, and a heuristic that caught two of them would publish
- * the third. These five names are where a credential is actually written, and
- * an entry under one of them is withheld unless its value is nothing but
- * `{{variable}}` placeholders — which name a secret rather than carrying one.
+ * the third. An entry under one of these names is withheld unless its value is
+ * nothing but `{{variable}}` placeholders — which name a secret rather than
+ * carrying one.
+ *
+ * NOT A HEADER LIST. The same rule runs over query and path parameters and over
+ * the query string of the URL itself, and a credential written as a PARAMETER
+ * takes spellings a header never does: `api_key` and `access_token` are the two
+ * commonest of all, and neither is an `Authorization`.
+ *
+ * NORMALISED, so one entry covers every spelling a name is written in —
+ * `api_key`, `api-key`, `API-Key` and `apikey` are one name here. Adding a
+ * separator to a name is the cheapest way past a list, and it is not a way past
+ * this one.
  */
 const CREDENTIAL_NAMES = new Set([
   'authorization',
-  'proxy-authorization',
+  'proxyauthorization',
   'cookie',
-  'set-cookie',
-  'x-api-key',
-  'api-key',
+  'setcookie',
+  'xapikey',
   'apikey',
-  'x-auth-token'
+  'apisecret',
+  'xauthtoken',
+  'accesstoken',
+  'refreshtoken',
+  'idtoken',
+  'token',
+  'accesskey',
+  'secretkey',
+  'privatekey',
+  'clientsecret',
+  'key',
+  'secret',
+  'signature',
+  'sig',
+  'password',
+  'passwd',
+  'pwd'
 ]);
 
-/** A value made of nothing but placeholders, whitespace and punctuation. */
-const PLACEHOLDER_ONLY = /^(?:[\s\w-]*\{\{[^{}]+\}\})+[\s\w-]*$/;
+/**
+ * The one literal a withheld value may carry beside its placeholders.
+ *
+ * An HTTP auth scheme is not a credential: `Bearer {{token}}` names the scheme
+ * and the variable and carries neither, and hiding it would take away the one
+ * thing the reader needs. Everything else beside a placeholder is where HALF a
+ * credential gets written — `Bearer sk-live-abc123 {{sig}}` is a live token
+ * with a signature variable next to it — so the allowance is a closed list of
+ * scheme words rather than a shape.
+ */
+const AUTH_SCHEMES = new Set([
+  'bearer',
+  'basic',
+  'digest',
+  'token',
+  'apikey',
+  'jwt',
+  'hmac'
+]);
+
+/** A `{{variable}}`, which names a secret rather than carrying one. */
+const PLACEHOLDER = /\{\{[^{}]+\}\}/;
+
+/** Every one of them, for taking them out of a value before reading it. */
+const PLACEHOLDERS = /\{\{[^{}]+\}\}/g;
 
 interface Block {
   name: string;
@@ -229,13 +279,15 @@ export function parseBruFile(
   const seq = Number(meta.seq);
 
   const body = readBody(blocks, call.body);
+  const url = redactUrl(call.url ?? '');
 
   return {
     name: meta.name ?? fallbackName(file),
     file,
     ...(Number.isFinite(seq) ? { seq } : {}),
     method: method.name.toUpperCase(),
-    url: call.url ?? '',
+    url: url.url,
+    ...(url.redacted ? { urlRedacted: true } : {}),
     kind: meta.type ?? 'http',
     params: [
       ...entries(blocks, 'params:query').map((entry): DuxtBrunoParam => ({
@@ -397,10 +449,93 @@ function readBody(
  * reader needs, which is the name of the variable to set.
  */
 function redactEntry<T extends DuxtBrunoEntry>(entry: T): T {
-  if (!CREDENTIAL_NAMES.has(entry.name.toLowerCase())) return entry;
-  if (!entry.value || PLACEHOLDER_ONLY.test(entry.value)) return entry;
+  if (!withheld(entry.name, entry.value)) return entry;
 
   return { ...entry, value: '', redacted: true };
+}
+
+/** Whether this name, carrying this value, is a credential being published. */
+function withheld(name: string, value: string): boolean {
+  if (!CREDENTIAL_NAMES.has(credentialName(name))) return false;
+
+  return Boolean(value) && !placeholderOnly(value);
+}
+
+/** A name reduced to the one spelling `CREDENTIAL_NAMES` holds. */
+function credentialName(name: string): string {
+  return name.toLowerCase().replaceAll(/[^a-z0-9]/g, '');
+}
+
+/**
+ * Nothing but `{{placeholders}}`, punctuation and an auth scheme word.
+ *
+ * A function rather than the regex this replaced, which admitted a `[\s\w-]*`
+ * run around every placeholder — and `[\w-]` is precisely token shape, so
+ * `Bearer sk-live-abc123 {{sig}}` passed a test whose own name says it must
+ * not. What survives the placeholders is read word by word instead, and a word
+ * that is not a scheme is treated as the secret it may well be.
+ */
+function placeholderOnly(value: string): boolean {
+  if (!PLACEHOLDER.test(value)) return false;
+
+  return value
+    .replaceAll(PLACEHOLDERS, ' ')
+    .split(/[^A-Za-z0-9_-]+/)
+    .every((word) => !word || AUTH_SCHEMES.has(word.toLowerCase()));
+}
+
+/**
+ * The URL as it may be published, and whether anything was taken out.
+ *
+ * THE URL IS THE OTHER DOOR, and it has to be shut on the same rule the tables
+ * are: Bruno mirrors a query parameter into the `url` line AND `params:query`,
+ * so a value withheld in the parameter table is written out again one line
+ * above it unless this runs. Userinfo — `https://svc:hunter2@host` — is worse
+ * still: it has no parameter counterpart at all, so the URL is the only place
+ * it is ever written and the only place it can be taken out.
+ *
+ * The NAME survives and the value does not, exactly as `redactEntry` does it: a
+ * reader has to know the endpoint wants an `api_key`, and must not be handed
+ * the collection author's.
+ */
+export function redactUrl(url: string): { url: string; redacted: boolean } {
+  let redacted = false;
+
+  // Userinfo is whatever sits before an `@` in the AUTHORITY, so the match
+  // stops at the first `/`, `?` or `#` — an `@` in a path or a query value is
+  // an ordinary character and stays.
+  const stripped = url.replace(
+    /^((?:[A-Za-z][\w+.-]*:)?\/\/)[^/?#]*@/,
+    (_match, scheme: string) => {
+      redacted = true;
+      return scheme;
+    }
+  );
+
+  const mark = stripped.indexOf('?');
+  if (mark < 0) return { url: stripped, redacted };
+
+  const end = stripped.indexOf('#', mark);
+  const query = stripped.slice(mark + 1, end < 0 ? undefined : end);
+
+  const cleaned = query
+    .split('&')
+    .map((pair) => {
+      const equals = pair.indexOf('=');
+      if (equals < 1) return pair;
+
+      const name = pair.slice(0, equals);
+      if (!withheld(name, pair.slice(equals + 1))) return pair;
+
+      redacted = true;
+      return `${name}=`;
+    })
+    .join('&');
+
+  return {
+    url: `${stripped.slice(0, mark)}?${cleaned}${end < 0 ? '' : stripped.slice(end)}`,
+    redacted
+  };
 }
 
 /** `collection.bru`'s `auth { mode: … }`, which `auth: inherit` resolves to. */

@@ -84,8 +84,19 @@ export interface DuxtBrunoRequest {
   seq?: number;
   /** Upper-cased, e.g. `GET`. */
   method: string;
-  /** The URL as written, `{{variable}}` placeholders intact. */
+  /**
+   * The URL as written, `{{variable}}` placeholders intact — minus whatever
+   * the redaction rule withholds. See `redactUrl` in `bruno-parse.ts`.
+   */
   url: string;
+  /**
+   * Something was taken out of the URL: userinfo, or a credential's value.
+   *
+   * Said on the model so the page can say it too. A blank `?api_key=` reads as
+   * a parameter the collection forgot to fill in unless the page states that it
+   * was withheld, which is the same thing the table's badge does for a header.
+   */
+  urlRedacted?: boolean;
   /** `meta.type`: `http` or `graphql`. */
   kind: string;
   params: DuxtBrunoParam[];

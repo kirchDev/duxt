@@ -285,6 +285,28 @@ describe('try-it, which is off until a site turns it on', () => {
       (props(body).operation as Record<string, unknown>).parameters
     ).toEqual([{ name: 'Authorization', in: 'header', required: false }]);
   });
+
+  it('never prefills a credential the url carried', () => {
+    // The url is the other door into the same leak: Bruno writes a query
+    // parameter into both the url line and `params:query`, and userinfo is
+    // written nowhere else at all.
+    const pages = parse(
+      { tryIt: { baseUrl: 'https://api.test' } },
+      {
+        'bruno.json': '{"name":"X"}',
+        'a.bru':
+          'meta {\n  name: A\n}\n\nget {\n  url: https://svc:hunter2@api.test/x?api_key=sk-live-secret\n}\n\nparams:query {\n  api_key: sk-live-secret\n}\n'
+      }
+    );
+
+    const request = page(pages, '1.a.md')!.body;
+    const overview = page(pages, 'index.md')!.body;
+
+    for (const body of [request, overview]) {
+      expect(body).not.toContain('sk-live-secret');
+      expect(body).not.toContain('hunter2');
+    }
+  });
 });
 
 describe('two things that slugify the same way', () => {

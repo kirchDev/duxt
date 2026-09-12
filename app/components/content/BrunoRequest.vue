@@ -43,6 +43,14 @@ defineProps<{
         <DuxtOpenApiMethod :method="request.method" class="h-6 px-2" />
 
         <code class="font-mono text-sm break-all">{{ request.url }}</code>
+
+        <!-- The url gets the same badge the entries table gives a withheld
+             value, and for the same reason: a blank `?api_key=` reads as a
+             parameter the collection forgot to fill in unless the page says
+             it was taken out. -->
+        <UiBadge v-if="request.urlRedacted" variant="secondary">
+          {{ $t('duxt.bruno.withheld') }}
+        </UiBadge>
       </div>
 
       <div class="mt-4">

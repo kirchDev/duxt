@@ -100,6 +100,84 @@ describe('parseBruFile', () => {
     ]);
   });
 
+  it('withholds a credential whose value sits beside a placeholder', () => {
+    // The rule is "nothing but placeholders", not "has a placeholder in it".
+    // `Bearer sk-live-abc123 {{sig}}` is a live token with a variable next to
+    // it, and a test that let the literal through would publish exactly the
+    // half of the value that is the secret.
+    const request = parseBruFile(
+      'a.bru',
+      `meta {\n  name: a\n}\n\nget {\n  url: /x\n}\n\nheaders {\n  Authorization: Bearer sk-live-abc123 {{sig}}\n}\n`,
+      []
+    );
+
+    expect(request!.headers).toEqual([
+      { name: 'Authorization', value: '', redacted: true }
+    ]);
+  });
+
+  it('withholds a credential written as a query parameter', () => {
+    // A credential takes different names as a parameter than as a header:
+    // `api_key` and `access_token` are the two commonest spellings of all, and
+    // neither of them is an `Authorization`.
+    const request = parseBruFile(
+      'a.bru',
+      `meta {\n  name: a\n}\n\nget {\n  url: /x\n}\n\nparams:query {\n  api_key: sk-live-9fj2k3\n  access_token: at-42\n  q: shipments\n}\n`,
+      []
+    );
+
+    expect(request!.params).toEqual([
+      { name: 'api_key', value: '', redacted: true, in: 'query' },
+      { name: 'access_token', value: '', redacted: true, in: 'query' },
+      { name: 'q', value: 'shipments', in: 'query' }
+    ]);
+  });
+
+  it('strips userinfo from the url, which no table would catch', () => {
+    // `https://svc:hunter2@host` has no `params:query` counterpart at all, so
+    // the url is the only place this is ever written and the only place it can
+    // be taken out.
+    const request = parseBruFile(
+      'a.bru',
+      `meta {\n  name: a\n}\n\nget {\n  url: https://svc:hunter2@api.example.com/v1/search\n}\n`,
+      []
+    );
+
+    expect(request).toMatchObject({
+      url: 'https://api.example.com/v1/search',
+      urlRedacted: true
+    });
+    expect(JSON.stringify(request)).not.toContain('hunter2');
+  });
+
+  it('blanks a credential in the url and keeps the parameter name', () => {
+    // Bruno mirrors a query parameter into the url line AND `params:query`, so
+    // a value withheld in the table is published one line above it unless the
+    // same rule runs over the url.
+    const request = parseBruFile(
+      'a.bru',
+      `meta {\n  name: a\n}\n\nget {\n  url: {{baseUrl}}/search?api_key=sk-live-9fj2k3&q=x\n}\n\nparams:query {\n  api_key: sk-live-9fj2k3\n  q: x\n}\n`,
+      []
+    );
+
+    expect(request!.url).toBe('{{baseUrl}}/search?api_key=&q=x');
+    expect(request!.urlRedacted).toBe(true);
+    expect(JSON.stringify(request)).not.toContain('sk-live-9fj2k3');
+  });
+
+  it('leaves a url whose credential is a placeholder alone', () => {
+    // Same reason the header rule keeps `Bearer {{token}}`: the variable name
+    // is the one thing the reader needs, and it carries no secret.
+    const request = parseBruFile(
+      'a.bru',
+      `meta {\n  name: a\n}\n\nget {\n  url: {{baseUrl}}/search?api_key={{apiKey}}&q=x\n}\n`,
+      []
+    );
+
+    expect(request!.url).toBe('{{baseUrl}}/search?api_key={{apiKey}}&q=x');
+    expect(request!.urlRedacted).toBeUndefined();
+  });
+
   it('takes the auth MODE and never the credential', () => {
     const request = parseBruFile('a.bru', GET_USER, []);
 
