@@ -174,6 +174,18 @@ const groups = computed(() =>
   }))
 );
 
+const filter = useTemplateRef<{ refresh: () => void }>('filter');
+
+/**
+ * Hand the highlight back to the input's list every time the rows change.
+ *
+ * `flush: 'post'`, because what the input re-seats the highlight against is the
+ * DOM: asked before Vue has patched it, reka would measure the rows this
+ * answer just replaced. Why the input owns that decision rather than this
+ * component, and what it does with it, is in `DuxtSearchInput.refresh`.
+ */
+watch(results, () => filter.value?.refresh(), { flush: 'post' });
+
 async function show() {
   load();
   open.value = true;
@@ -253,22 +265,9 @@ const searchHint = computed(() => hint('search'));
          against rendered text — dropping entries that mounted after the term
          changed. Leaving its state empty keeps one filter in charge, the
          database's. It also means CommandEmpty never renders, so the empty
-         state is ours too.
-
-         No clear button: DialogContent already draws a close X, and two of
-         them in the same corner is one too many. -->
-    <div class="flex items-center gap-2 border-b px-3">
-      <Icon
-        name="lucide:search"
-        class="size-4 shrink-0 text-muted-foreground"
-      />
-      <input
-        v-model="query"
-        class="flex h-11 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-        :placeholder="$t('duxt.search.placeholder')"
-        autofocus
-      />
-    </div>
+         state is ours too. What it is INSTEAD, and why that is a component
+         rather than an `<input>`, is in `DuxtSearchInput`. -->
+    <DuxtSearchInput ref="filter" v-model="query" />
 
     <UiCommandList class="max-h-[60vh]">
       <!-- An empty box is a dead end. Without a term the dialog offers the
