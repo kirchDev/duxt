@@ -14,13 +14,8 @@
  * component is also unmountable outside a Nuxt environment, which is why the
  * repo checks components by building the site rather than by rendering them.
  *
- * NO BROWSER IS DOWNLOADED. `playwright-core` ships no binaries; this runs
- * whatever Chromium-family browser the machine already has — GitHub's runner
- * images carry Google Chrome, and a contributor's own Chrome or a Playwright
- * cache from another project answers just as well. That is the whole reason
- * this is affordable in the gate, and the reason `check:a11y` still parses with
- * jsdom rather than moving here: a browser is used for the one thing only a
- * browser can answer, not as a general upgrade.
+ * NO BROWSER IS DOWNLOADED — see `browser.ts`, which is where finding one
+ * lives now that `check:overflow` needs the same thing.
  *
  * WHAT IT ASSERTS is the contract the plain input broke, over the dialog's own
  * entry list — the recent pages and the sections, which every duxt site draws
@@ -49,12 +44,11 @@
  */
 
 import { spawn } from 'node:child_process';
-import { existsSync, readdirSync } from 'node:fs';
-import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Browser, Page } from 'playwright-core';
 import { chromium } from 'playwright-core';
+import { browserPath, missingBrowser } from './browser.ts';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const server = join(root, 'www', '.output', 'server', 'index.mjs');
@@ -125,11 +119,7 @@ async function main() {
   const executablePath = browserPath();
 
   if (!executablePath) {
-    console.error(
-      '\nKeyboard check could not run: no Chromium-family browser was found.\n' +
-        '  Point DUXT_BROWSER at one (Chrome, Chromium or Edge), or install ' +
-        "Playwright's Chromium once with `pnpm dlx playwright install chromium`.\n"
-    );
+    console.error(missingBrowser('Keyboard check'));
     process.exitCode = 1;
     return;
   }
@@ -417,69 +407,6 @@ async function open(page: Page) {
 }
 
 const url = (route: string) => `http://localhost:${PORT}${route}`;
-
-/**
- * A Chromium-family browser already on this machine, or null.
- *
- * Ordered by how deliberate the answer is: an explicit environment variable,
- * then the browsers a distribution or a runner image installs, then a
- * Playwright cache left by any project on the machine. `playwright-core` is a
- * driver and nothing else — it neither downloads nor looks for a browser, which
- * is precisely why it is affordable here.
- */
-function browserPath(): string | null {
-  const named = [
-    process.env.DUXT_BROWSER,
-    process.env.CHROME_PATH,
-    process.env.PUPPETEER_EXECUTABLE_PATH
-  ].filter(Boolean) as string[];
-
-  const installed = [
-    '/usr/bin/google-chrome',
-    '/usr/bin/google-chrome-stable',
-    '/usr/bin/chromium',
-    '/usr/bin/chromium-browser',
-    '/usr/bin/microsoft-edge',
-    '/snap/bin/chromium',
-    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-    '/Applications/Chromium.app/Contents/MacOS/Chromium'
-  ];
-
-  return (
-    [...named, ...installed, ...cached()].find((path) => existsSync(path)) ??
-    null
-  );
-}
-
-/** Chromium builds in a Playwright browser cache, newest revision first. */
-function cached(): string[] {
-  const cache =
-    process.env.PLAYWRIGHT_BROWSERS_PATH ||
-    join(homedir(), '.cache', 'ms-playwright');
-
-  if (!existsSync(cache)) return [];
-
-  const revisions = readdirSync(cache)
-    .filter((entry) => entry.startsWith('chromium-'))
-    .sort(
-      (a, b) =>
-        Number.parseInt(b.slice(9), 10) - Number.parseInt(a.slice(9), 10)
-    );
-
-  return revisions.flatMap((revision) => [
-    join(cache, revision, 'chrome-linux64', 'chrome'),
-    join(cache, revision, 'chrome-linux', 'chrome'),
-    join(
-      cache,
-      revision,
-      'chrome-mac',
-      'Chromium.app',
-      'Contents',
-      'MacOS',
-      'Chromium'
-    )
-  ]);
-}
 
 async function waitForServer() {
   for (let attempt = 0; attempt < 60; attempt++) {

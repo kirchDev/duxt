@@ -96,7 +96,7 @@
     "format": "oxfmt --check .",
     "format:fix": "oxfmt .",
     "typecheck": "tsc --noEmit",
-    "check": "pnpm lint && pnpm format && pnpm typecheck && pnpm typecheck:app && pnpm test && pnpm check:policy && pnpm check:previews && pnpm build:app && pnpm check:a11y && pnpm check:seo && pnpm check:images && pnpm check:keyboard",
+    "check": "pnpm lint && pnpm format && pnpm typecheck && pnpm typecheck:app && pnpm test && pnpm check:policy && pnpm check:previews && pnpm build:app && pnpm check:a11y && pnpm check:seo && pnpm check:images && pnpm check:keyboard && pnpm check:overflow",
     "check:fix": "pnpm lint:fix && pnpm format:fix",
     "previews": "node scripts/build-devtools-previews.ts",
     "check:previews": "node scripts/check-previews.ts",
@@ -119,6 +119,7 @@
     "check:seo": "node scripts/check-seo.ts",
     "check:images": "node scripts/check-images.ts",
     "check:keyboard": "node scripts/check-keyboard.ts",
+    "check:overflow": "node scripts/check-overflow.ts",
     "check:adapters": "node scripts/check-adapters.ts",
     "check:routes": "node scripts/check-routes.ts"
   },

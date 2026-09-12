@@ -65,7 +65,14 @@ function open(base: string) {
 </script>
 
 <template>
-  <div v-if="rawbody" class="flex shrink-0 items-stretch">
+  <!-- `data-duxt-copy-page` is how `check:overflow` finds this control on a
+       built page. It is not styling and not behaviour: matching on the utility
+       classes instead would make any restyle silently stop checking anything,
+       and matching on the button's own words would tie a gate to a translation
+       string. `shrink-0` is deliberate — this holds a dropdown trigger and a
+       link, and a squeezed control is worse than a wrapped one — so the row
+       that carries it is the thing that has to give (see `[...slug].vue`). -->
+  <div v-if="rawbody" data-duxt-copy-page class="flex shrink-0 items-stretch">
     <UiButton
       variant="outline"
       size="sm"
