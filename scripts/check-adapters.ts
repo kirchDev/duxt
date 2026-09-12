@@ -14,7 +14,7 @@
  *
  *   - `content._localDatabase` — the parse cache at `.data/content/
  *     contents.sqlite`, which Content types `sqlite | d1` and nothing else.
- *     This is what `content-cache.ts`, the build validator and `duxt-report`
+ *     This is what `content-cache.ts`, the build validator and `duxt report`
  *     read, and no adapter choice moves it. It exists only during a build.
  *   - `content.database` — the deployed one, which is any of the five. Only
  *     code answering a request ever reads it.

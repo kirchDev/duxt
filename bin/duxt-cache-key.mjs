@@ -4,10 +4,9 @@ import { createJiti } from 'jiti';
 /**
  * The cache key for a site's remote sources, as a command.
  *
- * PLAIN JAVASCRIPT for the reason `duxt-report.mjs` states: Node refuses to
- * strip types from a file under `node_modules`, so a TypeScript entry point
- * dies on the first real install with
- * `ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING`.
+ * PLAIN JAVASCRIPT for the reason `duxt.mjs` states: Node refuses to strip
+ * types from a file under `node_modules`, so a TypeScript entry point dies on
+ * the first real install with `ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING`.
  *
  * Everything it decides is in `sources-cache.ts`, where it is typed and tested.
  * This file exists to have no logic in it.

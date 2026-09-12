@@ -111,7 +111,7 @@ jobs:
       # Content's local parse cache rather than the deployed one. It is here to
       # prove that choosing an adapter did not move that cache — if it ever
       # does, this step is where it shows.
-      - name: Run duxt-report
+      - name: Run duxt report
         run: pnpm report
 
       - name: Stop PostgreSQL
