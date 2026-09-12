@@ -279,8 +279,14 @@ export default defineNuxtConfig({
    *
    * The short of it: documentation pages are files, and `llms.txt`,
    * `llms-full.txt`, `rss.xml`, every `…/page.md`, `/mcp` and `POST
-   * /demo/echo` are not. A page nobody links to is served by the Worker and is
-   * still correct — just slower, and that is the right failure.
+   * /demo/echo` are not — nor are `robots.txt`, `/mcp/deeplink`,
+   * `/mcp/badge.svg` and the sitemap's `style.xsl` and
+   * `nuxt-content-urls.json`. A page nobody links to is served by the Worker
+   * and is still correct — just slower, and that is the right failure.
+   *
+   * That is a summary and not a list to count: the table classifies every
+   * handler the build registers, and a new one with no row there fails the
+   * check rather than quietly joining this sentence.
    */
   routeRules: cloudflare ? { '/**': { prerender: true } } : {},
 
@@ -293,8 +299,8 @@ export default defineNuxtConfig({
    * So the crawler is turned on and pointed at `/`. What it reaches is every
    * page in the sidebar — and ONLY pages. Nitro follows a discovered link only
    * when its extension is `""` or `.json`, so the `.md` twin beside each page,
-   * the `llms.txt` in the footer and the feed are all skipped however
-   * prominently they are linked. That is not a defect to work around: each of
+   * the `llms.txt` the landing page's tabs and every page's head link, and the
+   * feed are all skipped however prominently they are linked. That is not a defect to work around: each of
    * them is a function of the content rather than of the build, and the Worker
    * is where they belong. `scripts/check-routes.ts` is where that is written
    * down and checked.

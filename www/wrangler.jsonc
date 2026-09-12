@@ -59,12 +59,18 @@
   // neither a filesystem nor `node:sqlite`, so the same dump is loaded into D1
   // on the first request after a deploy.
   //
-  // Five of the six runtime routes read it — `llms.txt`, `llms-full.txt`,
-  // `rss.xml`, the `.md` middleware and the `/mcp` tools all call
-  // `queryCollection()` at request time; `POST /demo/echo` answers from the
-  // request body and is the one that does not. The prerendered pages never
-  // touch this binding. Which route is which, and why:
-  // `scripts/check-routes.ts`.
+  // SIX routes read it — `llms.txt`, `llms-full.txt`, `rss.xml`, the `.md`
+  // middleware, the `/mcp` tools and the sitemap module's own
+  // `/__sitemap__/nuxt-content-urls.json` all call `queryCollection()` at
+  // request time. The other runtime routes do not: `POST /demo/echo` answers
+  // from the request body, `robots.txt` composes itself from the site config,
+  // and `/mcp/deeplink`, `/mcp/badge.svg` and `/__sitemap__/style.xsl` answer
+  // from the query string or the request headers. The prerendered pages never
+  // touch this binding.
+  //
+  // Do not count runtime routes from this comment — `scripts/check-routes.ts`
+  // classifies every handler the build registers and is checked against the
+  // artifact; this is a reader's summary of it and nothing more.
   //
   // THE DATABASE IS TOFU'S, THE BINDING IS THIS FILE'S — the same seam the
   // hostname runs along, and for the same reason: nothing in a wrangler config
