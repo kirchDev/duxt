@@ -168,7 +168,7 @@ importers:
         version: 0.19.0(@cfworker/json-schema@4.1.1)(@vue/compiler-sfc@3.5.42)(agents@0.20.1(@babel/core@7.29.7(supports-color@10.2.2))(@babel/runtime@7.29.7)(@cloudflare/workers-types@5.20260906.1)(@modelcontextprotocol/client@2.0.0)(@modelcontextprotocol/sdk@1.30.0(@cfworker/json-schema@4.1.1)(supports-color@10.2.2)(zod@4.5.4))(@modelcontextprotocol/server@2.0.0)(react@19.2.8)(rolldown@1.2.6)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.0))(zod@4.5.4))(h3@1.15.11)(magic-string@1.2.3)(magicast@0.5.4)(oxc-parser@0.143.0)(rolldown@1.2.6)(rollup@4.63.1)(supports-color@10.2.2)(unplugin@3.3.0(esbuild@0.28.2)(rolldown@1.2.6)(rollup@4.63.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.0)))(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.0))(vue@3.5.42(typescript@6.0.3))(zod@4.5.4)
       '@nuxtjs/seo':
         specifier: ^5.3.14
-        version: 5.3.14(b678dfa3983eabd68d3006c267ecc27d)
+        version: 5.3.14(071cccec10e5fcc151124a72c61e5b62)
       '@nuxtjs/sitemap':
         specifier: ^8.5.0
         version: 8.5.0(b13ddc91c0518b8f78f1807a5a99f281)
@@ -269,6 +269,9 @@ importers:
       oxlint:
         specifier: 1.80.0
         version: 1.80.0
+      playwright-core:
+        specifier: ^1.63.0
+        version: 1.63.0
       taze:
         specifier: ^21.1.0
         version: 21.1.0
@@ -7485,6 +7488,11 @@ packages:
   pkg-types@2.3.1:
     resolution: {integrity: sha512-y+ichcgc2LrADuhLNAx8DFjVfgz91pRxfZdI3UDhxHvcVEZsenLO+7XaU5vOp0u/7V/wZ+plyuQxtrDlZJ+yeg==}
 
+  playwright-core@1.63.0:
+    resolution: {integrity: sha512-rYCsBF/M5HjUch52bbtVONEFjv6Xu8sm8h72dNlR5bzIE1fvC/bxgspzkjSfU+MweEMmPM8KJebG6nnyxo5mCg==}
+    engines: {node: '>=20'}
+    hasBin: true
+
   pnpm-workspace-yaml@1.8.0:
     resolution: {integrity: sha512-rqGldoFOzjalWzlPtzAi/RcjAyep+Pjl4QUKJ6/oEZXzhVAX79GS/i8gjhQT715g75kTkyfHjL9eBPGZ9Co++Q==}
 
@@ -12243,14 +12251,14 @@ snapshots:
       - vite
       - vue
 
-  '@nuxtjs/seo@5.3.14(b678dfa3983eabd68d3006c267ecc27d)':
+  '@nuxtjs/seo@5.3.14(071cccec10e5fcc151124a72c61e5b62)':
     dependencies:
       '@nuxt/kit': 4.5.2(magic-string@1.2.3)(magicast@0.5.4)(oxc-parser@0.143.0)(rolldown@1.2.6)(unplugin@3.3.0(esbuild@0.28.2)(rolldown@1.2.6)(rollup@4.63.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.0)))
       '@nuxtjs/robots': 6.2.0(b13ddc91c0518b8f78f1807a5a99f281)
       '@nuxtjs/sitemap': 8.5.0(b13ddc91c0518b8f78f1807a5a99f281)
       nuxt: 4.5.2(@babel/plugin-proposal-decorators@8.0.2(@babel/core@7.29.7(supports-color@10.2.2)))(@babel/plugin-syntax-jsx@7.29.7(@babel/core@7.29.7(supports-color@10.2.2)))(@babel/plugin-syntax-typescript@7.29.7(@babel/core@7.29.7(supports-color@10.2.2)))(@libsql/client@0.18.0)(@oxc-project/types@0.147.0)(@types/node@26.4.0)(@vue/compiler-sfc@3.5.42)(db0@0.3.4(@libsql/client@0.18.0))(esbuild@0.28.2)(eslint@10.9.1(jiti@2.7.0)(supports-color@10.2.2))(ioredis@5.11.1(supports-color@10.2.2))(lightningcss@1.33.0)(magicast@0.5.4)(optionator@0.9.4)(oxc-parser@0.143.0)(oxlint@1.80.0)(rolldown@1.2.6)(rollup-plugin-visualizer@7.1.1(rolldown@1.2.6)(rollup@4.63.1))(rollup@4.63.1)(srvx@0.11.22)(supports-color@10.2.2)(terser@5.51.2)(typescript@6.0.3)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.0))(vue-tsc@3.3.11(typescript@6.0.3))(yaml@2.9.0)
       nuxt-link-checker: 5.3.0(8377d58d39a8f1629524dd3a150c9aa9)
-      nuxt-og-image: 6.7.8(32b8bcf95288f47d6e13c951ad274a86)
+      nuxt-og-image: 6.7.8(a6af0c93dcca9fdd280cd1a4cc34054f)
       nuxt-schema-org: 6.3.1(241b21ea93cdc19a2722f8477380a023)
       nuxt-seo-utils: 8.5.0(e0221553d155b8efe32e513b78c3b6b9)
       nuxt-site-config: 4.2.3(b13ddc91c0518b8f78f1807a5a99f281)
@@ -17206,7 +17214,7 @@ snapshots:
       - vue
       - zod
 
-  nuxt-og-image@6.7.8(32b8bcf95288f47d6e13c951ad274a86):
+  nuxt-og-image@6.7.8(a6af0c93dcca9fdd280cd1a4cc34054f):
     dependencies:
       '@clack/prompts': 1.7.0
       '@nuxt/kit': 4.5.2(magic-string@1.2.3)(magicast@0.5.4)(oxc-parser@0.143.0)(rolldown@1.2.6)(unplugin@3.3.0(esbuild@0.28.2)(rolldown@1.2.6)(rollup@4.63.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.0)))
@@ -17244,6 +17252,7 @@ snapshots:
       '@resvg/resvg-js': 2.6.2
       fontless: 0.2.1(db0@0.3.4(@libsql/client@0.18.0))(ioredis@5.11.1(supports-color@10.2.2))(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.0))
       nitropack: 2.13.4(@libsql/client@0.18.0)(oxc-parser@0.143.0)(rolldown@1.2.6)(srvx@0.11.22)(supports-color@10.2.2)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.0))
+      playwright-core: 1.63.0
       satori: 0.33.4
       tailwindcss: 4.3.3
       unifont: 0.7.5
@@ -18262,6 +18271,8 @@ snapshots:
       confbox: 0.2.4
       exsolve: 1.1.1
       pathe: 2.0.3
+
+  playwright-core@1.63.0: {}
 
   pnpm-workspace-yaml@1.8.0:
     dependencies:

@@ -16,12 +16,15 @@
  * alternatives, heading order, ARIA validity, the language of the document.
  * That is the half a redesign breaks.
  *
- * A browser-driven check would cover the rest and costs a Playwright download
- * in every CI run and on every contributor's machine. The contrast question is
- * answered once, by measurement, in `duxt.css` — see the comment on
- * `--muted-foreground` — rather than on every build.
+ * Driving a browser over every page would cover the rest, at a page load
+ * apiece. `check:keyboard` does drive one — a browser already on the machine,
+ * never a download — but only for the question no parse can ask at all: what a
+ * key DOES. Moving axe here would buy the two rules above at that price, and
+ * the contrast half of them is already answered once, by measurement, in
+ * `tests/contrast.test.ts` and in the comment on `--muted-foreground` in
+ * `duxt.css`, rather than on every build.
  *
- * Run after `build:app`, which is why it sits last in `check`.
+ * Run after `build:app`, which is why it sits behind it in `check`.
  */
 
 import { spawn } from 'node:child_process';
