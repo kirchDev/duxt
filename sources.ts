@@ -170,8 +170,36 @@ const DRAFTS = '**/*.draft.md';
  *
  * Excluded from the page collections themselves, or every partial would also
  * be a page — in the sidebar, in the search, in llms.txt.
+ *
+ * This is the EXCLUSION glob: the whole subtree, every file in it, whatever
+ * the extension. What the partials collection reads is derived from it by
+ * `partialsInclude` — the two are not the same glob.
  */
 const PARTIALS = '**/_partials/**';
+
+/**
+ * The Markdown inside a partials subtree.
+ *
+ * One configured value answers two questions, and they do not take the same
+ * glob. A page collection has to lose the whole subtree — a screenshot beside
+ * a partial must not be read as a page either. The partials collection is
+ * itself `type: 'page'`, so it can only carry Markdown: handed the exclusion
+ * glob it swallows that same screenshot, and Content parses a PNG as a
+ * document. Conflating the two is the regression the `*.md` restriction has
+ * already been written once to prevent.
+ *
+ * Nothing is narrowed: every Markdown file the subtree holds, at whatever
+ * depth the consumer's own glob reaches, still lands in the collection. A glob
+ * that already names files (`**\/_partials/**\/*.mdc`) is left alone — it has
+ * made the restriction itself.
+ */
+function partialsInclude(partials: string) {
+  const last = partials.slice(partials.lastIndexOf('/') + 1);
+  if (last.includes('.')) return partials;
+  if (partials.endsWith('**')) return `${partials}/*.md`;
+  if (partials.endsWith('*')) return `${partials}.md`;
+  return `${partials}/**/*.md`;
+}
 
 /** The dev server shows drafts; a build does not. */
 const includeDrafts = () => process.env.NODE_ENV !== 'production';
@@ -327,10 +355,10 @@ function definePartials(
     folder.repo
       ? {
           repository: repoUrl(folder.repo),
-          include: `${folder.path}/${folder.partials}`
+          include: `${folder.path}/${partialsInclude(folder.partials)}`
         }
       : {
-          include: folder.partials,
+          include: partialsInclude(folder.partials),
           cwd: join(repositoryRoot(), folder.path)
         }
   ) as NonNullable<Parameters<typeof defineCollection>[0]['source']>[];
