@@ -300,9 +300,12 @@ export const DEPLOYMENT_ROUTES: readonly DeploymentRoute[] = [
     why:
       'Shipped by the module the moment a site has more than one sitemap, so a ' +
       'reader who guesses the conventional name is sent to the index rather than ' +
-      'to a 404. Prerendered with it.',
+      'to a 404. It is a REDIRECT route rule (307 to `/sitemap_index.xml`) and ' +
+      'the prerender writes redirects as a page, so what lands in the artifact is ' +
+      '`sitemap.xml/index.html` holding a meta refresh — a directory, not the ' +
+      'file its name suggests, which is why the probe spells it out.',
     fallback: 'The module’s handler, exactly as for the index.',
-    probes: ['sitemap.xml'],
+    probes: ['sitemap.xml/index.html'],
     handlers: ['/sitemap.xml']
   },
   {
@@ -482,14 +485,24 @@ export function verifyDeploymentRoutes(
  * Nitro's handler manifest, read out of a built bundle.
  *
  * Generated code, so the shape is fixed — `{ route, handler, lazy, middleware,
- * method }` in that order — but nothing promises the whitespace survives
- * bundling, and a regex that quietly matched nothing would turn the coverage
- * check into a no-op. Hence the tolerance here and the empty-reading finding in
- * `verifyHandlerCoverage`.
+ * method }` in that order — but very little else survives the trip. THE
+ * CLOUDFLARE BUNDLE IS MINIFIED, which the Node one is not: `true` and `false`
+ * come back as `!0` and `!1`, the whitespace is gone, and a lazy handler is an
+ * arrow function rather than an identifier. All three are tolerated here, and
+ * the handler value is matched up to a bounded length so that an arrow with a
+ * comma in it cannot end the match early and a failing attempt cannot run away
+ * over a seven-megabyte line.
+ *
+ * A regex that quietly matched nothing would turn the coverage check into a
+ * no-op, which is why the empty reading is a finding in
+ * `verifyHandlerCoverage` rather than a pass.
  */
 export function parseHandlerRoutes(source: string): string[] {
-  const pattern =
-    /\{\s*route\s*:\s*(["'])((?:[^"'\\]|\\.)*?)\1\s*,\s*handler\s*:\s*[^,]+?,\s*lazy\s*:\s*(?:true|false)\s*,\s*middleware\s*:\s*(?:true|false)\s*[,}]/g;
+  const boolean = '(?:true|false|!0|!1)';
+  const pattern = new RegExp(
+    String.raw`\{\s*route\s*:\s*(["'])((?:[^"'\\]|\\.)*?)\1\s*,\s*handler\s*:\s*[^;]{0,200}?,\s*lazy\s*:\s*${boolean}\s*,\s*middleware\s*:\s*${boolean}\s*[,}]`,
+    'g'
+  );
 
   return [...source.matchAll(pattern)].map((match) => match[2] ?? '');
 }

@@ -128,13 +128,16 @@ test('the handler manifest is read out of the bundle', () => {
 });
 
 test('a minified manifest is read too', () => {
-  // Nothing promises the Cloudflare bundle keeps the whitespace, and a regex
-  // that quietly matches nothing would turn this check into a no-op.
+  // This is the shape the CLOUDFLARE bundle actually has, and the Node one
+  // does not: no whitespace, `!1` for `false`, and a lazy handler written as an
+  // arrow rather than an identifier. A regex that quietly matched none of it
+  // would turn this check into a no-op against the only build it ever reads.
   expect(
     parseHandlerRoutes(
-      `const handlers=[{route:"/mcp",handler:_zXQlYV,lazy:false,middleware:false,method:void 0}];`
+      `const handlers=[{route:"/mcp",handler:zXQlYV,lazy:!1,middleware:!1,method:void 0},` +
+        `{route:"/llms.txt",handler:()=>import("../routes/llms.txt.get.mjs"),lazy:!0,middleware:!1,method:"get"}];`
     )
-  ).toEqual(['/mcp']);
+  ).toEqual(['/mcp', '/llms.txt']);
 });
 
 /** The handler routes the table itself claims, which is a passing build. */
@@ -167,8 +170,26 @@ test('an exempted handler is not reported', () => {
 
 test('every exemption says why the route is not the site’s to classify', () => {
   for (const entry of EXEMPT_HANDLERS) {
-    expect(entry.handler.length).toBeGreaterThan(-1);
+    // `''` is the middleware group and the one pattern that is not a path.
+    if (entry.handler !== '') expect(entry.handler.startsWith('/')).toBe(true);
     expect(entry.why.length).toBeGreaterThan(0);
+  }
+});
+
+test('no exemption covers a route the table classifies', () => {
+  // A row wins over an exemption in `verifyHandlerCoverage`, so an overlap
+  // never changes a verdict — it just leaves two answers for one route, and
+  // the next reader cannot tell which of them was meant.
+  const claimed = DEPLOYMENT_ROUTES.flatMap((entry) => entry.handlers);
+
+  for (const entry of EXEMPT_HANDLERS) {
+    const covered = claimed.filter((handler) =>
+      entry.handler.endsWith('/')
+        ? handler.startsWith(entry.handler)
+        : handler === entry.handler
+    );
+
+    expect(covered).toEqual([]);
   }
 });
 
