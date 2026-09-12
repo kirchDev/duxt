@@ -157,6 +157,13 @@ export function duxtPageControls(
  * with. It is deliberately NOT a rule about the URL — an excluded page is still
  * served, still canonical, still in the sitemap and still readable by
  * `read_page`. It is un-findable, not unpublished.
+ *
+ * IT CAN ONLY EVER BE AS GOOD AS THE COLUMN BEHIND IT. A page arrives here from
+ * the database, and Content casts a boolean column with `Boolean(value)` on the
+ * way out — so a nullable column hands this predicate `false` for a page that
+ * never mentioned `search`, and no comparison written here can tell that apart
+ * from a refusal (#88). The `search` field in `pageSchema` therefore carries a
+ * default, and that is what makes this line mean what it reads as.
  */
 export const duxtPageSearchable = (page: unknown): boolean =>
   (page as DuxtPageControlFields | undefined | null)?.search !== false;

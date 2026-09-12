@@ -46,8 +46,16 @@ export const pageSchema = z.object({
   layout: z.string().optional(),
   /** The latest release of a generated changelog overview. */
   release: z.string().optional(),
-  /** false hides the page from the navigation. */
-  navigation: z.boolean().optional(),
+  //
+  // `navigation` is NOT declared here, deliberately. Content's own page schema
+  // already carries it — `boolean | { title, description, icon }`, defaulting
+  // to `true` — and a field declared here REPLACES that declaration rather than
+  // adding to it. Redeclaring it as a plain boolean cost two things at once: it
+  // dropped the object form, and it turned a TEXT column holding `'true'` into
+  // a BOOLEAN one holding NULL, which Content's own navigation query then
+  // compares against the string `'false'` and can never match. The page control
+  // that hides a page from the sidebar belongs to Content; the layer reads it
+  // and does not restate it.
   //
   // THE PAGE CONTROLS — the parts of the docs shell a page gets to refuse.
   // What each one means, and how they compose, is `app/utils/page-controls.ts`;
@@ -56,6 +64,17 @@ export const pageSchema = z.object({
   // fields rather than one nested object, which was decided: it is what an
   // author writes in every comparable generator.
   //
+  // EVERY BOOLEAN CONTROL CARRIES ITS DEFAULT, and that is not decoration.
+  // `z.boolean().optional()` generates a `BOOLEAN` column with no default, so a
+  // page that says nothing stores NULL — and Content casts a boolean column
+  // with `Boolean(value)` on the way back out, on every adapter. `Boolean(null)`
+  // is `false`, so every page read as though it had refused every control, and
+  // search returned nothing at all on every duxt site (#88). A default makes the
+  // column non-null, which is the only place the distinction survives: once the
+  // cast has run, "said nothing" and "said false" are the same value, and no
+  // predicate downstream can tell them apart. `tests/page-schema-database.test.ts`
+  // holds this by reading a page back out of a real database.
+  //
   /**
    * `false` drops the contents column; `{ maxDepth }` sets how deep it goes.
    *
@@ -63,22 +82,26 @@ export const pageSchema = z.object({
    * `body.toc` at all on `false` — the same answer from the other end. The
    * object form is ours alone: MDC's own `depth` is a count from `h2`, and
    * `maxDepth` is the heading level an author actually counts.
+   *
+   * The one control with no default, because it needs none: a union is a JSON
+   * column, and Content leaves a JSON NULL alone rather than casting it — so an
+   * unanswered `toc` arrives as `null` and the site's own setting still wins.
    */
   toc: z
     .union([z.boolean(), z.object({ maxDepth: z.number().optional() })])
     .optional(),
   /** false hides the trail above the title, whatever `duxt.breadcrumb` says. */
-  breadcrumb: z.boolean().optional(),
+  breadcrumb: z.boolean().default(true),
   /** false hides the previous/next pair under the article. */
-  prevNext: z.boolean().optional(),
+  prevNext: z.boolean().default(true),
   /** false hides the "was this helpful?" row. */
-  feedback: z.boolean().optional(),
+  feedback: z.boolean().default(true),
   /** false hides the edit link, the last-updated line and the contributors. */
-  pageInfo: z.boolean().optional(),
+  pageInfo: z.boolean().default(true),
   /** false hides the copy-page and hand-to-a-model control. */
-  copyPage: z.boolean().optional(),
+  copyPage: z.boolean().default(true),
   /** true removes the reading-width cap, and nothing else. */
-  fullWidth: z.boolean().optional(),
+  fullWidth: z.boolean().default(false),
   /**
    * false removes the page from every duxt-owned discovery surface — the client
    * search, its fuzzy fallback, MCP `search_docs` and the two llms indexes.
@@ -87,7 +110,7 @@ export const pageSchema = z.object({
    * sitemap, still `noindex`-free, and `read_page` still answers for it: this
    * makes a page un-findable, not unpublished.
    */
-  search: z.boolean().optional(),
+  search: z.boolean().default(true),
   /**
    * URLs this page used to be served at. The layer turns them into redirects,
    * because it is the only thing that knows which prefixes exist — the
