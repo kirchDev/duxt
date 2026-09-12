@@ -351,18 +351,43 @@ useSchemaOrg([
       <header v-if="!titled" class="mb-8 border-b pb-8">
         <DuxtBreadcrumb v-if="controls.breadcrumb" :path="path" class="mb-3" />
 
-        <div class="flex items-start justify-between gap-4">
+        <!-- THE TITLE ROW, AND WHY IT IS ALLOWED TO WRAP. This shape repeats
+             three times on this page — here, in the compact row below and in
+             the written-page header further down — and at 320px all three used
+             to push the document sideways. Nothing in the row could give: the
+             copy control is `shrink-0` by choice, the row was `nowrap`, and an
+             `<h1>` keeps `min-width: auto`, so a title whose longest word is
+             wide at `text-4xl` pins the row at that word's min-content. Three
+             of duxt's own pages overflowed, *Introduction* by 56px.
+
+             Below `sm` the control drops to its own line instead, because at
+             that width there is no room for a 36px title and a 145px control
+             side by side, and a clipped title is worse than a wrapped control.
+             `sm:flex-nowrap` keeps the control beside the title everywhere
+             else: `flex-wrap` breaks lines on an item's MAX-content, so
+             wrapping unconditionally would demote the control below any
+             ordinary long title on a desktop, which is not the bug.
+
+             `min-w-0` plus `wrap-break-word` on the heading is the backstop for
+             the case wrapping cannot reach — a single word wider than the whole
+             column. `overflow-wrap: break-word` does not lower an element's
+             min-content width, so without `min-w-0` it can never act inside a
+             flex row; and because it only breaks a word that fits on no line of
+             its own, an ordinary title is left exactly as it was. -->
+        <div
+          class="flex flex-wrap items-start justify-between gap-x-4 gap-y-2 sm:flex-nowrap"
+        >
           <h1
             ref="heading"
             tabindex="-1"
-            class="text-4xl font-semibold tracking-tight text-balance outline-none"
+            class="min-w-0 text-4xl font-semibold tracking-tight text-balance wrap-break-word outline-none"
           >
             {{ page?.title }}
           </h1>
 
           <DuxtCopyPage
             v-if="controls.copyPage"
-            class="mt-1"
+            class="mt-1 ms-auto"
             :path="path"
             :title="page?.title"
             :rawbody="(page as { rawbody?: string })?.rawbody"
@@ -386,7 +411,10 @@ useSchemaOrg([
 
       <!-- A type that DOES draw its own title keeps the compact row: where the
            reader is, and what they can do with the page. -->
-      <div v-else class="mb-6 flex items-start justify-between gap-4">
+      <div
+        v-else
+        class="mb-6 flex flex-wrap items-start justify-between gap-x-4 gap-y-2 sm:flex-nowrap"
+      >
         <DuxtBreadcrumb v-if="controls.breadcrumb" :path="path" />
 
         <DuxtCopyPage
@@ -453,18 +481,20 @@ useSchemaOrg([
         <!-- The copy action sits with the title, not under the article: it is
              what a reader does with the page BEFORE reading it, and a control
              for that at the bottom is a control nobody finds. -->
-        <div class="flex items-start justify-between gap-4">
+        <div
+          class="flex flex-wrap items-start justify-between gap-x-4 gap-y-2 sm:flex-nowrap"
+        >
           <h1
             ref="heading"
             tabindex="-1"
-            class="text-4xl font-semibold tracking-tight text-balance outline-none"
+            class="min-w-0 text-4xl font-semibold tracking-tight text-balance wrap-break-word outline-none"
           >
             {{ page?.title }}
           </h1>
 
           <DuxtCopyPage
             v-if="controls.copyPage"
-            class="mt-1"
+            class="mt-1 ms-auto"
             :path="path"
             :title="page?.title"
             :rawbody="(page as { rawbody?: string })?.rawbody"
