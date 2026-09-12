@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { defineNuxtConfig } from 'nuxt/config';
 import { fileURLToPath } from 'node:url';
+import { refuseGitDirectory } from '../scripts/git-dir-guard.ts';
 import { claimNuxtProcess } from '../scripts/nuxt-process-guard.ts';
 import { prerenderConcurrency } from '../scripts/prerender-bench.ts';
 import {
@@ -13,6 +14,15 @@ import {
 
 /** This site's own directory — what every path below resolves against. */
 const siteDir = fileURLToPath(new URL('.', import.meta.url));
+
+/**
+ * BEFORE the process claim, because this one is about the location rather than
+ * about who holds it: a checkout under `.git/` builds an app whose server files
+ * were never given their auto-imports, and the first thing anyone sees is
+ * `defineMcpTool is not defined` out of the prerender chunk. Claiming the
+ * artifacts of a build that cannot succeed only adds a lock to clean up.
+ */
+refuseGitDirectory(siteDir, process.argv.slice(2).join(' ') || 'Nuxt');
 
 claimNuxtProcess(siteDir, process.argv.slice(2).join(' ') || 'Nuxt');
 
