@@ -68,6 +68,7 @@ const copied = ref(false);
 const notify = useDuxtToast();
 const { t } = useI18n();
 const root = useTemplateRef<HTMLElement>('root');
+const analytics = useDuxtAnalytics();
 
 async function copy() {
   const text =
@@ -76,6 +77,9 @@ async function copy() {
   try {
     await navigator.clipboard.writeText(text);
     copied.value = true;
+    // After the write, so a copy the clipboard refused is not reported as one —
+    // and the language only: the copied TEXT never travels.
+    analytics.track({ name: 'copy', kind: 'code', language: props.language });
     notify.success(t('duxt.code.copiedToast'));
     setTimeout(() => (copied.value = false), 2000);
   } catch {
@@ -89,7 +93,14 @@ async function copy() {
 </script>
 
 <template>
+  <!-- `dir="ltr"` on the block, not on the `pre` alone: the header carries a
+       file name and the floating button sits over the code, and all three are
+       one technical surface. Inside the island the logical utilities below
+       resolve left-to-right, so they stay logical rather than turning physical
+       — the direction is declared once, in one place, instead of being spelled
+       out again in every class. -->
   <div
+    dir="ltr"
     class="duxt-code group relative my-6 overflow-hidden rounded-lg border bg-card"
   >
     <div
@@ -102,7 +113,7 @@ async function copy() {
       <UiButton
         variant="ghost"
         size="icon"
-        class="ml-auto size-7 hover:bg-accent hover:text-foreground"
+        class="ms-auto size-7 hover:bg-accent hover:text-foreground"
         :aria-label="copied ? $t('duxt.code.copied') : $t('duxt.code.copy')"
         @click="copy"
       >
@@ -117,7 +128,7 @@ async function copy() {
       v-else-if="header"
       variant="ghost"
       size="icon"
-      class="duxt-code-copy absolute top-2 right-2 size-7 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-accent focus-visible:opacity-100"
+      class="duxt-code-copy absolute top-2 end-2 size-7 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-accent focus-visible:opacity-100"
       :class="{ 'opacity-100': copied }"
       :aria-label="copied ? $t('duxt.code.copied') : $t('duxt.code.copy')"
       @click="copy"

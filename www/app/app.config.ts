@@ -4,6 +4,22 @@
 //
 // This is also the example: legal links belong to whoever runs the site, never
 // to the template, so the layer ships the row empty and kirchDev fills it here.
+
+/**
+ * The demo tree's display name, shared by its four editions and the source that
+ * carries its generated sections.
+ *
+ * One constant because five copies of one name drift, and a drifted copy does
+ * not look like a typo in the search captions — it looks like a second project.
+ */
+const DEMO_NAME = {
+  'en-GB': 'Demo documentation',
+  de: 'Demo-Dokumentation',
+  es: 'Documentación de demostración',
+  fr: 'Documentation de démonstration',
+  pt: 'Documentação de demonstração'
+};
+
 export default defineAppConfig({
   duxt: {
     /**
@@ -43,6 +59,18 @@ export default defineAppConfig({
       {
         repo: 'kirchDev/duxt',
         path: 'docs',
+        // What the search captions call this source. Without it the fallback
+        // is `title` above, which says "duxt" — the SITE. These are its
+        // documentation pages specifically, and the demo tree below is the
+        // other half of the same site. A record rather than a literal, because
+        // unlike the wordmark this one is a noun that translates.
+        name: {
+          'en-GB': 'duxt documentation',
+          de: 'duxt-Dokumentation',
+          es: 'Documentación de duxt',
+          fr: 'Documentation duxt',
+          pt: 'Documentação do duxt'
+        },
         statusDefaults: {
           latest: 'current',
           branch: 'upcoming',
@@ -96,6 +124,7 @@ export default defineAppConfig({
       {
         path: 'www/demo/docs',
         slug: 'demo',
+        name: DEMO_NAME,
         version: 'main',
         status: 'upcoming',
         origin: { repo: 'kirchDev/duxt', ref: 'main' }
@@ -103,12 +132,14 @@ export default defineAppConfig({
       {
         path: 'www/demo/docs',
         slug: 'demo',
+        name: DEMO_NAME,
         version: 'v3.x',
         origin: { repo: 'kirchDev/duxt', ref: 'main' }
       },
       {
         path: 'www/demo/docs',
         slug: 'demo',
+        name: DEMO_NAME,
         version: 'v2.x',
         status: 'deprecated',
         origin: { repo: 'kirchDev/duxt', ref: 'main' }
@@ -116,9 +147,24 @@ export default defineAppConfig({
       {
         path: 'www/demo/docs',
         slug: 'demo',
+        name: DEMO_NAME,
         version: 'v1.x',
         status: 'eol',
         origin: { repo: 'kirchDev/duxt', ref: 'main' }
+      },
+      // A real provider reference, taken directly from the generator output
+      // a consumer has in their repository. `v0.2.6` is the newest published
+      // tag while this demo exists; a tag makes the example reproducible.
+      {
+        repo: 'kirchDev/terraform-provider-linear',
+        path: 'docs',
+        slug: 'tf',
+        // The segment is an abbreviation, so without this the search would
+        // caption every provider page `Tf`. A literal rather than a record:
+        // the product name is the same word in every language.
+        name: 'Terraform Provider',
+        flavor: 'tfplugindocs',
+        refs: [{ tag: 'v0.2.6', default: true }]
       },
       // Generated sections use the same default prefix but do not publish a
       // second Markdown collection there. Their API declaration owns the four
@@ -126,6 +172,7 @@ export default defineAppConfig({
       {
         path: 'www/demo/docs',
         slug: 'demo',
+        name: DEMO_NAME,
         content: false,
         origin: { repo: 'kirchDev/duxt', ref: 'main' },
         generated: [
@@ -175,6 +222,31 @@ export default defineAppConfig({
               },
               { version: 'v1.x', path: 'www/demo/v1.yaml', status: 'eol' }
             ]
+          },
+          // THE SAME API, DESCRIBED THE OTHER WAY ROUND — a Bruno collection
+          // beside the OpenAPI document above it, which is the comparison the
+          // type was added to make visible. It is deliberately thinner: there
+          // are no response schemas on these pages because a `.bru` file has
+          // none, and the reference says so rather than inventing them.
+          //
+          // `tryIt` is the opt-in, and this site is the one place it can
+          // honestly be turned on: the base URL below is this site's own, and
+          // `/demo/echo` is the one endpoint it really answers. A consumer
+          // pointing it at a host that is not public would be handing readers a
+          // send button that fails for a reason the page cannot explain.
+          //
+          // `fetch` turns on the Bruno deep link. It clones the repository's
+          // default branch, which is why it sits BESIDE the archive rather than
+          // instead of it — only the archive is pinned to the version on screen.
+          {
+            type: 'bruno',
+            path: 'www/demo/collection',
+            label: 'Demo Collection',
+            slug: 'collection',
+            options: {
+              tryIt: { baseUrl: 'https://duxt.app' },
+              fetch: 'https://github.com/kirchDev/duxt.git'
+            }
           },
           // The fixture shows every change category in the split layout.
           {
@@ -325,6 +397,13 @@ export default defineAppConfig({
       // reference — takes over from there. The highlight is a prefix match, so
       // the entry stays lit across every version of the reference under it.
       { label: 'Demo', to: '/demo', icon: 'lucide:flask-conical' },
+      // A source dialect remains ordinary documentation, so this points to
+      // the provider overview instead of introducing a second kind of page.
+      {
+        label: 'Terraform demo',
+        to: '/tf',
+        icon: 'vscode-icons:file-type-terraform'
+      },
       // A navbar entry of its own rather than an item inside the dropdown: a
       // link buried in a menu is a link nobody opens the menu for, and this one
       // is a page of the site while the five above leave it. It sits after

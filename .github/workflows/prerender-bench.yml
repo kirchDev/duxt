@@ -1,0 +1,278 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+
+# NOT A STUB, AND THE SECOND OF THE TWO IN THIS DIRECTORY — `deploy.yml` is the
+# other. Every other workflow here calls a body in kirchDev/workflows; there is
+# no body for "build one repository's site eighteen times and compare the
+# prerender phase", and there is unlikely ever to be a second caller for one.
+#
+# WHAT IT IS FOR. `prerender.concurrency: 8` in `www/nuxt.config.ts` is the
+# answer to a build that produced 335 `createImage timeout` lines — 335 pages
+# that shipped with no OG image, silently, because a missing OG image fails
+# nothing. Eight brought that to 140 and the number was never revisited. Issue
+# #44 settled how it would be: 4, 8 and 12, three cold and three warm builds
+# each, on the runner class production builds actually use, and a rule that
+# replaces 8 only on a warm median at least 10% better with no timeouts, no
+# missing images and no new prerender errors. Retaining 8 is a valid outcome and
+# was named as one in advance.
+#
+# MANUAL, AND THAT IS A DECISION RATHER THAN AN OVERSIGHT. One build of this
+# site prerenders 1,205 routes and takes minutes; eighteen of them is around an
+# hour of runner time. On any automatic trigger that is not a measurement, it is
+# a bill.
+#
+# IT CANNOT BE RUN UNTIL THIS FILE IS ON `main`, and that is GitHub's rule
+# rather than this repository's: a `workflow_dispatch` workflow is only
+# triggerable once it exists on the DEFAULT branch, whatever ref the run is
+# then pointed at. Dispatching it from `dev` answers
+# `HTTP 404: workflow prerender-bench.yml not found on the default branch`.
+# So the first benchmark happens after the promotion PR merges — and the `ref`
+# it is dispatched with is still free, so a later experiment can measure a
+# branch without that branch's copy of this file mattering.
+#
+# BUILD-ONLY. Nothing here publishes: the artefact is measured and thrown away.
+name: Prerender benchmark
+
+on:
+  workflow_dispatch:
+    inputs:
+      concurrency:
+        description: Prerender concurrencies to compare, comma-separated
+        type: string
+        default: 4,8,12
+      repetitions:
+        description: Cold/warm build pairs per setting
+        type: string
+        default: '3'
+      baseline:
+        description: The setting in force, which a candidate has to beat
+        type: string
+        default: '8'
+      threshold:
+        description: How much better a warm median must be to move the default
+        type: string
+        default: '0.1'
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    name: Plan
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      # The comma-separated input, as the JSON array a matrix takes. Done here
+      # rather than in the matrix expression because `fromJSON` cannot split a
+      # string, and a matrix that silently became one job named "4,8,12" would
+      # run a sixth of the benchmark and report it as all of it.
+      - name: Expand the settings to compare
+        id: plan
+        env:
+          SETTINGS: ${{ inputs.concurrency }}
+        run: |
+          matrix=$(node -e '
+            const values = process.env.SETTINGS.split(",")
+              .map((value) => Number(value.trim()))
+              .filter((value) => Number.isInteger(value) && value > 0);
+            if (values.length === 0) throw new Error("No concurrency to compare.");
+            process.stdout.write(JSON.stringify(values));
+          ')
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
+  measure:
+    name: Prerender at ${{ matrix.concurrency }}
+    needs: plan
+    runs-on: ubuntu-latest
+    # Six full builds of the site, plus the install and the content parse in
+    # front of them.
+    timeout-minutes: 120
+    strategy:
+      # ONE SETTING'S FAILURE IS EVIDENCE, NOT A REASON TO STOP. A concurrency
+      # that cannot finish a build is exactly what this is looking for, and the
+      # verdict below refuses a candidate whose builds did not all succeed.
+      fail-fast: false
+      matrix:
+        concurrency: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # The layer reads git for "last updated" and the edit links, and a
+          # shallow clone gives every page the same commit date — which would
+          # change the pages, and so the OG images, against a production build.
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # READ-ONLY, unlike the deploy's. Downloading the remote sources is not
+      # what is being measured, and a benchmark that also SAVED this cache would
+      # write it from a branch build and hand the deploy whatever a benchmark
+      # happened to resolve. A miss costs one download and changes no prerender
+      # number: Nitro's own timing starts after the content is parsed.
+      - name: Resolve the remote-source cache key
+        id: sources
+        run: node ./bin/duxt-cache-key.mjs --root www --github >> "$GITHUB_OUTPUT"
+
+      - name: Restore the downloaded sources
+        if: steps.sources.outputs.cacheable == 'true'
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ steps.sources.outputs.paths }}
+          key: ${{ steps.sources.outputs.key }}
+
+      # THE MEASUREMENT. Three cold/warm pairs, in that order, because a warm
+      # build is defined by #44 as one restoring the cache the immediately
+      # preceding equivalent build produced — so the pairing is local to this
+      # job and no Actions cache is involved at all. That is the more controlled
+      # arrangement as well as the simpler one: a restored cache from another
+      # commit would make "warm" mean a different thing per run.
+      #
+      # `.output` is removed before every build so the OG image count is a fact
+      # about THIS build. `.cache/og-image` is removed before a cold one and
+      # left alone before a warm one; that single line is the whole cold/warm
+      # distinction.
+      #
+      # THE FIRST COLD BUILD IN A JOB IS THE SLOWEST AND IS LEFT THAT WAY. It
+      # pays for an empty Vite and Nitro cache that the five after it inherit.
+      # Three repetitions and a MEDIAN are what answer that: an outlier at
+      # either end never sits in the middle of three. Reporting it would be
+      # honest; removing it would be tuning the measurement to the answer.
+      - name: Build six times at concurrency ${{ matrix.concurrency }}
+        env:
+          SETTING: ${{ matrix.concurrency }}
+          REPETITIONS: ${{ inputs.repetitions }}
+        run: |
+          # `pipefail` for the reason deploy.yml states: the build is teed into
+          # a log, and without it the pipeline's status is `tee`'s — every build
+          # would be recorded as a success and the failures would vanish into
+          # the one field the verdict refuses candidates on.
+          set -o pipefail
+
+          for run in $(seq 1 "$REPETITIONS"); do
+            for state in cold warm; do
+              rm -rf www/.output
+              if [ "$state" = cold ]; then rm -rf www/.cache/og-image; fi
+
+              started=$(date +%s%3N)
+              # `/usr/bin/time` for #44's "resource use where available": `%M`
+              # is the peak resident set across the whole process tree, which is
+              # the number that says whether a faster setting bought its time
+              # with memory. Its own output goes to a file so the build's stays
+              # on the pipe and reaches `tee` unchanged.
+              if /usr/bin/time -f '%M' -o rss.txt \
+                env DUXT_PRERENDER_CONCURRENCY="$SETTING" pnpm build:www 2>&1 \
+                | tee build.log; then ok=true; else ok=false; fi
+              elapsed=$(($(date +%s%3N) - started))
+
+              node ./bin/duxt-og-cache.mjs --root www --report --github \
+                --since "$started" --log build.log > og.txt
+
+              node scripts/prerender-bench.ts --measure \
+                --concurrency "$SETTING" --state "$state" --run "$run" \
+                --log build.log --og og.txt --build-ms "$elapsed" --ok "$ok" \
+                --max-rss-kb "$(tail -n 1 rss.txt)" --cores "$(nproc)" \
+                >> "runs-$SETTING.jsonl"
+
+              echo "recorded concurrency $SETTING, $state run $run (ok=$ok)"
+            done
+          done
+
+      # THIS LEG'S OWN NUMBERS, while the others are still building. Reading the
+      # setting as its own baseline gives a one-row table and no comparison,
+      # which is exactly what a single leg has to say — the verdict job is where
+      # the three are put against each other.
+      - name: Summarise concurrency ${{ matrix.concurrency }}
+        if: always() && hashFiles(format('runs-{0}.jsonl', matrix.concurrency)) != ''
+        env:
+          SETTING: ${{ matrix.concurrency }}
+        run: |
+          node scripts/prerender-bench.ts --verdict \
+            --results "runs-$SETTING.jsonl" --baseline "$SETTING" \
+            >> "$GITHUB_STEP_SUMMARY"
+
+      # ALWAYS, AND THAT IS THE WHOLE REASON IT IS GUARDED RATHER THAN PLAIN. An
+      # hour of builds lives in this one file; a step that failed after four of
+      # them still has four measurements worth keeping, and without `always()`
+      # they go in the bin with the runner.
+      - uses: actions/upload-artifact@v7
+        if: always() && hashFiles(format('runs-{0}.jsonl', matrix.concurrency)) != ''
+        with:
+          name: prerender-bench-${{ matrix.concurrency }}
+          path: runs-${{ matrix.concurrency }}.jsonl
+          retention-days: 7
+          if-no-files-found: error
+
+  verdict:
+    name: Verdict
+    needs: measure
+    # EVEN WHEN A SETTING FAILED. A matrix leg that could not finish is a
+    # finding, and the rule refuses a candidate whose builds did not all
+    # succeed — so the table is still worth printing, and the leg that survived
+    # is still the baseline it has to be compared against. A matrix that never
+    # started is the one case with nothing to say.
+    if: always() && needs.measure.result != 'skipped'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      # No install: the benchmark's arithmetic imports nothing but node
+      # builtins, and Node 24 strips the types itself.
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: prerender-bench-*
+          merge-multiple: true
+          path: runs
+
+      - name: Decide
+        id: verdict
+        env:
+          BASELINE: ${{ inputs.baseline }}
+          THRESHOLD: ${{ inputs.threshold }}
+          REPETITIONS: ${{ inputs.repetitions }}
+        run: |
+          # `find`, not a glob: a matrix leg that died before uploading leaves
+          # the pattern unmatched, and `cat runs/*.jsonl` would then fail the
+          # step rather than report the legs that did finish. An empty file is a
+          # legitimate input — the rule's answer to nothing measured is to keep
+          # the baseline, which is exactly what should be printed.
+          : > all.jsonl
+          find runs -name '*.jsonl' -exec cat {} + >> all.jsonl
+
+          decide() {
+            node scripts/prerender-bench.ts --verdict --results all.jsonl \
+              --baseline "$BASELINE" --threshold "$THRESHOLD" \
+              --repetitions "$REPETITIONS" "$@"
+          }
+          decide >> "$GITHUB_STEP_SUMMARY"
+          decide --github >> "$GITHUB_OUTPUT"
+
+      # THE RAW RUNS, KEPT. The table is a conclusion; this is what it was drawn
+      # from, and a conclusion nobody can recompute is an opinion.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: prerender-bench-runs
+          path: all.jsonl
+          retention-days: 90
+
+      # A benchmark that found a better setting has found a CODE CHANGE, and
+      # changing `www/nuxt.config.ts` from a workflow would land an unreviewed
+      # commit off the back of a measurement. So it says so and stops.
+      - name: Say what the measurement asks for
+        if: steps.verdict.outputs.adopt == 'true'
+        env:
+          CHOSEN: ${{ steps.verdict.outputs.chosen }}
+        run: |
+          echo "::notice::Measured: prerender.concurrency should become" \
+            "$CHOSEN. Change www/nuxt.config.ts in a pull request."

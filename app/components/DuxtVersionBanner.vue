@@ -41,22 +41,22 @@ const offersUpgrade = computed(() =>
  */
 const TONES = {
   upcoming: {
-    rule: 'border-l-sky-500',
+    rule: 'border-s-sky-500',
     text: 'text-sky-500',
     icon: 'lucide:flask-conical'
   },
   old: {
-    rule: 'border-l-amber-500',
+    rule: 'border-s-amber-500',
     text: 'text-amber-500',
     icon: 'lucide:triangle-alert'
   },
   deprecated: {
-    rule: 'border-l-red-500',
+    rule: 'border-s-red-500',
     text: 'text-red-500',
     icon: 'lucide:triangle-alert'
   },
   eol: {
-    rule: 'border-l-red-500',
+    rule: 'border-s-red-500',
     text: 'text-red-500',
     icon: 'lucide:circle-off'
   }
@@ -74,7 +74,7 @@ const tone = computed(
   <UiAlert
     v-if="shouldWarn"
     role="status"
-    class="mb-6 flex items-start gap-2.5 rounded-md border border-l-2 bg-muted/30 px-3 py-2.5"
+    class="mb-6 flex items-start gap-2.5 rounded-md border border-s-2 bg-muted/30 px-3 py-2.5"
     :class="tone.rule"
   >
     <Icon

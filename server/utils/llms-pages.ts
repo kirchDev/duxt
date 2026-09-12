@@ -4,12 +4,18 @@ import {
   sourcesForRoute,
   type DuxtResolvedSource
 } from '../../sources-resolve';
+import { duxtPageSearchable } from '../../app/utils/page-controls';
 
 /** Enumerate public pages, selecting the same collection chain as HTML. */
 export async function llmsPages(
   event: H3Event,
-  sources: DuxtResolvedSource[] = []
+  sources: DuxtResolvedSource[] = [],
+  includeRawbody = false
 ) {
+  // llms.txt is a map of the documentation a reader should start with. Older
+  // versions stay published at their own URLs, but making an agent choose
+  // between them repeats a decision the source manifest has already made.
+  const defaultSources = sources.filter((source) => source.isDefault);
   const i18n = (
     useRuntimeConfig(event).public as unknown as {
       i18n?: {
@@ -29,19 +35,28 @@ export async function llmsPages(
   const locales =
     strategy === 'no_prefix' || !codes.length ? [defaultLocale] : codes;
   const collections = sources.length
-    ? [...new Set(sources.map((source) => source.collection))]
+    ? [...new Set(defaultSources.map((source) => source.collection))]
     : ['docs'];
+  // `search` travels with every row so the opt-out is applied once, here, and
+  // not in the two routes: llms.txt and llms-full.txt are one index in two
+  // shapes, and a page hidden from one but listed in the other is a bug nobody
+  // would go looking for.
+  const fields = includeRawbody
+    ? (['path', 'title', 'description', 'rawbody', 'search'] as const)
+    : (['path', 'title', 'description', 'search'] as const);
   const entries = await Promise.all(
     collections.map(
       async (name) =>
         [
           name,
-          await queryCollection(
-            event,
-            name as Parameters<typeof queryCollection>[1]
-          )
-            .select('path', 'title', 'description', 'rawbody')
-            .all()
+          (
+            await queryCollection(
+              event,
+              name as Parameters<typeof queryCollection>[1]
+            )
+              .select(...fields)
+              .all()
+          ).filter((page) => duxtPageSearchable(page))
         ] as const
     )
   );
@@ -63,7 +78,7 @@ export async function llmsPages(
   for (const locale of locales) {
     for (const path of paths) {
       const chain = sources.length
-        ? sourcesForRoute(path, locale, sources, fallbackLocale).map(
+        ? sourcesForRoute(path, locale, defaultSources, fallbackLocale).map(
             (source) => source.collection
           )
         : ['docs'];

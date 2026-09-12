@@ -18,15 +18,28 @@
  * the one page it was written as, for a project that just wants it shown. The
  * cost of two rendering paths was weighed and accepted, and the difference runs
  * further than the page count: a flat changelog is an ORDINARY docs page and
- * keeps the docs chrome, which is why `layout` is answered per declaration.
+ * keeps the docs shell, which is why `layout` is answered per declaration.
  *
- * Pure text in, files out. What the split history LOOKS like — the timeline,
+ * Text in, files out — plus ONE FACT THE FILE DOES NOT HOLD. A release is a
+ * range of commits, and who wrote them is in the repository rather than in the
+ * changelog; the authors of the changelog FILE are whoever ran the release
+ * tool, which is not the same set of people and is the wrong answer given
+ * confidently. So where an input names a checkout the build may read
+ * (`DuxtSectionInput.root`) the people behind each tag are read out of git;
+ * where it does not — a remote clone, a test, a fixture — nothing is read and
+ * no release names anybody. What the split history LOOKS like — the timeline,
  * the group badges, the filters — belongs to `layouts/changelog.vue` and the
  * two components this file writes calls to.
  */
 import { stringify as stringifyYaml } from 'yaml';
+import type { DuxtContributor } from './git-contributors';
+import {
+  contributorsForVersion,
+  releaseContributors
+} from './git-contributors';
 import type {
   DuxtSectionContext,
+  DuxtSectionInput,
   DuxtSectionOptions,
   DuxtSectionPage,
   DuxtSectionType
@@ -39,7 +52,7 @@ import { slugify } from './sources-resolve';
  * A layout and two MDC components, because that is the whole of what a
  * consumer can override: dropping a `ChangelogGroup.vue` of their own into
  * `app/components/content/` replaces the layer's, exactly as it does for a
- * callout, and a `layouts/changelog.vue` replaces the chrome around it.
+ * callout, and a `layouts/changelog.vue` replaces the shell around it.
  */
 export const DUXT_CHANGELOG_LAYOUT = 'changelog';
 export const DUXT_CHANGELOG_RELEASES = 'changelog-releases';
@@ -141,7 +154,7 @@ export const changelogSectionType: DuxtSectionType = {
    *
    * The split history is a timeline: the releases in the sidebar, a page per
    * release, no table of contents over four bullet points. The flat file is a
-   * long ordinary page, and the docs chrome is exactly what it wants — a
+   * long ordinary page, and the docs shell is exactly what it wants — a
    * contents column listing the releases most of all. Same type, two products,
    * so the question is answered from the declaration's own options.
    */
@@ -188,10 +201,10 @@ function granularityOf(options: DuxtSectionOptions): Granularity {
 }
 
 function parseChangelog(
-  artefact: string,
+  input: DuxtSectionInput,
   context: DuxtSectionContext
 ): DuxtSectionPage[] {
-  const lines = artefact.split(/\r?\n/);
+  const lines = input.text().split(/\r?\n/);
   const headings = headingsOf(lines);
   const starts = headings.filter((heading) => release(heading.text));
 
@@ -222,7 +235,15 @@ function parseChangelog(
   const width = String(releases.length).length;
 
   return [
-    index(preamble, releases, context),
+    // Read once for the whole file, not once per release: the answer is a map
+    // over every tag the checkout has, and asking git per release would be one
+    // process per release for the same bytes.
+    index(
+      preamble,
+      releases,
+      context,
+      input.root ? releaseContributors(input.root) : undefined
+    ),
     ...releases.map((entry, position) =>
       page(entry, String(position + 1).padStart(width, '0'))
     )
@@ -424,20 +445,40 @@ function entries(lines: string[]): number {
 function index(
   preamble: string[],
   releases: Release[],
-  context: DuxtSectionContext
+  context: DuxtSectionContext,
+  contributors?: Map<string, DuxtContributor[]>
 ): DuxtSectionPage {
   const body = trim(withoutTitle(preamble));
 
   const props = {
-    releases: releases.map((entry) => ({
-      version: entry.version,
-      date: entry.date,
-      to: `${context.prefix}/${segment(entry.version)}`,
-      groups: groupsOf(trim(entry.body)).groups.map((group) => ({
-        name: group.name,
-        count: group.count
-      }))
-    }))
+    releases: releases.map((entry) => {
+      const people = contributorsForVersion(contributors, entry.version);
+
+      return {
+        version: entry.version,
+        date: entry.date,
+        to: `${context.prefix}/${segment(entry.version)}`,
+        groups: groupsOf(trim(entry.body)).groups.map((group) => ({
+          name: group.name,
+          count: group.count
+        })),
+        // A NAME AND, WHERE GIT CARRIES ONE, A HANDLE. Not the address the
+        // identity was computed from: these props are written into a page that
+        // is prerendered, crawled, indexed, put into `llms-full.txt` and handed
+        // to a model on request, and an email that reaches all of that is a
+        // different object from the same email inside a commit. Not the commit
+        // COUNT either — the order already carries it, and a per-release tally
+        // is a number nobody asked this page for.
+        ...(people?.length
+          ? {
+              contributors: people.map((person) => ({
+                name: person.name,
+                ...(person.username ? { username: person.username } : {})
+              }))
+            }
+          : {})
+      };
+    })
   };
 
   return {

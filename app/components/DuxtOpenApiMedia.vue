@@ -22,6 +22,7 @@ const props = defineProps<{
 
 const types = computed(() => props.content ?? []);
 const current = ref(0);
+const duxt = useDuxtConfig();
 
 const media = computed(() => types.value[current.value] ?? types.value[0]);
 
@@ -30,7 +31,12 @@ const examples = computed(() => {
   const written = media.value?.examples ?? [];
   if (written.length) return written;
 
-  const derived = openApiExampleValue(media.value?.schema, props.direction);
+  const derived = openApiExampleValue(
+    media.value?.schema,
+    props.direction,
+    0,
+    duxt.openapi?.exampleDepth
+  );
 
   return derived === null ? [] : [{ name: 'example', value: derived }];
 });

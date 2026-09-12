@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 180" width="720" height="180" role="img">
+  <style>
+    .box { fill: #f5f5f5; stroke: #d4d4d4; }
+    .label { fill: #171717; font: 500 15px ui-sans-serif, system-ui, sans-serif; }
+    .arrow { stroke: #a3a3a3; }
+    @media (prefers-color-scheme: dark) {
+      .box { fill: #171717; stroke: #404040; }
+      .label { fill: #fafafa; }
+      .arrow { stroke: #525252; }
+    }
+  </style>
+  <g stroke-width="2">
+    <rect class="box" x="16" y="60" width="180" height="60" rx="12" />
+    <rect class="box" x="270" y="60" width="180" height="60" rx="12" />
+    <rect class="box" x="524" y="60" width="180" height="60" rx="12" />
+    <path class="arrow" d="M204 90h58m0 0-10-7m10 7-10 7" fill="none" />
+    <path class="arrow" d="M458 90h58m0 0-10-7m10 7-10 7" fill="none" />
+  </g>
+  <g class="label" text-anchor="middle">
+    <text x="106" y="96">Source</text>
+    <text x="360" y="96">Collection</text>
+    <text x="614" y="96">Page</text>
+  </g>
+</svg>

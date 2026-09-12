@@ -2,9 +2,10 @@ import { parse as parseYaml } from 'yaml';
 import { describe, expect, it } from 'vitest';
 import { changelogSectionType } from '../sections-changelog';
 import type { DuxtSectionOptions } from '../sections-resolve';
+import { duxtSectionInput } from '../sections-resolve';
 
 const parse = (artefact: string, options: DuxtSectionOptions = {}) =>
-  changelogSectionType.parse(artefact, {
+  changelogSectionType.parse(duxtSectionInput('CHANGELOG.md', artefact), {
     label: 'Releases',
     prefix: '/releases',
     options
@@ -361,11 +362,14 @@ describe('the changelog rendering', () => {
   it('quotes every frontmatter value, so a colon cannot end the mapping', () => {
     // The failure `tests/frontmatter-yaml.test.ts` exists over, one layer up:
     // here the frontmatter is generated rather than written.
-    const [index] = changelogSectionType.parse('# Changelog\n', {
-      label: 'Releases: the log',
-      prefix: '/releases',
-      options: {}
-    });
+    const [index] = changelogSectionType.parse(
+      duxtSectionInput('CHANGELOG.md', '# Changelog\n'),
+      {
+        label: 'Releases: the log',
+        prefix: '/releases',
+        options: {}
+      }
+    );
 
     expect(index!.body).toContain('title: "Releases: the log"');
   });
@@ -391,7 +395,7 @@ describe('the flat changelog', () => {
     expect(only!.body).not.toContain('::changelog-group');
   });
 
-  it('is an ordinary page, so it keeps the docs chrome', () => {
+  it('is an ordinary page, so it keeps the docs shell', () => {
     // No layout, and therefore the header, the breadcrumb, the table of
     // contents and the prev/next pair the docs shell draws — which is the
     // whole point of asking for the file as it stands.
@@ -453,7 +457,7 @@ describe('a heading that reads like a release but is not one', () => {
   const warningsOf = (artefact: string, options: DuxtSectionOptions = {}) => {
     const warnings: string[] = [];
 
-    changelogSectionType.parse(artefact, {
+    changelogSectionType.parse(duxtSectionInput('CHANGELOG.md', artefact), {
       label: 'Releases',
       prefix: '/releases',
       options,

@@ -2,6 +2,7 @@
   "duxt": {
     "shortcuts": {
       "title": "Atalhos de teclado",
+      "open": "Mostrar os atalhos de teclado",
       "search": "Pesquisar na documentação",
       "help": "Mostrar esta lista",
       "previous": "Página anterior",

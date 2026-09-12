@@ -139,7 +139,7 @@ const tabs = computed(() => [
         v-if="active === 'code' && codeMeta.code"
         variant="ghost"
         size="icon"
-        class="ml-auto size-7"
+        class="ms-auto size-7"
         :aria-label="copied ? $t('duxt.code.copied') : $t('duxt.code.copy')"
         @click="copy"
       >

@@ -1,5 +1,21 @@
 import type { ContentNavigationItem } from '@nuxt/content';
 
+/** Pages in reading order, with non-page groups expanded into their members. */
+export function flattenedNavigationPages(
+  items: ContentNavigationItem[]
+): ContentNavigationItem[] {
+  const pages: ContentNavigationItem[] = [];
+
+  for (const item of items) {
+    if (item.page !== false) pages.push(item);
+    if (item.children?.length) {
+      pages.push(...flattenedNavigationPages(item.children));
+    }
+  }
+
+  return pages;
+}
+
 /** Actual pages, including dotted version paths; folder wrappers are not pages. */
 export function navigationPagePaths(items: ContentNavigationItem[]): string[] {
   const paths = new Set<string>();
@@ -90,6 +106,14 @@ export function sectionItems(
  * Anything at or above the source's own prefix is one of those wrapper nodes,
  * not a page anyone navigates to — it showed up as an extra crumb on a
  * versioned URL that the unversioned one did not have.
+ *
+ * A `page: false` node on the chain is the same thing one level down: a group
+ * that exists to hold pages and has no route of its own — tfplugindocs'
+ * `subcategory` groups are the standing example, synthesised from frontmatter
+ * with no directory behind them. The walk still goes THROUGH such a node to
+ * reach the page; only the returned trail drops it, because `DuxtBreadcrumb`
+ * links every crumb but the last and `useDuxtBreadcrumb` emits the same trail
+ * as `BreadcrumbList` JSON-LD — so a group left in ships a 404 twice over.
  */
 export function trailBelowPrefix(
   tree: ContentNavigationItem[],
@@ -118,7 +142,33 @@ export function trailBelowPrefix(
 
   walk(tree, []);
 
-  return found.filter((item) => (item.path?.length ?? 0) > prefix.length);
+  return found.filter(
+    (item) => item.page !== false && (item.path?.length ?? 0) > prefix.length
+  );
+}
+
+/**
+ * The children a `::page-cards` block draws for a branch.
+ *
+ * The branch's own index carries the branch's path — Content emits it as a
+ * child — and is the page the cards sit on, so it is never a card.
+ *
+ * A `page: false` group is replaced by its members rather than dropped: the
+ * group has no route to link to, but the pages under it are exactly what the
+ * reader came for. `flattenedNavigationPages` is not the same thing and cannot
+ * stand in — it descends through real folders too, and a card for a folder is
+ * the point of a card grid.
+ */
+export function navigationCardItems(
+  branch: ContentNavigationItem | undefined,
+  base: string
+): ContentNavigationItem[] {
+  const expand = (items: ContentNavigationItem[]): ContentNavigationItem[] =>
+    items.flatMap((item) =>
+      item.page === false ? expand(item.children ?? []) : [item]
+    );
+
+  return expand(branch?.children ?? []).filter((child) => child.path !== base);
 }
 
 /**

@@ -76,7 +76,7 @@ function flagFor(code: string): string | null {
           <span class="truncate text-sm">{{ entry.label }}</span>
           <Icon
             name="lucide:check"
-            class="ml-auto size-3.5 shrink-0"
+            class="ms-auto size-3.5 shrink-0"
             :class="entry.code === locale ? '' : 'opacity-0'"
           />
         </NuxtLink>

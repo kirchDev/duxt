@@ -153,8 +153,8 @@ function current(to?: string) {
               <Icon name="lucide:menu" class="size-5" />
             </UiButton>
           </UiSheetTrigger>
-          <UiSheetContent side="left" class="flex w-80 flex-col gap-0 p-0">
-            <UiSheetHeader class="border-b pr-14">
+          <UiSheetContent side="start" class="flex w-80 flex-col gap-0 p-0">
+            <UiSheetHeader class="border-b pe-14">
               <UiSheetTitle class="flex items-center gap-2">
                 <NuxtLink
                   :to="localeLink('/')"
@@ -220,12 +220,12 @@ function current(to?: string) {
                         <span class="truncate">{{ link.label }}</span>
                         <Icon
                           name="lucide:chevron-right"
-                          class="ml-auto size-3.5 transition-transform group-data-[state=open]:rotate-90"
+                          class="ms-auto size-3.5 transition-transform group-data-[state=open]:rotate-90"
                         />
                       </UiCollapsibleTrigger>
 
                       <UiCollapsibleContent>
-                        <ul class="mt-0.5 ml-3.5 space-y-0.5 border-l pl-2.5">
+                        <ul class="mt-0.5 ms-3.5 space-y-0.5 border-s ps-2.5">
                           <li
                             v-for="child in link.children"
                             :key="child.to ?? asText(child.label)"
@@ -471,6 +471,14 @@ function current(to?: string) {
         <div class="hidden w-56 lg:block">
           <DuxtSearch />
         </div>
+
+        <!-- Beside the search at every width, unlike the locale and the theme:
+             those two have a home in the mobile sheet and this one cannot, since
+             a sheet is a dialog and a dialog is precisely where the global keys
+             stand down. It is also the sheet's ONLY entry point on a site with
+             `shortcuts.singleCharacter: false`, so it is the last control in
+             this row that may ever give way. -->
+        <DuxtShortcutsTrigger />
 
         <!-- The project links give way first: they are the only icons here the
              sheet can carry as ordinary rows, where the locale and the theme

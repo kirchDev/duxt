@@ -140,6 +140,13 @@ test('still rejects a valid page missing a locale alternate', async () => {
   expect(result.output).not.toContain('invalid HTML response');
 }, 10000);
 
+test('rejects a documentation page missing its Markdown discovery links', async () => {
+  const result = await runCheck('missing-machine-links');
+  expect(result.code).toBe(1);
+  expect(result.output).toContain('Markdown alternate');
+  expect(result.output).toContain('llms.txt describedby');
+}, 10000);
+
 test.each([
   ['redirect', 'HTTP 302'],
   ['json', 'content-type application/json'],

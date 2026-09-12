@@ -68,6 +68,7 @@ const split = computed(() => props.layout === 'split');
 const id = useId();
 const { t } = useI18n();
 const notify = useDuxtToast();
+const analytics = useDuxtAnalytics();
 
 const parameters = computed(() => props.operation.parameters ?? []);
 const bodies = computed(() => props.operation.requestBody?.content ?? []);
@@ -114,7 +115,12 @@ const values = ref<Record<string, string>>(
       // what is sent say the same thing about every parameter.
       .filter((parameter) => parameter.in !== 'cookie')
       .map((parameter) => {
-        const derived = openApiExampleValue(parameter.schema, 'request');
+        const derived = openApiExampleValue(
+          parameter.schema,
+          'request',
+          0,
+          duxt.openapi?.exampleDepth
+        );
         const example = parameter.examples?.[0]?.value ?? derived;
 
         return [
@@ -244,7 +250,12 @@ const body = ref(
   bodies.value.length
     ? openApiJson(
         bodies.value[0]!.examples?.[0]?.value ??
-          openApiExampleValue(bodies.value[0]!.schema, 'request')
+          openApiExampleValue(
+            bodies.value[0]!.schema,
+            'request',
+            0,
+            duxt.openapi?.exampleDepth
+          )
       )
     : ''
 );
@@ -536,6 +547,15 @@ async function copySample() {
   try {
     await navigator.clipboard.writeText(shown.value.code);
     copiedSample.value = true;
+    // WHICH sample, never the sample. The code is the reader's own request
+    // written out — server, parameters, token and all — so only the two pieces
+    // of declared configuration travel.
+    analytics.track({
+      name: 'copy',
+      kind: 'request-sample',
+      sample: shown.value.id,
+      language: shown.value.language
+    });
     notify.success(t('duxt.code.copiedToast'));
     setTimeout(() => (copiedSample.value = false), 2000);
   } catch {
@@ -560,6 +580,36 @@ const sending = ref(false);
 const result = ref<Result>();
 const failure = ref<string>();
 
+/**
+ * The request that just settled, described entirely by the DOCUMENT.
+ *
+ * Everything here is declared in the OpenAPI file — the operation's id, its
+ * method, its path template — and nothing is the request that was actually
+ * made. Not the server the reader picked, not the URL it produced, not a
+ * header, not the token in it, not the body, not the response. That is the same
+ * promise the docblock at the top of this file makes about where credentials
+ * go, kept from the other side: a component that holds a token in its own state
+ * and then posts it to a site's analytics has not kept it anywhere.
+ *
+ * The duration is the request's own, taken before the spinner's floor is
+ * applied — `MINIMUM_WAIT` is a thing about the button, not about the API.
+ */
+function report(
+  outcome: 'response' | 'failed',
+  duration: number,
+  statusClass?: DuxtAnalyticsStatusClass
+) {
+  analytics.track({
+    name: 'api-request',
+    operation: props.operation.operationId,
+    method: props.operation.method,
+    path: props.operation.path,
+    outcome,
+    statusClass,
+    duration
+  });
+}
+
 async function send() {
   sending.value = true;
   // THE PREVIOUS ANSWER STAYS UNTIL THIS ONE ARRIVES. Clearing it here emptied
@@ -578,15 +628,18 @@ async function send() {
     });
 
     const text = await response.text();
+    const duration = Math.round(performance.now() - started);
 
     failure.value = undefined;
     result.value = {
       status: response.status,
       statusText: response.statusText,
-      duration: Math.round(performance.now() - started),
+      duration,
       headers: [...response.headers.entries()],
       body: pretty(text)
     };
+
+    report('response', duration, duxtStatusClass(response.status));
   } catch (error) {
     // `fetch` rejects with a bare TypeError for a CORS refusal, a DNS failure
     // and an offline browser alike — the browser deliberately tells the page
@@ -597,6 +650,10 @@ async function send() {
       error instanceof Error && error.name !== 'TypeError'
         ? error.message
         : t('duxt.openapi.client.blocked');
+
+    // No status and no class: nothing came back to have one. The message is not
+    // reported either — for a CORS refusal it is this component's own guess.
+    report('failed', Math.round(performance.now() - started));
   } finally {
     // A FLOOR UNDER THE WAIT. The demo endpoint answers in a few milliseconds,
     // so the spinner appeared and vanished inside one frame — which reads as
@@ -906,11 +963,11 @@ function pretty(text: string): string {
               </label>
 
               <!-- Beside the label, not beside the toggle. It belongs to the JSON
-               view, so it comes and goes with it — and on the LEFT that costs
-               nothing: the toggle is pinned to the right edge by `ml-auto`, so
-               the control the reader just clicked cannot move out from under
-               the pointer, which is what happened when the two shared the right
-               end of this row. -->
+               view, so it comes and goes with it — and at the START of the row
+               that costs nothing: the toggle is pinned to the far END by
+               `ms-auto`, so the control the reader just clicked cannot move out
+               from under the pointer, which is what happened when the two
+               shared the end of this row. -->
               <UiButton
                 v-if="mode === 'json'"
                 type="button"
@@ -928,7 +985,7 @@ function pretty(text: string): string {
                about what it does. -->
               <div
                 v-if="formable"
-                class="ml-auto flex items-center gap-0.5 rounded-md border p-0.5"
+                class="ms-auto flex items-center gap-0.5 rounded-md border p-0.5"
               >
                 <button
                   v-for="view in ['form', 'json'] as const"
@@ -1094,7 +1151,7 @@ function pretty(text: string): string {
                   <span class="text-muted-foreground">
                     {{ result.statusText }}
                   </span>
-                  <span class="ml-auto font-mono text-xs text-muted-foreground">
+                  <span class="ms-auto font-mono text-xs text-muted-foreground">
                     {{ result.duration }}&nbsp;ms
                   </span>
                 </div>
@@ -1216,7 +1273,7 @@ function pretty(text: string): string {
                 <UiButton
                   variant="ghost"
                   size="icon"
-                  class="ml-auto size-7 hover:bg-accent hover:text-foreground"
+                  class="ms-auto size-7 hover:bg-accent hover:text-foreground"
                   :aria-label="
                     copiedSample ? $t('duxt.code.copied') : $t('duxt.code.copy')
                   "

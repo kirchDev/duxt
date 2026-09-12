@@ -24,7 +24,7 @@ export interface DuxtGeneratedTocLink {
   children?: DuxtGeneratedTocLink[];
 }
 
-const HEADING = /^h([23])$/;
+const HEADING = /^h([2-6])$/;
 
 /**
  * A prop, whichever spelling it arrived in.
@@ -63,7 +63,11 @@ function text(node: unknown): string {
  * promoted to `##` by the parser — so inside a group it is one level further
  * in, or the column would claim both are siblings.
  */
-function walk(nodes: unknown[], inside: boolean): DuxtGeneratedTocLink[] {
+function walk(
+  nodes: unknown[],
+  inside: boolean,
+  maximumDepth: number
+): DuxtGeneratedTocLink[] {
   const links: DuxtGeneratedTocLink[] = [];
 
   for (const node of nodes) {
@@ -84,7 +88,7 @@ function walk(nodes: unknown[], inside: boolean): DuxtGeneratedTocLink[] {
       // The same words the heading itself draws — the anchor is still built
       // from the file's own name, so the two cannot point apart.
       if (id) links.push({ id, text: changelogLabel(name), depth: 2 });
-      links.push(...walk(children, true));
+      links.push(...walk(children, true, maximumDepth));
       continue;
     }
 
@@ -96,7 +100,7 @@ function walk(nodes: unknown[], inside: boolean): DuxtGeneratedTocLink[] {
     if (tag === 'changelog-releases') continue;
 
     const heading = HEADING.exec(tag);
-    if (heading) {
+    if (heading && Number(heading[1]) <= maximumDepth) {
       const id = props.id;
       if (typeof id === 'string' && id) {
         links.push({
@@ -108,20 +112,23 @@ function walk(nodes: unknown[], inside: boolean): DuxtGeneratedTocLink[] {
       continue;
     }
 
-    links.push(...walk(children, inside));
+    links.push(...walk(children, inside, maximumDepth));
   }
 
   return links;
 }
 
 /** The flat list nested the way `DuxtToc` draws it: one level of children. */
-export function generatedToc(body: unknown): DuxtGeneratedTocLink[] {
+export function generatedToc(
+  body: unknown,
+  maximumDepth = 3
+): DuxtGeneratedTocLink[] {
   const value = (body as { value?: unknown })?.value;
   if (!Array.isArray(value)) return [];
 
   const links: DuxtGeneratedTocLink[] = [];
 
-  for (const link of walk(value, false)) {
+  for (const link of walk(value, false, maximumDepth)) {
     const parent = links.at(-1);
 
     if (link.depth > 2 && parent) (parent.children ??= []).push(link);

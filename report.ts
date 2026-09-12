@@ -264,8 +264,11 @@ export function duxtReportMarkdown(data: DuxtReport): string {
 /* The command                                                                 */
 /* -------------------------------------------------------------------------- */
 
+/** The two shapes the same report is printed in. */
+export type DuxtReportFormat = 'markdown' | 'json';
+
 /**
- * The command, as a function of its arguments and its data.
+ * The report as text, and the exit code that goes with it.
  *
  * HERE rather than in the bin, and that is not tidiness. The bin has to be
  * plain JavaScript — Node refuses to strip types from a file under
@@ -275,29 +278,35 @@ export function duxtReportMarkdown(data: DuxtReport): string {
  * therefore lives on this side, where it is typed and tested, and the bin is
  * left with nothing to get wrong.
  *
+ * It takes the format rather than the argv it was asked for in. Which spelling
+ * selects JSON is the command line's business, and `cli.ts` is where the
+ * command line is read — a second place sniffing argv is how the two drift
+ * into disagreeing about what a valid invocation is.
+ *
  * Returns the exit code rather than setting it: warnings do not fail, because
  * they are what somebody else's repository going stale looks like, and a check
  * that cannot survive that is a check that gets switched off.
  */
-export function runDuxtReportCli(
-  argv: string[],
-  data: DuxtReport
+export function duxtReportOutput(
+  data: DuxtReport,
+  format: DuxtReportFormat = 'markdown'
 ): { output: string; exitCode: number } {
-  const output = argv.includes('--json')
-    ? JSON.stringify(
-        {
-          ...data,
-          // A Set does not survive `JSON.stringify` — it serialises as `{}`,
-          // which is a silently empty anchor list rather than an error.
-          pages: data.pages?.map((page) => ({
-            ...page,
-            anchors: [...page.anchors]
-          }))
-        },
-        undefined,
-        2
-      )
-    : duxtReportMarkdown(data);
+  const output =
+    format === 'json'
+      ? JSON.stringify(
+          {
+            ...data,
+            // A Set does not survive `JSON.stringify` — it serialises as `{}`,
+            // which is a silently empty anchor list rather than an error.
+            pages: data.pages?.map((page) => ({
+              ...page,
+              anchors: [...page.anchors]
+            }))
+          },
+          undefined,
+          2
+        )
+      : duxtReportMarkdown(data);
 
   return { output, exitCode: data.findings.errors.length ? 1 : 0 };
 }

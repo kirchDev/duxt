@@ -86,6 +86,20 @@ describe('resolveSources', () => {
     expect(resolved.map((source) => source.repo)).toEqual([undefined, 'demo']);
   });
 
+  it('carries a source dialect to every resolved collection', () => {
+    const [source] = resolveSources([
+      {
+        repo: 'acme/provider',
+        path: 'docs',
+        slug: 'tf',
+        flavor: 'tfplugindocs',
+        refs: [{ tag: 'v1.0.0' }]
+      }
+    ]);
+
+    expect(source).toMatchObject({ prefix: '/tf', flavor: 'tfplugindocs' });
+  });
+
   it('combines repository and version segments in that order', () => {
     const resolved = resolveSources([
       { repo: 'kirchDev/app', path: 'docs', refs: ['main', 'v1.x'] },

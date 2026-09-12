@@ -3,6 +3,7 @@ import type { DuxtSectionOptions, DuxtSectionType } from '../sections-resolve';
 import type { DuxtResolvedSource } from '../sources-resolve';
 import {
   duxtManifest,
+  duxtSectionInput,
   duxtSectionTypes,
   generatedSectionRef,
   missingSectionArtefact,
@@ -277,7 +278,7 @@ describe('resolveGeneratedSections', () => {
 
   it('lets the type name a layout per those options', () => {
     // The knob a declaration turns can change what the pages ARE — a changelog
-    // asked for as one file is an ordinary page and wants the docs chrome, the
+    // asked for as one file is an ordinary page and wants the docs shell, the
     // same one split into releases is not. So the layout is resolved from the
     // options rather than fixed per type.
     const layout = (options: DuxtSectionOptions) =>
@@ -462,6 +463,7 @@ describe('duxtSectionTypes', () => {
     const registry = duxtSectionTypes({ stub: stub() });
 
     expect(Object.keys(registry).sort()).toEqual([
+      'bruno',
       'changelog',
       'openapi',
       'stub'
@@ -562,14 +564,18 @@ describe('the severity of a section that produces nothing', () => {
     // needs about the section is a knob the site turned.
     const parse = vi.fn(() => [{ file: 'index.md', body: '' }]);
 
+    const input = duxtSectionInput('CHANGELOG.md', 'anything');
+
     sectionPages(
       entry({ options: { granularity: 'flat' } }),
       stub({ parse }),
-      'anything'
+      input
     );
 
-    expect(parse).toHaveBeenCalledWith('anything', {
+    expect(parse).toHaveBeenCalledWith(input, {
       label: 'Releases',
+      collection: 'docs_releases',
+      remote: false,
       prefix: '/releases',
       options: { granularity: 'flat' },
       warn: expect.any(Function)
@@ -579,10 +585,14 @@ describe('the severity of a section that produces nothing', () => {
   it('hands a type that was given no options an empty set', () => {
     const parse = vi.fn(() => [{ file: 'index.md', body: '' }]);
 
-    sectionPages(entry(), stub({ parse }), 'anything');
+    sectionPages(
+      entry(),
+      stub({ parse }),
+      duxtSectionInput('CHANGELOG.md', 'anything')
+    );
 
     expect(parse).toHaveBeenCalledWith(
-      'anything',
+      expect.objectContaining({ path: 'CHANGELOG.md' }),
       expect.objectContaining({ options: {} })
     );
   });
@@ -593,10 +603,12 @@ describe('the severity of a section that produces nothing', () => {
     const empty = stub({ parse: () => [] });
     const remote = entry({ remote: true });
 
-    expect(() => sectionPages(entry(), empty, 'anything')).toThrow(
+    const input = duxtSectionInput('CHANGELOG.md', 'anything');
+
+    expect(() => sectionPages(entry(), empty, input)).toThrow(
       /holds nothing the "stub" type can read/
     );
-    expect(sectionPages(remote, empty, 'anything')).toEqual([]);
+    expect(sectionPages(remote, empty, input)).toEqual([]);
     expect(remote.generated!.report).toEqual({ pages: 0, warnings: [] });
   });
 
@@ -608,13 +620,13 @@ describe('the severity of a section that produces nothing', () => {
     sectionPages(
       source,
       stub({
-        parse: (_artefact, context) => {
+        parse: (_input, context) => {
           context.warn?.('the reference "#/x" points at nothing.');
           context.warn?.('the reference "#/x" points at nothing.');
           return [{ file: 'index.md', body: '' }];
         }
       }),
-      'anything'
+      duxtSectionInput('CHANGELOG.md', 'anything')
     );
 
     expect(source.generated!.report).toEqual({

@@ -138,3 +138,25 @@ describe('resolveDuxtTexts', () => {
     expect(resolved.to).toBe('nav.guide');
   });
 });
+
+it('resolves a source display name, leaving the addresses beside it alone', () => {
+  const resolved = resolveDuxtTexts(
+    {
+      resolvedSources: [
+        {
+          collection: 'docs_demo',
+          prefix: '/demo',
+          repo: 'demo',
+          name: { 'en-GB': 'Demo', 'de-DE': 'Demonstration' }
+        }
+      ]
+    },
+    'de-DE',
+    lookup
+  );
+
+  expect(resolved.resolvedSources[0]!.name).toBe('Demonstration');
+  expect(resolved.resolvedSources[0]!.repo).toBe('demo');
+  expect(resolved.resolvedSources[0]!.collection).toBe('docs_demo');
+  expect(resolved.resolvedSources[0]!.prefix).toBe('/demo');
+});

@@ -67,6 +67,65 @@ it('selects explicit remote branches and tags for documentation collections', ()
   });
 });
 
+it('uses a source’s custom draft and partial patterns', () => {
+  vi.stubEnv('NODE_ENV', 'production');
+  try {
+    const collections = duxtSources([
+      {
+        path: 'docs',
+        exclude: { drafts: '**/*.wip.md', partials: '**/_includes/**' }
+      }
+    ]);
+
+    expect(collections.docs.source?.[0]?.exclude).toEqual([
+      '**/_includes/**',
+      '**/*.wip.md'
+    ]);
+  } finally {
+    vi.unstubAllEnvs();
+  }
+});
+
+// The exclusion glob and the partials collection's own `include` are derived
+// from ONE consumer setting, and conflating them is the regression the `*.md`
+// restriction has already been written once to prevent: the partials
+// collection is `type: 'page'`, so a screenshot sitting beside a partial is
+// read as a document unless the include is restricted to Markdown.
+describe('partials are excluded as a subtree and included as Markdown', () => {
+  it('restricts the local partials collection to Markdown', () => {
+    const collections = duxtSources([{ path: 'docs' }]);
+
+    expect(collections.docs.source?.[0]?.exclude).toContain('**/_partials/**');
+    expect(collections.duxt_partials.source?.[0]?.include).toBe(
+      '**/_partials/**/*.md'
+    );
+  });
+
+  it('restricts a repository partials collection to Markdown', () => {
+    const collections = duxtSources([{ repo: 'acme/docs', path: 'docs' }]);
+
+    expect(collections.docs.source?.[0]?.exclude).toContain('**/_partials/**');
+    expect(collections.duxt_partials.source?.[0]?.include).toBe(
+      'docs/**/_partials/**/*.md'
+    );
+  });
+
+  it.each([
+    { partials: '**/_includes/**', include: '**/_includes/**/*.md' },
+    { partials: '**/_includes/*', include: '**/_includes/*.md' },
+    { partials: '**/_includes', include: '**/_includes/**/*.md' },
+    { partials: '**/_includes/**/*.mdc', include: '**/_includes/**/*.mdc' }
+  ])('derives $include from a custom $partials', ({ partials, include }) => {
+    const collections = duxtSources([{ path: 'docs', exclude: { partials } }]);
+
+    // The page collection still loses the whole subtree — every file in it,
+    // whatever the extension — while the partials collection takes only the
+    // Markdown, at whatever depth the consumer's own glob reaches.
+    expect(collections.docs.source?.[0]?.exclude).toContain(partials);
+    expect(collections.duxt_partials.source?.[0]?.include).toBe(include);
+  });
+});
+
 it('allows a remote locale ref beside the unversioned local checkout', async () => {
   const collections = duxtSources([
     {
@@ -150,7 +209,9 @@ it('keeps local generated sections versioned by their files', async () => {
         test: {
           versioning: 'per-version',
           localisation: 'original',
-          parse: (raw: string) => [{ file: 'index.md', body: raw }]
+          parse: (input: { text: () => string }) => [
+            { file: 'index.md', body: input.text() }
+          ]
         }
       }
     );

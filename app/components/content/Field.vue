@@ -37,7 +37,7 @@ defineProps<{
 
       <code
         v-if="$props.default !== undefined"
-        class="ml-auto font-mono text-xs text-muted-foreground"
+        class="ms-auto font-mono text-xs text-muted-foreground"
       >
         = {{ $props.default }}
       </code>

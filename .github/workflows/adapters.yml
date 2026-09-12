@@ -1,0 +1,119 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+
+# NOT A STUB, AND THE SECOND EXCEPTION IN THIS DIRECTORY (`deploy.yml` is the
+# other). Every other workflow here calls a body in kirchDev/workflows; there is
+# no body for "build the site against another database adapter", so this one
+# carries its own jobs. If a second repo ever needs it, this is what moves out.
+#
+# WHY IT IS NOT IN `pnpm check`. The gate already builds the site once, and each
+# leg below is a second full Nuxt build — plus, for the PostgreSQL one, a server
+# the gate would have to provision on every contributor's machine. Three serial
+# builds in one job is the wrong shape for something that parallelises perfectly
+# as a matrix, so this is the one class of check that does NOT arrive by adding
+# a line to `package.json`.
+#
+# What it defends is the compatibility table in `docs/2.concepts/11.databases.md`
+# — the one that says "verified in CI" next to `libsql` and `postgresql`. That
+# claim is true exactly as long as this workflow runs and passes.
+name: Adapters
+
+on:
+  pull_request:
+    branches:
+      - main
+      - dev
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: adapters-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  adapter:
+    name: ${{ matrix.adapter }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      # One red adapter should not hide the state of the other.
+      fail-fast: false
+      matrix:
+        include:
+          # A local `file:` database, which is the form that needs no server.
+          # A remote Turso URL takes the same code path — what differs is
+          # latency and an auth token, neither of which the layer can see.
+          - adapter: libsql
+            url: ''
+          - adapter: postgresql
+            url: postgresql://postgres:postgres@127.0.0.1:5432/duxt
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # `modules/git-meta.ts` reads git for "last updated" and the
+          # contributor list. A shallow clone gives every page one date — which
+          # builds fine and is wrong, so the report below would report on it.
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # SERVICE CONTAINERS ARE PER-JOB, NOT PER-MATRIX-LEG — declaring one at
+      # the job level would start PostgreSQL for the libsql leg too, and wait on
+      # it. Starting it as a step keeps each leg paying only for what it uses.
+      - name: Start PostgreSQL
+        if: matrix.adapter == 'postgresql'
+        run: |
+          docker run -d --name duxt-postgres \
+            -e POSTGRES_PASSWORD=postgres \
+            -e POSTGRES_DB=duxt \
+            -p 5432:5432 \
+            postgres:18-alpine
+          for _ in $(seq 1 30); do
+            if docker exec duxt-postgres pg_isready -U postgres; then exit 0; fi
+            sleep 2
+          done
+          echo "PostgreSQL did not accept connections within 60s" >&2
+          exit 1
+
+      # The adapter is a BUILD-time decision: it decides which connector Nitro
+      # bundles behind `#content/adapter`. Probing a server built without it
+      # would prove nothing at all.
+      - name: Build www on ${{ matrix.adapter }}
+        env:
+          DUXT_CONTENT_ADAPTER: ${{ matrix.adapter }}
+          DUXT_CONTENT_DATABASE_URL: ${{ matrix.url }}
+        run: pnpm build:app
+
+      # The endpoints that cannot be a file: the `.md` middleware, `/mcp` and
+      # the two `llms` routes. Each one calls `queryCollection()`, which is the
+      # only path the layer is allowed to read the database through.
+      - name: Probe the runtime endpoints
+        env:
+          DUXT_CONTENT_ADAPTER: ${{ matrix.adapter }}
+          DUXT_CONTENT_DATABASE_URL: ${{ matrix.url }}
+        run: pnpm check:adapters
+
+      # The other half of the claim, and a different database: the report reads
+      # Content's local parse cache rather than the deployed one. It is here to
+      # prove that choosing an adapter did not move that cache — if it ever
+      # does, this step is where it shows.
+      - name: Run duxt report
+        run: pnpm report
+
+      - name: Stop PostgreSQL
+        if: always() && matrix.adapter == 'postgresql'
+        run: docker rm -f duxt-postgres || true

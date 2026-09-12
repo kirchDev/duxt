@@ -98,11 +98,21 @@ const active = computed<DuxtPackageManager>({
 const copied = ref(false);
 const notify = useDuxtToast();
 const { t } = useI18n();
+const analytics = useDuxtAnalytics();
 
 async function copy() {
   try {
     await navigator.clipboard.writeText(commands.value[active.value]!);
     copied.value = true;
+    // The manager, not the command: which of the four a site's readers reach
+    // for is the question this block can answer, and the command itself is
+    // already on the page for anyone who wants to know what was copied.
+    analytics.track({
+      name: 'copy',
+      kind: 'package-manager',
+      manager: active.value,
+      language: 'bash'
+    });
     notify.success(t('duxt.code.copiedToast'));
     setTimeout(() => (copied.value = false), 2000);
   } catch {
@@ -159,7 +169,7 @@ async function copy() {
       <UiButton
         variant="ghost"
         size="icon"
-        class="ml-auto size-7"
+        class="ms-auto size-7"
         :aria-label="
           copied ? $t('duxt.code.copied') : $t('duxt.code.copyCommand')
         "

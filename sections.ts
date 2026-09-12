@@ -17,7 +17,6 @@
  * artefact, a type that read nothing out of one — is the severity policy, and
  * it lives in the pure half where a test can reach it.
  */
-import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { defineCollection, defineCollectionSource } from '@nuxt/content';
 import type {
@@ -37,6 +36,11 @@ import {
   resolveGeneratedSections,
   sectionPages
 } from './sections-resolve';
+import {
+  diskSectionInput,
+  sectionArtefactExists,
+  sectionInputKind
+} from './section-input';
 import { resolveLatestRefs } from './sources-git';
 import { pageSchema, repositoryRoot } from './sources';
 
@@ -79,10 +83,15 @@ export function duxtGeneratedCollections(
  * neither.
  */
 function localCollection(entry: DuxtResolvedSource, type: DuxtSectionType) {
-  const file = join(repositoryRoot(), entry.path);
+  // The checkout goes with the handle, which is what lets the release history
+  // read the commits between two tags. Only here: `remoteCollection` below has
+  // a `--depth 1` clone and deliberately passes none.
+  const root = repositoryRoot();
+  const file = join(root, entry.path);
+  const kind = sectionInputKind(type);
 
-  const pages = existsSync(file)
-    ? sectionPages(entry, type, readFileSync(file, 'utf8'))
+  const pages = sectionArtefactExists(file, kind)
+    ? sectionPages(entry, type, diskSectionInput(file, entry.path, kind, root))
     : missingSectionArtefact(entry, file);
 
   const source = defineCollectionSource({
@@ -137,9 +146,10 @@ function remoteCollection(entry: DuxtResolvedSource, type: DuxtSectionType) {
     // `cwd` is where Content put the checkout, filled in by the `prepare` it
     // installed on this source and run before the first `getKeys`.
     const file = join(source.cwd, entry.path);
+    const kind = sectionInputKind(type);
 
-    pages = existsSync(file)
-      ? sectionPages(entry, type, readFileSync(file, 'utf8'))
+    pages = sectionArtefactExists(file, kind)
+      ? sectionPages(entry, type, diskSectionInput(file, entry.path, kind))
       : missingSectionArtefact(entry, file);
 
     return pages;

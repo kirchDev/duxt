@@ -61,6 +61,7 @@ const locales = [
     language: 'en-GB',
     name: 'English (UK)',
     files: [
+      'en/duxt/announcement.json',
       'en/duxt/changelog.json',
       'en/duxt/code.json',
       'en/duxt/devtools.json',
@@ -83,6 +84,7 @@ const locales = [
     language: 'en-US',
     name: 'English (US)',
     files: [
+      'en/duxt/announcement.json',
       'en/duxt/changelog.json',
       'en/duxt/code.json',
       'en/duxt/devtools.json',
@@ -105,6 +107,7 @@ const locales = [
     language: 'de-DE',
     name: 'Deutsch',
     files: [
+      'de/duxt/announcement.json',
       'de/duxt/changelog.json',
       'de/duxt/code.json',
       'de/duxt/devtools.json',
@@ -127,6 +130,7 @@ const locales = [
     language: 'es-ES',
     name: 'Español',
     files: [
+      'es/duxt/announcement.json',
       'es/duxt/changelog.json',
       'es/duxt/code.json',
       'es/duxt/devtools.json',
@@ -149,6 +153,7 @@ const locales = [
     language: 'fr-FR',
     name: 'Français',
     files: [
+      'fr/duxt/announcement.json',
       'fr/duxt/changelog.json',
       'fr/duxt/code.json',
       'fr/duxt/devtools.json',
@@ -171,6 +176,7 @@ const locales = [
     language: 'pt-PT',
     name: 'Português',
     files: [
+      'pt/duxt/announcement.json',
       'pt/duxt/changelog.json',
       'pt/duxt/code.json',
       'pt/duxt/devtools.json',
@@ -193,6 +199,7 @@ const locales = [
     language: 'pt-BR',
     name: 'Português (Brasil)',
     files: [
+      'pt/duxt/announcement.json',
       'pt/duxt/changelog.json',
       'pt/duxt/code.json',
       'pt/duxt/devtools.json',
@@ -241,6 +248,17 @@ export default defineNuxtConfig({
     // `redirectFrom:` in a page's frontmatter, under every prefix the site
     // serves that page at.
     layer('./modules/redirects.ts'),
+
+    // The downloadable archive of every local Bruno collection, written during
+    // the build and served as a static asset. A no-op for a site that declares
+    // no `bruno` section.
+    layer('./modules/bruno.ts'),
+
+    // The layer's one build-time extension point: every parsed page of every
+    // source, version and language, handed to `duxt:search:records` so an
+    // external search provider can be a layer rather than a fork. Builds
+    // nothing while no consumer is listening, which is every site until one is.
+    layer('./modules/search-records.ts'),
 
     /**
      * The SEO half, BEFORE Content on purpose.
@@ -305,11 +323,37 @@ export default defineNuxtConfig({
   mcp: {
     description: 'The documentation this site publishes, readable by an agent.',
     instructions:
-      'Call list_pages for the table of contents, search_docs to find a page by ' +
-      'term, and read_page for the full text of one page.'
+      'Call list_versions first: it gives the URL prefix that scopes one ' +
+      'documentation version. Pass that prefix to list_pages for its table of ' +
+      'contents or to search_docs to find a page by term, then read_page for ' +
+      'one page as Markdown.'
   },
 
-  nitro: wasm ? { externals: { traceInclude: [wasm] } } : {},
+  nitro: {
+    /**
+     * THE MCP TOOLS CANNOT REACH THE REQUEST WITHOUT THIS.
+     *
+     * `@nuxtjs/mcp-toolkit` hands a tool handler the MCP SDK's
+     * `RequestHandlerExtra` and nothing of H3's, so the only way into the
+     * request from inside a tool is `useEvent()` — which throws
+     * "Nitro request context is not available" unless Nitro wraps each request
+     * in an `AsyncLocalStorage`. The toolkit's own server helpers
+     * (`useMcpServer`, `useMcpSession`, `useMcpLogger`) are built on the same
+     * call, so this is a prerequisite of mounting an MCP server rather than a
+     * preference of duxt's.
+     *
+     * It is the one Nitro flag this layer imposes on a consumer, and it is
+     * imposed knowingly: the alternative is four tools that answer from the
+     * global `$fetch` and the default locale instead of from the request, i.e.
+     * a second database-reading code path that exists only under `/mcp` and
+     * that only a Worker would ever have disagreed with. A consumer who wants
+     * it off writes `nitro: { experimental: { asyncContext: false } }` and
+     * loses `/mcp`, nothing else.
+     */
+    experimental: { asyncContext: true },
+
+    ...(wasm ? { externals: { traceInclude: [wasm] } } : {})
+  },
 
   css: [layer('./app/assets/css/duxt.css')],
 
@@ -331,15 +375,38 @@ export default defineNuxtConfig({
             dark: 'github-dark'
           },
           langs: highlightLangs
-        }
+        },
+
+        /**
+         * PARSE the whole outline; decide how much of it to draw later.
+         *
+         * MDC's `depth` is a COUNT from `h2` over `[h2,h3,h4,h5,h6]`, and its
+         * default of `2` stops at `h3` — so a page writing `toc: { maxDepth: 5 }`
+         * would have asked for headings Content never put in `body.toc`, and
+         * the field would be a promise the build quietly broke. Parsing all
+         * five costs a few rows in a table nobody queries by depth.
+         *
+         * It does NOT change what a reader sees: `duxtTocLinks` cuts the tree
+         * back to `duxt.toc.depth` — still `h3` — before `DuxtToc` draws it, so
+         * a page that asks for nothing gets exactly the column it always had.
+         *
+         * `searchDepth` is deliberately left alone. It bounds how deep into the
+         * node tree headings are looked for, not which levels count, so raising
+         * it would change which pages have an outline at all.
+         */
+        toc: { depth: 5 }
       }
     },
 
     // Content's default driver, better-sqlite3, is a native addon compiled
-    // through node-gyp. Node 24 ships node:sqlite, so no driver package is
-    // needed — see CLAUDE.md for the fallback if this flag ever goes away.
+    // through node-gyp. `native` is Node 24's own node:sqlite, so no driver
+    // package is needed — see CLAUDE.md for the fallback if this option ever
+    // goes away. It replaced `nativeSqlite: true`, which Content still honours
+    // but marks deprecated; a layer is the worst place to carry a deprecation,
+    // so tests/sqlite-connector.test.ts holds this block to whatever the
+    // installed Content declares current.
     experimental: {
-      nativeSqlite: true
+      sqliteConnector: 'native'
     }
   },
 

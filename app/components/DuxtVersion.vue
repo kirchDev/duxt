@@ -99,7 +99,7 @@ function pathIn(version: { to?: string }) {
       <button
         v-if="props.variant === 'block'"
         type="button"
-        class="flex w-full cursor-pointer items-center gap-2 rounded-md border p-2 text-left transition-colors hover:bg-accent"
+        class="flex w-full cursor-pointer items-center gap-2 rounded-md border p-2 text-start transition-colors hover:bg-accent"
       >
         <span
           class="flex aspect-square size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground"
@@ -160,7 +160,7 @@ function pathIn(version: { to?: string }) {
         <span class="font-mono text-xs">{{ version.label }}</span>
         <span
           v-if="caption(version)"
-          class="ml-auto text-xs text-muted-foreground"
+          class="ms-auto text-xs text-muted-foreground"
         >
           {{ caption(version) }}
         </span>

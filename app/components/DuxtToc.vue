@@ -19,18 +19,18 @@ const ids = computed(() =>
   ])
 );
 
-const active = useActiveHeading(ids);
+const active = useActiveHeading(ids, duxt.toc?.scrollOffset);
 </script>
 
 <template>
   <div class="space-y-8 text-sm">
     <nav v-if="links?.length" :aria-label="$t('duxt.toc.title')">
       <p class="mb-3 font-medium">{{ $t('duxt.toc.title') }}</p>
-      <ul class="space-y-1 border-l">
+      <ul class="space-y-1 border-s">
         <li v-for="link in links" :key="link.id">
           <a
             :href="`#${link.id}`"
-            class="-ml-px block border-l py-1 pl-4 transition-colors"
+            class="-ms-px block border-s py-1 ps-4 transition-colors"
             :class="
               active === link.id
                 ? 'border-primary text-foreground'
@@ -43,7 +43,7 @@ const active = useActiveHeading(ids);
             <li v-for="child in link.children" :key="child.id">
               <a
                 :href="`#${child.id}`"
-                class="-ml-px block border-l py-1 pl-7 transition-colors"
+                class="-ms-px block border-s py-1 ps-7 transition-colors"
                 :class="
                   active === child.id
                     ? 'border-primary text-foreground'

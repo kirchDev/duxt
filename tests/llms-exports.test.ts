@@ -5,11 +5,13 @@ const database = vi.hoisted(() => ({
   pages: {} as Record<
     string,
     { path: string; title: string; rawbody: string }[]
-  >
+  >,
+  selections: [] as { name: string; fields: string[] }[]
 }));
 vi.mock('@nuxt/content/nitro', () => ({
   queryCollection: (_event: unknown, name: string) => ({
-    select() {
+    select(...fields: string[]) {
+      database.selections.push({ name, fields });
       return this;
     },
     async all() {
@@ -44,6 +46,7 @@ beforeEach(() => {
   );
   vi.stubGlobal('setHeader', vi.fn());
   database.pages = {};
+  database.selections = [];
   event.context.nuxtI18n.vueI18nOptions.fallbackLocale = 'en';
   sources = duxtManifest([{ path: 'docs', locales: ['en', 'de'] }], {
     defaultLocale: 'en'
@@ -65,6 +68,49 @@ async function exportsText() {
   };
 }
 
+async function indexText() {
+  const { default: index } = await import('../server/routes/llms.txt.get');
+  return index(event as never);
+}
+
+it('does not load page bodies for the llms index', async () => {
+  database.pages.docs = [
+    { path: '/guide', title: 'Guide', rawbody: 'Only the full export needs me' }
+  ];
+
+  await indexText();
+
+  expect(database.selections).toHaveLength(2);
+  // The claim is about the BODY, not about the exact column list: `search`
+  // joined it so the per-page opt-out is applied where the pages are read, and
+  // a boolean is not the thing this test exists to keep out of memory.
+  for (const { fields } of database.selections) {
+    expect(fields).not.toContain('rawbody');
+    expect(fields).toContain('search');
+  }
+});
+
+/**
+ * `search: false` is one rule over four surfaces, and these two are the pair
+ * that would drift apart unnoticed: nobody reads llms-full.txt to check whether
+ * a page llms.txt omitted is in it anyway.
+ */
+it('omits a page that opted out of search from both exports', async () => {
+  database.pages.docs = [
+    { path: '/guide', title: 'Guide', rawbody: 'Findable' },
+    { path: '/legal', title: 'Legal', rawbody: 'Hidden', search: false }
+  ];
+
+  const index = await indexText();
+  const { default: full } = await import('../server/routes/llms-full.txt.get');
+  const bodies = (await full(event as never)) as string;
+
+  expect(index).toContain('/guide');
+  expect(index).not.toContain('/legal');
+  expect(bodies).toContain('Findable');
+  expect(bodies).not.toContain('Hidden');
+});
+
 it('links translations to the represented public URL in both exports', async () => {
   database.pages.docs = [
     { path: '/getting-started', title: 'Introduction', rawbody: 'English body' }
@@ -74,10 +120,10 @@ it('links translations to the represented public URL in both exports', async () 
   ];
   const text = await exportsText();
   expect(text.index).toContain(
-    '[Einführung](https://docs.example/de-DE/getting-started)'
+    '[Einführung](https://docs.example/de-DE/getting-started.md)'
   );
   expect(
-    text.index.match(/https:\/\/docs.example\/getting-started/g)
+    text.index.match(/https:\/\/docs.example\/getting-started\.md/g)
   ).toHaveLength(1);
   expect(text.full).toContain(
     'Source: https://docs.example/de-DE/getting-started\n\nDeutscher Text'
@@ -100,13 +146,13 @@ it('exports incomplete translations and regional aliases with their actual fallb
     { path: '/unserved', title: 'Italian only', rawbody: 'Hidden' }
   ];
   const text = await exportsText();
-  expect(text.index).toContain('[Guide](https://docs.example/de-DE/guide)');
+  expect(text.index).toContain('[Guide](https://docs.example/de-DE/guide.md)');
   expect(text.full).toContain(
     'Source: https://docs.example/de-DE/guide\n\nOriginal guide'
   );
   for (const locale of ['pt-PT', 'pt-BR']) {
     expect(text.index).toContain(
-      `[Guia](https://docs.example/${locale}/guide)`
+      `[Guia](https://docs.example/${locale}/guide.md)`
     );
     expect(text.full).toContain(
       `Source: https://docs.example/${locale}/guide\n\nGuia português`
@@ -117,7 +163,7 @@ it('exports incomplete translations and regional aliases with their actual fallb
   expect(text.index.match(/https:\/\/docs.example/g)).toHaveLength(4);
 });
 
-it('keeps old versions and generated sections in both exports', async () => {
+it('exports only default-version Markdown twins, including their generated sections', async () => {
   sources = duxtManifest(
     [
       {
@@ -141,9 +187,11 @@ it('keeps old versions and generated sections in both exports', async () => {
       }
     ];
   const text = await exportsText();
-  expect(text.index).toContain('https://docs.example/de-DE/v1/guide');
-  expect(text.index).toContain('https://docs.example/de-DE/releases/guide');
-  expect(text.full).toContain('Source: https://docs.example/de-DE/v1/guide');
+  expect(text.index).toContain('https://docs.example/de-DE/releases/guide.md');
+  expect(text.index).not.toContain('https://docs.example/de-DE/v1/guide.md');
+  expect(text.full).not.toContain(
+    'Source: https://docs.example/de-DE/v1/guide'
+  );
   expect(text.full).toContain(
     'Source: https://docs.example/de-DE/releases/guide'
   );
@@ -172,7 +220,7 @@ it.each([
     const urls = [
       ...text.index.matchAll(/\]\(https:\/\/docs.example([^)]*)\)/g)
     ].map((match) => match[1]);
-    expect(urls.sort()).toEqual(expected.sort());
+    expect(urls.sort()).toEqual(expected.map((path) => `${path}.md`).sort());
     const germanPath = strategy === 'prefix' ? '/de-DE/guide' : '/guide';
     expect(text.full).toContain(
       `Source: https://docs.example${germanPath}\n\nDeutscher Text`
@@ -206,7 +254,7 @@ it('uses the configured fallback before the original for an incomplete translati
   ];
   const text = await exportsText();
   expect(text.index).toContain(
-    '[Guide français](https://docs.example/de-DE/guide)'
+    '[Guide français](https://docs.example/de-DE/guide.md)'
   );
   expect(text.full).toContain(
     'Source: https://docs.example/de-DE/guide\n\nTexte français'

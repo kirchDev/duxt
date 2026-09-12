@@ -24,8 +24,8 @@ thème de les fournir.
 Toute valeur par défaut qui nommerait un projet ou une organisation précise est
 livrée **vide**. Les liens du thème lui-même vivent dans la configuration du
 site consommateur, où ils sont un exemple plutôt qu’une valeur par défaut.
-L’habillage générique qui ne nomme personne — un titre de colonne, une action
-« lire la documentation » — reste dans la couche.
+Le texte d’interface générique qui ne nomme personne — un titre de colonne, une
+action « lire la documentation » — reste dans la couche.
 
 ## Conséquences
 

@@ -1,0 +1,25 @@
+{
+  "duxt": {
+    "bruno": {
+      "auth": "Autenticación",
+      "body": "Cuerpo",
+      "download": "Descargar la colección",
+      "downloadHint": "La colección tal y como la describen esta versión y este idioma.",
+      "environments": "Entornos",
+      "fetch": "Abrir en Bruno",
+      "fetchHint": "Clona el repositorio en Bruno. Sigue la rama por defecto y no está fijado a esta versión.",
+      "folders": "Carpetas",
+      "format": "Formato",
+      "getIt": "Obtener la colección",
+      "hasCode": "Esta petición también incluye scripts o pruebas. Aquí no se muestran ni se ejecutan; están en la descarga.",
+      "headers": "Cabeceras",
+      "name": "Nombre",
+      "notPublished": "Los entornos, las credenciales, los scripts y las pruebas nunca se publican en este sitio ni se ejecutan en tu navegador.",
+      "parameters": "Parámetros",
+      "requests": "Peticiones",
+      "shared": "Común a todas las peticiones",
+      "value": "Valor",
+      "withheld": "oculto"
+    }
+  }
+}

@@ -206,6 +206,10 @@ declare global {
      * then share the default URL prefix of a versioned documentation source.
      */
     content?: boolean;
+    /** Per-source conventions for files that are not documentation pages. */
+    exclude?: { drafts?: string; partials?: string };
+    /** A layer-owned Markdown dialect, such as tfplugindocs. */
+    flavor?: 'tfplugindocs';
     /** `owner/name` or a full git URL. Omitted means this repository. */
     repo?: string;
     /** Refs to publish as versions. Omitted means the current checkout. */
@@ -238,6 +242,23 @@ declare global {
     version?: string;
     /** Shown in the version switcher and used in the URL; defaults to the ref. */
     label?: DuxtText;
+    /**
+     * What to CALL this source where the site names it to a reader — today the
+     * search dialog's result captions.
+     *
+     * DISPLAY ONLY. It reaches no collection name, no URL prefix, no version
+     * and no ranking, which is what separates it from `label` and `slug`: those
+     * two are addresses that happen to be readable, and a translated address is
+     * not a stable URL. This is a name and nothing else, so it may be prose and
+     * it may be translated.
+     *
+     * Unset, the name falls back to the source's own segment and then to
+     * `duxt.title` — itself the localized "Documentation" label on a site that
+     * sets no title. Worth setting where the segment is an abbreviation (`tf`,
+     * `sdk`, `api`): a result captioned with one tells a reader which URL they
+     * are in rather than which project they are about to open.
+     */
+    name?: DuxtText;
     /**
      * Segment used in the URL for this source; defaults to the repository name.
      *
@@ -404,7 +425,7 @@ declare global {
      * The layout its pages render in. A name bound here is public surface.
      *
      * A function where the declaration's own options decide it — a changelog
-     * split into a page per release draws chrome of its own, the same file
+     * split into a page per release draws a layout of its own, the same file
      * rendered whole is an ordinary docs page.
      */
     layout?:
@@ -434,6 +455,8 @@ declare global {
     prefix: string;
     repo?: string;
     version?: string;
+    /** The source's display name, as written — see `DuxtSourceInput.name`. */
+    name?: DuxtText;
     isDefault: boolean;
     /** Where the pages came from — what "Edit this page" links back to. */
     repository?: string;
@@ -447,6 +470,8 @@ declare global {
     isDefaultLocale: boolean;
     status: DuxtSourceStatusInput;
     history: boolean;
+    /** The layer-owned Markdown dialect this collection is normalised from. */
+    flavor?: 'tfplugindocs';
     /**
      * Present when this collection is a generated section rather than a docs
      * tree. `path` is then the artefact itself rather than a folder.
@@ -499,6 +524,77 @@ declare global {
      * own icon always wins.
      */
     pageIcon?: string;
+  }
+
+  /**
+   * Where an announcement is drawn.
+   *
+   * Three, because they answer three different questions about how loud a
+   * notice is. `above-header` sits at the browser edge over everything, which
+   * is what a release or an outage wants; `below-header` keeps the navbar at
+   * the top of the window and puts the notice over the sidebars and the page;
+   * `above-content` is quietest — it sits in the document column with the
+   * version and translation banners, and scrolls with the page.
+   */
+  type DuxtAnnouncementPlacement =
+    | 'above-header'
+    | 'below-header'
+    | 'above-content';
+
+  /**
+   * How many announcements a placement may draw at once.
+   *
+   * Three shapes for three answers: a number caps EVERY placement at that many
+   * — one release notice above the header and one outage below it, not one
+   * between them — an object caps each placement on its own, and `null` (or no
+   * value at all) means unlimited. A placement the object says nothing about is
+   * unlimited too.
+   *
+   * The cap is on what is DRAWN, not on what is due: dismissing the notice at
+   * the top of a capped placement lets the next one take its slot, so a queue
+   * of announcements is read rather than silently dropped.
+   */
+  type DuxtAnnouncementMaxVisible =
+    | number
+    | null
+    | Partial<Record<DuxtAnnouncementPlacement, number | null>>;
+
+  /**
+   * One site-wide notice, drawn around the page rather than in it.
+   *
+   * Deliberately NOT the version and translation banners beside it: those
+   * describe the page a reader is on and are the layer's to decide. This is the
+   * site's own sentence — a release, a migration window, a maintenance
+   * notice — and duxt knows nothing about it until a consumer writes one.
+   */
+  interface DuxtAnnouncement {
+    /**
+     * The dismissal identity, and the only reason to set one.
+     *
+     * Locale-independent, so a reader who dismissed the notice in English does
+     * not meet it again in German. Omit it and duxt derives the identity from
+     * the announcement's own content — see `duxtAnnouncementKey` — which is the
+     * right default: rewriting the sentence IS a new announcement. Set it where
+     * a typo may be corrected without the notice counting as new, and change it
+     * to make an otherwise unchanged announcement visible again.
+     */
+    id?: string;
+    text: DuxtText;
+    /** One call to action. More than one belongs on the page it links to. */
+    link?: DuxtLink;
+    /** Where the notice is drawn. Defaults to `above-header`. */
+    placement?: DuxtAnnouncementPlacement;
+    /**
+     * When the notice starts and stops showing, as anything `Date` parses —
+     * `2026-03-01`, or a full ISO timestamp with an offset.
+     *
+     * Read in the BROWSER, against the reader's own clock, so an announcement
+     * opens and closes on time without a rebuild and without the page being
+     * reloaded. A date with no time zone is local to the reader, which is
+     * usually what a maintenance window means; write an offset where it is not.
+     */
+    startsAt?: string;
+    endsAt?: string;
   }
 
   interface DuxtAction extends DuxtLink {
@@ -809,6 +905,132 @@ declare global {
     alt?: DuxtText;
   }
 
+  /**
+   * What every analytics event says about WHERE it happened, and nothing else.
+   *
+   * A closed shape rather than a free record, because this is the privacy
+   * surface: a reader of `duxt.analytics.track` has to be able to see, in one
+   * place, the whole of what duxt is willing to say about them. Nothing here
+   * identifies a browser or a person, and nothing is added per event — the
+   * event's own fields carry what it is, this carries where it was.
+   *
+   * Nested rather than spread into each event on purpose: `api-request` has a
+   * `path` of its own — the operation's declared template — and flattening the
+   * two would put the page and the endpoint under one name.
+   */
+  interface DuxtAnalyticsContext {
+    /** The documentation path, without the locale prefix, query or fragment. */
+    path: string;
+    /** The locale the page was read in. */
+    locale: string;
+    /** Which source the page came out of, where the site has more than one. */
+    source?: string;
+    /** Which version, where the source has more than one. */
+    version?: string;
+  }
+
+  /** The class of an HTTP status, which is all an event reports of one. */
+  type DuxtAnalyticsStatusClass = '1xx' | '2xx' | '3xx' | '4xx' | '5xx';
+
+  /** Which layer-owned code example was copied. */
+  type DuxtAnalyticsCopyKind =
+    | 'code'
+    | 'code-group'
+    | 'package-manager'
+    | 'request-sample';
+
+  /**
+   * One settled search.
+   *
+   * Emitted once per debounced, non-empty query that actually settled — a run
+   * the reader typed past never arrives, because its results were never shown.
+   * A search that found nothing is emitted like any other: "no result" is the
+   * finding a documentation site most needs.
+   */
+  interface DuxtAnalyticsSearchEvent {
+    name: 'search';
+    /** The term as the reader typed it. */
+    query: string;
+    /** How many hits were shown. */
+    results: number;
+    /** True where full-text found nothing and these are near-misses. */
+    approximate: boolean;
+  }
+
+  /** A hit the reader opened, by position rather than by content. */
+  interface DuxtAnalyticsSearchResultEvent {
+    name: 'search-result';
+    /** The term the hit was found with. */
+    query: string;
+    /** Where it sat in the ranked list, counting from one. */
+    rank: number;
+    /** The documentation path it leads to — never its rendered text. */
+    to: string;
+    /** Which collection it came out of, where a site has more than one. */
+    collection?: string;
+  }
+
+  /**
+   * A copied code example.
+   *
+   * The copied TEXT is never carried. "Copy page as Markdown" is not in this
+   * family at all and emits nothing: it is the page, not an example in it.
+   */
+  interface DuxtAnalyticsCopyEvent {
+    name: 'copy';
+    kind: DuxtAnalyticsCopyKind;
+    /** The example's language, where the block declares one. */
+    language?: string;
+    /** Which manager a command block was copied for. */
+    manager?: DuxtPackageManager;
+    /** Which request sample — its configured id, never its code. */
+    sample?: string;
+  }
+
+  /**
+   * A try-it request, after it settled.
+   *
+   * Everything here is DECLARED — the operation as the document names it —
+   * never what the reader typed: not the server they chose, not the concrete
+   * URL, not a header, not a credential, not a body. The client's whole promise
+   * is that a token stays in the component, and an event carrying one would
+   * break it from the other side.
+   */
+  interface DuxtAnalyticsApiRequestEvent {
+    name: 'api-request';
+    /** The document's own `operationId`, where it declares one. */
+    operation?: string;
+    /** The declared method. */
+    method: string;
+    /** The declared path template — `/pets/{id}`, not the URL that was called. */
+    path: string;
+    /** Whether the request came back at all. */
+    outcome: 'response' | 'failed';
+    /** The class of the status, absent where nothing came back. */
+    statusClass?: DuxtAnalyticsStatusClass;
+    /** Milliseconds the request itself took, without the button's own floor. */
+    duration: number;
+  }
+
+  /** The answer to "Was this page helpful?". */
+  interface DuxtAnalyticsFeedbackEvent {
+    name: 'feedback';
+    helpful: boolean;
+  }
+
+  /** An event before `useDuxtAnalytics` stamps the context onto it. */
+  type DuxtAnalyticsEventInput =
+    | DuxtAnalyticsSearchEvent
+    | DuxtAnalyticsSearchResultEvent
+    | DuxtAnalyticsCopyEvent
+    | DuxtAnalyticsApiRequestEvent
+    | DuxtAnalyticsFeedbackEvent;
+
+  /** What `duxt.analytics.track` is handed. Discriminated by `name`. */
+  type DuxtAnalyticsEvent = DuxtAnalyticsEventInput & {
+    context: DuxtAnalyticsContext;
+  };
+
   interface DuxtConfig {
     title: DuxtText;
     /**
@@ -863,6 +1085,87 @@ declare global {
     pageIcon?: string;
     /** Shown as a badge beside the title. */
     version?: string;
+    /** Model hand-off entries, in display order. */
+    copy?: { models?: { label: DuxtText; icon: string; url: string }[] };
+    /** URL template for contributor avatars; `{username}` is replaced. */
+    contributors?: { avatarUrl?: string };
+    /** Generated-outline and active-heading controls. */
+    toc?: { depth?: number; scrollOffset?: number };
+    /** Search behaviour that depends on a site's corpus. */
+    search?: {
+      fuzzy?: {
+        threshold?: number;
+        minMatchCharLength?: number;
+        limit?: number;
+      };
+      /** `0` disables the visible recent-pages list. */
+      recentPages?: number;
+    };
+    /** Separate limits for derived examples and schema-tree rendering. */
+    openapi?: { exampleDepth?: number; schemaDepth?: number };
+    /**
+     * What the site allows duxt to bind globally.
+     *
+     * Not the bindings themselves: those are the layer's, so the sheet, the
+     * handlers and the guards cannot come to disagree about them.
+     */
+    shortcuts?: {
+      /**
+       * Whether a bare keystroke — `?`, `[`, `]` — is bound at all.
+       *
+       * `false` leaves `⌘/Ctrl+K`. Worth turning off where a site's own pages
+       * put something under an unmodified character, or where readers arrive
+       * through switch access, voice control or dictation — all of which emit
+       * bare characters the reader never meant as a command.
+       */
+      singleCharacter?: boolean;
+    };
+    /**
+     * Site-wide notices, in the order they are drawn.
+     *
+     * Empty by default: an announcement is the site's own sentence, and a layer
+     * that shipped one would put somebody else's words at the top of every page
+     * — the same rule `sections` and `links` follow.
+     *
+     * A list, not a single notice, because a release and a maintenance window
+     * are two announcements and one of them ending should not take the other
+     * with it. `announcementOptions.maxVisible` is how a site keeps that list
+     * from stacking up on screen.
+     */
+    announcements?: DuxtAnnouncement[];
+    /** How the list above is drawn, as opposed to what is in it. */
+    announcementOptions?: {
+      /** How many a placement may show at once. Unlimited unless set. */
+      maxVisible?: DuxtAnnouncementMaxVisible;
+    };
+    /**
+     * Where reader interactions go, if a site wants them anywhere.
+     *
+     * OFF UNTIL A SITE WRITES `track`, and off is the whole default. duxt ships
+     * no provider, no SDK, no script and no adapter; it transmits nothing,
+     * buffers nothing, persists nothing, sets no cookie and asks for no
+     * consent — because a documentation layer cannot know what a consumer's
+     * privacy policy promises, and a theme that phoned home by default is not
+     * one to publish (ADR 0005, and the same reason `DuxtPageFeedback` has an
+     * event and no backend).
+     *
+     * So this is one function and nothing else. The site's `track` is the only
+     * thing that ever leaves the page, which puts the consent gate, the
+     * provider and the decision to send at all on the side that owns them.
+     */
+    analytics?: {
+      /**
+       * Called once per reader interaction duxt reports.
+       *
+       * Runs in the BROWSER only — a build and a prerender emit nothing, so a
+       * static render never calls a site's analytics with a page nobody read.
+       *
+       * Never awaited and never retried: whatever it throws or rejects with is
+       * swallowed, because a failed analytics call must not take the search,
+       * the copy, the feedback or the request down with it.
+       */
+      track?: (event: DuxtAnalyticsEvent) => unknown;
+    };
     navigation?: DuxtLink[];
     /** The second navbar row: top-level parts of the documentation. */
     sections?: DuxtSection[];

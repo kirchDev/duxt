@@ -13,6 +13,10 @@
         "no": "No",
         "thanks": "Gracias."
       },
+      "image": {
+        "zoom": "Ampliar imagen",
+        "zoomNamed": "Ampliar imagen: {alt}"
+      },
       "tabs": "Opciones",
       "since": "Novedad en {version}",
       "copy": {

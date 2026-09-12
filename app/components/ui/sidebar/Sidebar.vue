@@ -5,6 +5,7 @@ import { Sheet, SheetContent } from '@duxt/components/ui/sheet';
 import SheetDescription from '@duxt/components/ui/sheet/SheetDescription.vue';
 import SheetHeader from '@duxt/components/ui/sheet/SheetHeader.vue';
 import SheetTitle from '@duxt/components/ui/sheet/SheetTitle.vue';
+import { useDirection } from 'reka-ui';
 import { SIDEBAR_WIDTH_MOBILE, useSidebar } from './utils';
 
 defineOptions({
@@ -12,12 +13,35 @@ defineOptions({
 });
 
 const props = withDefaults(defineProps<SidebarProps>(), {
-  side: 'left',
+  side: 'start',
   variant: 'sidebar',
   collapsible: 'offcanvas'
 });
 
 const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
+
+/**
+ * The logical side, resolved to a physical one ONCE.
+ *
+ * Everything below this line — `data-side`, the rail's `[data-side=left]`
+ * selectors, the border and offset classes — is physical and stays physical,
+ * because it describes where the panel actually is on the screen. Turning
+ * `start` into `left` here is what lets all of it keep working while the prop
+ * a consumer writes follows the reader.
+ *
+ * reka's `useDirection` rather than the i18n locale: this is a ui primitive,
+ * and the `ConfigProvider` the app shell mounts is the one place the direction
+ * is already published to components that must not know about i18n.
+ */
+const direction = useDirection();
+
+const resolvedSide = computed(() => {
+  if (props.side === 'start')
+    return direction.value === 'rtl' ? 'right' : 'left';
+  if (props.side === 'end') return direction.value === 'rtl' ? 'left' : 'right';
+
+  return props.side;
+});
 </script>
 
 <template>
@@ -45,7 +69,7 @@ const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
       data-sidebar="sidebar"
       data-slot="sidebar"
       data-mobile="true"
-      :side="side"
+      :side="resolvedSide"
       class="bg-sidebar text-sidebar-foreground w-(--sidebar-width) p-0 [&>button]:hidden"
       :style="{
         '--sidebar-width': SIDEBAR_WIDTH_MOBILE
@@ -68,7 +92,7 @@ const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
     :data-state="state"
     :data-collapsible="state === 'collapsed' ? collapsible : ''"
     :data-variant="variant"
-    :data-side="side"
+    :data-side="resolvedSide"
   >
     <!-- This is what handles the sidebar gap on desktop  -->
     <div
@@ -87,7 +111,7 @@ const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
       :class="
         cn(
           'fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear md:flex',
-          side === 'left'
+          resolvedSide === 'left'
             ? 'left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]'
             : 'right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]',
           // Adjust the padding for floating and inset variants.

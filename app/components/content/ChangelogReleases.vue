@@ -29,6 +29,15 @@ const props = withDefaults(
       date?: string;
       to: string;
       groups?: { name: string; count: number }[];
+      /**
+       * Who wrote the commits this release carries, most commits first.
+       *
+       * Written by `sections-changelog.ts` out of the repository's own tags,
+       * and absent wherever the build could not read them — a downloaded
+       * source, a release with no tag yet, a changelog kept by hand. A name
+       * and, where git carried one, a handle; never an address.
+       */
+      contributors?: { name: string; username?: string }[];
     }[];
   }>(),
   { releases: () => [] }
@@ -36,6 +45,18 @@ const props = withDefaults(
 
 const { locale } = useI18n();
 const localeLink = useDuxtLink();
+const duxt = useDuxtConfig();
+
+// `DuxtText` also permits a record of strings, so the resolved-config mapped
+// type narrows this all-optional object too far. It remains an object at
+// runtime; only its template is configurable. The same cast `DuxtPageInfo`
+// makes, over the same key, for the same reason.
+const contributorConfig = duxt.contributors as unknown as
+  | { avatarUrl?: string }
+  | undefined;
+
+const avatar = (username?: string) =>
+  contributorAvatar(contributorConfig?.avatarUrl, username);
 
 /** Every group name the file used, in the order it first used it. */
 const names = computed(() => {
@@ -98,6 +119,29 @@ const formatted = (value?: string) => changelogDate(value, locale.value);
 const SHOWN_GROUPS = 3;
 
 /**
+ * How many faces a row shows before it starts counting the rest.
+ *
+ * Fewer than the groups, because these are pictures rather than words: four
+ * overlapping circles read as "a few people" at a glance, where eight read as a
+ * second column and push the date off the line.
+ */
+const SHOWN_CONTRIBUTORS = 4;
+
+/**
+ * One person's identity ACROSS releases.
+ *
+ * The build dedupes by email, which is the only thing that actually identifies
+ * a committer — and then deliberately does not ship it (see
+ * `git-contributors.ts`). What is left to count across releases is the handle,
+ * or the name where git carried no handle. Two people with the same display
+ * name and neither of them on GitHub therefore count as one; they are also
+ * indistinguishable to the reader, so the figure says exactly what the page
+ * shows.
+ */
+const identity = (person: { name: string; username?: string }) =>
+  person.username ?? person.name;
+
+/**
  * The whole history in two numbers, over the list rather than in it.
  *
  * The same summary the landing page opens with — a figure set large with a
@@ -118,14 +162,16 @@ const stats = computed(() => ({
       all + (release.groups ?? []).reduce((sum, group) => sum + group.count, 0),
     0
   ),
-  // What the project actually does, as opposed to how much of it: a history of
-  // forty releases that only ever fixes bugs says something a change count
-  // cannot. Counted over the names the file used, so it is the file's own
-  // vocabulary being counted and not a taxonomy of ours.
-  kinds: new Set(
-    shown.value.flatMap((release) =>
-      (release.groups ?? []).map((group) => group.name)
-    )
+  // WHO, not what kind of. This figure used to count the group names the file
+  // used, which described the changelog rather than the project — and a
+  // documentation site's first question about a project it is weighing up is
+  // how many people are behind it. The kinds are still on the page: they are
+  // what the filter offers and what every row names.
+  //
+  // Counted over what is SHOWN, like every figure here, so filtering to
+  // breaking changes answers "who has ever shipped one".
+  contributors: new Set(
+    shown.value.flatMap((release) => (release.contributors ?? []).map(identity))
   ).size,
   // The last day something shipped — the one figure here that is not a count,
   // and the one a reader checks first on a project they are considering.
@@ -137,8 +183,8 @@ const latest = (release: { to: string }) =>
   release.to === props.releases[0]?.to;
 
 /**
- * The rows as they are drawn: a release, the groups it NAMES, and how many it
- * leaves.
+ * The rows as they are drawn: a release, the groups it NAMES, the people it
+ * SHOWS, and how many of each it leaves.
  *
  * The whole list was the row before this, and on a release that touched
  * everything that was twelve names over two lines — twelve facts on a page
@@ -154,6 +200,10 @@ const latest = (release: { to: string }) =>
  * A FILTERED row names what it was filtered by first. Otherwise selecting
  * "Tests" leaves a release matching on a group its row does not mention, which
  * reads as a filter that let the wrong page through.
+ *
+ * THE PEOPLE ARE NOT RE-SORTED. The build already ordered them by how much of
+ * the release each one wrote, and nothing on this page filters by person — so
+ * the cap takes the front of a list that already means something.
  */
 const rows = computed(() =>
   shown.value.map((release) => {
@@ -165,10 +215,14 @@ const rows = computed(() =>
       return chosen || b.count - a.count;
     });
 
+    const people = release.contributors ?? [];
+
     return {
       release,
       named: groups.slice(0, SHOWN_GROUPS),
-      rest: Math.max(0, groups.length - SHOWN_GROUPS)
+      rest: Math.max(0, groups.length - SHOWN_GROUPS),
+      people: people.slice(0, SHOWN_CONTRIBUTORS),
+      others: Math.max(0, people.length - SHOWN_CONTRIBUTORS)
     };
   })
 );
@@ -249,7 +303,7 @@ const rows = computed(() =>
                 />
                 <span class="truncate">{{ changelogLabel(name) }}</span>
                 <span
-                  class="ml-auto pl-2 text-xs text-muted-foreground tabular-nums"
+                  class="ms-auto ps-2 text-xs text-muted-foreground tabular-nums"
                 >
                   {{ totals[name] }}
                 </span>
@@ -369,15 +423,20 @@ const rows = computed(() =>
         </dt>
       </div>
 
-      <div v-if="stats.kinds" class="flex flex-col gap-1">
+      <!-- Dropped rather than shown as a nought wherever the build could not
+           read a history — a downloaded source, a changelog whose versions
+           were never tagged. "0 contributors" is a claim about the project;
+           an absent figure is a claim about this build, which is the true
+           one. Same rule as the date beside it. -->
+      <div v-if="stats.contributors" class="flex flex-col gap-1">
         <dd
           class="text-2xl font-semibold tracking-tight tabular-nums sm:text-3xl"
         >
-          {{ stats.kinds }}
+          {{ stats.contributors }}
         </dd>
         <dt class="flex items-center gap-1.5 text-xs font-medium text-primary">
-          <Icon name="lucide:list-filter" class="size-3.5" />
-          {{ $t('duxt.changelog.kinds') }}
+          <Icon name="lucide:users" class="size-3.5" />
+          {{ $t('duxt.changelog.contributors') }}
         </dt>
       </div>
 
@@ -434,7 +493,7 @@ const rows = computed(() =>
       move-class="transition-transform duration-200 ease-out motion-reduce:transition-none"
     >
       <li
-        v-for="{ release, named, rest } in rows"
+        v-for="{ release, named, rest, people, others } in rows"
         :key="release.to"
         class="border-t border-border/60 first:border-t-0"
       >
@@ -478,40 +537,101 @@ const rows = computed(() =>
             </time>
           </span>
 
-          <p
-            class="col-span-2 row-start-2 text-xs text-muted-foreground sm:col-span-1 sm:col-start-2 sm:row-start-1"
+          <!-- WHAT the release carried and WHO carried it, in one cell. They
+               share the summary column rather than taking a track each: a
+               fifth grid column would hold an empty gutter on every release
+               whose contributors this build could not read, and the faces
+               belong beside the summary they are the other half of. `flex-wrap`
+               lets the people drop under the groups on a narrow row instead of
+               squeezing the line. -->
+          <div
+            class="col-span-2 row-start-2 flex flex-wrap items-center gap-x-2 gap-y-1 sm:col-span-1 sm:col-start-2 sm:row-start-1"
           >
-            <span v-for="(group, index) in named" :key="group.name">
-              <!-- The separator is punctuation, not a word: set fainter than
-                   either side and given room, so the eye breaks the line into
-                   three facts instead of reading one run of text. -->
-              <span
-                v-if="index"
-                aria-hidden="true"
-                class="px-1 text-muted-foreground/50"
-              >
-                ·
+            <p class="text-xs text-muted-foreground">
+              <span v-for="(group, index) in named" :key="group.name">
+                <!-- The separator is punctuation, not a word: set fainter than
+                     either side and given room, so the eye breaks the line into
+                     three facts instead of reading one run of text. -->
+                <span
+                  v-if="index"
+                  aria-hidden="true"
+                  class="px-1 text-muted-foreground/50"
+                >
+                  ·
+                </span>
+                {{ changelogLabel(group.name) }}
+                <span class="ms-0.5 font-medium text-foreground tabular-nums">
+                  {{ group.count }}
+                </span>
               </span>
-              {{ changelogLabel(group.name) }}
-              <span class="ml-0.5 font-medium text-foreground tabular-nums">
-                {{ group.count }}
+
+              <template v-if="rest">
+                <span aria-hidden="true" class="px-1 text-muted-foreground/50">
+                  ·
+                </span>
+                {{ $t('duxt.changelog.more', { count: rest }) }}
+              </template>
+            </p>
+
+            <!-- FACES, NOT NAMES, and the row is why: four names are a second
+                 line of prose competing with the summary, where four
+                 overlapping circles are read as "a few people" without being
+                 read at all. The name is still THERE for anyone who needs it —
+                 as the image's own alternative text, so a screen reader hears
+                 the people rather than "image, image, image", and so the row's
+                 link says who wrote the release it leads to.
+
+                 They OVERLAP, each ringed in the page's own background, which
+                 is the one arrangement that says "these belong together" at
+                 18px without a label. `ring` rather than `border`, so the ring
+                 sits outside the circle and the picture is not cropped by it. -->
+            <span v-if="people.length" class="flex shrink-0 items-center">
+              <span
+                v-for="person in people"
+                :key="identity(person)"
+                class="-ms-1.5 first:ms-0"
+              >
+                <img
+                  v-if="avatar(person.username)"
+                  :src="avatar(person.username)"
+                  :alt="person.name"
+                  width="18"
+                  height="18"
+                  loading="lazy"
+                  class="size-[18px] rounded-full bg-muted ring-2 ring-background"
+                />
+                <!-- No handle, so no picture: git only carries one in a
+                     noreply address, and a guessed avatar is somebody else's
+                     face. The initial is decoration over the name beside it. -->
+                <span
+                  v-else
+                  class="flex size-[18px] items-center justify-center rounded-full bg-muted text-[9px] font-medium ring-2 ring-background"
+                >
+                  <span aria-hidden="true">
+                    {{ person.name.slice(0, 1).toUpperCase() }}
+                  </span>
+                  <span class="sr-only">{{ person.name }}</span>
+                </span>
+              </span>
+
+              <span
+                v-if="others"
+                class="-ms-1.5 flex h-[18px] items-center rounded-full bg-muted px-1.5 text-[9px] font-medium text-muted-foreground ring-2 ring-background tabular-nums"
+              >
+                <span aria-hidden="true">+{{ others }}</span>
+                <span class="sr-only">
+                  {{ $t('duxt.changelog.more', { count: others }) }}
+                </span>
               </span>
             </span>
-
-            <template v-if="rest">
-              <span aria-hidden="true" class="px-1 text-muted-foreground/50">
-                ·
-              </span>
-              {{ $t('duxt.changelog.more', { count: rest }) }}
-            </template>
-          </p>
+          </div>
 
           <!-- The affordance every card and row of this site uses: the arrow
                that steps forward under the pointer. -->
           <Icon
             name="lucide:arrow-right"
             aria-hidden="true"
-            class="col-start-2 row-start-1 size-3.5 shrink-0 self-center text-muted-foreground transition-transform group-hover:translate-x-0.5 sm:col-start-4"
+            class="col-start-2 row-start-1 size-3.5 shrink-0 self-center text-muted-foreground rtl:-scale-x-100 transition-transform ltr:group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5 sm:col-start-4"
           />
         </NuxtLink>
       </li>

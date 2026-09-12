@@ -13,9 +13,15 @@
 
   // The static half. Every prerendered page, every OG image and every asset
   // Nitro emits is served straight from Cloudflare's edge storage; the Worker
-  // is only reached for what is left — `/mcp`, the `.md` middleware and the
-  // demo endpoint. `run_worker_first` stays off: an asset that exists must not
-  // pay for a Worker invocation.
+  // is only reached for what is left. WHAT IS LEFT IS LISTED IN
+  // `scripts/check-routes.ts` AND NOT REPEATED HERE — this comment and the one
+  // in `www/nuxt.config.ts` each carried their own list, the two disagreed, and
+  // that is the ambiguity the table replaced. `pnpm check:routes` verifies it
+  // against `.output/public` as the last step of `build:cf`, so an artifact that
+  // disagrees never reaches the publish job.
+  //
+  // `run_worker_first` stays off: an asset that exists must not pay for a
+  // Worker invocation.
   "assets": {
     "directory": "./.output/public",
     "binding": "ASSETS",
@@ -53,9 +59,19 @@
   // neither a filesystem nor `node:sqlite`, so the same dump is loaded into D1
   // on the first request after a deploy.
   //
-  // Only the three dynamic endpoints ever read it — the `.md` middleware,
-  // the `/mcp` tools and `llms.txt` all call `queryCollection()` at runtime.
-  // The prerendered pages never touch this binding.
+  // SIX routes read it — `llms.txt`, `llms-full.txt`, `rss.xml`, the `.md`
+  // middleware, the `/mcp` tools and the sitemap module's own
+  // `/__sitemap__/nuxt-content-urls.json` all call `queryCollection()` at
+  // request time. The other runtime routes do not: `POST /demo/echo` answers
+  // from the request body, `robots.txt` composes itself from the site config,
+  // and `/mcp/deeplink`, `/mcp/badge.svg` and `/__sitemap__/style.xsl` answer
+  // from the query string or the request headers. A prerendered page never
+  // touches this binding; one the crawl did not reach falls through to the
+  // Worker, which renders it from here exactly as it would have anyway.
+  //
+  // Do not count runtime routes from this comment — `scripts/check-routes.ts`
+  // classifies every handler the build registers and is checked against the
+  // artifact; this is a reader's summary of it and nothing more.
   //
   // THE DATABASE IS TOFU'S, THE BINDING IS THIS FILE'S — the same seam the
   // hostname runs along, and for the same reason: nothing in a wrangler config

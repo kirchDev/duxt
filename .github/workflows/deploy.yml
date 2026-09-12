@@ -1,9 +1,12 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 
-# NOT A STUB, AND THE ONE EXCEPTION IN THIS DIRECTORY. Every other workflow here
-# calls a body in kirchDev/workflows; there is no body for a Cloudflare deploy,
-# so this one carries its own job. If a second repo ever deploys a Nuxt site to
-# Workers, this is what moves out.
+# NOT A STUB. Every other workflow here calls a body in kirchDev/workflows;
+# there is no body for a Cloudflare deploy, so this one carries its own jobs. If
+# a second repo ever deploys a Nuxt site to Workers, this is what moves out.
+#
+# One other file in this directory is also not a stub — `prerender-bench.yml`,
+# which measures what the prerender pass below costs at a given concurrency.
+# Two is the whole list, and each states its own reason in its own header.
 name: Deploy
 
 on:
@@ -31,22 +34,57 @@ on:
 # release the site shows the last released number while documenting what is
 # already on main. main only moves when the promotion PR merges, so that window
 # is short — but it is real, and it is the price of this trigger.
-concurrency:
-  group: deploy-www
-  cancel-in-progress: false
+#
+# ── WHY THERE IS NO WORKFLOW-LEVEL `concurrency` ──────────────────────────────
+#
+# There was one — `deploy-www`, `cancel-in-progress: false` — and it serialized
+# whole RUNS. A build for the newest commit could not even start while an older
+# publication was still uploading, so a burst of pushes to main delivered the
+# newest state one full build-and-upload late, every time.
+#
+# The two halves want opposite answers, so they are now two jobs with a policy
+# each: a build is disposable and a newer push supersedes it, a publication is
+# not and is never interrupted. See each job's `concurrency` block.
 
 permissions:
   contents: read
 
 jobs:
-  deploy:
-    name: Deploy www
+  build:
+    name: Build www
     runs-on: ubuntu-latest
-    environment:
-      name: production
+    # DISPOSABLE WORK, BUT ONLY WHEN A COMMIT ASKED FOR IT. A newer push to
+    # main makes this build's artefact stale before it exists, so the runner
+    # drops it rather than finishing it and queueing an upload nobody wants —
+    # every push to main therefore shares one group.
+    #
+    # Anything else is somebody asking for production to be refreshed on
+    # purpose: a first run, a rotated token, a hostname `infrastructure` has
+    # just applied, or the release build that makes `latest` resolve from the
+    # new tag. Those get `github.run_id`, which no other run can collide with,
+    # so `cancel-in-progress` has nothing to match and they always publish.
+    concurrency:
+      group: deploy-www-build-${{ github.event_name == 'push' && 'main' || github.run_id }}
+      cancel-in-progress: true
+    outputs:
+      # The publish job checks out `main` and unpacks an artefact; neither tells
+      # it how old the commit inside that artefact is. This is the only way the
+      # freshness row gets a start time.
+      committed-at: ${{ steps.source.outputs.committed-at }}
+      sha: ${{ steps.source.outputs.sha }}
     steps:
       - uses: actions/checkout@v6
         with:
+          # WHAT PRODUCTION IS, RATHER THAN WHAT STARTED THE RUN. A push builds
+          # its own commit; everything else builds `main` as it stands now.
+          #
+          # A release event points at the tag, and building that would roll the
+          # site back whenever main has moved past it — the build exists to
+          # refresh `latest`, not to republish the tag. A `workflow_dispatch`
+          # points at whichever branch the dropdown was left on, and honouring
+          # that makes the Run button a two-click route from any branch into
+          # production.
+          ref: ${{ github.event_name == 'push' && github.sha || 'main' }}
           # The layer reads git for "last updated" and the edit links. A shallow
           # clone gives every page the same commit date.
           fetch-depth: 0
@@ -60,6 +98,214 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      # THE DOWNLOAD CACHE, NOT THE PARSE CACHE. Content clones every remote
+      # source into `www/.data/content` and keys the directory by repository AND
+      # ref, so what a run downloads is a function of the RESOLVED source list —
+      # which is exactly what this command prints, `latest` already replaced by
+      # the tag it means. `contents.sqlite` lives in the same directory and is
+      # excluded by the `paths` it emits: that one is the OUTPUT of the parse,
+      # so a restored copy hides a content change rather than saving a download.
+      #
+      # PUBLIC SOURCES ONLY, decided by the command rather than here. An Actions
+      # cache written on this branch is readable by every pull request against
+      # it, so a list holding an SSH or credential-bearing remote gets no key at
+      # all and both steps below skip.
+      #
+      # HERE AND NOT IN `ci.yml`, which is a stub: a reusable workflow runs in
+      # its own job with its own filesystem, so a restore beside the call cannot
+      # reach it. That half is an input on the body in kirchDev/workflows.
+      - name: Resolve the remote-source cache key
+        id: sources
+        run: node ./bin/duxt-cache-key.mjs --root www --github >> "$GITHUB_OUTPUT"
+
+      # NO `restore-keys`, deliberately. An exact key means a hit never re-saves,
+      # which is right for the tags this site pins — they cannot move, so one
+      # save serves every later run. A `branch:` source is the exception and
+      # keeps re-downloading, because Content compares the remote's hash on every
+      # build and re-clones a moved branch: no worse than today for that one
+      # entry, where the alternative — a key carrying the run id — would write a
+      # fresh copy of the whole directory on every single deploy.
+      - name: Restore the downloaded sources
+        if: steps.sources.outputs.cacheable == 'true'
+        uses: actions/cache@v6
+        with:
+          path: ${{ steps.sources.outputs.paths }}
+          key: ${{ steps.sources.outputs.key }}
+
+      # Read off the CHECKOUT, not off the event: a release run and a manual one
+      # both build `main` rather than the ref they were triggered from, so
+      # `github.sha` is the wrong commit for two of the three triggers.
+      - name: Record the source commit
+        id: source
+        run: |
+          {
+            echo "committed-at=$(git log -1 --format=%cI)"
+            echo "sha=$(git rev-parse HEAD)"
+          } >> "$GITHUB_OUTPUT"
+
+      # THE RENDERED IMAGES, NOT THE PAGES, and a different cache from the one
+      # above: that one holds what was DOWNLOADED, this one what was DRAWN.
+      # Every page of this site carries an OG image rendered through satori
+      # during the prerender crawl, and deploy #4 drew 1,053 of them in a
+      # 158-second pass, almost all redrawing something no commit had touched.
+      # nuxt-og-image can keep them and does nothing with that until the
+      # directory outlives the runner, which is what this is.
+      #
+      # A ROLLING KEY, where the sources cache uses an exact one. That one holds
+      # a function of the source list: pin the list and one save serves every
+      # later run. This holds a function of the PAGES, so a commit that adds one
+      # has something new to save, and an exact key would hit, never re-save,
+      # and freeze the cache at whatever the first build wrote.
+      #
+      # The key's namespace is the renderer VERSIONS, so a satori bump misses
+      # the restore instead of downloading images it is about to discard. What
+      # the command cannot see — the site's own renderer options, which live in
+      # a `nuxt.config.ts` that would claim a Nuxt process if a command loaded
+      # it — the BUILD sees, and empties the directory over. Two levels, and the
+      # one that decides whether an image may be served is the build's.
+      #
+      # `steps.source.outputs.sha` rather than `github.sha`, for the reason the
+      # step above exists: two of the three triggers build `main` rather than
+      # the ref they fired from.
+      - name: Resolve the OG image cache key
+        id: og
+        env:
+          SOURCE_SHA: ${{ steps.source.outputs.sha }}
+        run: |
+          node ./bin/duxt-og-cache.mjs --root www --run "$SOURCE_SHA" --github \
+            >> "$GITHUB_OUTPUT"
+
+      - name: Restore the rendered OG images
+        uses: actions/cache@v6
+        with:
+          path: ${{ steps.og.outputs.path }}
+          key: ${{ steps.og.outputs.key }}
+          restore-keys: ${{ steps.og.outputs['restore-keys'] }}
+
+      # THE BUILD HAPPENS HERE, NOT AT CLOUDFLARE. No Pages git integration and
+      # no build on their side: the artefact is produced by this runner, with
+      # this lockfile and this Node, and wrangler only uploads it — one place
+      # builds, and it is the one whose logs we keep.
+      #
+      # TIMED, AND ITS LOG KEPT, because the step after it has nothing else to
+      # read. A render that ran out of time is a line in this output and nowhere
+      # else — no file is written, nothing fails — so the count only exists if
+      # the log does. `pipefail` because the log is teed: without it the step's
+      # status is `tee`'s, and a failed build reads as a green one.
+      - name: Build www for Workers
+        id: build
+        run: |
+          set -o pipefail
+          started=$(date +%s%3N)
+          # BEFORE the build rather than after it: a build that FAILED is
+          # exactly the one whose render count wants reporting, and the report
+          # is a function of this timestamp.
+          echo "started=$started" >> "$GITHUB_OUTPUT"
+          pnpm build:www 2>&1 | tee build.log
+          echo "ms=$(($(date +%s%3N) - started))" >> "$GITHUB_OUTPUT"
+
+      # AFTER THE BUILD, WHETHER OR NOT IT PASSED. What this counts — images in
+      # the output, entries the build wrote, renders that ran out of time — is
+      # exactly what a failed build needs reported, and the numbers are what
+      # makes the cache's worth readable off a run rather than asserted here.
+      #
+      # No `--upload-ms`: the upload is a job of its own now, on another runner,
+      # and the run already shows each job's duration. The option stays on the
+      # command for whoever runs both halves by hand.
+      - name: Report the OG image cache
+        id: og-report
+        if: always() && steps.build.outputs.started != ''
+        env:
+          SINCE: ${{ steps.build.outputs.started }}
+          BUILD_MS: ${{ steps.build.outputs.ms }}
+        run: |
+          report() {
+            node ./bin/duxt-og-cache.mjs --root www --report \
+              --since "$SINCE" --log build.log --build-ms "$BUILD_MS" "$@"
+          }
+          report >> "$GITHUB_STEP_SUMMARY"
+          report --github >> "$GITHUB_OUTPUT"
+
+      # A MISSING OG IMAGE FAILS NOTHING, which is why it needs saying out loud.
+      # A render that exceeds its budget is logged and dropped, the page ships
+      # without an image, and the build is green. This does not fail the deploy
+      # either — the site is still correct — it makes the count visible in the
+      # run's annotations instead of on line 9,000 of a log nobody opens.
+      - name: Flag the renders that ran out of time
+        if: always() && steps.og-report.outputs.complete == 'false'
+        env:
+          TIMEOUTS: ${{ steps.og-report.outputs.timeouts }}
+        run: |
+          echo "::warning::$TIMEOUTS OG image renders timed out; that many" \
+            "pages shipped with no image."
+
+      # The build/publication boundary, made literal. `.output` is the whole of
+      # what wrangler uploads: the module Worker and the prerendered assets
+      # beside it, exactly as `www/wrangler.jsonc` names them.
+      #
+      # This round trip is the price of being able to cancel a build without
+      # risking an upload, and it is paid on every deploy. `retention-days: 1`
+      # keeps it from also being paid in storage — nothing reads this artefact
+      # after the publish job that follows it.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: www-output
+          path: www/.output
+          retention-days: 1
+          # Nitro emits dotfiles into `.output/public` — `_headers`' neighbours,
+          # and whatever a module drops under `.well-known`. The action skips
+          # hidden files unless told otherwise, and a deploy missing one of them
+          # fails at the edge rather than here.
+          include-hidden-files: true
+          if-no-files-found: error
+
+  publish:
+    name: Publish www
+    # A cancelled or failed build never reaches here, which is what keeps an
+    # older artefact from going out behind a newer commit: if the newest build
+    # fails, production stays on the last published version rather than falling
+    # back to a stale one that happens to be sitting in a queue.
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    # NOT DISPOSABLE. One publication at a time, and an upload that has started
+    # runs to completion — a newer successful build publishes after it, never
+    # over it. GitHub keeps a single pending job per group, so when two builds
+    # finish behind one upload it is the newer one that gets to go next.
+    #
+    # The accepted edge, stated rather than hidden: a manual or release build
+    # is never superseded, so one started before a push can publish after it
+    # and leave production a commit behind until the next deploy. Both build
+    # `main`, so the gap is whatever landed in between — and the alternative is
+    # a manual deploy that a push can silently throw away, which is the thing
+    # the Run button exists to rule out.
+    concurrency:
+      group: deploy-www-publish
+      cancel-in-progress: false
+    steps:
+      # wrangler, `www/wrangler.jsonc` and the workspace it resolves from. The
+      # site itself is not rebuilt here; it arrives as the artefact below, so
+      # this checkout follows the build's ref rather than the trigger's.
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event_name == 'push' && github.sha || 'main' }}
+
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: www-output
+          path: www/.output
 
       # The Cloudflare deploy token from the kirchDev-ci Bitwarden project. It
       # needs `Workers Scripts: Edit` AND `D1: Edit`; the D1 half is newer than
@@ -75,25 +321,19 @@ jobs:
           secrets: |
             1c906de8-7fb1-4d43-9996-b4810165cacf > CLOUDFLARE_API_TOKEN
 
-      # THE BUILD HAPPENS HERE, NOT AT CLOUDFLARE. No Pages git integration and
-      # no build on their side: the artefact is produced by this runner, with
-      # this lockfile and this Node, and wrangler only uploads it — one place
-      # builds, and it is the one whose logs we keep.
-      #
-      # `pnpm run deploy` (not `pnpm deploy` — that is pnpm's own built-in)
-      # builds with the cloudflare preset and then uploads the Worker together
-      # with `.output/public`. wrangler reads CLOUDFLARE_API_TOKEN from the env.
-      - name: Build and deploy
-        run: pnpm deploy:www
+      # wrangler reads CLOUDFLARE_API_TOKEN from the env and uploads the Worker
+      # together with `.output/public`.
+      - name: Publish to Cloudflare
+        run: pnpm publish:www
 
+      # Freshness is REPORTED, NOT GATED — see the header of the script. The
+      # upload has already happened when this runs, so nothing it prints can
+      # fail the deploy, and there is no threshold for it to fail against.
       - name: Deployment summary
         if: success()
-        run: |
-          {
-            echo "## 🚀 www deployed"
-            echo ""
-            echo "| Property | Value |"
-            echo "|----------|-------|"
-            echo "| Commit | \`${{ github.sha }}\` |"
-            echo "| Worker | \`duxt-www\` |"
-          } >> "$GITHUB_STEP_SUMMARY"
+        env:
+          DEPLOY_SHA: ${{ needs.build.outputs.sha }}
+          DEPLOY_COMMITTED_AT: ${{ needs.build.outputs.committed-at }}
+          DEPLOY_TRIGGER: ${{ github.event_name }}
+          DEPLOY_WORKER: duxt-www
+        run: node scripts/deploy-summary.ts >> "$GITHUB_STEP_SUMMARY"

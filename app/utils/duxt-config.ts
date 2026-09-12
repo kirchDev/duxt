@@ -19,11 +19,54 @@ export const duxtDefaults: DuxtConfig = {
   // until a consumer sets its own. It names nobody, which is the whole test.
   title: 'duxt.defaults.title',
 
+  copy: {
+    models: [
+      {
+        label: 'duxt.page.copy.chatgpt',
+        icon: 'simple-icons:openai',
+        url: 'https://chatgpt.com/?q='
+      },
+      {
+        label: 'duxt.page.copy.claude',
+        icon: 'simple-icons:claude',
+        url: 'https://claude.ai/new?q='
+      }
+    ]
+  },
+  contributors: { avatarUrl: 'https://github.com/{username}.png?size=40' },
+  toc: { depth: 3, scrollOffset: 96 },
+  search: {
+    fuzzy: { threshold: 0.35, minMatchCharLength: 3, limit: 20 },
+    recentPages: 5
+  },
+  openapi: { exampleDepth: 6, schemaDepth: 8 },
+  // A policy, not a binding table. WHICH keys duxt listens to is the layer's
+  // and lives in `duxtShortcuts`; whether the unmodified ones are live at all
+  // is the site's, because only a site knows what else its pages put under a
+  // bare keystroke. One boolean rather than four rewritable rows: a consumer
+  // that could move `?` would have to move it in the handler, the sheet and
+  // the guards at once, and those three drifting apart is what this replaces.
+  shortcuts: { singleCharacter: true },
+
   // No `version`. The layer knows nothing about the state of somebody else's
   // project, and a default made every site that extended it wear a number it
   // had never set — in the hero pill and, for a site with at most one source,
   // in the header badge beside the search. A site that has a version says so
   // in its own `app.config.ts`; `DuxtVersion` draws nothing until it does.
+
+  /**
+   * Empty, like `sections` and `links` below.
+   *
+   * An announcement is the SITE's own sentence — a release, a migration window,
+   * an outage — and a layer that shipped one would put its words at the top of
+   * every page extending it. Left empty the strip draws nothing at all: no
+   * banner, and no space held open for one.
+   *
+   * Written out rather than left absent so the key appears in the devtools
+   * Config panel, where a consumer meets it without reading the reference
+   * first — the same reason `sections` and `links` are spelled out below.
+   */
+  announcements: [],
 
   navigation: [
     // No `to`: the header resolves it to the first section, so the entry works

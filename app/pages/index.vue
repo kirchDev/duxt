@@ -275,12 +275,16 @@ defineOgImage('Duxt', {
             <span aria-hidden="true" class="text-muted-foreground select-none"
               >$</span
             >
+            <!-- A shell command does not turn round with the interface, so
+                 it declares its own direction and aligns to the start of THAT
+                 — which is the left, in either locale. -->
             <span
               v-if="highlightedCommand"
-              class="min-w-0 overflow-x-auto text-left [&_pre]:bg-transparent!"
+              dir="ltr"
+              class="min-w-0 overflow-x-auto text-start [&_pre]:bg-transparent!"
               v-html="highlightedCommand"
             />
-            <span v-else class="min-w-0 overflow-x-auto text-left">{{
+            <span v-else dir="ltr" class="min-w-0 overflow-x-auto text-start">{{
               command
             }}</span>
             <Icon
@@ -412,7 +416,7 @@ defineOgImage('Duxt', {
                       ? 'lucide:arrow-up-right'
                       : 'lucide:arrow-right'
                   "
-                  class="size-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5"
+                  class="size-3.5 text-muted-foreground rtl:-scale-x-100 transition-transform ltr:group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5"
                 />
               </UiCardTitle>
 

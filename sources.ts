@@ -17,6 +17,7 @@ export { repositoryRoot };
 export type {
   DuxtResolvedSource,
   DuxtSource,
+  DuxtSourceFlavor,
   DuxtSourcesOptions
 } from './sources-resolve';
 export { duxtSourceManifest } from './sources-resolve';
@@ -35,12 +36,81 @@ export { PARTIALS_COLLECTION, partialsCollection };
 export const pageSchema = z.object({
   /** Shown beside the entry in the sidebar, the section row and page cards. */
   icon: z.string().optional(),
-  /** `landing` renders the page without the docs chrome. */
+  /** Preserved long enough for the tfplugindocs dialect to normalise it. */
+  page_title: z.string().optional(),
+  /** A tfplugindocs navigation group within its directory category. */
+  subcategory: z.string().optional(),
+  /** Set by a source dialect; useful to navigation consumers, not authors. */
+  category: z.string().optional(),
+  /** `landing` renders the page without the docs shell. */
   layout: z.string().optional(),
   /** The latest release of a generated changelog overview. */
   release: z.string().optional(),
-  /** false hides the page from the navigation. */
-  navigation: z.boolean().optional(),
+  //
+  // `navigation` is NOT declared here, deliberately. Content's own page schema
+  // already carries it — `boolean | { title, description, icon }`, defaulting
+  // to `true` — and a field declared here REPLACES that declaration rather than
+  // adding to it. Redeclaring it as a plain boolean cost two things at once: it
+  // dropped the object form, and it turned a TEXT column holding `'true'` into
+  // a BOOLEAN one holding NULL, which Content's own navigation query then
+  // compares against the string `'false'` and can never match. The page control
+  // that hides a page from the sidebar belongs to Content; the layer reads it
+  // and does not restate it.
+  //
+  // THE PAGE CONTROLS — the parts of the docs shell a page gets to refuse.
+  // What each one means, and how they compose, is `app/utils/page-controls.ts`;
+  // they are declared here because the schema is the gate, and an undeclared
+  // `toc: false` is dropped before the page component could ever read it. Flat
+  // fields rather than one nested object, which was decided: it is what an
+  // author writes in every comparable generator.
+  //
+  // EVERY BOOLEAN CONTROL CARRIES ITS DEFAULT, and that is not decoration.
+  // `z.boolean().optional()` generates a `BOOLEAN` column with no default, so a
+  // page that says nothing stores NULL — and Content casts a boolean column
+  // with `Boolean(value)` on the way back out, on every adapter. `Boolean(null)`
+  // is `false`, so every page read as though it had refused every control, and
+  // search returned nothing at all on every duxt site (#88). A default makes the
+  // column non-null, which is the only place the distinction survives: once the
+  // cast has run, "said nothing" and "said false" are the same value, and no
+  // predicate downstream can tell them apart. `tests/page-schema-database.test.ts`
+  // holds this by reading a page back out of a real database.
+  //
+  /**
+   * `false` drops the contents column; `{ maxDepth }` sets how deep it goes.
+   *
+   * `@nuxtjs/mdc` reads this same key out of the frontmatter and skips building
+   * `body.toc` at all on `false` — the same answer from the other end. The
+   * object form is ours alone: MDC's own `depth` is a count from `h2`, and
+   * `maxDepth` is the heading level an author actually counts.
+   *
+   * The one control with no default, because it needs none: a union is a JSON
+   * column, and Content leaves a JSON NULL alone rather than casting it — so an
+   * unanswered `toc` arrives as `null` and the site's own setting still wins.
+   */
+  toc: z
+    .union([z.boolean(), z.object({ maxDepth: z.number().optional() })])
+    .optional(),
+  /** false hides the trail above the title, whatever `duxt.breadcrumb` says. */
+  breadcrumb: z.boolean().default(true),
+  /** false hides the previous/next pair under the article. */
+  prevNext: z.boolean().default(true),
+  /** false hides the "was this helpful?" row. */
+  feedback: z.boolean().default(true),
+  /** false hides the edit link, the last-updated line and the contributors. */
+  pageInfo: z.boolean().default(true),
+  /** false hides the copy-page and hand-to-a-model control. */
+  copyPage: z.boolean().default(true),
+  /** true removes the reading-width cap, and nothing else. */
+  fullWidth: z.boolean().default(false),
+  /**
+   * false removes the page from every duxt-owned discovery surface — the client
+   * search, its fuzzy fallback, MCP `search_docs` and the two llms indexes.
+   *
+   * It changes no URL. The page is still served, still canonical, still in the
+   * sitemap, still `noindex`-free, and `read_page` still answers for it: this
+   * makes a page un-findable, not unpublished.
+   */
+  search: z.boolean().default(true),
   /**
    * URLs this page used to be served at. The layer turns them into redirects,
    * because it is the only thing that knows which prefixes exist — the
@@ -123,13 +193,46 @@ const DRAFTS = '**/*.draft.md';
  *
  * Excluded from the page collections themselves, or every partial would also
  * be a page — in the sidebar, in the search, in llms.txt.
+ *
+ * This is the EXCLUSION glob: the whole subtree, every file in it, whatever
+ * the extension. What the partials collection reads is derived from it by
+ * `partialsInclude` — the two are not the same glob.
  */
 const PARTIALS = '**/_partials/**';
+
+/**
+ * The Markdown inside a partials subtree.
+ *
+ * One configured value answers two questions, and they do not take the same
+ * glob. A page collection has to lose the whole subtree — a screenshot beside
+ * a partial must not be read as a page either. The partials collection is
+ * itself `type: 'page'`, so it can only carry Markdown: handed the exclusion
+ * glob it swallows that same screenshot, and Content parses a PNG as a
+ * document. Conflating the two is the regression the `*.md` restriction has
+ * already been written once to prevent.
+ *
+ * Nothing is narrowed: every Markdown file the subtree holds, at whatever
+ * depth the consumer's own glob reaches, still lands in the collection. A glob
+ * that already names files (`**\/_partials/**\/*.mdc`) is left alone — it has
+ * made the restriction itself.
+ */
+function partialsInclude(partials: string) {
+  const last = partials.slice(partials.lastIndexOf('/') + 1);
+  if (last.includes('.')) return partials;
+  if (partials.endsWith('**')) return `${partials}/*.md`;
+  if (partials.endsWith('*')) return `${partials}.md`;
+  return `${partials}/**/*.md`;
+}
 
 /** The dev server shows drafts; a build does not. */
 const includeDrafts = () => process.env.NODE_ENV !== 'production';
 
-const excluded = () => (includeDrafts() ? [PARTIALS] : [PARTIALS, DRAFTS]);
+const excluded = (source: DuxtSource) => {
+  const partials = source.exclude?.partials ?? PARTIALS;
+  const drafts = source.exclude?.drafts ?? DRAFTS;
+
+  return includeDrafts() ? [partials] : [partials, drafts];
+};
 
 /**
  * Turn a compact source list into Content collections.
@@ -188,7 +291,7 @@ export function duxtSources(
       source: effective.repo
         ? {
             exclude: [
-              ...excluded(),
+              ...excluded(source),
               ...nested.map((glob) => `${effective.path}/${glob}`)
             ],
             // A tag lives outside refs/heads, so it has to be passed as a tag —
@@ -202,7 +305,7 @@ export function duxtSources(
             prefix: entry.prefix
           }
         : {
-            exclude: [...excluded(), ...nested],
+            exclude: [...excluded(source), ...nested],
             include: '**/*.md',
             cwd: join(repositoryRoot(), effective.path),
             prefix: entry.prefix
@@ -223,10 +326,13 @@ export function duxtSources(
 function partialFolders(
   resolved: DuxtResolvedSource[],
   expanded: ReturnType<typeof expandSources>
-): Map<string | undefined, { repo?: string; path: string }[]> {
+): Map<
+  string | undefined,
+  { repo?: string; path: string; partials: string }[]
+> {
   const byLocale = new Map<
     string | undefined,
-    { repo?: string; path: string }[]
+    { repo?: string; path: string; partials: string }[]
   >();
   const seen = new Set<string>();
 
@@ -238,12 +344,13 @@ function partialFolders(
     // One entry per REPOSITORY AND FOLDER, not per version: a partial is a
     // block of prose, and reading three versions of it into one collection
     // would give three blocks under one name.
-    const claim = `${key ?? ''}|${effective.repo ?? ''}:${effective.path}`;
+    const partials = source.exclude?.partials ?? PARTIALS;
+    const claim = `${key ?? ''}|${effective.repo ?? ''}:${effective.path}:${partials}`;
     if (seen.has(claim)) return;
     seen.add(claim);
 
     const list = byLocale.get(key) ?? [];
-    list.push({ repo: effective.repo, path: effective.path });
+    list.push({ repo: effective.repo, path: effective.path, partials });
     byLocale.set(key, list);
   });
 
@@ -264,15 +371,17 @@ function partialFolders(
  * Two sources defining the same name is a collision the build reports rather
  * than resolves; see `modules/validate.ts`.
  */
-function definePartials(folders: { repo?: string; path: string }[]) {
+function definePartials(
+  folders: { repo?: string; path: string; partials: string }[]
+) {
   const entries = folders.map((folder) =>
     folder.repo
       ? {
           repository: repoUrl(folder.repo),
-          include: `${folder.path}/_partials/**/*.md`
+          include: `${folder.path}/${partialsInclude(folder.partials)}`
         }
       : {
-          include: '_partials/**/*.md',
+          include: partialsInclude(folder.partials),
           cwd: join(repositoryRoot(), folder.path)
         }
   ) as NonNullable<Parameters<typeof defineCollection>[0]['source']>[];

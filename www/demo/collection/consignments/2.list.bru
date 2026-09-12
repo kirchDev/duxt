@@ -1,0 +1,22 @@
+meta {
+  name: List consignments
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/demo/echo?limit=20&cursor=
+  body: none
+  auth: inherit
+}
+
+params:query {
+  limit: 20
+  ~cursor: 
+}
+
+docs {
+  A disabled parameter, which is the shape `~` makes: `cursor` is kept in the
+  file and not sent, and the page shows it struck through rather than hiding a
+  line the collection has.
+}

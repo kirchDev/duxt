@@ -1,6 +1,7 @@
 import { parse as parseYaml } from 'yaml';
 import { describe, expect, it, vi } from 'vitest';
 import { DUXT_OPENAPI_LAYOUT, openapiSectionType } from '../sections-openapi';
+import { duxtSectionInput } from '../sections-resolve';
 
 const context = { label: 'API', prefix: '/api' };
 
@@ -36,7 +37,8 @@ paths:
       responses: { '200': { description: ok } }
 `;
 
-const parse = (artefact = SPEC) => openapiSectionType.parse(artefact, context);
+const parse = (artefact = SPEC) =>
+  openapiSectionType.parse(duxtSectionInput('openapi.yaml', artefact), context);
 
 /** The YAML block a page's MDC component carries, read back. */
 function props(body: string): Record<string, unknown> {
@@ -248,7 +250,7 @@ paths:
     const warnings: string[] = [];
     const printed = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    openapiSectionType.parse(BROKEN, {
+    openapiSectionType.parse(duxtSectionInput('openapi.yaml', BROKEN), {
       ...context,
       options: {},
       warn: (message) => warnings.push(message)
@@ -266,7 +268,10 @@ paths:
     // `warn` is optional: a type is called with a bare context in a test, and
     // an artefact with a finding must not become an artefact that throws.
     expect(() =>
-      openapiSectionType.parse(BROKEN, { ...context, options: {} })
+      openapiSectionType.parse(duxtSectionInput('openapi.yaml', BROKEN), {
+        ...context,
+        options: {}
+      })
     ).not.toThrow();
   });
 });

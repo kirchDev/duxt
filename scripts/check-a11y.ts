@@ -16,12 +16,15 @@
  * alternatives, heading order, ARIA validity, the language of the document.
  * That is the half a redesign breaks.
  *
- * A browser-driven check would cover the rest and costs a Playwright download
- * in every CI run and on every contributor's machine. The contrast question is
- * answered once, by measurement, in `duxt.css` — see the comment on
- * `--muted-foreground` — rather than on every build.
+ * Driving a browser over every page would cover the rest, at a page load
+ * apiece. `check:keyboard` does drive one — a browser already on the machine,
+ * never a download — but only for the question no parse can ask at all: what a
+ * key DOES. Moving axe here would buy the two rules above at that price, and
+ * the contrast half of them is already answered once, by measurement, in
+ * `tests/contrast.test.ts` and in the comment on `--muted-foreground` in
+ * `duxt.css`, rather than on every build.
  *
- * Run after `build:app`, which is why it sits last in `check`.
+ * Run after `build:app`, which is why it sits behind it in `check`.
  */
 
 import { spawn } from 'node:child_process';
@@ -36,10 +39,11 @@ const server = join(root, 'www', '.output', 'server', 'index.mjs');
 /**
  * One page of each KIND, not a crawl.
  *
- * The chrome is what this checks, and the chrome differs by layout: the landing
- * page has no sidebar, a section root has no table of contents, a deep page has
- * everything, an embedded panel has an iframe, a generated section's markup is
- * a parser's output rather than a written page, and the 404 has its own view.
+ * The page shell is what this checks, and the shell differs by layout: the
+ * landing page has no sidebar, a section root has no table of contents, a deep
+ * page has everything, an embedded panel has an iframe, a generated section's
+ * markup is a parser's output rather than a written page, and the 404 has its
+ * own view.
  * Another page of a shape already here would add runtime and no coverage.
  *
  * WRITE THE ROUTES THE SITE ACTUALLY SERVES. Three of these carried a `/duxt/`
@@ -68,7 +72,7 @@ const ROUTES = [
   '/demo/changelog',
   '/demo/changelog/v0.5.0',
   // The fixture changelog at the other granularity — one page, in the ordinary
-  // docs chrome. A type that names no layout for the options it was given is a
+  // docs layout. A type that names no layout for the options it was given is a
   // decision only a rendered page proves, and its headings run three levels
   // deep where the split pages run two.
   '/demo/changelog-flat',
@@ -79,6 +83,19 @@ const ROUTES = [
   // unlabelled control in either.
   '/demo/api',
   '/demo/api/consignments/listconsignments',
+  // The SECOND type in that layout, and the reason it is worth a third entry
+  // here rather than trusted to the two above: the request page draws the same
+  // client from different props, and the overview draws two controls — a
+  // download and an outbound link — that no other page on this list has.
+  '/demo/collection',
+  '/demo/collection/consignments/create-a-consignment',
+  // THE ONLY PAGE THAT RENDERS AN IMAGE. Every `![…]` in the component
+  // reference sits inside a fenced code block, so without this route the gate
+  // never reaches `ProseImg` at all — and what it draws is a `<button>` around
+  // an image with a decorative indicator inside it, which is precisely the
+  // shape axe has an opinion about: the button's name, the image's
+  // alternative, and whether the indicator is hidden from the tree.
+  '/demo/images',
   '/does-not-exist'
 ];
 

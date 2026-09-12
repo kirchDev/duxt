@@ -45,7 +45,7 @@ il a l’air quand quelque chose cloche.
 
 ## Sans serveur de développement
 
-`pnpm exec duxt-report` affiche les sources, les vérifications et les
+`pnpm exec duxt report` affiche les sources, les vérifications et les
 redirections en Markdown — les mêmes données que dessinent ces panneaux, sous une
 forme que vous pouvez coller dans un ticket ou passer à un modèle. `--json` les
 donne non rendues. Voir [Ce que la compilation vérifie](/concepts/build-checks).

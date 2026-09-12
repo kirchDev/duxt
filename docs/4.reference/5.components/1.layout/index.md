@@ -1,10 +1,11 @@
 ---
 title: Layout
-description: The two components that frame a page — the navbar and the footer.
+description: The three components that frame a page — the navbar, the footer and the site notices.
 icon: lucide:layout-panel-top
 ---
 
-What surrounds the documentation on every page. Neither takes a prop: they read
+What surrounds the documentation on every page. The navbar and the footer take no
+prop at all: they read
 [`useDuxtConfig()`](/reference/composables/config-and-content/use-duxt-config),
 so what they draw is what the config says.
 
