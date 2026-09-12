@@ -19,11 +19,21 @@ import { describe, expect, it } from 'vitest';
  * `tests/contrast.test.ts` makes about computed colour, and the same answer:
  * check the source, here, rather than hope a gate in front of it notices.
  *
- * THE ALLOWLIST IS THE REVIEW. Not every physical utility is a defect — a
+ * TWO SPELLINGS, ONE RULE. A direction-dependent rule can be written as a
+ * utility class (`pl-4`) or as a hand-written declaration (`padding-left: 1rem`)
+ * — in `duxt.css`, in `typeset.css`, or in a `style=""` attribute. The second
+ * kind is the one that got past the first version of this guard: a declaration
+ * tokenises to an empty utility and matched nothing, so every `padding-left:`
+ * in the layer's own stylesheets passed silently while the commit message
+ * claimed the opposite. Both spellings are scanned here, against the same
+ * allowlist, because a reader cannot tell which one moved their bullet.
+ *
+ * THE ALLOWLIST IS THE REVIEW. Not every physical rule is a defect — a
  * centred dialog, a glyph inside an explicitly left-to-right code block, a
- * prop whose whole meaning is "the left edge of the screen". Those are
- * decisions, and the point of listing them here with a reason is that they stop
- * being indistinguishable from the ones nobody thought about.
+ * prop whose whole meaning is "the left edge of the screen", a renderer that
+ * has no logical properties to offer. Those are decisions, and the point of
+ * listing them here with a reason is that they stop being indistinguishable
+ * from the ones nobody thought about.
  */
 
 const appDir = fileURLToPath(new URL('../app', import.meta.url));
@@ -48,6 +58,28 @@ const PHYSICAL = [
   /^origin-(top-|bottom-)?(left|right)$/,
   /^slide-(in-from|out-to)-(left|right)(-.+)?$/
 ];
+
+/**
+ * Declarations whose PROPERTY names a fixed side.
+ *
+ * The logical spellings are the same word with `inline-start`/`inline-end` in
+ * place of `left`/`right`: `padding-inline-start`, `border-inline-end-width`,
+ * `inset-inline-start`. The bare `left:`/`right:` branch needs a boundary in
+ * front of it so a custom property (`--duxt-sidebar-left:`) is not read as one;
+ * `inset:` and `inset-block-*` set no single side and are absent on purpose,
+ * as are `top`/`bottom` and the two vertical border radii.
+ */
+const PHYSICAL_PROPERTY =
+  /(?:^|[\s;{}])((?:margin|padding|border|scroll-margin|scroll-padding)-(?:left|right)(?:-(?:width|style|color))?|border-(?:top|bottom)-(?:left|right)-radius|left|right)\s*:/g;
+
+/**
+ * Declarations whose PROPERTY is neutral and whose VALUE names a side.
+ *
+ * `text-align: start`, `float: inline-start` and `clear: inline-end` are the
+ * logical spellings, and all three are what a reader following a script wants.
+ */
+const PHYSICAL_VALUE =
+  /(?:^|[\s;{}])(text-align|float|clear)\s*:\s*(left|right)\b/g;
 
 /** Every `.vue`, `.ts` and `.css` file the layer ships, read rather than listed. */
 function walk(dir: string): string[] {
@@ -118,6 +150,33 @@ function physicalUtilities(source: string): string[] {
   }
 
   return [...found].sort();
+}
+
+/**
+ * Physical declarations in one file, deduplicated and normalised.
+ *
+ * Normalised, because the allowlist has to survive a value being tuned: an
+ * indent moving from `1.05rem` to `1.2rem` is not a direction decision and must
+ * not read as one. A property that is physical by its own name is recorded as
+ * `padding-left:`; one that is physical only through its value keeps the value,
+ * `text-align: right`. Both carry the shape of a declaration, so a failure line
+ * says which of the two spellings it found without needing to explain itself.
+ */
+function physicalDeclarations(source: string): string[] {
+  const markup = markupOnly(source);
+  const found = new Set<string>();
+
+  for (const match of markup.matchAll(PHYSICAL_PROPERTY))
+    found.add(`${match[1]}:`);
+  for (const match of markup.matchAll(PHYSICAL_VALUE))
+    found.add(`${match[1]}: ${match[2]}`);
+
+  return [...found].sort();
+}
+
+/** Both spellings of a direction-dependent rule, in one list. */
+function physicalRules(source: string): string[] {
+  return [...physicalUtilities(source), ...physicalDeclarations(source)].sort();
 }
 
 /**
@@ -237,6 +296,22 @@ const PHYSICAL_ON_PURPOSE: Record<
     }
   ],
 
+  'assets/css/duxt.css': [
+    {
+      tokens: ['margin-right:', 'text-align: right'],
+      reason:
+        'The opt-in line numbers on a fenced block, drawn as a `::before` on `.duxt-line-numbers .line`. They sit inside `pre`/`code`, which the `unicode-bidi: isolate` rule at the top of this file pins left-to-right on purpose — a shell command is syntax, not prose. A gutter that followed the reader would end up on the opposite side of the run it numbers, and the digits right-align towards the code for the same reason they do in every editor.'
+    }
+  ],
+
+  'components/OgImage/Duxt.satori.vue': [
+    {
+      tokens: ['margin-left:'],
+      reason:
+        'Rendered by satori, not by a browser: it implements a CSS subset over yoga and knows no logical property at all — `marginInlineStart` appears nowhere in its dist, so the declaration would be dropped and the gap would vanish rather than mirror. The image is also a fixed composition at a fixed size rather than chrome a reader reads, and it carries no `dir` to follow.'
+    }
+  ],
+
   'pages/index.vue': [
     {
       tokens: ['left-1/2', '-translate-x-1/2'],
@@ -252,7 +327,7 @@ const PHYSICAL_ON_PURPOSE: Record<
 
 const files = walk(appDir).map((full) => [full.slice(appDir.length + 1), full]);
 
-describe('direction-dependent utilities', () => {
+describe('direction-dependent rules', () => {
   it('are logical, or declared with a reason', () => {
     const undeclared: string[] = [];
 
@@ -261,7 +336,7 @@ describe('direction-dependent utilities', () => {
         (PHYSICAL_ON_PURPOSE[rel!] ?? []).flatMap((entry) => entry.tokens)
       );
 
-      for (const utility of physicalUtilities(readFileSync(full!, 'utf8'))) {
+      for (const utility of physicalRules(readFileSync(full!, 'utf8'))) {
         if (!declared.has(utility)) undeclared.push(`${rel}  ${utility}`);
       }
     }
@@ -273,7 +348,7 @@ describe('direction-dependent utilities', () => {
     const stale: string[] = [];
 
     for (const [rel, full] of files) {
-      const present = new Set(physicalUtilities(readFileSync(full!, 'utf8')));
+      const present = new Set(physicalRules(readFileSync(full!, 'utf8')));
 
       for (const entry of PHYSICAL_ON_PURPOSE[rel!] ?? []) {
         for (const token of entry.tokens) {

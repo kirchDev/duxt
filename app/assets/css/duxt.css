@@ -386,14 +386,14 @@ details[open] > .duxt-schema-row .duxt-schema-tile .duxt-schema-minus {
    because there the indent is what says it is nested. */
 .typeset :where(.duxt-release > ul) {
   margin: 0;
-  padding-left: 0;
+  padding-inline-start: 0;
   list-style: none;
 }
 
 .typeset :where(.duxt-release > ul > li) {
   position: relative;
   margin: 0;
-  padding-left: 1.05rem;
+  padding-inline-start: 1.05rem;
   line-height: 1.55;
 }
 
@@ -405,7 +405,7 @@ details[open] > .duxt-schema-row .duxt-schema-tile .duxt-schema-minus {
   content: '';
   position: absolute;
   top: 0.6em;
-  left: 0;
+  inset-inline-start: 0;
   height: 0.3125rem;
   width: 0.3125rem;
   border-radius: 999px;
@@ -556,7 +556,16 @@ pre.shiki,
 
 /* Line numbers, opt-in per fence with ```ts line-numbers.
    A CSS counter rather than markup: the numbers are decoration, and a reader
-   copying the block must not get them in the clipboard. */
+   copying the block must not get them in the clipboard.
+
+   PHYSICAL ON PURPOSE, and the only two declarations in this file that are.
+   `margin-right` and `text-align: right` sit inside `pre`/`code`, which the
+   `unicode-bidi: isolate` rule at the top of this file pins left-to-right —
+   a shell command is syntax, not prose. A gutter that followed the reader
+   would land on the opposite side of the run it numbers, and the digits
+   right-align towards that run for the same reason they do in an editor.
+   Declared with this reason in `tests/direction-utilities.test.ts`; every
+   other side-naming rule here is logical. */
 .duxt-line-numbers code {
   counter-reset: duxt-line;
 }
