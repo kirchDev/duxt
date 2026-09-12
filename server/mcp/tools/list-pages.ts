@@ -5,6 +5,7 @@ import {
   duxtBadCursor,
   duxtCursorPage,
   duxtLocaleSetup,
+  duxtMcpEvent,
   duxtPageLine,
   duxtScope,
   duxtScopedPages,
@@ -56,14 +57,15 @@ export default defineMcpTool({
       .describe('`nextCursor` from a previous call, to continue the listing')
   },
 
-  async handler({ prefix, limit, cursor }, extra) {
+  async handler({ prefix, limit, cursor }) {
     if (cursor && !duxtValidCursor(cursor)) return duxtBadCursor(cursor);
 
-    const setup = duxtLocaleSetup(extra.event);
+    const event = duxtMcpEvent();
+    const setup = duxtLocaleSetup(event);
     const scope = duxtScope(prefix, duxtSources(), setup);
     if (!scope) return duxtUnknownScope(prefix!);
 
-    const pages = await duxtScopedPages(extra.event, scope, setup);
+    const pages = await duxtScopedPages(event, scope, setup);
     const { items, nextCursor } = duxtCursorPage(pages, limit, cursor);
 
     if (!items.length)

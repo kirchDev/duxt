@@ -329,7 +329,31 @@ export default defineNuxtConfig({
       'one page as Markdown.'
   },
 
-  nitro: wasm ? { externals: { traceInclude: [wasm] } } : {},
+  nitro: {
+    /**
+     * THE MCP TOOLS CANNOT REACH THE REQUEST WITHOUT THIS.
+     *
+     * `@nuxtjs/mcp-toolkit` hands a tool handler the MCP SDK's
+     * `RequestHandlerExtra` and nothing of H3's, so the only way into the
+     * request from inside a tool is `useEvent()` — which throws
+     * "Nitro request context is not available" unless Nitro wraps each request
+     * in an `AsyncLocalStorage`. The toolkit's own server helpers
+     * (`useMcpServer`, `useMcpSession`, `useMcpLogger`) are built on the same
+     * call, so this is a prerequisite of mounting an MCP server rather than a
+     * preference of duxt's.
+     *
+     * It is the one Nitro flag this layer imposes on a consumer, and it is
+     * imposed knowingly: the alternative is four tools that answer from the
+     * global `$fetch` and the default locale instead of from the request, i.e.
+     * a second database-reading code path that exists only under `/mcp` and
+     * that only a Worker would ever have disagreed with. A consumer who wants
+     * it off writes `nitro: { experimental: { asyncContext: false } }` and
+     * loses `/mcp`, nothing else.
+     */
+    experimental: { asyncContext: true },
+
+    ...(wasm ? { externals: { traceInclude: [wasm] } } : {})
+  },
 
   css: [layer('./app/assets/css/duxt.css')],
 

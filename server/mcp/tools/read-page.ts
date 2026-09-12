@@ -6,6 +6,7 @@ import {
   duxtAuthoredMarkdown,
   duxtFrontmatter,
   duxtLocaleSetup,
+  duxtMcpEvent,
   duxtPublicPath,
   duxtSources
 } from '../../utils/mcp-docs';
@@ -44,8 +45,9 @@ export default defineMcpTool({
       .describe('Page path from `list_pages`, for example /app/deploying')
   },
 
-  async handler({ path }, extra) {
-    const setup = duxtLocaleSetup(extra.event);
+  async handler({ path }) {
+    const event = duxtMcpEvent();
+    const setup = duxtLocaleSetup(event);
     const sources = duxtSources();
     const { locale, path: wanted } = splitLocalePath(path, setup.codes);
 
@@ -60,7 +62,7 @@ export default defineMcpTool({
 
     for (const source of chain) {
       const page = (await queryCollection(
-        extra.event,
+        event,
         source.collection as Parameters<typeof queryCollection>[1]
       )
         .path(wanted)

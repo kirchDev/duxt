@@ -219,8 +219,19 @@ async function checkLlms(): Promise<string[]> {
  *
  * `initialize` alone proves nothing about the database: the transport answers
  * it out of the module. So this runs the whole streamable-HTTP dance —
- * initialize, the `initialized` notification, then `tools/call` on `list_pages`
- * — because the tool call is the only part that reaches a collection.
+ * initialize, the `initialized` notification, then `tools/call` — because the
+ * tool call is the only part that reaches a collection.
+ *
+ * TWO CALLS, AND THE SECOND ONE IS WHY. `list_pages` is a BOUNDED listing: it
+ * answers with the first `DUXT_PAGE_SIZE` paths in sort order and a cursor for
+ * the rest. Asserting that `/getting-started` appears in it, which is what this
+ * check did at first, is really an assertion about how many pages of this site
+ * sort before the letter g — 25 of them do, so the check failed on a listing
+ * that was working perfectly. The two questions are therefore asked separately:
+ * `list_pages` has to come back with SOME rows (an empty listing is the shape a
+ * database that answered and returned nothing takes), and `read_page` has to
+ * come back with THE page, which is the named-row read the llms routes above
+ * make and needs no page-size arithmetic to stay true.
  */
 async function checkMcp(): Promise<string[]> {
   const accept = 'application/json, text/event-stream';
@@ -259,35 +270,77 @@ async function checkMcp(): Promise<string[]> {
     })
   }).then((response) => response.text());
 
-  const called = await fetch(`${ORIGIN}/mcp`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', accept, ...withSession },
-    body: JSON.stringify({
-      jsonrpc: '2.0',
-      id: 2,
-      method: 'tools/call',
-      params: { name: 'list_pages', arguments: {} }
-    })
-  });
+  let id = 2;
 
-  if (!called.ok) return [`POST /mcp tools/call answered ${called.status}`];
+  /** One `tools/call`, answered as the text the tool produced. */
+  const callTool = async (
+    name: string,
+    args: Record<string, unknown>
+  ): Promise<{ text?: string; failure?: string }> => {
+    const called = await fetch(`${ORIGIN}/mcp`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', accept, ...withSession },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: id++,
+        method: 'tools/call',
+        params: { name, arguments: args }
+      })
+    });
 
-  const payload = parseJsonRpc(await called.text());
+    if (!called.ok)
+      return { failure: `POST /mcp tools/call answered ${called.status}` };
 
-  if (!payload) return ['POST /mcp tools/call answered no JSON-RPC body'];
-  if (payload.error) {
-    return [`POST /mcp list_pages failed: ${JSON.stringify(payload.error)}`];
+    const payload = parseJsonRpc(await called.text());
+
+    if (!payload) return { failure: 'POST /mcp tools/call answered no body' };
+    if (payload.error) {
+      return {
+        failure: `POST /mcp ${name} failed: ${JSON.stringify(payload.error)}`
+      };
+    }
+
+    const result = payload.result as
+      | { isError?: boolean; content?: { text?: string }[] }
+      | undefined;
+    const text = (result?.content ?? [])
+      .map((part) => part.text ?? '')
+      .join('\n');
+
+    // A THROWN HANDLER IS A RESULT, NOT AN ERROR. The SDK turns anything a tool
+    // throws into `isError: true` with the message as its text, so a check that
+    // only reads `payload.error` sees a successful call carrying a stack
+    // trace's first line — which is exactly how `Cannot read properties of
+    // undefined (reading 'context')` was read here as "the collection came back
+    // empty" for a day.
+    if (result?.isError) {
+      return { failure: `POST /mcp ${name} answered an error: ${text.trim()}` };
+    }
+
+    return { text };
+  };
+
+  const failures: string[] = [];
+
+  const listed = await callTool('list_pages', {});
+
+  if (listed.failure) failures.push(listed.failure);
+  else if (!/^- \//m.test(listed.text ?? '')) {
+    failures.push(
+      'POST /mcp list_pages listed no pages — the collection read came back empty'
+    );
   }
 
-  const text = JSON.stringify(payload.result ?? '');
+  const read = await callTool('read_page', { path: PAGE });
 
-  if (!text.includes(PAGE)) {
-    return [
-      `POST /mcp list_pages listed no pages — the collection read came back empty`
-    ];
+  if (read.failure) failures.push(read.failure);
+  else if (!(read.text ?? '').includes(`path: "${PAGE}"`)) {
+    failures.push(
+      `POST /mcp read_page did not answer for ${PAGE} — the row came back empty`
+    );
   }
 
-  return [];
+  return failures;
 }
 
 /**

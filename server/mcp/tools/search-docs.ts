@@ -6,6 +6,7 @@ import {
   duxtCursorPage,
   duxtExcerpt,
   duxtLocaleSetup,
+  duxtMcpEvent,
   duxtPageLine,
   duxtScope,
   duxtScopedPages,
@@ -59,10 +60,11 @@ export default defineMcpTool({
       .describe('`nextCursor` from a previous call, to continue the results')
   },
 
-  async handler({ query, prefix, limit, cursor }, extra) {
+  async handler({ query, prefix, limit, cursor }) {
     if (cursor && !duxtValidCursor(cursor)) return duxtBadCursor(cursor);
 
-    const setup = duxtLocaleSetup(extra.event);
+    const event = duxtMcpEvent();
+    const setup = duxtLocaleSetup(event);
     const scope = duxtScope(prefix, duxtSources(), setup);
     if (!scope) return duxtUnknownScope(prefix!);
 
@@ -74,9 +76,7 @@ export default defineMcpTool({
     // also feeds `list_pages` and `list_versions`: the opt-out makes a page
     // un-findable, not unpublished, so the tree and the page itself are left
     // alone. Same predicate the client search and the llms indexes use.
-    const matches = (
-      await duxtScopedPages(extra.event, scope, setup, true)
-    ).filter(
+    const matches = (await duxtScopedPages(event, scope, setup, true)).filter(
       (page) =>
         duxtPageSearchable(page) &&
         (holds(page.title) || holds(page.description) || holds(page.rawbody))

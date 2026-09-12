@@ -39,6 +39,37 @@ const BARE: DuxtResolvedSource = {
   history: false
 };
 
+/**
+ * The request behind an MCP tool call.
+ *
+ * NOT `extra.event`, which is what all four tools read for their first nine
+ * days and which has never existed. `@nuxtjs/mcp-toolkit` hands a tool handler
+ * the MCP SDK's own `RequestHandlerExtra` — `signal`, `requestId`,
+ * `sessionId`, `authInfo`, `requestInfo`, `sendNotification`, `sendRequest` —
+ * and nothing of H3's. The read was silently `undefined`, and the two things
+ * it was passed to both tolerate that: `queryCollection(undefined, …)` falls
+ * back to the global `$fetch` and `useRuntimeConfig(undefined)` returns the
+ * global config. So `/mcp` answered, wrongly but visibly enough, until
+ * `duxtLocaleSetup` began dereferencing `event.context` for the i18n fallback
+ * — from which point EVERY tool call answered `Cannot read properties of
+ * undefined (reading 'context')` as an `isError` result. Nothing caught it:
+ * the unit tests hand the handlers an `extra` of their own invention with an
+ * `event` on it, and `pnpm check` probes no MCP endpoint at all.
+ *
+ * `useEvent()` is how the toolkit itself reaches the request — `useMcpServer`,
+ * `useMcpSession`, its logger and its notifier all call it — and it is why the
+ * layer turns `nitro.experimental.asyncContext` on in `nuxt.config.ts`.
+ *
+ * Having the REAL event, rather than teaching the tools to live without one,
+ * is the point: the four tools then read the database through exactly the code
+ * path `llms.txt` and the `.md` middleware take — `event.$fetch` and the
+ * request's own i18n fallback — instead of a second one that only `/mcp` runs
+ * and that only a Worker would have disagreed with.
+ */
+export function duxtMcpEvent(): H3Event {
+  return useEvent();
+}
+
 /** The resolved manifest, or the single collection a bare site publishes. */
 export function duxtSources(): DuxtResolvedSource[] {
   const { duxt } = useAppConfig() as { duxt?: Partial<DuxtConfig> };

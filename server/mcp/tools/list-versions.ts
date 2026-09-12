@@ -1,6 +1,7 @@
 import {
   duxtDocVersions,
   duxtLocaleSetup,
+  duxtMcpEvent,
   duxtSources
 } from '../../utils/mcp-docs';
 
@@ -25,11 +26,13 @@ export default defineMcpTool({
     'is the default. Pass a prefix to `list_pages` or `search_docs`.',
   annotations: { readOnlyHint: true },
 
-  // A tool without an `inputSchema` is called with ONE argument: the SDK hands
-  // the handler `extra` directly rather than `(args, extra)`. Written the other
-  // way round, `extra` was undefined and every call failed on `extra.event`.
-  async handler(extra) {
-    const setup = duxtLocaleSetup(extra.event);
+  // NO PARAMETERS, AND THAT IS DELIBERATE. A tool without an `inputSchema` is
+  // called with ONE argument — the SDK hands the handler `extra` rather than
+  // `(args, extra)` — so a handler that names its parameters has to know which
+  // arity it is on. Nothing here needs either of them: the request comes from
+  // `duxtMcpEvent()`, which is where it always had to come from.
+  async handler() {
+    const setup = duxtLocaleSetup(duxtMcpEvent());
     const versions = duxtDocVersions(duxtSources(), setup);
 
     // A site whose every source is a generated section publishes no version to

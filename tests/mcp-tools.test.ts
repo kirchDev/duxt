@@ -79,7 +79,68 @@ const event = {
     nuxtI18n: { vueI18nOptions: { fallbackLocale: 'en' as string | string[] } }
   }
 };
-const extra = { event } as never;
+
+/**
+ * Every field the MCP SDK puts on a tool handler's second argument.
+ *
+ * Copied off `RequestHandlerExtra` in
+ * `@modelcontextprotocol/sdk/shared/protocol.d.ts`, and the point of writing it
+ * out is that `event` is NOT among them — `@nuxtjs/mcp-toolkit` registers a
+ * definition's handler with the SDK unwrapped, so what arrives is the SDK's
+ * object and nothing of H3's.
+ */
+const SDK_EXTRA_FIELDS = new Set([
+  'signal',
+  'authInfo',
+  'sessionId',
+  '_meta',
+  'requestId',
+  'taskId',
+  'taskStore',
+  'taskRequestedTtl',
+  'requestInfo',
+  'sendNotification',
+  'sendRequest',
+  'closeSSEStream',
+  'closeStandaloneSSEStream'
+]);
+
+/**
+ * THE `extra` THE SDK ACTUALLY PASSES, and it refuses to be anything else.
+ *
+ * This used to be `{ event }` — a shape invented by this file, which no
+ * transport has ever produced. Every tool read `extra.event` off it, the tests
+ * were green, and in production the read was `undefined`: harmless while it was
+ * only forwarded to `queryCollection`, fatal the moment `duxtLocaleSetup`
+ * dereferenced `event.context`, at which point all four tools began answering
+ * `Cannot read properties of undefined (reading 'context')` and only the
+ * adapter matrix noticed (#90).
+ *
+ * So the fake is a proxy that throws on any field the SDK does not define. A
+ * tool that reaches for the request through `extra` again fails here, with the
+ * reason, instead of in somebody's deploy.
+ */
+const extra = new Proxy(
+  {
+    signal: new AbortController().signal,
+    requestId: 1,
+    sendNotification: async () => {},
+    sendRequest: async () => ({})
+  } as Record<string | symbol, unknown>,
+  {
+    get(target, property) {
+      if (typeof property === 'string' && !SDK_EXTRA_FIELDS.has(property)) {
+        throw new Error(
+          `a tool read extra.${property}, which the MCP SDK's ` +
+            'RequestHandlerExtra does not carry. The H3 request comes from ' +
+            'duxtMcpEvent().'
+        );
+      }
+
+      return Reflect.get(target, property);
+    }
+  }
+) as never;
 
 async function tool(name: string) {
   const loaded = await import(`../server/mcp/tools/${name}.ts`);
@@ -117,6 +178,9 @@ beforeEach(() => {
   };
   event.context.nuxtI18n.vueI18nOptions.fallbackLocale = 'en';
   vi.stubGlobal('defineMcpTool', (definition: unknown) => definition);
+  // Nitro's own, and the only way into the request from inside a tool — which
+  // is why the layer turns `nitro.experimental.asyncContext` on.
+  vi.stubGlobal('useEvent', () => event);
   vi.stubGlobal('useAppConfig', () => ({
     duxt: { title: 'Test docs', resolvedSources: sources }
   }));
@@ -205,6 +269,31 @@ describe('tool discovery', () => {
     expect((await tool('read-page')).inputSchema).toHaveProperty('path');
     // No arguments at all: the SDK then hands the handler `extra` directly.
     expect((await tool('list-versions')).inputSchema).toBeUndefined();
+  });
+
+  /**
+   * The regression #90 is, stated as a contract.
+   *
+   * Every tool has to answer from the arguments the transport gives it and
+   * `useEvent()`, taking nothing off `extra` — the proxy above throws on any
+   * field the SDK does not define, so a tool that reaches for the request
+   * through `extra` fails here rather than returning `isError` at runtime.
+   * Asserted per tool and not left implicit in the cases below, because what
+   * broke was never one tool's logic: it was the argument all four share.
+   */
+  it('answers on the extra the SDK actually passes, taking the request from useEvent', async () => {
+    for (const [file, args] of [
+      ['list-versions', undefined],
+      ['list-pages', {}],
+      ['search-docs', { query: 'install' }],
+      ['read-page', { path: '/app/guide' }]
+    ] as const) {
+      const { result } = await call(file, args);
+      expect(result.isError, file).toBeFalsy();
+      expect(result.content.map((part) => part.text).join(''), file).not.toBe(
+        ''
+      );
+    }
   });
 });
 
