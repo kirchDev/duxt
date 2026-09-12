@@ -19,6 +19,16 @@ import SheetOverlay from './SheetOverlay.vue';
  * want, and silently redefining the word would move somebody's sheet the first
  * time they shipped a right-to-left locale. `start` and `end` are the ones that
  * follow the reader, and they are what this layer's own navigation uses.
+ *
+ * THE DEFAULT IS LOGICAL, the same answer `SidebarProps.side` gives. The two
+ * props ask one question and it would be strange to answer it twice: a sheet
+ * opened with no side named is not a sheet somebody pinned to an edge, it is
+ * one nobody thought about, and the theme's default for a thing nobody thought
+ * about is to follow the reader. `end` resolves to `right` in every locale this
+ * layer ships, so nothing moves today; what changes is the consumer who writes
+ * a bare `<UiSheetContent>` and later declares `dir: 'rtl'`, for whom the panel
+ * arrives on the side the page starts from rather than needing a second edit.
+ * Naming `right` explicitly is still how you pin it to the screen's right.
  */
 interface SheetContentProps extends DialogContentProps {
   class?: HTMLAttributes['class'];
@@ -30,7 +40,7 @@ defineOptions({
 });
 
 const props = withDefaults(defineProps<SheetContentProps>(), {
-  side: 'right'
+  side: 'end'
 });
 const emits = defineEmits<DialogContentEmits>();
 
