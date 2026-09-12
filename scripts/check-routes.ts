@@ -28,11 +28,27 @@
  * `pnpm check`: that gate builds the Node server, and a second full Nuxt build
  * would roughly double CI for a target only `main` reaches.
  *
- * The comparison is one-directional on purpose. It proves each classified route
- * is on the side the table puts it on; it does not enumerate the artifact and
- * demand a row for every file in it, because the artifact also holds the OG
- * images, the Content SQL dumps and every Nuxt payload, none of which this
- * table is about.
+ * THE FILE COMPARISON IS ONE-DIRECTIONAL, AND ON ITS OWN THAT IS THE ORIGINAL
+ * DEFECT AGAIN. `verifyDeploymentRoutes` asks only whether each CLASSIFIED
+ * route is on the side the table puts it on. It cannot enumerate the artifact
+ * and demand a row per file — the artifact also holds the OG images, the
+ * Content SQL dumps and every Nuxt payload, none of which this table is about —
+ * but that leaves a route with NO ROW invisible, which is exactly how
+ * `llms-full.txt` and `rss.xml` went unaccounted for in the first place.
+ *
+ * So the second half closes it at the level the gap actually lives at:
+ * HANDLERS, not files. `verifyHandlerCoverage` reads Nitro's own handler
+ * manifest out of the built server bundle and requires every registered route
+ * to be either a row in `DEPLOYMENT_ROUTES` or a named entry in
+ * `EXEMPT_HANDLERS` with a reason. A new module that registers a public route
+ * therefore fails this check until somebody says which side it is on. Reading
+ * the manifest is a regex over generated code, so it FAILS OPEN: a bundle this
+ * file cannot find a manifest in is reported, never passed.
+ *
+ * The two lists are not symmetric, deliberately. A ROW MAKES A CLAIM, so a row
+ * naming a handler the build no longer registers is reported. AN EXEMPTION ONLY
+ * WITHHOLDS ONE, so an exemption nothing matches any more grants nothing and is
+ * left alone.
  */
 
 import { readdirSync, readFileSync } from 'node:fs';
@@ -57,25 +73,48 @@ export interface DeploymentRoute {
   /**
    * Paths under `.output/public` that decide the claim.
    *
-   * An exact path, or `*` plus a suffix for a family of them — `…/page.md` is
-   * a suffix over arbitrary paths, so a single committed example would go
-   * stale the first time that page was renamed.
+   * An exact path; `*` plus a suffix for a family of them — `…/page.md` is a
+   * suffix over arbitrary paths, so a single committed example would go stale
+   * the first time that page was renamed; or a prefix plus `*` for a directory
+   * whose filenames are not ours to pin, such as the per-locale sitemaps.
    */
   readonly probes: readonly string[];
+  /**
+   * The Nitro handler routes this row accounts for, spelled as the build's own
+   * manifest spells them. Empty for the one row that is a MIDDLEWARE: a
+   * middleware is registered with no route at all, so it cannot be named here.
+   */
+  readonly handlers: readonly string[];
+}
+
+/** A registered handler this table deliberately does not classify. */
+export interface ExemptHandler {
+  /**
+   * The handler route as the manifest spells it, or a prefix ending in `/`,
+   * which covers every route under it.
+   */
+  readonly handler: string;
+  /** Why it is not part of the surface this site publishes. */
+  readonly why: string;
 }
 
 /**
  * THE AUTHORITATIVE CLASSIFICATION. Verified by `pnpm check:routes` against the
  * `.output/public` of a `NITRO_PRESET=cloudflare-module` build.
  *
- * The rule that puts five of these seven rows where they are is Nitro's, and it
- * is not the route rule: `routeRules: { '/**': { prerender: true } }` says a
- * route MAY be prerendered and seeds nothing, because Nitro skips every rule
- * whose path contains a wildcard. What actually fills the queue is
+ * It covers what this site publishes as its own: the pages, and the machine
+ * readers beside them. Everything else the build registers is in
+ * `EXEMPT_HANDLERS` below with a reason, and nothing may be in neither.
+ *
+ * The rule that puts most of these rows where they are is Nitro's, and it is
+ * not the route rule: `routeRules: { '/**': { prerender: true } }` says a route
+ * MAY be prerendered and seeds nothing, because Nitro skips every rule whose
+ * path contains a wildcard. What actually fills the queue is
  * `nitro.prerender.routes: ['/']` and the crawler — and the crawler follows a
  * link only when its extension is `""` or `.json`. A `.txt`, `.md` or `.xml`
  * href is never queued however prominently the site links it, which is why
- * `llms.txt` sits in the footer of every page and is still not a file.
+ * `llms.txt` sits in the landing page's tabs and in every page's head and is
+ * still not a file.
  */
 export const DEPLOYMENT_ROUTES: readonly DeploymentRoute[] = [
   {
@@ -96,7 +135,8 @@ export const DEPLOYMENT_ROUTES: readonly DeploymentRoute[] = [
       'the `/demo/api/shipments` links the versioned demo section generates and ' +
       'nothing serves. Those are a defect wanting a fix where they are generated, ' +
       'not a classified fallback.',
-    probes: ['index.html', 'getting-started/index.html']
+    probes: ['index.html', 'getting-started/index.html'],
+    handlers: ['/**']
   },
   {
     route: '/llms.txt',
@@ -105,12 +145,14 @@ export const DEPLOYMENT_ROUTES: readonly DeploymentRoute[] = [
     d1: true,
     why:
       'A Nitro route handler that indexes every collection the manifest names. ' +
-      'The site links it from the landing page, but `.txt` is outside the ' +
-      "crawler's allowed extensions, so nothing queues it and no file is written.",
+      "The site links it from the landing page's tabs and from every page's head, " +
+      "but `.txt` is outside the crawler's allowed extensions, so nothing queues " +
+      'it and no file is written.',
     fallback:
       'There is no fallback to describe: every request is answered by the Worker, ' +
       'freshly, and the response changes with the content rather than with a rebuild.',
-    probes: ['llms.txt']
+    probes: ['llms.txt'],
+    handlers: ['/llms.txt']
   },
   {
     route: '/llms-full.txt',
@@ -124,7 +166,8 @@ export const DEPLOYMENT_ROUTES: readonly DeploymentRoute[] = [
       'None: the Worker answers every request. It is the largest response this ' +
       'site produces and the one most worth a cache, which is a separate decision ' +
       'and deliberately not taken here.',
-    probes: ['llms-full.txt']
+    probes: ['llms-full.txt'],
+    handlers: ['/llms-full.txt']
   },
   {
     route: '/rss.xml',
@@ -139,7 +182,8 @@ export const DEPLOYMENT_ROUTES: readonly DeploymentRoute[] = [
       'None. With no `feed.path` configured the handler still answers, with an ' +
       'empty channel and without reading D1 at all — a feed client is told there ' +
       'is nothing here rather than that the feed is gone.',
-    probes: ['rss.xml']
+    probes: ['rss.xml'],
+    handlers: ['/rss.xml']
   },
   {
     route: '/{page}.md',
@@ -155,7 +199,11 @@ export const DEPLOYMENT_ROUTES: readonly DeploymentRoute[] = [
       'A `.md` path with no page behind it is not the middleware’s error to raise: ' +
       'it hands the request on and the app answers with its own 404, which knows ' +
       'how to suggest a near miss.',
-    probes: ['*.md']
+    probes: ['*.md'],
+    // A middleware is registered with `route: ''`, so the manifest cannot tell
+    // this one from the two Nitro and the SEO modules install. The exemption
+    // for middleware says so; what keeps THIS one honest is the `*.md` probe.
+    handlers: []
   },
   {
     route: '/mcp',
@@ -167,7 +215,37 @@ export const DEPLOYMENT_ROUTES: readonly DeploymentRoute[] = [
       'POST is never served from the assets binding, so no prerender rule could ' +
       'reach it even if one wanted to.',
     fallback: 'None: a POST always runs.',
-    probes: ['mcp']
+    probes: ['mcp'],
+    handlers: ['/mcp']
+  },
+  {
+    route: '/mcp/deeplink',
+    method: 'GET',
+    delivery: 'worker',
+    d1: false,
+    why:
+      '`@nuxtjs/mcp-toolkit` registers it beside `/mcp`: it reads the client from ' +
+      'the query string and answers with a page that opens that editor’s ' +
+      '`mcp/install` deeplink. Its answer is a function of the query, so there is ' +
+      'nothing to prerender and no collection to read.',
+    fallback:
+      'None: every request runs. An unknown client is redirected to `/`.',
+    probes: ['mcp/deeplink'],
+    handlers: ['/mcp/deeplink']
+  },
+  {
+    route: '/mcp/badge.svg',
+    method: 'GET',
+    delivery: 'worker',
+    d1: false,
+    why:
+      'The "Add to Cursor" badge beside the same route, drawn from the query ' +
+      'string — label, colours and icon are all parameters, so one prerendered ' +
+      'file could only ever be one of its variants. It sets its own ' +
+      '`Cache-Control: public, max-age=86400`.',
+    fallback: 'None: every request runs.',
+    probes: ['mcp/badge.svg'],
+    handlers: ['/mcp/badge.svg']
   },
   {
     route: '/demo/echo',
@@ -177,11 +255,187 @@ export const DEPLOYMENT_ROUTES: readonly DeploymentRoute[] = [
     why:
       'The one endpoint behind the API reference’s try-it client. It answers from ' +
       'the request body — nothing is stored and no collection is read — which is ' +
-      'why it is the only runtime route on this site that does not touch D1.',
+      'why it is the only D1-free route on this site that a reader ever POSTs to.',
     fallback: 'None: a POST always runs.',
-    probes: ['demo/echo']
+    probes: ['demo/echo'],
+    handlers: ['/demo/echo']
+  },
+  {
+    route: '/robots.txt',
+    method: 'GET',
+    delivery: 'worker',
+    d1: false,
+    why:
+      '`@nuxtjs/robots`, composed at request time from the site config, the ' +
+      'layer’s own `disallow` and the sitemaps it has to point at. `.txt` again: ' +
+      'linked or not, the crawler would not queue it. Content v3 needs no query ' +
+      'for it — the v2 integration that fetched page rules is not the one in use.',
+    fallback:
+      'None: every request runs. It is the reason `site.url` must be set — the ' +
+      'sitemap lines it emits are absolute.',
+    probes: ['robots.txt'],
+    handlers: ['/robots.txt']
+  },
+  {
+    route: '/sitemap_index.xml',
+    method: 'GET',
+    delivery: 'asset',
+    d1: false,
+    why:
+      'The one sitemap entry point a crawler is given, and `@nuxtjs/sitemap` ' +
+      'prerenders it itself rather than leaving it to the link crawler that would ' +
+      'skip an `.xml` href. It is a file, and it changes only on a rebuild.',
+    fallback:
+      'A build that stopped writing it would fall through to the module’s handler, ' +
+      'which composes the same document from the content — and that is the failure ' +
+      'this row exists to report rather than to absorb.',
+    probes: ['sitemap_index.xml'],
+    handlers: ['/sitemap_index.xml']
+  },
+  {
+    route: '/sitemap.xml',
+    method: 'GET',
+    delivery: 'asset',
+    d1: false,
+    why:
+      'Shipped by the module the moment a site has more than one sitemap, so a ' +
+      'reader who guesses the conventional name is sent to the index rather than ' +
+      'to a 404. Prerendered with it.',
+    fallback: 'The module’s handler, exactly as for the index.',
+    probes: ['sitemap.xml'],
+    handlers: ['/sitemap.xml']
+  },
+  {
+    route: '/__sitemap__/{locale}.xml',
+    method: 'GET',
+    delivery: 'asset',
+    d1: false,
+    why:
+      'One sitemap per locale, which is what the index points at. Prerendered by ' +
+      'the module for the same reason as the index above.',
+    fallback: 'The module’s handler, which queries the collections instead.',
+    // The locale codes are i18n’s to decide, so naming one here would break the
+    // day a locale is added. The directory is the claim.
+    probes: ['__sitemap__/*'],
+    handlers: ['/__sitemap__/**:sitemap']
+  },
+  {
+    route: '/__sitemap__/style.xsl',
+    method: 'GET',
+    delivery: 'worker',
+    d1: false,
+    why:
+      'The stylesheet that makes a sitemap readable in a browser. It is composed ' +
+      'per request — from the `Referer`, so that the document it decorates can put ' +
+      'its own name in the heading — which is precisely why it cannot be a file.',
+    fallback: 'None: every request runs.',
+    probes: ['__sitemap__/style.xsl'],
+    handlers: ['/__sitemap__/style.xsl']
+  },
+  {
+    route: '/__sitemap__/nuxt-content-urls.json',
+    method: 'GET',
+    delivery: 'worker',
+    d1: true,
+    why:
+      'The source endpoint the sitemap module reads its Content URLs from. The ' +
+      'sitemaps themselves are prerendered, so on a deployed site nothing asks for ' +
+      'it — but it is registered, it is reachable, and it queries every page ' +
+      'collection when it is. `.json` IS inside the crawler’s allowed extensions; ' +
+      'no rendered page links it, which is the only reason no file was written.',
+    fallback:
+      'None: every request runs, and reads D1 doing it. It is the one route here ' +
+      'that reads the database without any reader ever asking it to.',
+    probes: ['__sitemap__/nuxt-content-urls.json'],
+    handlers: ['/__sitemap__/nuxt-content-urls.json']
   }
 ];
+
+/**
+ * EVERY OTHER HANDLER THE BUILD REGISTERS, AND WHY IT IS NOT THE SITE'S.
+ *
+ * These are framework and module machinery: endpoints a page, the client bundle
+ * or a build step calls, not a surface this site publishes or a reader ever
+ * types. They are listed rather than filtered by a pattern so that each one had
+ * to be looked at once, and so that a new one is a failing check rather than a
+ * silent addition to a wildcard.
+ */
+export const EXEMPT_HANDLERS: readonly ExemptHandler[] = [
+  {
+    handler: '',
+    why:
+      'A middleware. Nitro registers them with no route at all, so the manifest ' +
+      'cannot tell one from another — Nitro’s own two, the SEO modules’ and this ' +
+      'repo’s `.md` twin all read as `""`. The one that answers a request as ' +
+      'itself is classified as `/{page}.md` above, and the `*.md` probe is what ' +
+      'holds it to that.'
+  },
+  {
+    handler: '/__nuxt_error',
+    why:
+      'Nuxt’s own error renderer, reached internally when a render throws. It is ' +
+      'never a URL anybody navigates to.'
+  },
+  {
+    handler: '/__nuxt_island/',
+    why:
+      'Server components, fetched by the client bundle for islands. An ' +
+      'implementation detail of rendering a page that is already classified.'
+  },
+  {
+    handler: '/__nuxt_content/',
+    why:
+      'Content’s own dump and query endpoints, one pair per collection. The ' +
+      'dumps are how the deployed database is restored into D1 on the first ' +
+      'request; they are a build artefact of the content pipeline rather than a ' +
+      'published route, and they are what the file comparison must not try to ' +
+      'enumerate.'
+  },
+  {
+    handler: '/_i18n/',
+    why: 'The lazy-loaded message bundles `@nuxtjs/i18n` fetches per locale.'
+  },
+  {
+    handler: '/_ipx/',
+    why:
+      'The image transformer. Every `<img>` on a prerendered page already points ' +
+      'at a written file; this is the handler behind that.'
+  },
+  {
+    handler: '/_og/',
+    why:
+      'nuxt-og-image’s renderer. `ogImage.zeroRuntime` strips it from the Workers ' +
+      'bundle precisely because `@resvg/resvg-js` cannot run there — the images ' +
+      'are written by the prerender pass and served as files.'
+  },
+  {
+    handler: '/api/_nuxt_icon/',
+    why:
+      'The icon collections `@nuxt/icon` serves to the client for any icon not ' +
+      'inlined at build time.'
+  },
+  {
+    handler: '/.well-known/',
+    why:
+      'OAuth and OpenID discovery documents `@nuxtjs/mcp-toolkit` registers so an ' +
+      'MCP client can probe for authorization. This deployment configures none, so ' +
+      'they exist to answer that — the module’s protocol surface, not the site’s.'
+  }
+];
+
+/** Files under `.output/public` a probe matches. */
+function matchProbe(
+  listing: readonly string[],
+  present: ReadonlySet<string>,
+  probe: string
+): string[] {
+  if (probe.startsWith('*'))
+    return listing.filter((file) => file.endsWith(probe.slice(1)));
+  if (probe.endsWith('*'))
+    return listing.filter((file) => file.startsWith(probe.slice(0, -1)));
+
+  return present.has(probe) ? [probe] : [];
+}
 
 /**
  * Compare a listing of `.output/public` with the table.
@@ -199,11 +453,7 @@ export function verifyDeploymentRoutes(
 
   for (const entry of routes) {
     for (const probe of entry.probes) {
-      const matches = probe.startsWith('*')
-        ? listing.filter((file) => file.endsWith(probe.slice(1)))
-        : present.has(probe)
-          ? [probe]
-          : [];
+      const matches = matchProbe(listing, present, probe);
 
       if (entry.delivery === 'asset' && matches.length === 0) {
         findings.push(
@@ -228,15 +478,109 @@ export function verifyDeploymentRoutes(
   return findings;
 }
 
+/**
+ * Nitro's handler manifest, read out of a built bundle.
+ *
+ * Generated code, so the shape is fixed — `{ route, handler, lazy, middleware,
+ * method }` in that order — but nothing promises the whitespace survives
+ * bundling, and a regex that quietly matched nothing would turn the coverage
+ * check into a no-op. Hence the tolerance here and the empty-reading finding in
+ * `verifyHandlerCoverage`.
+ */
+export function parseHandlerRoutes(source: string): string[] {
+  const pattern =
+    /\{\s*route\s*:\s*(["'])((?:[^"'\\]|\\.)*?)\1\s*,\s*handler\s*:\s*[^,]+?,\s*lazy\s*:\s*(?:true|false)\s*,\s*middleware\s*:\s*(?:true|false)\s*[,}]/g;
+
+  return [...source.matchAll(pattern)].map((match) => match[2] ?? '');
+}
+
+/**
+ * Require a row or an exemption for every handler the build registers.
+ *
+ * This is the half `verifyDeploymentRoutes` cannot do: a route with no row is
+ * invisible to a comparison that only walks the rows. Pure over the manifest's
+ * own route strings, so both directions are testable without a build.
+ */
+export function verifyHandlerCoverage(
+  handlerRoutes: Iterable<string>,
+  routes: readonly DeploymentRoute[] = DEPLOYMENT_ROUTES,
+  exemptions: readonly ExemptHandler[] = EXEMPT_HANDLERS
+): string[] {
+  const registered = [...handlerRoutes];
+  const findings: string[] = [];
+
+  if (registered.length === 0) {
+    return [
+      'no handler manifest was found in the built server bundle, so nothing was compared. ' +
+        'Nitro generates that array, so either the build is incomplete or its shape moved and ' +
+        '`parseHandlerRoutes` has to move with it. This reports rather than passes on purpose: ' +
+        'a coverage check that silently compares nothing is worse than no check at all.'
+    ];
+  }
+
+  const claimed = new Set(routes.flatMap((entry) => entry.handlers));
+
+  for (const handler of new Set(registered)) {
+    if (claimed.has(handler)) continue;
+
+    const exempt = exemptions.some((entry) =>
+      entry.handler.endsWith('/')
+        ? handler.startsWith(entry.handler)
+        : handler === entry.handler
+    );
+    if (exempt) continue;
+
+    findings.push(
+      `the build registers a handler for \`${handler}\`, and nothing in this file says which side ` +
+        'it is on. Classify it in `DEPLOYMENT_ROUTES` if it is a route this site publishes, or name ' +
+        'it in `EXEMPT_HANDLERS` with the reason it is not. An unclassified handler is how ' +
+        '`llms-full.txt` and `rss.xml` went unaccounted for.'
+    );
+  }
+
+  const present = new Set(registered);
+  for (const entry of routes) {
+    for (const handler of entry.handlers) {
+      if (present.has(handler)) continue;
+
+      findings.push(
+        `${entry.route} is classified against a handler for \`${handler}\`, and the build registers ` +
+          'no such route. Either it moved and the row has to follow, or the route is gone and the ' +
+          'row with it.'
+      );
+    }
+  }
+
+  return findings;
+}
+
 /** Every file under `directory`, relative to it, with `/` separators. */
 function listFiles(directory: string, prefix = ''): string[] {
   const found: string[] = [];
 
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    // The Node preset copies the whole dependency tree in beside the bundle;
+    // none of it is this build's own code.
+    if (entry.isDirectory() && entry.name === 'node_modules') continue;
+
     const name = prefix ? `${prefix}/${entry.name}` : entry.name;
     if (entry.isDirectory())
       found.push(...listFiles(join(directory, entry.name), name));
     else found.push(name);
+  }
+
+  return found;
+}
+
+/** Every handler route the built server registers, wherever it was bundled. */
+function readHandlerRoutes(directory: string): string[] {
+  const found: string[] = [];
+
+  for (const file of listFiles(directory)) {
+    if (!file.endsWith('.mjs') && !file.endsWith('.js')) continue;
+    found.push(
+      ...parseHandlerRoutes(readFileSync(join(directory, file), 'utf8'))
+    );
   }
 
   return found;
@@ -269,7 +613,11 @@ function main(): void {
     );
   }
 
-  const findings = verifyDeploymentRoutes(listFiles(join(output, 'public')));
+  const handlers = readHandlerRoutes(join(output, 'server'));
+  const findings = [
+    ...verifyDeploymentRoutes(listFiles(join(output, 'public'))),
+    ...verifyHandlerCoverage(handlers)
+  ];
 
   for (const entry of DEPLOYMENT_ROUTES) {
     const where = entry.delivery === 'asset' ? 'asset ' : 'Worker';
@@ -289,7 +637,8 @@ function main(): void {
   }
 
   console.log(
-    `\n${DEPLOYMENT_ROUTES.length} routes verified against the ${preset} build artifact.`
+    `\n${DEPLOYMENT_ROUTES.length} routes verified against the ${preset} build artifact, ` +
+      `and all ${new Set(handlers).size} handlers it registers are classified or exempt.`
   );
 }
 

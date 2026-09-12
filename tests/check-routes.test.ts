@@ -1,7 +1,10 @@
 import { expect, test } from 'vitest';
 import {
   DEPLOYMENT_ROUTES,
+  EXEMPT_HANDLERS,
+  parseHandlerRoutes,
   verifyDeploymentRoutes,
+  verifyHandlerCoverage,
   type DeploymentRoute
 } from '../scripts/check-routes';
 
@@ -98,4 +101,99 @@ test('page Markdown is matched by suffix, not by one example path', () => {
 
   expect(findings.join('\n')).toContain('/{page}.md');
   expect(findings.join('\n')).toContain('guides/some-page-nobody-listed.md');
+});
+
+/**
+ * The second half: a handler the table forgot.
+ *
+ * `verifyDeploymentRoutes` only ever asks whether a CLASSIFIED route is on the
+ * side the table claims, so a registered handler with no row at all is invisible
+ * to it — which is the exact gap that let `llms-full.txt` and `rss.xml` go
+ * unaccounted for before this file existed. Handlers are enumerable from the
+ * same build the check already reads, so they are enumerated and every one of
+ * them has to be either classified or exempted by name.
+ */
+
+/** A handler manifest in the shape Nitro generates it. */
+const MANIFEST = `
+const handlers = [
+  { route: '', handler: _vOaGnc, lazy: false, middleware: true, method: undefined },
+  { route: '/llms.txt', handler: _lazy_hCk4l8, lazy: true, middleware: false, method: "get" },
+  { route: '/_og/d/**', handler: _lazy_6iVvmj, lazy: true, middleware: false, method: undefined }
+];
+`;
+
+test('the handler manifest is read out of the bundle', () => {
+  expect(parseHandlerRoutes(MANIFEST)).toEqual(['', '/llms.txt', '/_og/d/**']);
+});
+
+test('a minified manifest is read too', () => {
+  // Nothing promises the Cloudflare bundle keeps the whitespace, and a regex
+  // that quietly matches nothing would turn this check into a no-op.
+  expect(
+    parseHandlerRoutes(
+      `const handlers=[{route:"/mcp",handler:_zXQlYV,lazy:false,middleware:false,method:void 0}];`
+    )
+  ).toEqual(['/mcp']);
+});
+
+/** The handler routes the table itself claims, which is a passing build. */
+function registeredHandlers(): string[] {
+  return ['', ...DEPLOYMENT_ROUTES.flatMap((entry) => entry.handlers)];
+}
+
+test('a build whose handlers the table accounts for reports nothing', () => {
+  expect(verifyHandlerCoverage(registeredHandlers())).toEqual([]);
+});
+
+test('a registered handler with no row and no exemption is reported', () => {
+  const findings = verifyHandlerCoverage([
+    ...registeredHandlers(),
+    '/robots.txt.new'
+  ]);
+
+  expect(findings.join('\n')).toContain('/robots.txt.new');
+  expect(findings).toHaveLength(1);
+});
+
+test('an exempted handler is not reported', () => {
+  expect(
+    verifyHandlerCoverage([
+      ...registeredHandlers(),
+      '/__nuxt_content/docs/query'
+    ])
+  ).toEqual([]);
+});
+
+test('every exemption says why the route is not the site’s to classify', () => {
+  for (const entry of EXEMPT_HANDLERS) {
+    expect(entry.handler.length).toBeGreaterThan(-1);
+    expect(entry.why.length).toBeGreaterThan(0);
+  }
+});
+
+test('a row naming a handler the build no longer registers is reported', () => {
+  const findings = verifyHandlerCoverage(
+    registeredHandlers().filter((route) => route !== '/llms.txt')
+  );
+
+  expect(findings.join('\n')).toContain('/llms.txt');
+});
+
+test('a bundle with no manifest in it fails open', () => {
+  // A check that cannot find what it compares against must say so. Reporting
+  // "nothing unclassified" from an empty reading is the one outcome that would
+  // make this check worse than not having it.
+  const findings = verifyHandlerCoverage([]);
+
+  expect(findings.join('\n')).toContain('no handler manifest');
+});
+
+test('the classification carries the handler each row accounts for', () => {
+  for (const entry of DEPLOYMENT_ROUTES) {
+    // The `.md` twin is a middleware, and a middleware has no route of its own
+    // in the manifest — it is the one row that can name none.
+    if (entry.route === '/{page}.md') expect(entry.handlers).toEqual([]);
+    else expect(entry.handlers.length).toBeGreaterThan(0);
+  }
 });
