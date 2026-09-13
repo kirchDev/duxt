@@ -158,10 +158,13 @@ export default defineAppConfig({
       {
         repo: 'kirchDev/terraform-provider-linear',
         path: 'docs',
-        slug: 'tf',
-        // The segment is an abbreviation, so without this the search would
-        // caption every provider page `Tf`. A literal rather than a record:
-        // the product name is the same word in every language.
+        // Inside the demo area rather than an area of its own: the layer folds
+        // a tree nested under another area's root into that area, so its pages
+        // keep the demo row and the row's Terraform entry opens it.
+        slug: 'demo/terraform',
+        // Without this the search would caption every provider page with the
+        // slug. A literal rather than a record: the product name is the same
+        // word in every language.
         name: 'Terraform Provider',
         flavor: 'tfplugindocs',
         refs: [{ tag: 'v0.2.6', default: true }]
@@ -200,14 +203,15 @@ export default defineAppConfig({
           // `navigation: 'sections'` — the default — puts the entry in the
           // SECTION ROW, and that row is now this source's own: the layer shows
           // the entries of the area the reader is in, so `/demo` and
-          // `/demo/api` sit beside each other there while the documentation
+          // `/demo/openapi` sit beside each other there while the documentation
           // keeps its six at the root. The navbar entry below opens the area;
           // the row moves around inside it.
           {
             type: 'openapi',
             path: 'www/demo/v3.yaml',
-            label: 'Demo API',
-            slug: 'api',
+            label: 'OpenAPI',
+            slug: 'openapi',
+            icon: 'vscode-icons:file-type-swagger',
             versions: [
               {
                 version: 'main',
@@ -241,8 +245,9 @@ export default defineAppConfig({
           {
             type: 'bruno',
             path: 'www/demo/collection',
-            label: 'Demo Collection',
-            slug: 'collection',
+            label: 'Bruno',
+            slug: 'bruno',
+            icon: 'vscode-icons:file-type-bruno',
             options: {
               tryIt: { baseUrl: 'https://duxt.app' },
               fetch: 'https://github.com/kirchDev/duxt.git'
@@ -252,7 +257,7 @@ export default defineAppConfig({
           {
             type: 'changelog',
             path: 'www/demo/CHANGELOG.md',
-            label: 'Demo Changelog',
+            label: 'Changelog',
             slug: 'changelog',
             navigation: 'sections'
           },
@@ -260,7 +265,7 @@ export default defineAppConfig({
           {
             type: 'changelog',
             path: 'www/demo/CHANGELOG.md',
-            label: 'Demo Changelog (flat)',
+            label: 'Changelog (flat)',
             slug: 'changelog-flat',
             navigation: false,
             options: { granularity: 'flat' }
@@ -397,13 +402,6 @@ export default defineAppConfig({
       // reference — takes over from there. The highlight is a prefix match, so
       // the entry stays lit across every version of the reference under it.
       { label: 'Demo', to: '/demo', icon: 'lucide:flask-conical' },
-      // A source dialect remains ordinary documentation, so this points to
-      // the provider overview instead of introducing a second kind of page.
-      {
-        label: 'Terraform demo',
-        to: '/tf',
-        icon: 'vscode-icons:file-type-terraform'
-      },
       // A navbar entry of its own rather than an item inside the dropdown: a
       // link buried in a menu is a link nobody opens the menu for, and this one
       // is a page of the site while the five above leave it. It sits after
@@ -521,9 +519,12 @@ export default defineAppConfig({
       // the documentation above and stands beside the generated reference on
       // every page under `/demo`.
       //
-      // The reference's own entry is not written here: its declaration says
-      // `navigation: 'sections'`, and the layer appends it to this row at the
-      // version the reader is on. Writing it by hand would pin it to one.
+      // The generated parts are written here too, and only for their ORDER:
+      // appended, they would land after the Terraform entry. An entry at a
+      // per-version section's own URL still follows the reader's version —
+      // the layer points it at the edition being read, so `/demo/openapi`
+      // below is `/demo/v2.x/openapi` to a reader on `v2.x`. The labels are
+      // the tool or format each part renders, the same word in every language.
       {
         label: {
           'en-GB': 'Overview',
@@ -534,6 +535,24 @@ export default defineAppConfig({
         },
         to: '/demo',
         icon: 'lucide:book-open-text'
+      },
+      {
+        label: 'OpenAPI',
+        to: '/demo/openapi',
+        icon: 'vscode-icons:file-type-swagger'
+      },
+      {
+        label: 'Bruno',
+        to: '/demo/bruno',
+        icon: 'vscode-icons:file-type-bruno'
+      },
+      { label: 'Changelog', to: '/demo/changelog', icon: 'lucide:tag' },
+      // A source dialect remains ordinary documentation: a second source
+      // nested under `/demo`, not a generated section.
+      {
+        label: 'Terraform',
+        to: '/demo/terraform',
+        icon: 'vscode-icons:file-type-terraform'
       }
     ],
 
@@ -1182,11 +1201,11 @@ sourceOptions: { defaultRef: 'v2.0.0' }
               'fr-FR': 'Ouvrir la référence',
               'pt-PT': 'Abrir a referência'
             },
-            to: '/demo/api'
+            to: '/demo/openapi'
           },
           demo: {
             type: 'frame',
-            to: '/demo/api/consignments',
+            to: '/demo/openapi/consignments',
             height: '34rem',
             skeleton: 'api'
           }
@@ -1296,7 +1315,7 @@ sourceOptions: { defaultRef: 'v2.0.0' }
           full: true,
           demo: {
             type: 'operation',
-            to: '/demo/api/demo/echoconsignment',
+            to: '/demo/openapi/demo/echoconsignment',
             // The words beside the SECOND row. The client splits itself into
             // the form and the samples, and each row wants its own sentence —
             // one component, so the sample really is the request the button

@@ -216,6 +216,51 @@ const ogImageCache = duxtOgImageBuildCache({
 
 // Consumes the layer exactly as a downstream repo does. Modules, the Content
 // driver and the theme all arrive with the extend.
+/**
+ * THE DEMO AREA'S OLD URLS, redirected to where its parts live now.
+ *
+ * The Terraform provider reference used to be an area of its own at `/tf`, and
+ * the demo's API reference and Bruno collection sat at `/demo/api` and
+ * `/demo/collection`. All three are parts of `/demo` now, under the name of the
+ * thing they render. `redirectFrom` cannot say this: none of these pages has
+ * frontmatter this site writes — two are generated, one is another repository's.
+ *
+ * One rule per locale segment, because i18n puts the locale in front of the
+ * path and a route rule matches the path as requested. The API reference is
+ * versioned, so each version's segment moves too.
+ */
+const DEMO_LOCALES = [
+  '',
+  '/en-US',
+  '/de-DE',
+  '/es-ES',
+  '/fr-FR',
+  '/pt-PT',
+  '/pt-BR'
+];
+const DEMO_MOVES: [string, string][] = [
+  ['/tf', '/demo/terraform'],
+  ['/demo/collection', '/demo/bruno'],
+  ...['', '/main', '/v2.x', '/v1.x'].map((version): [string, string] => [
+    `/demo${version}/api`,
+    `/demo${version}/openapi`
+  ])
+];
+const movedDemoRoutes = Object.fromEntries(
+  DEMO_LOCALES.flatMap((locale) =>
+    DEMO_MOVES.flatMap(([from, to]) => [
+      [
+        `${locale}${from}`,
+        { redirect: { to: `${locale}${to}`, statusCode: 301 } }
+      ],
+      [
+        `${locale}${from}/**`,
+        { redirect: { to: `${locale}${to}/**`, statusCode: 301 } }
+      ]
+    ])
+  )
+);
+
 export default defineNuxtConfig({
   // By name, not by path: this is what a consumer writes, so the package's
   // exports map and files allowlist are exercised by the development site.
@@ -298,7 +343,10 @@ export default defineNuxtConfig({
    * handler the build registers, and a new one with no row there fails the
    * check rather than quietly joining this sentence.
    */
-  routeRules: cloudflare ? { '/**': { prerender: true } } : {},
+  routeRules: {
+    ...movedDemoRoutes,
+    ...(cloudflare ? { '/**': { prerender: true } } : {})
+  },
 
   /**
    * The route rule above only says a page MAY be prerendered — it seeds
@@ -330,7 +378,7 @@ export default defineNuxtConfig({
                *
                * Nuxt's default is to exit the build on the first prerender error,
                * and crawling every link finds every dead one by construction: this
-               * site currently reaches `/demo/api/shipments` and its two
+               * site currently reaches `/demo/openapi/shipments` and its two
                * operations — unversioned paths the versioned demo section links to
                * and nothing serves — 42 times across the locales.
                *

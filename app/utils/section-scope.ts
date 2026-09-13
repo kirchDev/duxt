@@ -50,8 +50,30 @@ function documentationFor(source: Area | undefined, sources: Area[]) {
   )[0];
 }
 
-/** The version-neutral root of a documentation area. */
+/**
+ * The version-neutral root of a documentation area.
+ *
+ * A tree published INSIDE another area's root belongs to that area: a provider
+ * reference at `/demo/terraform` is a part of `/demo` in the same way the
+ * generated reference beside it is, and treating it as an area of its own
+ * would empty the row on its pages and hide its entry on every other one. The
+ * root area `''` never adopts anything, or every source would be one area.
+ */
 function areaRoot(source: Area | undefined, sources: Area[]): string {
+  const own = treeRoot(source, sources);
+  if (!own) return own;
+
+  const enclosing = sources
+    .filter((other) => !other.generated)
+    .map((other) => treeRoot(other, sources))
+    .filter((root) => root && root !== own && isInside(own, root))
+    .sort((a, b) => a.length - b.length)[0];
+
+  return enclosing ?? own;
+}
+
+/** The root of the one documentation tree a source belongs to. */
+function treeRoot(source: Area | undefined, sources: Area[]): string {
   const documentation = documentationFor(source, sources);
   if (!documentation) return '';
 

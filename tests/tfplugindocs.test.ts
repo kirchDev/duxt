@@ -78,32 +78,36 @@ describe('normaliseTfplugindocsPage', () => {
 describe('tfplugindocsNavigation', () => {
   it('orders categories and synthesises alphabetical subcategory groups after direct pages', () => {
     const tree = [
-      { title: 'Data Sources', path: '/tf/data-sources' },
+      { title: 'Data Sources', path: '/demo/terraform/data-sources' },
       {
         title: 'Resources',
-        path: '/tf/resources',
+        path: '/demo/terraform/resources',
         children: [
-          { title: 'Team', path: '/tf/resources/team' },
-          { title: 'Alpha', path: '/tf/resources/alpha' },
-          { title: 'User', path: '/tf/resources/user', subcategory: 'People' },
+          { title: 'Team', path: '/demo/terraform/resources/team' },
+          { title: 'Alpha', path: '/demo/terraform/resources/alpha' },
+          {
+            title: 'User',
+            path: '/demo/terraform/resources/user',
+            subcategory: 'People'
+          },
           {
             title: 'Project',
-            path: '/tf/resources/project',
+            path: '/demo/terraform/resources/project',
             subcategory: 'Work'
           },
           {
             title: 'Account',
-            path: '/tf/resources/account',
+            path: '/demo/terraform/resources/account',
             subcategory: 'People'
           }
         ]
       },
-      { title: 'Overview', path: '/tf' },
-      { title: 'Experimental', path: '/tf/experimental' },
-      { title: 'Guides', path: '/tf/guides' }
+      { title: 'Overview', path: '/demo/terraform' },
+      { title: 'Experimental', path: '/demo/terraform/experimental' },
+      { title: 'Guides', path: '/demo/terraform/guides' }
     ] as ContentNavigationItem[];
 
-    const result = tfplugindocsNavigation(tree, '/tf');
+    const result = tfplugindocsNavigation(tree, '/demo/terraform');
 
     expect(result.map((item) => item.title)).toEqual([
       'Overview',
@@ -124,7 +128,7 @@ describe('tfplugindocsNavigation', () => {
     expect(result[2]?.children?.[2]).toMatchObject({ page: false });
     expect(
       flattenedNavigationPages(result).map((item) => item.path)
-    ).not.toContain('/tf/resources/__duxt-subcategory-0');
+    ).not.toContain('/demo/terraform/resources/__duxt-subcategory-0');
   });
 
   // The synthetic groups are Vue keys, never routes, so EVERY traversal has to
@@ -136,26 +140,30 @@ describe('tfplugindocsNavigation', () => {
       [
         {
           title: 'Resources',
-          path: '/tf/resources',
+          path: '/demo/terraform/resources',
           children: [
-            { title: 'Team', path: '/tf/resources/team' },
+            { title: 'Team', path: '/demo/terraform/resources/team' },
             {
               title: 'User',
-              path: '/tf/resources/user',
+              path: '/demo/terraform/resources/user',
               subcategory: 'People'
             }
           ]
         }
       ] as ContentNavigationItem[],
-      '/tf'
+      '/demo/terraform'
     );
 
     it('leaves the group out of the breadcrumb trail to a member page', () => {
-      const trail = trailBelowPrefix(nav, '/tf/resources/user', '/tf');
+      const trail = trailBelowPrefix(
+        nav,
+        '/demo/terraform/resources/user',
+        '/demo/terraform'
+      );
 
       expect(trail.map((item) => item.path)).toEqual([
-        '/tf/resources',
-        '/tf/resources/user'
+        '/demo/terraform/resources',
+        '/demo/terraform/resources/user'
       ]);
     });
 
@@ -166,19 +174,21 @@ describe('tfplugindocsNavigation', () => {
       }));
 
       expect(
-        nearestPages('/tf/resources/users', candidates).map((page) => page.path)
-      ).not.toContain('/tf/resources/__duxt-subcategory-0');
+        nearestPages('/demo/terraform/resources/users', candidates).map(
+          (page) => page.path
+        )
+      ).not.toContain('/demo/terraform/resources/__duxt-subcategory-0');
     });
 
     it('shows the member pages as cards rather than the group', () => {
       const cards = navigationCardItems(
-        findByPath(nav, '/tf/resources'),
-        '/tf/resources'
+        findByPath(nav, '/demo/terraform/resources'),
+        '/demo/terraform/resources'
       );
 
       expect(cards.map((item) => item.path)).toEqual([
-        '/tf/resources/team',
-        '/tf/resources/user'
+        '/demo/terraform/resources/team',
+        '/demo/terraform/resources/user'
       ]);
     });
   });

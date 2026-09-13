@@ -81,14 +81,14 @@ const ROUTES = [
   // being checked here — the reference layout and a parser's operation page
   // are, and nothing else on this list would catch a heading order or an
   // unlabelled control in either.
-  '/demo/api',
-  '/demo/api/consignments/listconsignments',
+  '/demo/openapi',
+  '/demo/openapi/consignments/listconsignments',
   // The SECOND type in that layout, and the reason it is worth a third entry
   // here rather than trusted to the two above: the request page draws the same
   // client from different props, and the overview draws two controls — a
   // download and an outbound link — that no other page on this list has.
-  '/demo/collection',
-  '/demo/collection/consignments/create-a-consignment',
+  '/demo/bruno',
+  '/demo/bruno/consignments/create-a-consignment',
   // THE ONLY PAGE THAT RENDERS AN IMAGE. Every `![…]` in the component
   // reference sits inside a fenced code block, so without this route the gate
   // never reaches `ProseImg` at all — and what it draws is a `<button>` around

@@ -80,10 +80,10 @@ it('includes the real www Terraform, API and release sources from getting-starte
     expect(active.map((entry) => entry.prefix)).toEqual([
       '',
       '/demo',
-      '/tf',
+      '/demo/terraform',
       '/releases',
-      '/demo/api',
-      '/demo/collection',
+      '/demo/openapi',
+      '/demo/bruno',
       '/demo/changelog',
       '/demo/changelog-flat'
     ]);

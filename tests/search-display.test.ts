@@ -265,13 +265,17 @@ it('gives every real www source a readable name, never a slash or an identifier'
     // Named by config, not slugged — and `tf`, an abbreviation, least of all.
     expect(names.get('docs')).toBe('duxt documentation');
     expect(names.get('docs_demo')).toBe('Demo documentation');
-    expect(names.get('docs_tf')).toBe('Terraform Provider');
-    // Every edition of the demo answers to one name, captions included.
+    expect(names.get('docs_demo_terraform')).toBe('Terraform Provider');
+    // Every edition of the demo answers to one name, captions included. The
+    // provider nested under `/demo` is a source of its own with its own name.
+    const demo = (collection: string) =>
+      collection.startsWith('docs_demo') &&
+      !collection.startsWith('docs_demo_terraform');
     expect(
-      [...names].filter(([collection]) => collection.startsWith('docs_demo'))
+      [...names].filter(([collection]) => demo(collection))
     ).not.toHaveLength(0);
     for (const [collection, name] of names) {
-      if (collection.startsWith('docs_demo')) {
+      if (demo(collection)) {
         expect(name).toBe('Demo documentation');
       }
     }

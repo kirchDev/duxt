@@ -28,7 +28,7 @@
  *
  *     node scripts/search-index-bench.ts \
  *       --output www/.output/public \
- *       --collections docs,docs_demo,docs_tf,docs_releases \
+ *       --collections docs,docs_demo,docs_demo_terraform,docs_releases \
  *       --index /tmp/pagefind --language en-GB \
  *       --platforms linux-x64,darwin-arm64,windows-x64 \
  *       --engines linux-x64,darwin-arm64,windows-x64 \

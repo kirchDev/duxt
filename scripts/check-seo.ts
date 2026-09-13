@@ -313,7 +313,7 @@ async function checkAlternates() {
 async function checkMachineReadableLinks() {
   const failures: string[] = [];
 
-  for (const route of [PAGES.doc, PAGES.translated, '/demo/v1.x/api']) {
+  for (const route of [PAGES.doc, PAGES.translated, '/demo/v1.x/openapi']) {
     const document = await head(route);
     const markdown = document.querySelector(
       'link[rel="alternate"][type="text/markdown"]'
@@ -358,12 +358,12 @@ async function checkSourceLanguage() {
     ['/demo', false, false],
     ['/en-US/demo', false, false],
     ['/de-DE/demo', true, true],
-    ['/demo/api', false, false],
-    ['/de-DE/demo/api', true, true],
-    ['/demo/v1.x/api', false, true]
+    ['/demo/openapi', false, false],
+    ['/de-DE/demo/openapi', true, true],
+    ['/demo/v1.x/openapi', false, true]
   ] as const) {
     const document = await head(route);
-    const title = route.endsWith('/api') ? 'Harbour' : 'Overview';
+    const title = route.endsWith('/openapi') ? 'Harbour' : 'Overview';
     if (document.querySelector('h1')?.textContent?.trim() !== title) {
       failures.push(`${route}: expected the demo page to render`);
     }

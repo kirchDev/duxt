@@ -29,6 +29,36 @@ const SECTIONS = [
 ];
 
 describe('areaForPath', () => {
+  it('folds a documentation tree nested under an area into that area', () => {
+    // A provider reference published at `/demo/terraform` is a part of the demo
+    // area, not a third area: its pages keep the demo row, and its own entry
+    // shows beside the demo's other parts.
+    const sources = [
+      { prefix: '' },
+      { prefix: '/demo', repo: 'demo' },
+      { prefix: '/demo/terraform', repo: 'demo/terraform' },
+      { prefix: '/demo/openapi', generated: { type: 'openapi' } }
+    ];
+    const row = [
+      { label: 'Guides', to: '/guides' },
+      { label: 'Overview', to: '/demo' },
+      { label: 'Terraform', to: '/demo/terraform' }
+    ];
+
+    expect(areaForPath('/demo/terraform/resources/team', sources)).toBe(
+      '/demo'
+    );
+    for (const path of ['/demo', '/demo/terraform/resources/team']) {
+      expect(sectionsForPath(row, sources, path).map((s) => s.to)).toEqual([
+        '/demo',
+        '/demo/terraform'
+      ]);
+    }
+    expect(sectionsForPath(row, sources, '/guides').map((s) => s.to)).toEqual([
+      '/guides'
+    ]);
+  });
+
   it('places a page under the longest DOCUMENTATION prefix', () => {
     expect(areaForPath('/getting-started', SOURCES)).toBe('');
     expect(areaForPath('/demo', SOURCES)).toBe('/demo');

@@ -132,7 +132,7 @@ export const DEPLOYMENT_ROUTES: readonly DeploymentRoute[] = [
       'request falls through to the Worker, which renders it from D1 exactly as it ' +
       'would have anyway — slower, and correct. THIS IS NOT COVER FOR A BROKEN ' +
       'LINK: `prerender.failOnError` is off, so the crawl also prints and walks past ' +
-      'the `/demo/api/shipments` links the versioned demo section generates and ' +
+      'the `/demo/openapi/shipments` links the versioned demo section generates and ' +
       'nothing serves. Those are a defect wanting a fix where they are generated, ' +
       'not a classified fallback.',
     probes: ['index.html', 'getting-started/index.html'],
