@@ -9,8 +9,8 @@ import type { DuxtSearchHit } from '@duxt/composables/useDuxtSearch';
 // Full-text search over EVERY source, not just the one being read. Content
 // builds the index at build time and queries it with SQLite's FTS, so the
 // ranking is the database's rather than a substring match of ours — and there
-// is no search service to run. The merge across sources, and why the results
-// are ranked together rather than grouped per repository, is in
+// is no search service to run. The merge across sources, and why their locally
+// ranked lists are interleaved rather than compared by score, is in
 // `useDuxtSearch`.
 //
 // The index is fetched on first open, not shipped with every page: a docs site

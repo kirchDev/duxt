@@ -29,13 +29,11 @@ export interface DuxtSearchHit extends DuxtSearchSection {
  * the thing the `sources` model makes possible and a single-repository theme
  * cannot do at all.
  *
- * RANKED TOGETHER, NOT GROUPED PER REPOSITORY. The choice matters and it is not
- * obvious. Grouping per repository asks the reader to know which project their
- * answer is in — but if they knew that, the search would be doing less work
- * than the sidebar. So the lists are interleaved by rank and each hit carries a
- * badge saying where it came from: the best answers first, provenance kept.
- * The source being read goes first in each round, because a reader searching
- * inside a project usually means that project.
+ * INTERLEAVED, NOT GLOBALLY RANKED. Content ranks each collection separately,
+ * and those score spaces are not comparable. The lists are therefore
+ * interleaved by position and each hit carries its provenance. The source being
+ * read goes first in each round, because a reader searching inside a project
+ * usually means that project.
  *
  * ONE VERSION PER ARTEFACT. Searching every version returns each page as many
  * times as there are versions, which buries the answer under its own history.
@@ -214,7 +212,8 @@ export function useDuxtSearch() {
    * Without scores to compare across collections — each database ranks inside
    * itself — position is the only comparable thing there is. Round-robin over
    * the lists gives every source its best hit before any source gets its
-   * second, which is the closest honest approximation of "ranked together".
+   * second. The result preserves each collection's local order without
+   * pretending its score is comparable to another collection's.
    */
   function interleave(lists: DuxtSearchHit[][], limit: number) {
     const merged: DuxtSearchHit[] = [];
