@@ -148,52 +148,81 @@ it('does not expire a live legacy Nuxt lock based on its age', async () => {
 
 it('keeps serving when a .env change restarts Nuxt dev', async () => {
   const port = await reservePort();
-  const root = mkdtempSync(join(tmpdir(), 'duxt-env-'));
-  roots.push(root);
-  const env = join(root, '.env');
+  /**
+   * INSIDE `www/`, by a bare name. nuxi watches only its own working directory
+   * and compares the changed file's NAME with `--dotenv`, so a file handed over
+   * as an absolute path elsewhere never restarts anything — which is what this
+   * test used to do, and why it passed without a restart ever happening.
+   * `.env.*` is ignored by git; the site's own `.env` is left alone.
+   */
+  const name = `.env.duxt-reload-test-${process.pid}`;
+  const env = join(project, 'www', name);
   writeFileSync(env, '');
+  const probe = `http://reload-probe-${process.pid}.invalid`;
+
   const server = spawn(
     process.execPath,
-    [nuxt, 'dev', '--port', String(port), '--dotenv', env],
+    [nuxt, 'dev', '--port', String(port), '--dotenv', name],
     {
       cwd: join(project, 'www'),
       detached: true,
-      env: { ...process.env, NODE_ENV: 'development', TEST: undefined },
-      stdio: 'ignore'
+      env: {
+        ...process.env,
+        NODE_ENV: 'development',
+        TEST: undefined,
+        NUXT_PUBLIC_I18N_BASE_URL: undefined,
+        NUXT_SITE_URL: undefined
+      },
+      stdio: ['ignore', 'pipe', 'pipe']
     }
   );
+  // Drained, not only read: a pipe nobody empties fills up and stalls the
+  // server it belongs to.
+  let output = '';
+  server.stdout!.on('data', (data) => {
+    output += data;
+  });
+  server.stderr!.on('data', (data) => {
+    output += data;
+  });
+
+  /**
+   * The page as rendered, or nothing. While Nuxt loads, nuxi answers every
+   * request with its loading template, so a 200 alone is not a served page.
+   */
+  const page = async () => {
+    try {
+      const response = await fetch(`http://localhost:${port}/getting-started`);
+      const html = await response.text();
+      return response.status === 200 && /<h1[\s>]/.test(html) ? html : '';
+    } catch {
+      return '';
+    }
+  };
+
   try {
+    // A cold start of the whole site is well over a minute on a loaded
+    // machine; 90 seconds failed on exactly that and nothing else.
     await expect
-      .poll(
-        async () => {
-          try {
-            return (await fetch(`http://localhost:${port}/getting-started`))
-              .status;
-          } catch {
-            return 0;
-          }
-        },
-        { timeout: 90_000 }
-      )
-      .toBe(200);
+      .poll(page, { timeout: 240_000, interval: 1000 })
+      .toContain('<h1');
+    expect(await page()).not.toContain(probe);
 
-    writeFileSync(env, 'DUXT_NUXT_RELOAD_TEST=1\n');
-    await new Promise((resolve) => setTimeout(resolve, 5000));
+    // THE RESTART, PROVEN BY WHAT IT SERVES. The origin comes from the
+    // environment at request time, so the probe reaches the canonical and the
+    // alternates only once a restarted Nuxt has read the changed file — and
+    // only if the ownership guard let that restarted instance start at all.
+    writeFileSync(
+      env,
+      `NUXT_PUBLIC_I18N_BASE_URL=${probe}\nNUXT_SITE_URL=${probe}\n`
+    );
 
     await expect
-      .poll(
-        async () => {
-          try {
-            return (await fetch(`http://localhost:${port}/getting-started`))
-              .status;
-          } catch {
-            return 0;
-          }
-        },
-        { timeout: 60_000 }
-      )
-      .toBe(200);
+      .poll(page, { timeout: 240_000, interval: 1000 })
+      .toContain(probe);
+    expect(output).not.toContain('Stop that process before retrying');
   } finally {
     await stopProcessGroup(server);
+    rmSync(env, { force: true });
   }
-}, 180_000);
+}, 540_000);
