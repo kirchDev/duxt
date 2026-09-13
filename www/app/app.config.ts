@@ -170,8 +170,8 @@ export default defineAppConfig({
         refs: [{ tag: 'v0.2.6', default: true }]
       },
       // Generated sections use the same default prefix but do not publish a
-      // second Markdown collection there. Their API declaration owns the four
-      // edition-specific artefacts; changelogs remain one global history.
+      // second Markdown collection there. Their declarations own the four
+      // edition-specific artefacts, the API reference's and the changelogs'.
       {
         path: 'www/demo/docs',
         slug: 'demo',
@@ -180,8 +180,9 @@ export default defineAppConfig({
         origin: { repo: 'kirchDev/duxt', ref: 'main' },
         generated: [
           // An OpenAPI document, published as reference pages. `per-version`
-          // and `per-locale`, unlike the changelog above — the two policies the
-          // registry exists to make parameters, taking their opposite values.
+          // like the changelogs below, but `per-locale` where they keep the
+          // original language — the two policies the registry exists to make
+          // parameters, one shared and one taking opposite values.
           //
           // No `locales` map: this site translates its prose and not its
           // (invented) API, so the reference is built once from the default
