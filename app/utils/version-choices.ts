@@ -65,20 +65,13 @@ export function versionChoices(
   current: DuxtResolvedSource | undefined,
   configured: DuxtLink[] | undefined
 ): DuxtLink[] {
-  // A global generated section has no version of its own, but its reader still
-  // needs the documentation context of the source that owns it. Start from
-  // that source's default edition: its choices lead to the version overviews,
-  // never to non-existent versioned copies of the generated section.
-  const global = current?.generated?.versioning === 'global';
+  // A GLOBAL generated section has no version of its own and serves one URL,
+  // so every entry would move the reader off it. A per-version one — the API
+  // reference, the changelog — is scoped below like any other artefact, which
+  // is what keeps a reader in it when they change versions.
+  if (current?.generated?.versioning === 'global') return [];
 
-  if (global && current?.generated?.type !== 'changelog') return [];
-
-  const context = global
-    ? sources.find(
-        (source) =>
-          source.repo === current.repo && source.isDefault && !source.generated
-      )
-    : current;
+  const context = current;
 
   if (!context) return [];
 

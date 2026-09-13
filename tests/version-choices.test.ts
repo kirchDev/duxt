@@ -293,26 +293,33 @@ describe('a site that publishes a reference beside its documentation', () => {
     );
   });
 
-  it('uses the source default on a global changelog', () => {
-    const changelog = api({
-      version: undefined,
+  it('keeps a per-version changelog on its own route in every version', () => {
+    const changelog = (over: Partial<DuxtResolvedSource>) =>
+      api({
+        generated: {
+          type: 'changelog',
+          label: 'Releases',
+          slug: 'releases',
+          declaration: 1,
+          navigation: 'sections',
+          versioning: 'per-version',
+          localisation: 'original',
+          remote: false
+        },
+        ...over
+      } as Partial<DuxtResolvedSource>);
+    const latest = changelog({
+      version: '2.x',
       prefix: '/releases',
-      isDefault: true,
-      generated: {
-        type: 'changelog',
-        label: 'Releases',
-        slug: 'releases',
-        declaration: 1,
-        navigation: 'sections',
-        versioning: 'global',
-        localisation: 'original',
-        remote: false
-      }
-    } as Partial<DuxtResolvedSource>);
+      isDefault: true
+    });
+    const older = changelog({ version: '1.x', prefix: '/1.x/releases' });
 
-    expect(versionChoices([...all, changelog], changelog, undefined)).toEqual([
-      { label: '2.x', to: '/', description: 'default' },
-      { label: '1.x', to: '/1.x', description: undefined }
+    // The editions of the changelog itself, not of the documentation beside it,
+    // so choosing another version keeps the reader in the changelog.
+    expect(versionChoices([...all, latest, older], older, undefined)).toEqual([
+      { label: '2.x', to: '/releases', description: 'default' },
+      { label: '1.x', to: '/1.x/releases', description: undefined }
     ]);
   });
 });

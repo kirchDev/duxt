@@ -35,13 +35,6 @@ const { source } = useDuxtCollection();
  */
 const { choices: versions } = useDuxtVersion();
 
-/** A global changelog switches between its source's documentation editions. */
-const changelog = computed(
-  () =>
-    source.value?.generated?.type === 'changelog' &&
-    source.value.generated.versioning === 'global'
-);
-
 const current = computed(() =>
   sourceForPath(
     path.value,
@@ -69,14 +62,62 @@ function caption(version: DuxtLink) {
   return te(value) ? t(value) : value;
 }
 
-/** Same page, other version: swap the prefix rather than jumping to its root. */
+/**
+ * The pages this one would become in each version, checked where they may not
+ * exist.
+ *
+ * Only inside a per-version CHANGELOG, and only below its overview: a release
+ * page carries a release slug, and an older version's changelog has no page
+ * for a release cut after it. Those are looked up in the target's own
+ * collection; any other page keeps its place exactly as `versionPath` puts it,
+ * because every other per-version tree is the same tree at another ref.
+ *
+ * Nothing is read after the first `await` but plain values captured before it —
+ * the rule `tests/async-data-context.test.ts` holds.
+ */
+const { data: missing } = useAsyncData(
+  () => `duxt-version-missing-${path.value}`,
+  async () => {
+    const sources = duxt.resolvedSources ?? [];
+    const own = source.value;
+    if (own?.generated?.type !== 'changelog' || path.value === own.prefix) {
+      return [];
+    }
+
+    const gone: string[] = [];
+
+    for (const version of versions.value) {
+      const target = versionPath(
+        path.value,
+        current.value?.to,
+        version.to ?? '/'
+      );
+      const owner = sourceForPath(target, sources);
+      if (!owner || owner.generated?.type !== 'changelog') continue;
+
+      const hit = await queryCollection(owner.collection as DuxtCollectionArg)
+        .path(target)
+        .select('path')
+        .first();
+      if (!hit) gone.push(target);
+    }
+
+    return gone;
+  },
+  { default: () => [], watch: [path] }
+);
+
+/**
+ * Same page, other version: swap the prefix rather than jumping to its root —
+ * unless the target never published that page, in which case its own root.
+ */
 function pathIn(version: { to?: string }) {
   return localeLink(
-    versionPath(
+    versionSwitchPath(
       path.value,
       current.value?.to,
       version.to ?? '/',
-      changelog.value
+      new Set(missing.value)
     )
   );
 }

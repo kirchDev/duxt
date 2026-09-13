@@ -94,7 +94,7 @@ function localCollection(entry: DuxtResolvedSource, type: DuxtSectionType) {
 
   const pages = sectionArtefactExists(file, kind)
     ? sectionPages(entry, type, diskSectionInput(file, entry.path, kind, root))
-    : missingSectionArtefact(entry, file);
+    : missingSectionArtefact(entry, file, type);
 
   const source = defineCollectionSource({
     getKeys: async () => pages.map((page) => page.file),
@@ -163,7 +163,7 @@ function remoteCollection(entry: DuxtResolvedSource, type: DuxtSectionType) {
             localHistoryFor(url, repositoryRoot())
           )
         )
-      : missingSectionArtefact(entry, file);
+      : missingSectionArtefact(entry, file, type);
 
     return pages;
   };

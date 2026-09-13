@@ -71,12 +71,20 @@ const HAND_KEPT = `# Changelog
 `;
 
 describe('the changelog type', () => {
-  it('is one global history in the original language', () => {
-    // The two policies the whole per-type registry exists to make parameters:
-    // a changelog is not a per-version document, and it is written once by the
-    // release tool in whatever language the project commits in.
-    expect(changelogSectionType.versioning).toBe('global');
+  it('is published per version, in the original language', () => {
+    // Every documentation version publishes the changelog it shipped with, at
+    // a route inside that version, so the switcher keeps a reader in the
+    // changelog when they change versions. It is still written once by the
+    // release tool, in whatever language the project commits in.
+    expect(changelogSectionType.versioning).toBe('per-version');
     expect(changelogSectionType.localisation).toBe('original');
+  });
+
+  it('requires its file in every published version', () => {
+    // A version whose changelog is missing is a build error: leaving the
+    // version out, or showing another version's history there, would both
+    // publish something the version never shipped.
+    expect(changelogSectionType.artefact).toBe('required');
   });
 
   it('gives the section an index page and one page per release', () => {

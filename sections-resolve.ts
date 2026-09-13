@@ -364,10 +364,21 @@ export interface DuxtSectionType {
    * How this type behaves against the one-collection-per-version mechanic.
    *
    * `global` is one history read from the default version and served at a
-   * version-neutral URL, with the switcher suppressed — what a changelog is.
-   * `per-version` is a section per version, like any other page.
+   * version-neutral URL, with the switcher suppressed. `per-version` is a
+   * section per version, like any other page — what the API reference and the
+   * changelog are.
    */
   versioning: 'global' | 'per-version';
+  /**
+   * Whether every published version has to have the artefact.
+   *
+   * `optional`, the default, is the rule `missingSectionArtefact` states for a
+   * source: a local path that does not exist fails the build, a remote one is
+   * recorded and its section simply not built. `required` fails the build for
+   * a remote version too — for a type whose missing file cannot be quietly
+   * skipped without publishing the wrong thing, as a changelog cannot.
+   */
+  artefact?: 'required' | 'optional';
   /**
    * What a localised site shows when the artefact has one language.
    *
@@ -830,9 +841,21 @@ export function sectionPages(
  */
 export function missingSectionArtefact(
   entry: DuxtResolvedSource,
-  file: string
+  file: string,
+  type?: Pick<DuxtSectionType, 'artefact'>
 ): DuxtSectionPage[] {
   entry.generated!.report = { pages: 0, warnings: [], missing: true };
+
+  // A type that needs its artefact in EVERY published version fails the build
+  // for a remote version too — see `DuxtSectionType.artefact`.
+  if (entry.generated!.remote && type?.artefact === 'required') {
+    throw new Error(
+      `duxt: the generated section "${entry.generated!.label}" needs ` +
+        `${entry.path} in every published version, and ` +
+        `${entry.version ?? entry.ref ?? 'this version'} has none ` +
+        `(looked in ${file}).`
+    );
+  }
 
   // Remote: recorded, not printed. `validate-report.ts` reads the report and
   // says it once, in the same list as every other finding — see `sectionPages`.

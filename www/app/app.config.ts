@@ -262,7 +262,18 @@ export default defineAppConfig({
             path: 'www/demo/CHANGELOG.md',
             label: 'Changelog',
             slug: 'changelog',
-            navigation: 'sections'
+            navigation: 'sections',
+            // PER VERSION, like the OpenAPI reference above: every demo
+            // edition publishes its changelog at a route of its own, so the
+            // switcher keeps a reader in the changelog when they change
+            // versions. The editions are one fixture file, which is the demo's
+            // stand-in for a changelog per ref.
+            versions: [
+              { version: 'main', status: 'upcoming' },
+              { version: 'v3.x', default: true },
+              { version: 'v2.x', status: 'deprecated' },
+              { version: 'v1.x', status: 'eol' }
+            ]
           },
           // Keep the full-file rendering available as a second demo.
           {
@@ -271,7 +282,18 @@ export default defineAppConfig({
             label: 'Changelog (flat)',
             slug: 'changelog-flat',
             navigation: false,
-            options: { granularity: 'flat' }
+            options: { granularity: 'flat' },
+            // PER VERSION, like the OpenAPI reference above: every demo
+            // edition publishes its changelog at a route of its own, so the
+            // switcher keeps a reader in the changelog when they change
+            // versions. The editions are one fixture file, which is the demo's
+            // stand-in for a changelog per ref.
+            versions: [
+              { version: 'main', status: 'upcoming' },
+              { version: 'v3.x', default: true },
+              { version: 'v2.x', status: 'deprecated' },
+              { version: 'v1.x', status: 'eol' }
+            ]
           }
         ]
       }

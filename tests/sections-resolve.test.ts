@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { DuxtSectionOptions, DuxtSectionType } from '../sections-resolve';
 import type { DuxtResolvedSource } from '../sources-resolve';
+import { changelogSectionType } from '../sections-changelog';
 import {
   duxtManifest,
   duxtSectionInput,
@@ -109,6 +110,31 @@ describe('resolveGeneratedSections', () => {
     expect(generated).toHaveLength(1);
     expect(generated[0]).toMatchObject({ prefix: '/releases' });
     expect(generated[0]!.version).toBeUndefined();
+  });
+
+  it('publishes a changelog in every version, each read at its own ref', () => {
+    const generated = resolveGeneratedSections(
+      [
+        {
+          repo: 'acme/docs',
+          path: 'docs',
+          refs: ['main', 'v1.x'],
+          generated: [section]
+        }
+      ],
+      {},
+      { stub: changelogSectionType }
+    );
+
+    // A route per version, analogous to the docs and the API reference beside
+    // it — and each one reads the CHANGELOG.md of the ref it was built from.
+    expect(
+      generated.map((entry) => [entry.prefix, entry.version, entry.ref])
+    ).toEqual([
+      ['/releases', 'main', 'main'],
+      ['/v1.x/releases', 'v1.x', 'v1.x']
+    ]);
+    expect(generated.map((entry) => entry.isDefault)).toEqual([true, false]);
   });
 
   it('gives a per-version section one collection per version', () => {
@@ -533,6 +559,19 @@ describe('the severity of a section that produces nothing', () => {
     );
   });
 
+  it('fails the build when a REMOTE version lacks a file its type requires', () => {
+    // A changelog must exist in every published version. A missing one is not
+    // a stale remote to carry on past: omitting the version or falling back to
+    // another version's history would both publish the wrong thing.
+    expect(() =>
+      missingSectionArtefact(
+        entry({ remote: true }),
+        '/cache/CHANGELOG.md',
+        stub({ artefact: 'required' })
+      )
+    ).toThrow(/every published version/);
+  });
+
   it('records and builds nothing when a REMOTE source has not the file', () => {
     // A remote source can go stale between releases without that being this
     // build's fault, so it carries on — and the finding goes into the report
@@ -663,10 +702,16 @@ describe('which generated entry claims to be the default version', () => {
 
   it('stays the default for a version-neutral type', () => {
     // One entry, served at a URL with no version in it — there is nothing else
-    // for it to be.
-    const entries = duxtManifest([source('changelog')], {}).filter(
-      (entry) => entry.generated
-    );
+    // for it to be. The changelog is per version now, so a stub stands in for
+    // the policy the registry still offers.
+    const entries = duxtManifest(
+      [source('changelog')],
+      {},
+      {
+        ...duxtSectionTypes(),
+        changelog: stub()
+      }
+    ).filter((entry) => entry.generated);
 
     expect(entries).toHaveLength(1);
     expect(entries[0]!.isDefault).toBe(true);
@@ -799,6 +844,8 @@ describe('a section versioned by its own declaration', () => {
       }
     ];
 
-    expect(() => resolveGeneratedSections(declared)).toThrow(/version-neutral/);
+    expect(() =>
+      resolveGeneratedSections(declared, {}, { changelog: stub() })
+    ).toThrow(/version-neutral/);
   });
 });

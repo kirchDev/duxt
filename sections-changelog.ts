@@ -132,14 +132,22 @@ interface Group {
 export const changelogSectionType: DuxtSectionType = {
   parse: parseChangelog,
   /**
-   * ONE GLOBAL HISTORY, read from the default version.
+   * PER VERSION, like the documentation and the API reference beside it.
    *
-   * A changelog is not a per-version document that happens to mention other
-   * versions — it is the list OF the versions, and building one copy per
-   * version would publish the same file under three URLs, each of them missing
-   * the releases that came after it.
+   * Every documentation version publishes the CHANGELOG.md it shipped with, at
+   * a route inside that version — `/v2.x/releases` beside `/v2.x/guides`. It
+   * used to be one global history at a version-neutral URL, and that is what
+   * made the switcher special: it could not keep a reader in the changelog
+   * when they chose another version. Each copy holds everything its own file
+   * holds, earlier releases included, which is exactly what that version knew.
    */
-  versioning: 'global',
+  versioning: 'per-version',
+  /**
+   * REQUIRED in every published version. A version with no CHANGELOG.md is a
+   * build error: leaving the version out, or falling back to another version's
+   * history, would both publish something the version never shipped.
+   */
+  artefact: 'required',
   /**
    * The original, in every language.
    *
