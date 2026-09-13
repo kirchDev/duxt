@@ -37,12 +37,7 @@
  * for.
  */
 
-import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
-
-const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const server = join(root, 'www', '.output', 'server', 'index.mjs');
+import { startBuiltServer } from './built-server.ts';
 
 const PORT = Number(process.env.ADAPTER_CHECK_PORT ?? 3125);
 const ORIGIN = `http://127.0.0.1:${PORT}`;
@@ -74,41 +69,18 @@ async function main() {
     );
   }
 
-  const child = spawn(process.execPath, [server], {
-    env: {
-      ...process.env,
-      PORT: String(PORT),
-      NITRO_PORT: String(PORT),
-      HOST: '127.0.0.1',
-      NITRO_HOST: '127.0.0.1',
-      NITRO_UNIX_SOCKET: '',
-      NITRO_SSL_CERT: '',
-      NITRO_SSL_KEY: '',
-      NUXT_PUBLIC_I18N_BASE_URL: ORIGIN,
-      NUXT_SITE_URL: ORIGIN
-    },
-    stdio: 'pipe'
-  });
-
-  let stderr = '';
-  child.stderr.on('data', (chunk: Buffer) => (stderr += chunk.toString()));
-
-  const failed = new Promise<never>((_resolve, reject) => {
-    child.once('error', (error) =>
-      reject(new Error(`server spawn failed: ${error.message}`))
-    );
-    child.once('exit', (code, signal) =>
-      reject(
-        new Error(`server exited prematurely (code ${code}, signal ${signal})`)
-      )
-    );
+  const server = startBuiltServer({
+    port: PORT,
+    origin: ORIGIN,
+    timeout: TIMEOUT,
+    env: { NUXT_PUBLIC_I18N_BASE_URL: ORIGIN, NUXT_SITE_URL: ORIGIN }
   });
 
   try {
     const failures = await Promise.race([
-      failed,
+      server.exited,
       (async () => {
-        await waitForServer(child);
+        await server.ready();
 
         return [
           ...(await checkPage()),
@@ -132,10 +104,10 @@ async function main() {
     );
   } catch (error) {
     console.error(`\nAdapter check could not run: ${String(error)}`);
-    if (stderr.trim()) console.error(stderr.trim());
+    if (server.stderr().trim()) console.error(server.stderr().trim());
     process.exitCode = 1;
   } finally {
-    await stop(child);
+    await server.stop();
   }
 }
 
@@ -373,58 +345,6 @@ function parseJsonRpc(
   }
 
   return undefined;
-}
-
-/**
- * Wait for OUR child to bind, not for something to answer the port.
- *
- * The same reason `check:seo` reads stdout: polling alone accepts an unrelated
- * process once our own fails to bind, and the check then reports on somebody
- * else's server.
- */
-function waitForServer(child: ChildProcessWithoutNullStreams): Promise<void> {
-  return new Promise((resolve, reject) => {
-    let stdout = '';
-
-    const timer = setTimeout(() => {
-      child.stdout.off('data', onData);
-      reject(
-        new Error(
-          `the built server did not announce ${ORIGIN} within ${TIMEOUT}ms. Run \`pnpm build:app\` first.`
-        )
-      );
-    }, TIMEOUT);
-
-    const onData = (chunk: Buffer) => {
-      stdout += chunk.toString();
-
-      if (stdout.includes(`Listening on ${ORIGIN}`)) {
-        clearTimeout(timer);
-        child.stdout.off('data', onData);
-        resolve();
-      }
-    };
-
-    child.stdout.on('data', onData);
-  });
-}
-
-/** SIGTERM, then SIGKILL a second later if it is still there. */
-function stop(child: ChildProcessWithoutNullStreams): Promise<void> {
-  if (child.exitCode !== null || child.signalCode !== null) {
-    return Promise.resolve();
-  }
-
-  return new Promise((resolve) => {
-    const kill = setTimeout(() => child.kill('SIGKILL'), 1000);
-
-    child.once('exit', () => {
-      clearTimeout(kill);
-      resolve();
-    });
-
-    child.kill('SIGTERM');
-  });
 }
 
 await main();

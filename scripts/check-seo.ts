@@ -24,13 +24,8 @@
  * reads is the rendered HTML, which is the only place these tags exist.
  */
 
-import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
 import { JSDOM } from 'jsdom';
-
-const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const server = join(root, 'www', '.output', 'server', 'index.mjs');
+import { startBuiltServer } from './built-server.ts';
 
 const PORT = Number(process.env.SEO_CHECK_PORT ?? 3124);
 const ORIGIN = `http://127.0.0.1:${PORT}`;
@@ -68,44 +63,24 @@ async function main() {
       'SEO_CHECK_PORT must be 1..65535 and SEO_CHECK_TIMEOUT_MS must be 1..120000'
     );
   }
-  const child = spawn(process.execPath, [server], {
+  const server = startBuiltServer({
+    port: PORT,
+    origin: ORIGIN,
+    timeout: TIMEOUT,
     env: {
-      ...process.env,
-      PORT: String(PORT),
-      NITRO_PORT: String(PORT),
-      HOST: '127.0.0.1',
-      NITRO_HOST: '127.0.0.1',
-      NITRO_UNIX_SOCKET: '',
-      NITRO_SSL_CERT: '',
-      NITRO_SSL_KEY: '',
       // The two names the modules read for the same fact: i18n's for the
       // alternate links and duxt's own `absolute()`, site config's for
       // everything under @nuxtjs/seo.
       NUXT_PUBLIC_I18N_BASE_URL: ORIGIN,
       NUXT_SITE_URL: ORIGIN
-    },
-    stdio: 'pipe'
-  });
-
-  let stderr = '';
-  child.stderr.on('data', (chunk: Buffer) => (stderr += chunk.toString()));
-
-  const failed = new Promise<never>((_resolve, reject) => {
-    child.once('error', (error) =>
-      reject(new Error(`server spawn failed: ${error.message}`))
-    );
-    child.once('exit', (code, signal) =>
-      reject(
-        new Error(`server exited prematurely (code ${code}, signal ${signal})`)
-      )
-    );
+    }
   });
 
   try {
     const failures = await Promise.race([
-      failed,
+      server.exited,
       (async () => {
-        await waitForServer(child);
+        await server.ready();
         return [
           ...(await checkCanonicals()),
           ...(await checkAlternates()),
@@ -130,50 +105,17 @@ async function main() {
     );
   } catch (error) {
     console.error(`\nSEO check could not run: ${String(error)}`);
-    if (stderr.trim()) console.error(stderr.trim());
+    if (server.stderr().trim()) console.error(server.stderr().trim());
     process.exitCode = 1;
   } finally {
-    if (child.pid && child.exitCode === null && child.signalCode === null) {
-      const exited = new Promise<void>((resolve) =>
-        child.once('exit', () => resolve())
-      );
-      child.kill('SIGTERM');
-      const timer = setTimeout(() => child.kill('SIGKILL'), 1000);
-      await exited;
-      clearTimeout(timer);
-    }
+    await server.stop();
     // A broken socket can reject fetch before Node emits the child's exit.
-    if (child.exitCode !== null && child.exitCode !== 0) {
-      console.error(`server exited prematurely (code ${child.exitCode})`);
+    if (server.child.exitCode !== null && server.child.exitCode !== 0) {
+      console.error(
+        `server exited prematurely (code ${server.child.exitCode})`
+      );
     }
   }
-}
-
-async function waitForServer(child: ChildProcessWithoutNullStreams) {
-  // Nitro emits this only after its own listen callback succeeds. HTTP polling
-  // alone can accept an unrelated process after our child fails to bind.
-  await new Promise<void>((resolve, reject) => {
-    let stdout = '';
-    const timer = setTimeout(() => {
-      child.stdout.off('data', onData);
-      reject(
-        new Error(
-          `server startup timed out after ${TIMEOUT}ms at ${ORIGIN}. Run \`pnpm build:app\` first.`
-        )
-      );
-    }, TIMEOUT);
-    function onData(chunk: Buffer) {
-      stdout = (stdout + chunk.toString()).slice(-4096);
-      if (stdout.split(/\r?\n/).includes(`Listening on ${ORIGIN}`)) {
-        clearTimeout(timer);
-        child.stdout.off('data', onData);
-        resolve();
-      }
-    }
-    child.once('exit', () => clearTimeout(timer));
-    child.once('error', () => clearTimeout(timer));
-    child.stdout.on('data', onData);
-  });
 }
 
 async function head(route: string) {

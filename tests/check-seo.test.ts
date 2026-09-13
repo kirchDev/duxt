@@ -21,6 +21,10 @@ async function runCheck(mode: string) {
     join(root, 'scripts/check-seo.ts')
   );
   await copyFile(
+    resolve('scripts/built-server.ts'),
+    join(root, 'scripts/built-server.ts')
+  );
+  await copyFile(
     resolve('tests/fixtures/seo-server.mjs'),
     join(root, 'www/.output/server/index.mjs')
   );

@@ -43,15 +43,10 @@
  * for the same reason — what it drives is the built site.
  */
 
-import { spawn } from 'node:child_process';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import type { Browser, Page } from 'playwright-core';
 import { chromium } from 'playwright-core';
 import { browserPath, missingBrowser } from './browser.ts';
-
-const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const server = join(root, 'www', '.output', 'server', 'index.mjs');
+import { startBuiltServer } from './built-server.ts';
 
 const PORT = Number(process.env.KEYBOARD_CHECK_PORT ?? 3126);
 
@@ -124,13 +119,7 @@ async function main() {
     return;
   }
 
-  const child = spawn(process.execPath, [server], {
-    env: { ...process.env, PORT: String(PORT), NITRO_PORT: String(PORT) },
-    stdio: ['ignore', 'ignore', 'pipe']
-  });
-
-  let stderr = '';
-  child.stderr.on('data', (chunk: Buffer) => (stderr += chunk.toString()));
+  const server = startBuiltServer({ port: PORT });
 
   // `--no-sandbox` because CI and this repo's containers run as root, where
   // Chromium's own sandbox refuses to start. Nothing untrusted is loaded here.
@@ -140,7 +129,7 @@ async function main() {
   });
 
   try {
-    await waitForServer();
+    await server.ready();
 
     const { failures, notes } = await drive(browser);
 
@@ -155,11 +144,11 @@ async function main() {
     console.log(`Keyboard check passed.\n  ${notes.join('\n  ')}`);
   } catch (error) {
     console.error(`\nKeyboard check could not run: ${String(error)}`);
-    if (stderr.trim()) console.error(stderr.trim());
+    if (server.stderr().trim()) console.error(server.stderr().trim());
     process.exitCode = 1;
   } finally {
     await browser.close();
-    child.kill('SIGTERM');
+    await server.stop();
   }
 }
 
@@ -407,20 +396,5 @@ async function open(page: Page) {
 }
 
 const url = (route: string) => `http://localhost:${PORT}${route}`;
-
-async function waitForServer() {
-  for (let attempt = 0; attempt < 60; attempt++) {
-    try {
-      await fetch(url('/'));
-      return;
-    } catch {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-    }
-  }
-
-  throw new Error(
-    `the built server did not answer on port ${PORT}. Run \`pnpm build:app\` first.`
-  );
-}
 
 await main();

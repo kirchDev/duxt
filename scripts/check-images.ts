@@ -32,13 +32,9 @@
  * reason — what it reads is the rendered HTML.
  */
 
-import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
 import { JSDOM } from 'jsdom';
-
-const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const server = join(root, 'www', '.output', 'server', 'index.mjs');
+import { startBuiltServer } from './built-server.ts';
 
 const PORT = Number(process.env.IMAGE_CHECK_PORT ?? 3125);
 
@@ -151,16 +147,10 @@ const FIXTURES = {
 const DARK_TWIN = 'img[srcset*="screenshot-dark"]';
 
 async function main() {
-  const child = spawn(process.execPath, [server], {
-    env: { ...process.env, PORT: String(PORT), NITRO_PORT: String(PORT) },
-    stdio: ['ignore', 'ignore', 'pipe']
-  });
-
-  let stderr = '';
-  child.stderr.on('data', (chunk: Buffer) => (stderr += chunk.toString()));
+  const server = startBuiltServer({ port: PORT });
 
   try {
-    await waitForServer();
+    await server.ready();
 
     const response = await fetch(`http://localhost:${PORT}${ROUTE}`, {
       headers: { accept: 'text/html' }
@@ -205,10 +195,10 @@ async function main() {
     );
   } catch (error) {
     console.error(`\nImage check could not run: ${String(error)}`);
-    if (stderr.trim()) console.error(stderr.trim());
+    if (server.stderr().trim()) console.error(server.stderr().trim());
     process.exitCode = 1;
   } finally {
-    child.kill('SIGTERM');
+    await server.stop();
   }
 }
 
@@ -415,21 +405,6 @@ function affordance(found: Map<string, HTMLImageElement>): string[] {
   }
 
   return failures;
-}
-
-async function waitForServer() {
-  for (let attempt = 0; attempt < 60; attempt++) {
-    try {
-      await fetch(`http://localhost:${PORT}/`);
-      return;
-    } catch {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-    }
-  }
-
-  throw new Error(
-    `the built server did not answer on port ${PORT}. Run \`pnpm build:app\` first.`
-  );
 }
 
 // Guarded so the seams above can be imported by `tests/check-images.test.ts`
