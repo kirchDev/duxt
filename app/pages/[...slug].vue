@@ -52,12 +52,31 @@ const { data: found } = await useAsyncData(
       if (hit) return { page: hit, from: entry!.locale, asked: locale.value };
     }
 
-    return undefined;
+    // `null`, not `undefined`: Nuxt reads a handler that resolves to nothing as
+    // one that failed to return (E3006) and repeats the query on the client.
+    // No page in any language is a real answer — the 404 below.
+    return null;
   },
   { watch: [collection, path] }
 );
 
 const page = computed(() => found.value?.page);
+
+/**
+ * What THIS page says about the docs shell around it.
+ *
+ * Eight frontmatter fields, resolved over the site's own switches in one place
+ * — see `app/utils/page-controls.ts`. The alternative was eight `v-if`s each
+ * reading a different field off `page.value` with its own idea of what an
+ * absent value means, which is how `duxt.breadcrumb` ended up being the only
+ * one of the eight that existed at all.
+ */
+const controls = computed(() =>
+  duxtPageControls(page.value, {
+    breadcrumb: duxt?.breadcrumb,
+    tocMaxDepth: duxt.toc?.depth
+  })
+);
 
 /** True when the reader is being shown a language they did not ask for. */
 const untranslated = computed(() => {
@@ -115,22 +134,6 @@ const { current, shouldIndex, preferredPath } = useDuxtVersion();
  */
 const owned = computed(() =>
   Boolean(generatedLayout(path.value, duxt?.resolvedSources ?? []))
-);
-
-/**
- * What THIS page says about the docs shell around it.
- *
- * Eight frontmatter fields, resolved over the site's own switches in one place
- * — see `app/utils/page-controls.ts`. The alternative was eight `v-if`s each
- * reading a different field off `page.value` with its own idea of what an
- * absent value means, which is how `duxt.breadcrumb` ended up being the only
- * one of the eight that existed at all.
- */
-const controls = computed(() =>
-  duxtPageControls(page.value, {
-    breadcrumb: duxt?.breadcrumb,
-    tocMaxDepth: duxt.toc?.depth
-  })
 );
 
 /**
@@ -331,7 +334,13 @@ useSchemaOrg([
   <!-- The type's own layout owns the page: no reading width and no header of
        ours — see `owned`. The CONTENTS COLUMN is drawn here rather than left to
        the layout, because only the page holds the body it is read from. -->
-  <div v-if="owned" class="flex min-w-0 flex-1 gap-10">
+  <!-- BOTH BRANCHES HANG ON `page`. A missing page throws its 404 out of
+       `setup`, and Vue still renders the component once on the way to the
+       error page — with none of the bindings `setup` never got to return. The
+       first nested read then threw `Cannot read properties of undefined
+       (reading 'fullWidth')` on every client-side navigation to a missing page.
+       Without a page there is nothing of this component to draw. -->
+  <div v-if="page && owned" class="flex min-w-0 flex-1 gap-10">
     <div class="min-w-0 flex-1 py-8">
       <DuxtAnnouncements placement="above-content" />
 
@@ -460,7 +469,7 @@ useSchemaOrg([
     </div>
   </div>
 
-  <div v-else class="flex min-w-0 flex-1 justify-center gap-10">
+  <div v-else-if="page" class="flex min-w-0 flex-1 justify-center gap-10">
     <!-- `fullWidth` removes the reading measure and NOTHING else: the header,
          the left navigation and the column beside the article all stay, and a
          page that wants those gone says so with their own controls. It is the
