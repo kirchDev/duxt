@@ -586,7 +586,7 @@ export function page(active: string, body: string, preview = false): string {
    * The tab row is how the devtools panel is navigated, and it is exactly wrong
    * inside a documentation page: the frame sits under prose describing ONE
    * panel, and a reader who switched tabs in it would be reading about Sources
-   * while looking at Paths. The row is also the panel's own chrome — the
+   * while looking at Paths. The row is also the panel's own header — the
    * documentation already carries a heading, a description and a sidebar entry
    * saying which panel this is.
    */

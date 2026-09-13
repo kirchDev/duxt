@@ -21,13 +21,13 @@ const value = parent?.register(props.label ?? '') ?? 'item-0';
   <Item :value="value" class="border-b last:border-b-0">
     <AccordionHeader>
       <AccordionTrigger
-        class="group flex w-full cursor-pointer items-center gap-2 px-4 py-3 text-left text-sm font-medium hover:bg-accent/50"
+        class="group flex w-full cursor-pointer items-center gap-2 px-4 py-3 text-start text-sm font-medium hover:bg-accent/50"
       >
         <Icon v-if="icon" :name="icon" class="size-4 text-muted-foreground" />
         <span class="min-w-0">{{ label }}</span>
         <Icon
           name="lucide:chevron-down"
-          class="ml-auto size-4 shrink-0 text-muted-foreground transition-transform group-data-[state=open]:rotate-180"
+          class="ms-auto size-4 shrink-0 text-muted-foreground transition-transform group-data-[state=open]:rotate-180"
         />
       </AccordionTrigger>
     </AccordionHeader>

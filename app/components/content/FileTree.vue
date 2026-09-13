@@ -65,7 +65,7 @@ const expanded = computed(() => {
         v-slot="{ isExpanded }"
         :key="item._id"
         v-bind="item.bind"
-        :style="{ paddingLeft: `${item.level - 1}rem` }"
+        :style="{ paddingInlineStart: `${item.level - 1}rem` }"
         class="flex items-center gap-1.5 rounded px-1 py-[3px] outline-none focus:bg-accent data-[selected]:bg-accent/60"
       >
         <template v-if="isDirectory(item.value)">

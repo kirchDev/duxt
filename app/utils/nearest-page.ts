@@ -19,8 +19,16 @@ export function nearestPages(
   const target = segments(wanted);
   if (!target.length) return [];
 
+  // ONE ROW PER PATH. A folder's index and the folder itself are both in the
+  // navigation under the same route, and the list offered the reader
+  // `Concepts /v0.2.0/concepts` twice.
+  const seen = new Set<string>();
+
   return candidates
     .filter((candidate) => candidate.path && candidate.path !== wanted)
+    .filter(
+      (candidate) => !seen.has(candidate.path) && seen.add(candidate.path)
+    )
     .map((candidate) => ({
       candidate,
       score: score(target, segments(candidate.path))

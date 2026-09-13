@@ -445,7 +445,7 @@ paths:
       tags: [Demo]
       description: |
         Takes a consignment and hands it back with an id and a timestamp,
-        exactly as `POST /consignments` would — except that this one is
+        exactly as `POST /consignments` would, except that this one is
         answered, by this site.
 
         Nothing is stored and nothing is checked beyond the token being

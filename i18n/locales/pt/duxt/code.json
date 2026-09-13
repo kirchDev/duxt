@@ -7,7 +7,8 @@
       "preview": "Pré-visualização",
       "source": "Código",
       "previewTabs": "Exemplo e código-fonte",
-      "copiedToast": "Copiado para a área de transferência"
+      "copiedToast": "Copiado para a área de transferência",
+      "copyFailed": "Não foi possível copiar para a área de transferência."
     }
   }
 }

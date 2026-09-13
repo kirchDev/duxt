@@ -95,23 +95,21 @@ const active = computed<DuxtPackageManager>({
     stored.value = value;
   }
 });
-const copied = ref(false);
-const notify = useDuxtToast();
-const { t } = useI18n();
+const { copied, copy: copyText } = useDuxtCopy();
+const analytics = useDuxtAnalytics();
 
 async function copy() {
-  try {
-    await navigator.clipboard.writeText(commands.value[active.value]!);
-    copied.value = true;
-    notify.success(t('duxt.code.copiedToast'));
-    setTimeout(() => (copied.value = false), 2000);
-  } catch {
-    notify.error(
-      'Could not copy',
-      'The clipboard is unavailable in this context.'
-    );
-    // Clipboard is unavailable over plain HTTP; a failed copy stays silent.
-  }
+  if (!(await copyText(commands.value[active.value]))) return;
+
+  // The manager, not the command: which of the four a site's readers reach
+  // for is the question this block can answer, and the command itself is
+  // already on the page for anyone who wants to know what was copied.
+  analytics.track({
+    name: 'copy',
+    kind: 'package-manager',
+    manager: active.value,
+    language: 'bash'
+  });
 }
 </script>
 
@@ -124,53 +122,39 @@ async function copy() {
     v-if="managers.length"
     class="duxt-code my-6 overflow-hidden rounded-lg border bg-card"
   >
-    <div
-      class="flex min-h-11 items-center gap-1 border-b bg-muted/40 px-2 py-1.5"
-    >
-      <button
-        v-for="manager in managers"
-        :key="manager"
-        type="button"
-        class="flex cursor-pointer items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors"
-        :class="
-          active === manager
-            ? 'bg-background text-foreground shadow-sm'
-            : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+    <DuxtCodeToolbar>
+      <DuxtSegmented
+        v-model="active"
+        :options="
+          managers.map((manager) => ({ value: manager, label: manager }))
         "
-        @click="active = manager"
       >
-        <Icon
-          :name="
-            managerIconsLight[manager] ??
-            managerIcons[manager] ??
-            'lucide:terminal'
-          "
-          class="size-3.5"
-          :class="managerIconsLight[manager] ? 'dark:hidden' : ''"
-        />
-        <Icon
-          v-if="managerIconsLight[manager]"
-          :name="managerIcons[manager]"
-          class="hidden size-3.5 dark:block"
-        />
-        {{ manager }}
-      </button>
+        <template #option="{ option }">
+          <Icon
+            :name="
+              managerIconsLight[option.value] ??
+              managerIcons[option.value] ??
+              'lucide:terminal'
+            "
+            class="size-3.5"
+            :class="managerIconsLight[option.value] ? 'dark:hidden' : ''"
+          />
+          <Icon
+            v-if="managerIconsLight[option.value]"
+            :name="managerIcons[option.value]"
+            class="hidden size-3.5 dark:block"
+          />
+          {{ option.label }}
+        </template>
+      </DuxtSegmented>
 
-      <UiButton
-        variant="ghost"
-        size="icon"
-        class="ml-auto size-7"
-        :aria-label="
-          copied ? $t('duxt.code.copied') : $t('duxt.code.copyCommand')
-        "
+      <DuxtCopyButton
+        :copied="copied"
+        :label="$t('duxt.code.copyCommand')"
+        class="ms-auto"
         @click="copy"
-      >
-        <Icon
-          :name="copied ? 'lucide:check' : 'lucide:copy'"
-          class="size-3.5"
-        />
-      </UiButton>
-    </div>
+      />
+    </DuxtCodeToolbar>
 
     <!-- eslint-disable-next-line vue/no-v-html -- Shiki output, built on the
          server from this component's own prop, never from page content. -->

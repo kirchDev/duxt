@@ -24,8 +24,8 @@ nicht der Vorlage zu.
 Jeder Standard, der ein bestimmtes Projekt oder eine bestimmte Organisation
 benennen würde, wird **leer** ausgeliefert. Die Links des Themes selbst liegen
 in der Konfiguration der konsumierenden Seite, wo sie ein Beispiel sind und kein
-Standard. Generische Umgebung, die niemanden benennt — eine Spaltenüberschrift,
-eine „Doku lesen“-Aktion —, bleibt in der Ebene.
+Standard. Generischer Oberflächentext, der niemanden benennt — eine
+Spaltenüberschrift, eine „Doku lesen“-Aktion —, bleibt in der Ebene.
 
 ## Konsequenzen
 

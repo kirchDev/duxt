@@ -52,9 +52,11 @@ const aliases: Record<string, string> = {
   curl: 'bash',
   js: 'typescript',
   javascript: 'typescript',
+  md: 'markdown',
   sh: 'bash',
   shell: 'bash',
-  ts: 'typescript'
+  ts: 'typescript',
+  yml: 'yaml'
 };
 
 let highlighter: Promise<Highlighter> | undefined;

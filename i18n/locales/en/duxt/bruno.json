@@ -1,0 +1,25 @@
+{
+  "duxt": {
+    "bruno": {
+      "auth": "Authentication",
+      "body": "Body",
+      "download": "Download collection",
+      "downloadHint": "The collection exactly as this version and language describe it.",
+      "environments": "Environments",
+      "fetch": "Fetch in Bruno",
+      "fetchHint": "Clones the repository in Bruno. It follows the default branch and is not pinned to this version.",
+      "folders": "Folders",
+      "format": "Format",
+      "getIt": "Get the collection",
+      "hasCode": "This request also carries scripts or tests. They are neither shown here nor run; the download has them.",
+      "headers": "Headers",
+      "name": "Name",
+      "notPublished": "Environments, credentials, scripts and tests are never published on this site and never run in your browser.",
+      "parameters": "Parameters",
+      "requests": "Requests",
+      "shared": "Shared by every request",
+      "value": "Value",
+      "withheld": "withheld"
+    }
+  }
+}

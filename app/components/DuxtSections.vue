@@ -58,7 +58,17 @@ function current(to?: string) {
         "
       >
         <Icon v-if="section.icon" :name="section.icon" class="size-4" />
-        {{ section.label }}
+        <!-- The lit chip is `font-medium`, which is wider than the regular
+             weight, so every chip after it shifted sideways on each navigation.
+             The invisible zero-height `::after` carries the label at the medium
+             weight and reserves that width whether the chip is lit or not. A
+             pseudo-element rather than a second span, so `textContent` stays the
+             label once and `visibility: hidden` keeps it out of the name. -->
+        <span
+          class="inline-flex flex-col after:invisible after:h-0 after:overflow-hidden after:font-medium after:content-[attr(data-label)]"
+          :data-label="section.label"
+          >{{ section.label }}</span
+        >
       </NuxtLink>
     </nav>
   </div>

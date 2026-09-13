@@ -151,7 +151,7 @@ const operations = computed(() =>
               <Icon
                 name="lucide:arrow-right"
                 aria-hidden="true"
-                class="mt-1 size-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"
+                class="mt-1 size-3.5 shrink-0 text-muted-foreground rtl:-scale-x-100 transition-transform ltr:group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5"
               />
             </NuxtLink>
           </li>

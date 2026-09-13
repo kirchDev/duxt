@@ -26,7 +26,7 @@ function jump(event: MouseEvent) {
 <template>
   <a
     :href="target"
-    class="sr-only rounded-md bg-background px-4 py-2 text-sm font-medium ring-2 ring-ring focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-100"
+    class="sr-only rounded-md bg-background px-4 py-2 text-sm font-medium ring-2 ring-ring focus:not-sr-only focus:fixed focus:top-3 focus:start-3 focus:z-100"
     @click="jump"
   >
     {{ $t('duxt.nav.skip') }}

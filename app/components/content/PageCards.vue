@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ContentNavigationItem } from '@nuxt/content';
+import { navigationCardItems } from '../../utils/navigation-tree';
 // `::page-cards` on a section's index page: one card per child, taken from the
 // navigation, so a new page appears here without the index being edited.
 const props = defineProps<{ path?: string }>();
@@ -11,10 +12,12 @@ const { data: navigation } = await useDuxtNavigation();
 
 const base = computed(() => props.path ?? path.value);
 
-const items = computed(() => {
-  const branch = navigation.value?.find((item) => item.path === base.value);
-  return branch?.children?.filter((child) => child.path !== base.value) ?? [];
-});
+const items = computed(() =>
+  navigationCardItems(
+    navigation.value?.find((item) => item.path === base.value),
+    base.value
+  )
+);
 
 /** `icon` comes from frontmatter, which Content types as unknown. */
 const iconOf = (item: ContentNavigationItem) =>

@@ -81,7 +81,7 @@ const localeLink = useDuxtLink();
               ? 'lucide:arrow-up-right'
               : 'lucide:arrow-right'
           "
-          class="size-4"
+          class="size-4 rtl:-scale-x-100"
         />
       </NuxtLink>
     </UiButton>

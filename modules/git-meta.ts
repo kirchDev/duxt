@@ -2,9 +2,12 @@ import { execFileSync } from 'node:child_process';
 import { dirname, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Nuxt } from '@nuxt/schema';
+import type { DuxtContributor } from '../git-contributors';
+import { contributorsOf } from '../git-contributors';
 import { readDuxtBuildConfig } from '../duxt-app-config';
 import { duxtManifest, duxtSectionTypes } from '../sections-resolve';
 import { resolveLatestRefs } from '../sources-git';
+import { normaliseTfplugindocsPage } from '../tfplugindocs';
 
 /**
  * "Last updated" and the contributor list, from the git history the file
@@ -30,11 +33,7 @@ interface AfterParseContext {
   file?: { path?: string; id?: string };
 }
 
-export interface DuxtContributor {
-  name: string;
-  commits: number;
-  username?: string;
-}
+export type { DuxtContributor };
 
 export default function duxtGitMeta(_options: unknown, nuxt: Nuxt) {
   const layerDir = fileURLToPath(new URL('..', import.meta.url));
@@ -54,8 +53,8 @@ export default function duxtGitMeta(_options: unknown, nuxt: Nuxt) {
     duxtSectionTypes(config?.sectionTypes)
   );
 
-  const wanted = new Map(
-    sources.map((source) => [source.collection, source.history])
+  const sourceByCollection = new Map(
+    sources.map((source) => [source.collection, source])
   );
 
   nuxt.hook(
@@ -65,10 +64,19 @@ export default function duxtGitMeta(_options: unknown, nuxt: Nuxt) {
       const content = ctx.content;
       if (!file || !content) return;
 
+      const source = sourceByCollection.get(ctx.collection?.name ?? '');
+      if (!source) return;
+
+      // Source flavours alter metadata only. Their Markdown remains portable to
+      // the generator's own publisher, so the body is never rewritten here.
+      if (source.flavor === 'tfplugindocs') {
+        normaliseTfplugindocsPage(content, ctx.file?.id ?? file);
+      }
+
       // A source that has not asked for its history is left alone — for a
       // downloaded one that would otherwise answer out of a single-commit
       // clone, which is wrong data rather than missing data.
-      if (!wanted.get(ctx.collection?.name ?? '')) return;
+      if (!source.history) return;
 
       if (file.includes('/.data/content/')) unshallow(dirname(file));
 
@@ -307,43 +315,4 @@ function gitLog(file: string): Commit[] {
   const path = relative(root, file).split(sep).join('/');
 
   return historyOf(root).get(path) ?? [];
-}
-
-/**
- * One entry per person, most commits first.
- *
- * Identity is the email, not the name — the same person commits as "Titus
- * Kirch" and as "titus" and would otherwise appear twice. The GitHub username
- * is read out of a noreply address, which is the only place git actually
- * carries one; without it there is a name and no avatar, which is the truth.
- */
-export function contributorsOf(commits: Commit[]): DuxtContributor[] {
-  const people = new Map<string, DuxtContributor>();
-
-  for (const commit of commits) {
-    const key = commit.email.toLowerCase();
-    const existing = people.get(key);
-
-    if (existing) {
-      existing.commits += 1;
-      continue;
-    }
-
-    people.set(key, {
-      name: commit.name,
-      commits: 1,
-      username: githubUsername(commit.email)
-    });
-  }
-
-  return [...people.values()].sort((a, b) => b.commits - a.commits);
-}
-
-/** `1234567+octocat@users.noreply.github.com` becomes `octocat`. */
-export function githubUsername(email: string): string | undefined {
-  const match = /^(?:\d+\+)?([^@]+)@users\.noreply\.github\.com$/i.exec(
-    email.trim()
-  );
-
-  return match?.[1];
 }

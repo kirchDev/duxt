@@ -50,15 +50,65 @@ function documentationFor(source: Area | undefined, sources: Area[]) {
   )[0];
 }
 
-/** The version-neutral root of a documentation area. */
+/**
+ * The version-neutral root of a documentation area.
+ *
+ * A tree published INSIDE another area's root belongs to that area: a provider
+ * reference at `/demo/terraform` is a part of `/demo` in the same way the
+ * generated reference beside it is, and treating it as an area of its own
+ * would empty the row on its pages and hide its entry on every other one. The
+ * root area `''` never adopts anything, or every source would be one area.
+ */
 function areaRoot(source: Area | undefined, sources: Area[]): string {
+  const own = treeRoot(source, sources);
+  if (!own) return own;
+
+  const enclosing = sources
+    .filter((other) => !other.generated)
+    .map((other) => treeRoot(other, sources))
+    .filter((root) => root && root !== own && isInside(own, root))
+    .sort((a, b) => a.length - b.length)[0];
+
+  return enclosing ?? own;
+}
+
+/**
+ * The prefix a source WITHOUT a slug has before its version segment.
+ *
+ * Such a source carries no identity to group its editions by, so they used to
+ * keep their own prefixes: `/v0.2.0` was an area apart from the root, and on a
+ * site with a second area every section was filtered off the page — the row
+ * vanished on every non-default edition of the documentation it belongs to.
+ * The version segment is the one thing the editions of one source add to the
+ * same base, so it is taken off again — but only where an edition without it
+ * actually exists, so a prefix that merely ends like a version stays its own.
+ */
+function unversioned(source: Area, sources: Area[]): string {
+  const segment = source.version ? `/${source.version}` : '';
+  if (!segment || !source.prefix.endsWith(segment)) return source.prefix;
+
+  const base = source.prefix.slice(0, -segment.length);
+
+  return sources.some(
+    (other) =>
+      !other.generated &&
+      !other.repo &&
+      other.prefix === base &&
+      other.version !== source.version
+  )
+    ? base
+    : source.prefix;
+}
+
+/** The root of the one documentation tree a source belongs to. */
+function treeRoot(source: Area | undefined, sources: Area[]): string {
   const documentation = documentationFor(source, sources);
   if (!documentation) return '';
 
   // A slug is the source identity and survives the version segment. All
   // versions of `/demo` are therefore one area, whose shallowest prefix is
-  // the default edition. Sources without an identity retain their own prefix.
-  if (!documentation.repo) return documentation.prefix;
+  // the default edition.
+  if (!documentation.repo) return unversioned(documentation, sources);
 
   return sources
     .filter((other) => !other.generated && other.repo === documentation.repo)
@@ -94,6 +144,17 @@ const areas = (sources: Area[]): string[] => [
  */
 export function areaForPath(path: string, sources: Area[]): string {
   return areaRoot(sourceForPath(path, sources), sources);
+}
+
+/**
+ * Whether two sources are editions of one documentation tree: the same slug
+ * where they carry one, the same unversioned root where they do not. Two
+ * slug-less sources are NOT one tree merely for both lacking a slug.
+ */
+function sameTree(a: Area, b: Area, sources: Area[]): boolean {
+  if (a.repo || b.repo) return a.repo === b.repo;
+
+  return unversioned(a, sources) === unversioned(b, sources);
 }
 
 /**
@@ -134,7 +195,7 @@ export function sectionsForPath<T extends { to?: string }>(
     if (
       target &&
       !target.generated &&
-      target.repo === reader.repo &&
+      sameTree(target, reader, sources) &&
       target.version !== reader.version
     ) {
       return {

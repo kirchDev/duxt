@@ -46,7 +46,7 @@ const localeLink = useDuxtLink();
 
           <span
             v-if="entry.summary"
-            class="w-full text-sm text-muted-foreground sm:ml-auto sm:w-auto sm:text-right"
+            class="w-full text-sm text-muted-foreground sm:ms-auto sm:w-auto sm:text-end"
           >
             {{ entry.summary }}
           </span>

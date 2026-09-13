@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   changelogAnchor,
   changelogLabel,
-  changelogDate,
   changelogTone
 } from '../app/utils/changelog';
 
@@ -49,21 +48,6 @@ describe('changelogTone', () => {
     expect(tone.dot).toMatch(/^bg-/);
     expect(tone.text).toMatch(/^text-/);
     expect(changelogTone('Sonstiges')).toBe(tone);
-  });
-});
-
-describe('changelogDate', () => {
-  it('formats the day in the reader`s language', () => {
-    // Pinned to UTC, because the value is a calendar date and not a moment:
-    // read as local time it is the day before for every reader west of
-    // Greenwich, and a different day on the server than in the browser.
-    expect(changelogDate('2026-02-01', 'en')).toBe('Feb 1, 2026');
-    expect(changelogDate('2026-02-01', 'de')).toBe('01.02.2026');
-  });
-
-  it('draws nothing for a missing or unreadable date', () => {
-    expect(changelogDate(undefined, 'en')).toBeUndefined();
-    expect(changelogDate('one day', 'en')).toBeUndefined();
   });
 });
 

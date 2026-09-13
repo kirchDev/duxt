@@ -44,6 +44,7 @@ const page = computed(() => props.page);
 
 const { source } = useDuxtCollection();
 const { locale, t } = useI18n();
+const duxt = useDuxtConfig();
 
 const file = computed(() => {
   // A GENERATED SECTION has no file per page: every page in it was split out of
@@ -80,7 +81,9 @@ const link = computed(() =>
  * the browser, which is a hydration mismatch as well as a wrong date. The
  * commit date IS a moment and is left alone.
  */
-const released = computed(() => changelogDate(page.value?.date, locale.value));
+const released = computed(() =>
+  formatDate(page.value?.date, locale.value, { calendarDay: true })
+);
 
 const updated = computed(() => {
   // The page's own date wins. Both lines would be true and only one is useful:
@@ -89,18 +92,18 @@ const updated = computed(() => {
   // one's and at worst years off.
   if (page.value?.date) return undefined;
 
-  const value = page.value?.lastUpdated;
-  if (!value) return undefined;
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return undefined;
-
-  return new Intl.DateTimeFormat(locale.value, { dateStyle: 'medium' }).format(
-    date
-  );
+  return formatDate(page.value?.lastUpdated, locale.value);
 });
 
 const contributors = computed(() => page.value?.contributors ?? []);
+// `DuxtText` also permits a record of strings, so the resolved-config mapped
+// type narrows this all-optional object too far. It remains an object at
+// runtime; only its template is configurable.
+const contributorConfig = duxt.contributors as unknown as
+  | { avatarUrl?: string }
+  | undefined;
+const avatar = (username: string) =>
+  contributorAvatar(contributorConfig?.avatarUrl, username);
 
 /**
  * What this page lets a reader DO with where it came from.
@@ -171,8 +174,8 @@ const notes = computed(() => {
           class="flex items-center gap-1.5"
         >
           <img
-            v-if="person.username"
-            :src="`https://github.com/${person.username}.png?size=40`"
+            v-if="person.username && avatar(person.username)"
+            :src="avatar(person.username)"
             alt=""
             width="18"
             height="18"

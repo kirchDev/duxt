@@ -44,11 +44,20 @@ function flagFor(code: string): string | null {
 
 <template>
   <UiDropdownMenu v-if="available.length > 1">
+    <!-- `title`, NOT a tooltip. The tooltip version swapped the button for a
+         second element whenever the menu closed (to keep the tooltip from
+         reopening on the returned focus), and reka's dropdown keeps the
+         element it was first anchored to: the NEXT open positioned itself
+         against a node no longer in the document and landed in the top-left
+         corner. Gildstone hit the same drift with tooltips on its collapsed
+         sidebar dropdowns and fixed it the same way (9122050). A trigger has
+         to stay one element for the life of the menu. -->
     <UiDropdownMenuTrigger as-child>
       <UiButton
         variant="ghost"
         size="icon"
         :aria-label="$t('duxt.locale.switch')"
+        :title="$t('duxt.locale.switch')"
       >
         <Icon
           v-if="current?.flag"
@@ -76,7 +85,7 @@ function flagFor(code: string): string | null {
           <span class="truncate text-sm">{{ entry.label }}</span>
           <Icon
             name="lucide:check"
-            class="ml-auto size-3.5 shrink-0"
+            class="ms-auto size-3.5 shrink-0"
             :class="entry.code === locale ? '' : 'opacity-0'"
           />
         </NuxtLink>

@@ -45,7 +45,7 @@ aspecto tiene cuando algo va mal.
 
 ## Sin servidor de desarrollo
 
-`pnpm exec duxt-report` imprime las fuentes, las comprobaciones y las
+`pnpm exec duxt report` imprime las fuentes, las comprobaciones y las
 redirecciones como Markdown — los mismos datos que dibujan estos paneles, en una
 forma que puedes pegar en un ticket o entregarle a un modelo. `--json` los da sin
 representar. Véase [Qué comprueba la compilación](/concepts/build-checks).

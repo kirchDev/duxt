@@ -45,7 +45,7 @@ melden hat, bringt niemandem bei, wie es aussieht, wenn etwas nicht stimmt.
 
 ## Ohne Dev-Server
 
-`pnpm exec duxt-report` druckt die Quellen, die Prüfungen und die Weiterleitungen
+`pnpm exec duxt report` druckt die Quellen, die Prüfungen und die Weiterleitungen
 als Markdown — dieselben Daten, die diese Panels zeichnen, in einer Form, die du
 in ein Ticket einfügen oder einem Modell geben kannst. `--json` gibt sie
 unaufbereitet. Siehe [Was der Build prüft](/concepts/build-checks).

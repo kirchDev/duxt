@@ -11,16 +11,34 @@ const {
   closeButton = true,
   duration = 4000,
   position = 'bottom-right',
+  dir,
   ...forwarded
 } = defineProps<ToasterProps>();
 
+// 4000 ms is part of this layer-owned component's notification behaviour.
+// A site needing different notification UX overrides the component instead of
+// taking on a one-purpose configuration key.
+
 const theme = computed(() => (colorMode.value === 'dark' ? 'dark' : 'light'));
+
+/**
+ * Sonner reads neither the document nor the reka provider — same as the theme
+ * above, it has to be told. Left out, a toast in a right-to-left page keeps its
+ * close button and its icon on the western side of the card.
+ *
+ * Pulled out of `forwarded` rather than bound beside it, so a caller passing
+ * `dir` explicitly still wins; the locale is the default, not an override.
+ */
+const locale = useDuxtDirection();
+
+const direction = computed(() => dir ?? locale.value);
 </script>
 
 <template>
   <Sonner
     class="toaster group"
     :theme="theme"
+    :dir="direction"
     :close-button="closeButton"
     :duration="duration"
     :position="position"

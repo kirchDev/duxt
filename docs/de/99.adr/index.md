@@ -22,3 +22,4 @@ ablöst, nie als Änderung daran.
 | [ADR-0007](/adr/0007-serve-translations-as-collections-of-their-own) | Übersetzungen als eigene Collections ausliefern | accepted | 2026-09-06 |
 | [ADR-0008](/adr/0008-build-the-theme-on-owned-shadcn-vue-components) | Das Theme auf eigenen shadcn-vue-Komponenten bauen | accepted | 2026-09-08 |
 | [ADR-0009](/adr/0009-take-the-seo-stack-from-the-nuxt-seo-bundle) | Den SEO-Unterbau aus dem Nuxt-SEO-Bündel nehmen | accepted | 2026-09-08 |
+| [ADR-0010](/adr/0010-keep-contents-per-collection-search-as-the-default) | Die Suche pro Collection von Content als Standard behalten | accepted | 2026-09-12 |

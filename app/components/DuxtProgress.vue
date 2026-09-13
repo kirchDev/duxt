@@ -8,27 +8,15 @@
  * reader cannot already ask the document.
  *
  * Measured against the document, not against a scroll container, so it is
- * correct on the docs layout and on the landing page alike. Passive listener:
- * this must never be the thing that makes scrolling stutter.
+ * correct on the docs layout and on the landing page alike.
  */
 const progress = ref(0);
 
-function measure() {
+useDuxtViewportMeasure(() => {
   const doc = document.documentElement;
   const scrollable = doc.scrollHeight - doc.clientHeight;
 
   progress.value = scrollable > 0 ? (doc.scrollTop / scrollable) * 100 : 0;
-}
-
-onMounted(() => {
-  measure();
-  window.addEventListener('scroll', measure, { passive: true });
-  window.addEventListener('resize', measure, { passive: true });
-
-  onBeforeUnmount(() => {
-    window.removeEventListener('scroll', measure);
-    window.removeEventListener('resize', measure);
-  });
 });
 </script>
 

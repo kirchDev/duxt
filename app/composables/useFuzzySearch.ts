@@ -31,7 +31,12 @@ export function useFuzzySearch(
    * the approximate pass reading the same one.
    */
   collection: MaybeRefOrGetter<DuxtCollectionName> = 'docs' as DuxtCollectionName,
-  options?: { ignoredTags?: string[] }
+  options?: {
+    ignoredTags?: string[];
+    threshold?: number;
+    minMatchCharLength?: number;
+    limit?: number;
+  }
 ) {
   let index: Promise<Fuse<DuxtSearchSection>> | undefined;
   let indexedFor: string | undefined;
@@ -58,12 +63,12 @@ export function useFuzzySearch(
 
       // Loose enough to survive a transposed letter, tight enough that a short
       // term does not drag in half the documentation.
-      threshold: 0.35,
-      minMatchCharLength: 3
+      threshold: options?.threshold ?? 0.35,
+      minMatchCharLength: options?.minMatchCharLength ?? 3
     });
   }
 
-  async function search(term: string, limit = 20) {
+  async function search(term: string, limit = options?.limit ?? 20) {
     const name = toValue(collection);
 
     // Built on first use, and again when the route moves to another collection

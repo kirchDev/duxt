@@ -1,0 +1,31 @@
+meta {
+  name: Signed echo
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/demo/echo?api_key=sk-live-9fj2k3&expires=1767225600
+  body: none
+  auth: none
+}
+
+params:query {
+  api_key: sk-live-9fj2k3
+  expires: 1767225600
+}
+
+headers {
+  Accept: application/json
+}
+
+docs {
+  What redaction looks like when the value is real. Bruno mirrors a query
+  parameter into the `url` line as well as into `params:query`, so both are held
+  to the same rule: `api_key` keeps its name and loses its value in the table
+  AND in the URL above it, and the try-it box for it opens empty rather than
+  prefilled.
+
+  The key in the file is not a live one. It is here so this page can be read
+  against the source it was built from.
+}

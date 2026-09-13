@@ -44,7 +44,7 @@ wrong.
 
 ## Without a dev server
 
-`pnpm exec duxt-report` prints the sources, the checks and the redirects as
+`pnpm exec duxt report` prints the sources, the checks and the redirects as
 Markdown — the same data these panels draw, in a form you can paste into a
 ticket or hand to a model. `--json` gives it unrendered. See
 [What the build checks](/concepts/build-checks).

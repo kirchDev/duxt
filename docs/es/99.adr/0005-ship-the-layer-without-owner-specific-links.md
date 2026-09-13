@@ -23,9 +23,9 @@ proporcionarlo.
 
 Todo valor por defecto que nombraría un proyecto o una organización concretos se
 entrega **vacío**. Los enlaces del propio tema viven en la configuración del
-sitio que la consume, donde son un ejemplo y no un valor por defecto. El armazón
-genérico que no nombra a nadie — un encabezado de columna, una acción «lee la
-documentación» — se queda en la capa.
+sitio que la consume, donde son un ejemplo y no un valor por defecto. El texto
+de interfaz genérico que no nombra a nadie — un encabezado de columna, una
+acción «lee la documentación» — se queda en la capa.
 
 ## Consecuencias
 

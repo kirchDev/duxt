@@ -3,7 +3,7 @@ import { defineEventHandler, setHeader } from 'h3';
 import { splitLocalePath } from '../../app/utils/locale-path';
 import { sourcesForRoute } from '../../sources-resolve';
 import { duxtDefaults, mergeDuxtConfig } from '../../app/utils/duxt-config';
-import { stripFrontmatter } from '../utils/duxt-server-text';
+import { stripFrontmatter } from '../../frontmatter';
 
 /**
  * `…/guide/deploying.md` serves the page's Markdown source.

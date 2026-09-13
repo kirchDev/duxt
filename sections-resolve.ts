@@ -28,6 +28,7 @@ import {
   resolveSources,
   slugify
 } from './sources-resolve';
+import { brunoSectionType } from './sections-bruno';
 import { changelogSectionType } from './sections-changelog';
 import { openapiSectionType } from './sections-openapi';
 
@@ -167,10 +168,129 @@ export interface DuxtSectionPage {
   body: string;
 }
 
+/**
+ * The artefact a type reads, as the type reads it.
+ *
+ * A LAZY HANDLE rather than a string, and that is the whole of this seam's
+ * second version. `parse` took `artefact: string`, which said one thing the
+ * registry had never meant to promise: that an artefact is one file. A
+ * changelog is, an OpenAPI document is — a Bruno collection is `bruno.json`
+ * beside a directory of `.bru` files, `folder.bru` ordering and an
+ * `environments/` folder nobody should publish, and no single string carries
+ * it.
+ *
+ * So the type is handed WHERE its input is and is left to read it. The central
+ * resolver keeps the severity policy, the report and the prefix; what a tree
+ * means is the type's, which is the only place the knowledge belongs — a
+ * resolver that walked a Bruno collection would have to walk the next type's
+ * too.
+ *
+ * `text` throws rather than returning `''` for a directory: a type that asks a
+ * directory for its contents has a bug, and an empty string turns it into an
+ * empty section reported as a missing artefact three files away.
+ */
+export interface DuxtSectionInput {
+  /** The declared path, relative to the source's own root. */
+  path: string;
+  /**
+   * The checkout `path` resolves against, where the artefact was read out of a
+   * repository whose history this build is allowed to read.
+   *
+   * ABSENT IS THE DEFAULT, AND MEANS "DO NOT LOOK". It is filled in only for an
+   * artefact read out of the repository being built. A remote source is a
+   * `--depth 1` clone, where every commit looks as though one person wrote it
+   * — wrong data rather than missing data, which is the line
+   * `modules/git-meta.ts` already draws and for the same reason. The one
+   * exception is a remote source that IS the repository being built: the
+   * artefact still comes from the download, but this points at the local
+   * checkout, which carries the same tags with their whole history — see
+   * `localHistoryFor`. An in-memory
+   * input leaves it unset too, so a type under test never reaches a real
+   * repository and a fixture version that happens to match a real tag cannot
+   * quietly pick up real people.
+   *
+   * A type that only turns a file into pages never asks. The release history
+   * does: which people a release carries is a fact about the commits between
+   * two tags, and no changelog file holds it.
+   */
+  root?: string;
+  /** Whether the declared path is one file or a tree. */
+  kind: 'file' | 'directory';
+  /** The whole file. Throws when the input is a directory. */
+  text: () => string;
+  /**
+   * Every file under a directory input, as `/`-separated relative paths.
+   *
+   * Sorted, so a type that walks them produces the same pages on every machine
+   * — a directory listing is not ordered, and a section whose page order
+   * depended on the filesystem would reorder itself on a different one.
+   *
+   * Empty for a file input.
+   */
+  files: () => string[];
+  /** One file under a directory input, by its relative path. */
+  read: (file: string) => string;
+}
+
+/**
+ * An input over files already in memory.
+ *
+ * The pure half of what `sections.ts` builds out of `node:fs`, so a type's
+ * parser is testable without a fixture directory — and so a consumer's own type
+ * can be given one.
+ */
+export function duxtSectionInput(
+  path: string,
+  files: Record<string, string> | string
+): DuxtSectionInput {
+  if (typeof files === 'string') {
+    return {
+      path,
+      kind: 'file',
+      text: () => files,
+      files: () => [],
+      read: () => ''
+    };
+  }
+
+  const names = Object.keys(files).sort();
+
+  return {
+    path,
+    kind: 'directory',
+    text: () => {
+      throw new Error(
+        `duxt: "${path}" is a directory, and this type asked it for a file.`
+      );
+    },
+    files: () => [...names],
+    read: (file) => files[file] ?? ''
+  };
+}
+
 /** What the parser is told about the section it is filling. */
 export interface DuxtSectionContext {
   /** The declared label, which is also the index page's title. */
   label: string;
+  /**
+   * The Content collection these pages land in.
+   *
+   * The one identity that is unique per version AND per locale — a prefix is
+   * not, since two languages deliberately claim the same one. A type that has
+   * to name a build-time artefact of its own (the Bruno collection's ZIP) needs
+   * a name the module emitting it can compute the same way, and this is it.
+   */
+  collection: string;
+  /**
+   * Whether the artefact came out of a repository Content downloads.
+   *
+   * A type that only turns a file into pages never asks. One whose section
+   * offers something built BESIDE the pages does: `section-reports.ts` states
+   * the limit this reflects — a remote checkout lands wherever Content's
+   * hash-cache put it, which is a directory known only inside the collection
+   * that declared it, so nothing outside can read the artefact a second time.
+   */
+  remote: boolean;
   /** The URL prefix its pages are served at, e.g. `/releases`. */
   prefix: string;
   /** The declaration's own `options`, empty where it named none. */
@@ -223,15 +343,42 @@ export interface DuxtSectionReport {
  */
 export interface DuxtSectionType {
   /** The artefact, split into pages carrying their own frontmatter. */
-  parse: (artefact: string, context: DuxtSectionContext) => DuxtSectionPage[];
+  parse: (
+    input: DuxtSectionInput,
+    context: DuxtSectionContext
+  ) => DuxtSectionPage[];
+  /**
+   * Whether the declared path names a file or a directory.
+   *
+   * `file` is the default and what the first two types are: the path is opened
+   * and its contents handed over. `directory` hands the type the tree instead —
+   * `input.files()` and `input.read()` — and is what a client-side collection
+   * like Bruno's needs, since there is no one file to open.
+   *
+   * A POLICY rather than a guess at the path: a type knows what it reads, and a
+   * resolver that stat'ed the path would report a missing directory as a
+   * missing file and say the wrong thing about both.
+   */
+  input?: 'file' | 'directory';
   /**
    * How this type behaves against the one-collection-per-version mechanic.
    *
    * `global` is one history read from the default version and served at a
-   * version-neutral URL, with the switcher suppressed — what a changelog is.
-   * `per-version` is a section per version, like any other page.
+   * version-neutral URL, with the switcher suppressed. `per-version` is a
+   * section per version, like any other page — what the API reference and the
+   * changelog are.
    */
   versioning: 'global' | 'per-version';
+  /**
+   * Whether every published version has to have the artefact.
+   *
+   * `optional`, the default, is the rule `missingSectionArtefact` states for a
+   * source: a local path that does not exist fails the build, a remote one is
+   * recorded and its section simply not built. `required` fails the build for
+   * a remote version too — for a type whose missing file cannot be quietly
+   * skipped without publishing the wrong thing, as a changelog cannot.
+   */
+  artefact?: 'required' | 'optional';
   /**
    * What a localised site shows when the artefact has one language.
    *
@@ -251,11 +398,11 @@ export interface DuxtSectionType {
    * The layout its pages render in, through the shared slot.
    *
    * A layout name a type binds is PUBLIC SURFACE — renaming one later is a
-   * `feat!:`. Unset renders the section in the ordinary docs chrome.
+   * `feat!:`. Unset renders the section in the ordinary docs shell.
    *
    * A FUNCTION where the declaration's own options decide: the same type can
    * produce two different things, and a changelog is the case that proves it —
-   * split into a page per release it is a timeline with chrome of its own,
+   * split into a page per release it is a timeline with a layout of its own,
    * rendered as the one file it was written as it is an ordinary docs page and
    * wants the sidebar, the breadcrumb and the table of contents back.
    */
@@ -269,6 +416,7 @@ export type DuxtSectionTypes = Record<string, DuxtSectionType>;
 
 /** The types the layer ships. */
 export const duxtBuiltinSectionTypes: DuxtSectionTypes = {
+  bruno: brunoSectionType,
   changelog: changelogSectionType,
   openapi: openapiSectionType
 };
@@ -485,6 +633,10 @@ export function resolveGeneratedSections(
             }`,
             prefix,
             repo: base.entry.repo,
+            // The SOURCE's name, not the artefact's. A generated section is
+            // published by the project its source is, and the artefact has a
+            // label of its own that the search caption draws beside this.
+            name: base.entry.name,
             // `global` is version-NEUTRAL, so it carries no version at all: the
             // switcher lists what has a version, and a changelog must not be
             // offered as one of the versions of the documentation beside it.
@@ -639,12 +791,14 @@ export function generatedSectionRef(
 export function sectionPages(
   entry: DuxtResolvedSource,
   type: DuxtSectionType,
-  artefact: string
+  input: DuxtSectionInput
 ): DuxtSectionPage[] {
   const warnings: string[] = [];
 
-  const pages = type.parse(artefact, {
+  const pages = type.parse(input, {
     label: entry.generated!.label,
+    collection: entry.collection,
+    remote: entry.generated!.remote,
     prefix: entry.prefix,
     options: entry.generated!.options ?? {},
     warn: (message) => {
@@ -687,9 +841,21 @@ export function sectionPages(
  */
 export function missingSectionArtefact(
   entry: DuxtResolvedSource,
-  file: string
+  file: string,
+  type?: Pick<DuxtSectionType, 'artefact'>
 ): DuxtSectionPage[] {
   entry.generated!.report = { pages: 0, warnings: [], missing: true };
+
+  // A type that needs its artefact in EVERY published version fails the build
+  // for a remote version too — see `DuxtSectionType.artefact`.
+  if (entry.generated!.remote && type?.artefact === 'required') {
+    throw new Error(
+      `duxt: the generated section "${entry.generated!.label}" needs ` +
+        `${entry.path} in every published version, and ` +
+        `${entry.version ?? entry.ref ?? 'this version'} has none ` +
+        `(looked in ${file}).`
+    );
+  }
 
   // Remote: recorded, not printed. `validate-report.ts` reads the report and
   // says it once, in the same list as every other finding — see `sectionPages`.

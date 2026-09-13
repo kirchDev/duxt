@@ -1,0 +1,25 @@
+{
+  "duxt": {
+    "bruno": {
+      "auth": "Authentification",
+      "body": "Corps",
+      "download": "Télécharger la collection",
+      "downloadHint": "La collection telle que cette version et cette langue la décrivent.",
+      "environments": "Environnements",
+      "fetch": "Ouvrir dans Bruno",
+      "fetchHint": "Clone le dépôt dans Bruno. Il suit la branche par défaut et n'est pas figé sur cette version.",
+      "folders": "Dossiers",
+      "format": "Format",
+      "getIt": "Obtenir la collection",
+      "hasCode": "Cette requête comporte aussi des scripts ou des tests. Ils ne sont ni affichés ni exécutés ici ; le téléchargement les contient.",
+      "headers": "En-têtes",
+      "name": "Nom",
+      "notPublished": "Les environnements, les identifiants, les scripts et les tests ne sont jamais publiés sur ce site ni exécutés dans votre navigateur.",
+      "parameters": "Paramètres",
+      "requests": "Requêtes",
+      "shared": "Commun à toutes les requêtes",
+      "value": "Valeur",
+      "withheld": "masqué"
+    }
+  }
+}

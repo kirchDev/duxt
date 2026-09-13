@@ -130,3 +130,112 @@ it('lazily searches selected artefacts in both passes with page-level translatio
   );
   expect(exact.mock.calls.map(([name]) => name)).not.toContain(api.collection);
 });
+
+it('labels hits with the source display name, its artefact and its version', async () => {
+  const manifest = duxtManifest(
+    [
+      { path: 'docs', name: 'Handbook' },
+      {
+        path: 'www/demo/docs',
+        slug: 'demo',
+        name: { 'en-GB': 'Demo', de: 'Demonstration' },
+        version: 'v3.x',
+        generated: [
+          { type: 'changelog', path: 'CHANGELOG.md', label: 'Releases' }
+        ]
+      }
+    ],
+    { showRepo: false, defaultRef: 'v3.x' }
+  );
+  const docs = manifest.find((entry) => entry.collection === 'docs')!;
+  const found = vi.fn(async (collection: string) => [hit(`/${collection}#x`)]);
+
+  vi.stubGlobal('computed', computed);
+  vi.stubGlobal('useDuxtConfig', () => ({
+    // Already resolved for the locale by `useDuxtConfig` in the real app.
+    title: 'duxt',
+    resolvedSources: manifest.map((entry) => ({
+      ...entry,
+      name: typeof entry.name === 'string' ? entry.name : entry.name?.['en-GB']
+    }))
+  }));
+  vi.stubGlobal('useDuxtCollection', () => ({ source: ref(docs) }));
+  vi.stubGlobal('useI18n', () => ({
+    locale: ref('en-GB'),
+    fallbackLocale: ref('en-GB')
+  }));
+  vi.stubGlobal('useSearchCollection', (collection: string) => ({
+    status: ref('idle'),
+    init: () => {},
+    search: () => found(collection)
+  }));
+  vi.stubGlobal('useFuzzySearch', () => ({ search: async () => [] }));
+  vi.stubGlobal('queryCollection', () => ({
+    select: () => ({ all: async () => [] })
+  }));
+
+  const results = await useDuxtSearch().search('x');
+  const sources = results.hits.map((entry) => entry.source);
+
+  // The site's own documentation is NAMED, not labelled `/`.
+  expect(sources[0]).toMatchObject({ name: 'Handbook' });
+  expect(sources.some((entry) => entry?.name === '/')).toBe(false);
+  // The demo carries its own name, and its changelog the artefact beside it.
+  expect(sources.map((entry) => entry?.name)).toContain('Demo');
+  expect(sources.map((entry) => entry?.artefact)).toContain('Releases');
+});
+
+/**
+ * `search: false` has to survive BOTH passes.
+ *
+ * The exact pass and the fuzzy fallback are two different indexes over the same
+ * pages — Content's FTS table and a Fuse instance — and neither carries
+ * frontmatter, so the opt-out can only be applied to the hits by path. Dropping
+ * it from one pass and not the other is a page that stays hidden until the
+ * reader mistypes, which is the worst possible spelling of the bug.
+ */
+it('drops a page that opted out of search from both the exact and fuzzy passes', async () => {
+  const manifest = duxtManifest([{ path: 'docs' }]);
+  const docs = manifest.find((entry) => entry.collection === 'docs')!;
+
+  const found = vi.fn(async () => [hit('/legal#terms'), hit('/guide#intro')]);
+  const fuzzy = vi.fn(async () => [hit('/legal#terms'), hit('/guide#intro')]);
+
+  vi.stubGlobal('computed', computed);
+  vi.stubGlobal('useDuxtConfig', () => ({ resolvedSources: manifest }));
+  vi.stubGlobal('useDuxtCollection', () => ({ source: ref(docs) }));
+  vi.stubGlobal('useI18n', () => ({
+    locale: ref('en'),
+    fallbackLocale: ref('en')
+  }));
+  vi.stubGlobal('useSearchCollection', () => ({
+    status: ref('idle'),
+    init: () => {},
+    search: () => found()
+  }));
+  vi.stubGlobal('useFuzzySearch', () => ({ search: () => fuzzy() }));
+
+  const selected: string[][] = [];
+  vi.stubGlobal('queryCollection', () => ({
+    select: (...fields: string[]) => {
+      selected.push(fields);
+      return {
+        all: async () => [{ path: '/guide' }, { path: '/legal', search: false }]
+      };
+    }
+  }));
+
+  const search = useDuxtSearch();
+
+  // The opt-out is only readable if the field was asked for — Content returns
+  // exactly the columns named, so a missed `select` is a silently ignored flag.
+  const exact = await search.search('terms');
+  expect(selected.every((fields) => fields.includes('search'))).toBe(true);
+  expect(exact.hits.map((entry) => entry.id)).toEqual(['/guide#intro']);
+
+  // Nothing matched exactly, so the fuzzy pass runs — and hides the same page.
+  found.mockResolvedValueOnce([]);
+  const approximate = await search.search('trms');
+  expect(approximate.approximate).toBe(true);
+  expect(approximate.hits.map((entry) => entry.id)).toEqual(['/guide#intro']);
+});

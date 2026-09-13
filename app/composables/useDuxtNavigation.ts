@@ -1,4 +1,5 @@
 import type { ContentNavigationItem } from '@nuxt/content';
+import { tfplugindocsNavigation } from '../../tfplugindocs';
 
 /**
  * Which collections the navigation is being fetched from.
@@ -22,7 +23,11 @@ import type { ContentNavigationItem } from '@nuxt/content';
 const useNavigationSource = () =>
   useState('duxt-navigation-source', () => ({
     base: 'docs' as DuxtCollectionName,
-    translation: 'docs' as DuxtCollectionName
+    translation: 'docs' as DuxtCollectionName,
+    // The base source's tfplugindocs prefix, or `undefined` for any other
+    // flavour. Resolved in `useDuxtNavigation`, never in the handler — see
+    // the note there.
+    tfplugindocsPrefix: undefined as string | undefined
   }));
 
 /**
@@ -35,19 +40,28 @@ const useNavigationSource = () =>
  * see `overlayTranslations`.
  */
 const handler = async (): Promise<ContentNavigationItem[]> => {
-  // Read BEFORE the first await: after it, the route may have moved on.
-  const { base, translation } = useNavigationSource().value;
+  // Read BEFORE the first await: after it, the route may have moved on — and
+  // the Nuxt instance is gone. NOTHING below the first await may call a
+  // composable: `useDuxtConfig()` sat under it once, threw E1001 on every
+  // request, and the handler's error left every page without a sidebar.
+  // `tests/async-data-context.test.ts` holds that line.
+  const { base, translation, tfplugindocsPrefix } = useNavigationSource().value;
 
   const tree = await queryCollectionNavigation(base as DuxtCollectionArg, [
     'icon',
-    'description'
+    'description',
+    'subcategory'
   ]);
 
   // Before the overlay: a folder's title comes from its own index page, and a
   // translated index has to be able to carry that up with it.
   const named = titleFoldersFromIndex(tree);
+  const navigable =
+    tfplugindocsPrefix === undefined
+      ? named
+      : tfplugindocsNavigation(named, tfplugindocsPrefix);
 
-  if (translation === base) return named;
+  if (translation === base) return navigable;
 
   const translated = await queryCollection(translation as DuxtCollectionArg)
     .select('path', 'title', 'description')
@@ -55,7 +69,7 @@ const handler = async (): Promise<ContentNavigationItem[]> => {
 
   return titleFoldersFromIndex(
     overlayTranslations(
-      named,
+      navigable,
       new Map(translated.map((page) => [page.path, page]))
     )
   );
@@ -68,14 +82,20 @@ const handler = async (): Promise<ContentNavigationItem[]> => {
  * one cache entry, and neither may two languages of one.
  */
 export function useDuxtNavigation() {
-  const { collection, baseCollection } = useDuxtCollection();
+  const { collection, baseCollection, sources } = useDuxtCollection();
   const source = useNavigationSource();
 
   // Kept in step before every fetch, including the ones `watch` triggers.
   watchEffect(() => {
+    const base = sources.value.find(
+      (entry) => entry.collection === baseCollection.value
+    );
+
     source.value = {
       base: baseCollection.value,
-      translation: collection.value
+      translation: collection.value,
+      tfplugindocsPrefix:
+        base?.flavor === 'tfplugindocs' ? base.prefix : undefined
     };
   });
 

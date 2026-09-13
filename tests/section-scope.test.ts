@@ -29,6 +29,36 @@ const SECTIONS = [
 ];
 
 describe('areaForPath', () => {
+  it('folds a documentation tree nested under an area into that area', () => {
+    // A provider reference published at `/demo/terraform` is a part of the demo
+    // area, not a third area: its pages keep the demo row, and its own entry
+    // shows beside the demo's other parts.
+    const sources = [
+      { prefix: '' },
+      { prefix: '/demo', repo: 'demo' },
+      { prefix: '/demo/terraform', repo: 'demo/terraform' },
+      { prefix: '/demo/openapi', generated: { type: 'openapi' } }
+    ];
+    const row = [
+      { label: 'Guides', to: '/guides' },
+      { label: 'Overview', to: '/demo' },
+      { label: 'Terraform', to: '/demo/terraform' }
+    ];
+
+    expect(areaForPath('/demo/terraform/resources/team', sources)).toBe(
+      '/demo'
+    );
+    for (const path of ['/demo', '/demo/terraform/resources/team']) {
+      expect(sectionsForPath(row, sources, path).map((s) => s.to)).toEqual([
+        '/demo',
+        '/demo/terraform'
+      ]);
+    }
+    expect(sectionsForPath(row, sources, '/guides').map((s) => s.to)).toEqual([
+      '/guides'
+    ]);
+  });
+
   it('places a page under the longest DOCUMENTATION prefix', () => {
     expect(areaForPath('/getting-started', SOURCES)).toBe('');
     expect(areaForPath('/demo', SOURCES)).toBe('/demo');
@@ -114,6 +144,55 @@ describe('sectionsForPath', () => {
       { label: 'Demo API', to: '/demo/v2.x/api' },
       { label: 'Demo Changelog', to: '/demo/changelog' }
     ]);
+  });
+  it('keeps the row on every edition of a documentation source without a slug', () => {
+    // The site's own documentation is published at the root and at one prefix
+    // per version, with no slug — so its editions carry no `repo` to be grouped
+    // by. Each prefix used to be an area of its own, and with the demo as a
+    // second area every entry was filtered away: no row on `/v0.2.0` at all.
+    const sources = [
+      { prefix: '', version: 'v0.3.4' },
+      { prefix: '/v0.2.0', version: 'v0.2.0' },
+      { prefix: '/main', version: 'main' },
+      { prefix: '/demo', repo: 'demo', version: 'v3.x' },
+      {
+        prefix: '/demo/api',
+        repo: 'demo',
+        version: 'v3.x',
+        generated: { type: 'openapi' }
+      }
+    ];
+    const row = [
+      { label: 'Get started', to: '/getting-started' },
+      { label: 'Reference', to: '/reference' },
+      { label: 'Docs', to: '/demo' }
+    ];
+
+    expect(areaForPath('/v0.2.0/reference/sources', sources)).toBe('');
+    expect(areaForPath('/main', sources)).toBe('');
+    expect(
+      sectionsForPath(row, sources, '/v0.2.0/reference/sources').map(
+        (s) => s.to
+      )
+    ).toEqual(['/v0.2.0/getting-started', '/v0.2.0/reference']);
+    expect(
+      sectionsForPath(row, sources, '/reference/sources').map((s) => s.to)
+    ).toEqual(['/getting-started', '/reference']);
+    expect(sectionsForPath(row, sources, '/demo').map((s) => s.to)).toEqual([
+      '/demo'
+    ]);
+  });
+
+  it('does not fold a prefix that merely ends like a version into the root', () => {
+    // No edition exists at `/api` without the segment, so `/api/v2` is a source
+    // of its own and not a version of anything.
+    const sources = [
+      { prefix: '' },
+      { prefix: '/api/v2', version: 'v2' },
+      { prefix: '/demo', repo: 'demo' }
+    ];
+
+    expect(areaForPath('/api/v2/widgets', sources)).toBe('/api/v2');
   });
 });
 

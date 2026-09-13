@@ -44,7 +44,7 @@ const shown = computed(() => {
        information about the page rather than a warning about its content. -->
   <UiAlert
     role="status"
-    class="mb-6 flex items-start gap-2.5 rounded-md border border-l-2 border-l-sky-500 bg-muted/30 px-3 py-2.5"
+    class="mb-6 flex items-start gap-2.5 rounded-md border border-s-2 border-s-sky-500 bg-muted/30 px-3 py-2.5"
   >
     <Icon
       name="lucide:languages"

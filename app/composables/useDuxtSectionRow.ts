@@ -33,11 +33,12 @@ export function useDuxtSectionRow() {
    * where there is one — as a length the layouts hand down in
    * `--duxt-header-offset`.
    *
-   * NOT `chrome`, which is what this was called. The word is right in the sense
-   * an interface means it and wrong in the sense most readers reach for first,
-   * and a name that has to be explained is a name chosen badly.
-   * `DuxtLiveWindow`'s `chrome` prop keeps it, because there it really is a
-   * drawn browser bar.
+   * NAMED FOR WHAT IT MEASURES, not for an umbrella word. What the layer draws
+   * around a page is named as the specific thing — the header, the navigation,
+   * the aside, the docs shell — and what a page may turn off is a page control,
+   * because a name that has to be explained is a name chosen badly.
+   * `DuxtLiveWindow`'s `chrome` prop is the one exception, because there it
+   * really is a drawn browser bar.
    *
    * A CSS variable rather than a class per case: the sticky columns live in
    * three layouts and in the page's own contents column, and four copies of a

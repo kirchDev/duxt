@@ -16,6 +16,38 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
+ * TECHNICAL CONTENT IS LEFT-TO-RIGHT, whichever way the interface runs.
+ *
+ * A right-to-left locale turns the chrome round — the sidebar, the table of
+ * contents, the nesting rules, every `ms-`/`ps-`/`border-s` in this theme. It
+ * must not turn round a shell command, a file path, a URL or a JSON body:
+ * those are syntax, not prose, and the bidirectional algorithm reorders their
+ * punctuation into something that no longer parses. `cd ../src` rendered
+ * right-to-left is not a translation of `cd ../src`.
+ *
+ * `unicode-bidi: isolate` rather than `direction: ltr` alone, because the run
+ * has to be sealed off from the sentence AROUND it as well: an inline `code`
+ * sitting mid-paragraph inherits the paragraph's ordering otherwise, and a
+ * trailing bracket migrates to the wrong end of the word.
+ *
+ * NOT THE `[dir=rtl]` OVERRIDE SHEET THIS PROJECT REJECTED. That idea was a
+ * second, invisible layout system running beside the utility classes — every
+ * component having to remember it exists. This is the opposite: four element
+ * selectors saying what kind of content they hold, changing nothing in a
+ * left-to-right page, and needing no component to know about it at all.
+ *
+ * `:where()` throughout, so the whole thing carries no specificity and a
+ * consumer overrides it with a bare `code { … }`. The `[dir]` guard is the
+ * narrower escape hatch: a block that genuinely holds right-to-left text — a
+ * transliteration, a string literal in Arabic — says so on the element and is
+ * left alone.
+ */
+:where(code, pre, kbd, samp):where(:not([dir])) {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+/*
  * The neutral base palette, in oklch. A consumer overrides a token by
  * redefining it in its own stylesheet — no fork of this file needed.
  *
@@ -246,7 +278,7 @@
 }
 
 .typeset :where(.duxt-anchor) {
-  @apply absolute -left-5 font-normal text-muted-foreground opacity-0 transition-opacity;
+  @apply absolute -start-5 font-normal text-muted-foreground opacity-0 transition-opacity;
 }
 
 /* THE MARKER AS THE LINK ITSELF, where the heading already contains one and
@@ -256,7 +288,7 @@
    while the words beside it are the same link and not at all once they are
    somebody else's. */
 .typeset :where(.duxt-anchor-only) {
-  @apply relative left-auto mr-2 inline no-underline opacity-60 transition-opacity;
+  @apply relative start-auto me-2 inline no-underline opacity-60 transition-opacity;
 }
 
 .typeset :where(.duxt-anchor-only:hover, .duxt-anchor-only:focus-visible) {
@@ -354,14 +386,14 @@ details[open] > .duxt-schema-row .duxt-schema-tile .duxt-schema-minus {
    because there the indent is what says it is nested. */
 .typeset :where(.duxt-release > ul) {
   margin: 0;
-  padding-left: 0;
+  padding-inline-start: 0;
   list-style: none;
 }
 
 .typeset :where(.duxt-release > ul > li) {
   position: relative;
   margin: 0;
-  padding-left: 1.05rem;
+  padding-inline-start: 1.05rem;
   line-height: 1.55;
 }
 
@@ -373,7 +405,7 @@ details[open] > .duxt-schema-row .duxt-schema-tile .duxt-schema-minus {
   content: '';
   position: absolute;
   top: 0.6em;
-  left: 0;
+  inset-inline-start: 0;
   height: 0.3125rem;
   width: 0.3125rem;
   border-radius: 999px;
@@ -524,7 +556,16 @@ pre.shiki,
 
 /* Line numbers, opt-in per fence with ```ts line-numbers.
    A CSS counter rather than markup: the numbers are decoration, and a reader
-   copying the block must not get them in the clipboard. */
+   copying the block must not get them in the clipboard.
+
+   PHYSICAL ON PURPOSE, and the only two declarations in this file that are.
+   `margin-right` and `text-align: right` sit inside `pre`/`code`, which the
+   `unicode-bidi: isolate` rule at the top of this file pins left-to-right —
+   a shell command is syntax, not prose. A gutter that followed the reader
+   would land on the opposite side of the run it numbers, and the digits
+   right-align towards that run for the same reason they do in an editor.
+   Declared with this reason in `tests/direction-utilities.test.ts`; every
+   other side-naming rule here is logical. */
 .duxt-line-numbers code {
   counter-reset: duxt-line;
 }

@@ -2,12 +2,16 @@
  * The one endpoint this site actually answers.
  *
  * `www/demo/` describes an invented API and says so — no host behind it
- * replies, which is right for a reference page and wrong for the try-it client
- * on the landing page, where a reader presses Send and gets a network error.
+ * replies, which is right for a reference page and wrong for the try-it client,
+ * where a reader presses Send and gets a network error.
  *
- * So one operation in that document is real, and this is it: it takes a
- * consignment and hands it back with an id and a timestamp, the way
- * `POST /consignments` would.
+ * So one path in it is real, and this is it. `POST` takes a consignment and
+ * hands it back with an id and a timestamp, the way `POST /consignments` would.
+ * Every other method, on `/demo/echo` and on any path under it, answers with
+ * what it was sent: the Bruno collection beside the OpenAPI document points all
+ * of its requests here, and a `GET` that answered 404 made every send button on
+ * those pages but one a failure the page could not explain.
+ *
  * Nothing is stored, and the token is checked only for being there — enough to
  * show the authorisation field doing something, and not enough to pretend this
  * is an account system.
@@ -16,9 +20,25 @@
  * documentation layer that mounted a writable route into every site extending
  * it would be shipping one.
  */
-import { defineEventHandler, getHeader, readBody, setResponseStatus } from 'h3';
+import {
+  defineEventHandler,
+  getHeader,
+  getQuery,
+  getRouterParam,
+  readBody,
+  setResponseStatus
+} from 'h3';
 
 export default defineEventHandler(async (event) => {
+  if (event.method !== 'POST') {
+    return {
+      method: event.method,
+      path: `/demo/echo${getRouterParam(event, 'path') ? `/${getRouterParam(event, 'path')}` : ''}`,
+      query: getQuery(event),
+      receivedAt: new Date().toISOString()
+    };
+  }
+
   const authorisation = getHeader(event, 'authorization');
 
   // The 401 the document declares. A demo whose only answer is success shows

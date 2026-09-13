@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { TabsContent, TabsList, TabsRoot, TabsTrigger } from 'reka-ui';
+import { useResizeObserver } from '@vueuse/core';
+import { TabsContent, TabsRoot } from 'reka-ui';
 import type {
   DuxtOpenApiOperation,
   DuxtOpenApiSecurity,
@@ -67,7 +68,7 @@ const split = computed(() => props.layout === 'split');
 
 const id = useId();
 const { t } = useI18n();
-const notify = useDuxtToast();
+const analytics = useDuxtAnalytics();
 
 const parameters = computed(() => props.operation.parameters ?? []);
 const bodies = computed(() => props.operation.requestBody?.content ?? []);
@@ -98,6 +99,12 @@ const variables = ref<Record<string, string>>({});
 
 const base = computed(() => openApiServerUrl(server.value, variables.value));
 
+// Read before `values` below, which calls it while the component is set up.
+// Declared further down it was in its temporal dead zone at that point, and
+// every operation page that renders the client answered a 500 with
+// "Cannot access 'duxt' before initialization".
+const duxt = useDuxtConfig();
+
 /* ------------------------------------------------------------- parameters */
 
 /**
@@ -114,7 +121,12 @@ const values = ref<Record<string, string>>(
       // what is sent say the same thing about every parameter.
       .filter((parameter) => parameter.in !== 'cookie')
       .map((parameter) => {
-        const derived = openApiExampleValue(parameter.schema, 'request');
+        const derived = openApiExampleValue(
+          parameter.schema,
+          'request',
+          0,
+          duxt.openapi?.exampleDepth
+        );
         const example = parameter.examples?.[0]?.value ?? derived;
 
         return [
@@ -168,8 +180,6 @@ const bodyKeys = computed(() => openApiBodyKeys(media.value?.schema));
  * property of one endpoint: somebody who edits the body as JSON means it on
  * the next one too. Falls back to the form the moment it cannot serve.
  */
-const duxt = useDuxtConfig();
-
 const storedMode = useDuxtChoice('request-body-view');
 
 const bodyMode = computed({
@@ -244,7 +254,12 @@ const body = ref(
   bodies.value.length
     ? openApiJson(
         bodies.value[0]!.examples?.[0]?.value ??
-          openApiExampleValue(bodies.value[0]!.schema, 'request')
+          openApiExampleValue(
+            bodies.value[0]!.schema,
+            'request',
+            0,
+            duxt.openapi?.exampleDepth
+          )
       )
     : ''
 );
@@ -530,17 +545,65 @@ const { data: sampleHtml } = await useAsyncData(
   { watch: [shown] }
 );
 
-const copiedSample = ref(false);
+/**
+ * A CROSSFADE between two samples, not a cut.
+ *
+ * The sample is a single block whose markup is replaced, so without help the
+ * new one simply appeared — cut off by a card that had not yet grown into it.
+ * The markup being replaced is kept for the length of the fade, laid over the
+ * top of the new one and faded out while the new one fades in; nothing is ever
+ * empty.
+ *
+ * Only for a change of language or client. The sample is also rewritten on
+ * every keystroke in the form above, and a fade per character typed is a
+ * flicker, not a transition.
+ */
+const leavingSample = ref<string>();
+const enteringSample = ref(false);
+let switchingSample = false;
+let leavingTimer: ReturnType<typeof setTimeout> | undefined;
+
+watch([group, sample], () => {
+  switchingSample = true;
+});
+
+watch(sampleHtml, (next, previous) => {
+  if (!switchingSample || !previous || next === previous) return;
+  switchingSample = false;
+
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  clearTimeout(leavingTimer);
+  leavingSample.value = previous;
+  enteringSample.value = true;
+
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => {
+      enteringSample.value = false;
+    })
+  );
+
+  leavingTimer = setTimeout(() => {
+    leavingSample.value = undefined;
+  }, 250);
+});
+
+onBeforeUnmount(() => clearTimeout(leavingTimer));
+
+const { copied: copiedSample, copy } = useDuxtCopy();
 
 async function copySample() {
-  try {
-    await navigator.clipboard.writeText(shown.value.code);
-    copiedSample.value = true;
-    notify.success(t('duxt.code.copiedToast'));
-    setTimeout(() => (copiedSample.value = false), 2000);
-  } catch {
-    notify.error(t('duxt.page.copyFailed'));
-  }
+  if (!(await copy(shown.value.code))) return;
+
+  // WHICH sample, never the sample. The code is the reader's own request
+  // written out — server, parameters, token and all — so only the two pieces
+  // of declared configuration travel.
+  analytics.track({
+    name: 'copy',
+    kind: 'request-sample',
+    sample: shown.value.id,
+    language: shown.value.language
+  });
 }
 
 /* ------------------------------------------------------------------- send */
@@ -560,6 +623,36 @@ const sending = ref(false);
 const result = ref<Result>();
 const failure = ref<string>();
 
+/**
+ * The request that just settled, described entirely by the DOCUMENT.
+ *
+ * Everything here is declared in the OpenAPI file — the operation's id, its
+ * method, its path template — and nothing is the request that was actually
+ * made. Not the server the reader picked, not the URL it produced, not a
+ * header, not the token in it, not the body, not the response. That is the same
+ * promise the docblock at the top of this file makes about where credentials
+ * go, kept from the other side: a component that holds a token in its own state
+ * and then posts it to a site's analytics has not kept it anywhere.
+ *
+ * The duration is the request's own, taken before the spinner's floor is
+ * applied — `MINIMUM_WAIT` is a thing about the button, not about the API.
+ */
+function report(
+  outcome: 'response' | 'failed',
+  duration: number,
+  statusClass?: DuxtAnalyticsStatusClass
+) {
+  analytics.track({
+    name: 'api-request',
+    operation: props.operation.operationId,
+    method: props.operation.method,
+    path: props.operation.path,
+    outcome,
+    statusClass,
+    duration
+  });
+}
+
 async function send() {
   sending.value = true;
   // THE PREVIOUS ANSWER STAYS UNTIL THIS ONE ARRIVES. Clearing it here emptied
@@ -578,15 +671,18 @@ async function send() {
     });
 
     const text = await response.text();
+    const duration = Math.round(performance.now() - started);
 
     failure.value = undefined;
     result.value = {
       status: response.status,
       statusText: response.statusText,
-      duration: Math.round(performance.now() - started),
+      duration,
       headers: [...response.headers.entries()],
       body: pretty(text)
     };
+
+    report('response', duration, duxtStatusClass(response.status));
   } catch (error) {
     // `fetch` rejects with a bare TypeError for a CORS refusal, a DNS failure
     // and an offline browser alike — the browser deliberately tells the page
@@ -597,6 +693,10 @@ async function send() {
       error instanceof Error && error.name !== 'TypeError'
         ? error.message
         : t('duxt.openapi.client.blocked');
+
+    // No status and no class: nothing came back to have one. The message is not
+    // reported either — for a CORS refusal it is this component's own guess.
+    report('failed', Math.round(performance.now() - started));
   } finally {
     // A FLOOR UNDER THE WAIT. The demo endpoint answers in a few milliseconds,
     // so the spinner appeared and vanished inside one frame — which reads as
@@ -624,6 +724,83 @@ const sampleShell = useTemplateRef<HTMLElement>('sampleShell');
 const sampleBody = useTemplateRef<HTMLElement>('sampleBody');
 
 useDuxtAnimatedHeight(sampleShell, sampleBody, () => split.value);
+
+/**
+ * THE PROSE BESIDE THE FORM STAYS WHERE IT IS when an answer arrives.
+ *
+ * The row centres its two halves, so a card that grew by a response pulled the
+ * text beside it down by half that height — the paragraph the reader had just
+ * read slid away while they looked at the answer. Centring against the FORM
+ * alone keeps the first paint exactly as it was and leaves the prose put: the
+ * offset is the card's height minus the response row's, which is the same
+ * number at every frame of that row opening.
+ *
+ * Only while the halves stand side by side; stacked, there is nothing to
+ * centre against. Until mounted the row's own `items-center` places it, and
+ * that is the same position, so hydration moves nothing.
+ */
+const formProse = useTemplateRef<HTMLElement>('formProse');
+const formCard = useTemplateRef<HTMLElement>('formCard');
+const responseRow = useTemplateRef<HTMLElement>('responseRow');
+const proseOffset = ref<number>();
+
+useResizeObserver([formCard, formProse], () => {
+  const prose = formProse.value;
+  const card = formCard.value;
+  const row = responseRow.value;
+  if (!split.value || !prose || !card || !row) return;
+
+  proseOffset.value =
+    gridColumns(card) > 1
+      ? Math.max(
+          0,
+          (card.offsetHeight - row.offsetHeight - prose.offsetHeight) / 2
+        )
+      : undefined;
+});
+
+/**
+ * THE SAME FOR THE PROSE BESIDE THE SAMPLES, which moves for a different
+ * reason: the card changes height with every language, and a row centring its
+ * halves nudged the text up and down on each tab click.
+ *
+ * Here there is no part of the card to subtract, so the text is centred once
+ * against the column as it first stands — and again only when the WIDTH
+ * changes, which is when its own lines rewrap. A tab click changes neither.
+ */
+const sampleProse = useTemplateRef<HTMLElement>('sampleProse');
+const sampleColumn = useTemplateRef<HTMLElement>('sampleColumn');
+const sampleProseOffset = ref<number>();
+
+/** The column's height when the text last rewrapped, and the width it did at. */
+let sampleBaseline = 0;
+let sampleWidth: number | undefined;
+
+useResizeObserver(sampleProse, () => {
+  const prose = sampleProse.value;
+  const column = sampleColumn.value;
+  if (!split.value || !prose || !column) return;
+
+  if (prose.offsetWidth !== sampleWidth) {
+    sampleWidth = prose.offsetWidth;
+    sampleBaseline = column.offsetHeight;
+  }
+
+  sampleProseOffset.value =
+    gridColumns(column) > 1
+      ? Math.max(0, (sampleBaseline - prose.offsetHeight) / 2)
+      : undefined;
+});
+
+/**
+ * How many columns the grid holding `element` lays out — one when the halves
+ * stack, which is when neither piece of prose has anything to centre against.
+ */
+function gridColumns(element: HTMLElement): number {
+  return getComputedStyle(element.parentElement ?? element)
+    .gridTemplateColumns.split(' ')
+    .filter(Boolean).length;
+}
 
 /** A JSON body, indented; anything else exactly as it arrived. */
 function pretty(text: string): string {
@@ -661,7 +838,19 @@ function pretty(text: string): string {
         split ? 'grid items-center gap-8 lg:grid-cols-2 lg:gap-16' : 'contents'
       "
     >
-      <div v-if="split" :class="reverse ? 'lg:order-2' : 'lg:order-1'">
+      <div
+        v-if="split"
+        ref="formProse"
+        :class="[
+          reverse ? 'lg:order-2' : 'lg:order-1',
+          proseOffset === undefined ? '' : 'self-start'
+        ]"
+        :style="
+          proseOffset === undefined
+            ? undefined
+            : { marginTop: `${proseOffset}px` }
+        "
+      >
         <slot name="beside-form" />
       </div>
 
@@ -669,6 +858,7 @@ function pretty(text: string): string {
            centred in its row grows in both directions when an answer arrives,
            and the form the reader is looking at moves up under their cursor. -->
       <div
+        ref="formCard"
         :class="
           split
             ? [
@@ -906,11 +1096,11 @@ function pretty(text: string): string {
               </label>
 
               <!-- Beside the label, not beside the toggle. It belongs to the JSON
-               view, so it comes and goes with it — and on the LEFT that costs
-               nothing: the toggle is pinned to the right edge by `ml-auto`, so
-               the control the reader just clicked cannot move out from under
-               the pointer, which is what happened when the two shared the right
-               end of this row. -->
+               view, so it comes and goes with it — and at the START of the row
+               that costs nothing: the toggle is pinned to the far END by
+               `ms-auto`, so the control the reader just clicked cannot move out
+               from under the pointer, which is what happened when the two
+               shared the end of this row. -->
               <UiButton
                 v-if="mode === 'json'"
                 type="button"
@@ -926,26 +1116,18 @@ function pretty(text: string): string {
                the schema cannot describe as a form has one view, and a strip
                offering a tab that falls straight back is a control that lies
                about what it does. -->
-              <div
+              <DuxtSegmented
                 v-if="formable"
-                class="ml-auto flex items-center gap-0.5 rounded-md border p-0.5"
-              >
-                <button
-                  v-for="view in ['form', 'json'] as const"
-                  :key="view"
-                  type="button"
-                  :aria-pressed="mode === view"
-                  class="cursor-pointer rounded px-2 py-0.5 text-xs font-medium transition-colors"
-                  :class="
-                    mode === view
-                      ? 'bg-accent text-foreground'
-                      : 'text-muted-foreground hover:text-foreground'
-                  "
-                  @click="bodyMode = view"
-                >
-                  {{ $t(`duxt.openapi.client.${view}`) }}
-                </button>
-              </div>
+                :model-value="mode"
+                :options="[
+                  { value: 'form', label: $t('duxt.openapi.client.form') },
+                  { value: 'json', label: $t('duxt.openapi.client.json') }
+                ]"
+                size="sm"
+                tone="flat"
+                class="ms-auto gap-0.5 rounded-md border p-0.5"
+                @update:model-value="bodyMode = $event"
+              />
             </div>
 
             <UiSelect v-if="bodies.length > 1" v-model="bodyValue">
@@ -1072,6 +1254,7 @@ function pretty(text: string): string {
              in advance; the inner `overflow-hidden` is what lets the row be
              shorter than its content on the way. -->
         <div
+          ref="responseRow"
           class="grid motion-safe:transition-all motion-safe:duration-300 motion-safe:ease-out"
           :class="
             failure || result
@@ -1094,7 +1277,7 @@ function pretty(text: string): string {
                   <span class="text-muted-foreground">
                     {{ result.statusText }}
                   </span>
-                  <span class="ml-auto font-mono text-xs text-muted-foreground">
+                  <span class="ms-auto font-mono text-xs text-muted-foreground">
                     {{ result.duration }}&nbsp;ms
                   </span>
                 </div>
@@ -1146,7 +1329,19 @@ function pretty(text: string): string {
         split ? 'grid items-center gap-8 lg:grid-cols-2 lg:gap-16' : 'contents'
       "
     >
-      <div v-if="split" :class="reverse ? 'lg:order-1' : 'lg:order-2'">
+      <div
+        v-if="split"
+        ref="sampleProse"
+        :class="[
+          reverse ? 'lg:order-1' : 'lg:order-2',
+          sampleProseOffset === undefined ? '' : 'self-start'
+        ]"
+        :style="
+          sampleProseOffset === undefined
+            ? undefined
+            : { marginTop: `${sampleProseOffset}px` }
+        "
+      >
         <slot name="beside-samples" />
       </div>
 
@@ -1159,6 +1354,7 @@ function pretty(text: string): string {
            in both directions at once, and its tab strip — the control the
            reader just clicked — moved up under their cursor. -->
       <div
+        ref="sampleColumn"
         :class="
           split
             ? ['min-w-0 self-start', reverse ? 'lg:order-2' : 'lg:order-1']
@@ -1195,39 +1391,30 @@ function pretty(text: string): string {
              button inside one as `aria-required-children`. The header row is
              the flex container instead, so it still sits where every other
              card on the site puts it. -->
-              <div
-                class="flex min-h-11 items-center gap-1 border-b bg-muted/40 px-2 py-1.5"
-              >
-                <TabsList
-                  class="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto"
+              <DuxtCodeToolbar>
+                <UiTabsList
+                  variant="bare"
+                  class="min-w-0 flex-1 overflow-x-auto"
                   :aria-label="$t('duxt.openapi.client.samples') as string"
                 >
-                  <TabsTrigger
+                  <UiTabsTrigger
                     v-for="entry in groups"
                     :key="entry"
                     :value="entry"
-                    class="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-2.5 py-1 font-mono text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                    variant="pill"
+                    class="font-mono"
                   >
                     <Icon :name="groupIcon(entry)" class="size-3.5" />
                     {{ entry }}
-                  </TabsTrigger>
-                </TabsList>
+                  </UiTabsTrigger>
+                </UiTabsList>
 
-                <UiButton
-                  variant="ghost"
-                  size="icon"
-                  class="ml-auto size-7 hover:bg-accent hover:text-foreground"
-                  :aria-label="
-                    copiedSample ? $t('duxt.code.copied') : $t('duxt.code.copy')
-                  "
+                <DuxtCopyButton
+                  :copied="copiedSample"
+                  class="ms-auto"
                   @click="copySample"
-                >
-                  <Icon
-                    :name="copiedSample ? 'lucide:check' : 'lucide:copy'"
-                    class="size-3.5"
-                  />
-                </UiButton>
-              </div>
+                />
+              </DuxtCodeToolbar>
 
               <!-- THE CLIENTS OF THE ACTIVE LANGUAGE, in a row of their own.
              Beside the tabs they were a control the reader had to open to learn
@@ -1240,28 +1427,20 @@ function pretty(text: string): string {
              `ui/radio-group` here to implement it. A group of pressed buttons
              promises only what it does — every one reachable by Tab, every one
              saying whether it is on. -->
-              <div
+              <DuxtSegmented
                 v-if="clients.length > 1 && clients.length < 6"
-                role="group"
-                :aria-label="$t('duxt.openapi.client.sampleClient') as string"
-                class="flex items-center gap-1 overflow-x-auto border-b bg-muted/20 px-2 py-1.5"
-              >
-                <button
-                  v-for="entry in clients"
-                  :key="entry.id"
-                  type="button"
-                  :aria-pressed="entry.id === sample"
-                  class="cursor-pointer whitespace-nowrap rounded-md px-2 py-0.5 font-mono text-xs transition-colors"
-                  :class="
-                    entry.id === sample
-                      ? 'bg-background text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:bg-accent hover:text-foreground'
-                  "
-                  @click="sample = entry.id"
-                >
-                  {{ entry.label }}
-                </button>
-              </div>
+                v-model="sample"
+                :options="
+                  clients.map((entry) => ({
+                    value: entry.id,
+                    label: entry.label
+                  }))
+                "
+                :label="$t('duxt.openapi.client.sampleClient') as string"
+                size="sm"
+                mono
+                class="overflow-x-auto border-b bg-muted/20 px-2 py-1.5"
+              />
 
               <!-- Six is where a row stops being a row. A language with that many
              clients is a site that configured them, and a select carries any
@@ -1314,14 +1493,30 @@ function pretty(text: string): string {
                  The floor stays for the panel layout, where there is no row to
                  reserve anything: on an operation page the card is in a column
                  that scrolls as a whole. -->
-              <TabsContent :value="group">
+              <TabsContent :value="group" class="relative">
                 <!-- eslint-disable-next-line vue/no-v-html -- Shiki's own output over
                a string this component built; nothing a reader typed reaches it
                unescaped. -->
+                <!-- eslint-disable-next-line vue/no-v-html -- the sample that was
+               showing, kept only for the length of the fade. -->
+                <div
+                  v-if="leavingSample"
+                  aria-hidden="true"
+                  class="duxt-code-body duxt-code-body-sm pointer-events-none absolute inset-x-0 top-0 transition-opacity duration-200 ease-out"
+                  :class="enteringSample ? 'opacity-100' : 'opacity-0'"
+                  v-html="leavingSample"
+                />
                 <div
                   v-if="sampleHtml"
                   class="duxt-code-body duxt-code-body-sm"
-                  :class="split ? '' : 'min-h-56'"
+                  :class="[
+                    split ? '' : 'min-h-56',
+                    leavingSample
+                      ? enteringSample
+                        ? 'opacity-0'
+                        : 'opacity-100 transition-opacity duration-200 ease-out'
+                      : ''
+                  ]"
                   v-html="sampleHtml"
                 />
                 <pre

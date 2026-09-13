@@ -17,18 +17,40 @@ const poweredBy = computed(() =>
     ? { version: duxt.layerVersion, to: duxt.layerRepository }
     : undefined
 );
+
+/**
+ * However many the consumer configured — never assumed to be two.
+ *
+ * Named rather than inlined because the row has to know whether it is empty:
+ * on the stacked mobile layout an empty row is still a flex item, and the
+ * column's gap would draw a blank line under the attribution for links that do
+ * not exist.
+ */
+const legal = computed(() => duxt.footer?.legal ?? []);
 </script>
 
 <template>
-  <!-- One line, and only what a page footer owes: whose site this is, and the
-       links the law asks for. Navigation lives in the header and the sidebar,
-       so repeating it down here buys nothing. -->
+  <!-- Only what a page footer owes: whose site this is, and the links the law
+       asks for. Navigation lives in the header and the sidebar, so repeating it
+       down here buys nothing.
+
+       ONE ROW FROM `sm` UP, A CENTERED STACK BELOW IT. The three groups are the
+       same three either way — only the axis and the alignment change, which is
+       why this is two sets of utilities on the existing markup rather than a
+       second template. Narrow, the groups have unrelated widths and left-
+       aligning them reads as a ragged column rather than a composition, so the
+       stack is centered and takes the order the eye wants: whose site, whose
+       copyright, what built it, what the law asks for. -->
   <footer class="mt-16 border-t">
     <div
-      class="mx-auto flex max-w-[90rem] flex-col gap-3 px-4 py-5 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between lg:px-8"
+      class="mx-auto flex max-w-[90rem] flex-col items-center gap-2 px-4 py-5 text-center text-sm text-muted-foreground sm:flex-row sm:justify-between sm:gap-3 sm:text-start lg:px-8"
     >
+      <!-- Brand and copyright: two centered lines below `sm`, one wrapping row
+           above it. Splitting them is the whole reason the stack has four lines
+           and not three — sharing a row, they wrap against each other at the
+           narrow widths where there is least room to spare. -->
       <div
-        class="flex flex-wrap items-center gap-x-4 gap-y-1 sm:flex-1 sm:basis-0"
+        class="flex flex-col items-center gap-2 sm:flex-1 sm:basis-0 sm:flex-row sm:flex-wrap sm:gap-x-4 sm:gap-y-1"
       >
         <NuxtLink
           :to="localeLink('/')"
@@ -66,12 +88,21 @@ const poweredBy = computed(() =>
 
       <!-- A consumer's legal links belong to the consumer: the layer offers the
            row and ships nothing in it, because an imprint is never the
-           template's to claim. -->
+           template's to claim. However many there are, they stay one wrapping
+           row and wrap together.
+
+           HIDDEN RATHER THAN DROPPED, and only below `sm`. An empty row must
+           not draw a blank line under the attribution, but `v-if` would take
+           the element out of the desktop row too — and there its
+           `flex-1 basis-0` is a third of what holds the attribution in the
+           middle of the page. Removing it would re-center that line, which is
+           a change to the desktop layout and not this one's to make. -->
       <div
-        class="flex flex-wrap items-center gap-x-4 gap-y-1 sm:flex-1 sm:basis-0 sm:justify-end"
+        class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 sm:flex-1 sm:basis-0 sm:justify-end"
+        :class="{ 'max-sm:hidden': !legal.length }"
       >
         <NuxtLink
-          v-for="link in duxt.footer?.legal ?? []"
+          v-for="link in legal"
           :key="link.to"
           :to="localeLink(link.to)"
           :target="link.external ? '_blank' : undefined"

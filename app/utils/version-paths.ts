@@ -58,6 +58,27 @@ export function versionPath(
 }
 
 /**
+ * Where the switcher sends a reader who picks another version.
+ *
+ * The same page in that version, as `versionPath` answers — unless that page is
+ * one the target never published. A release page is the case this exists for:
+ * every version publishes its own changelog, and an older one has no page for
+ * a release cut after it. `missing` holds the target paths known not to exist,
+ * and such a pick lands at the target's own root — the changelog overview of
+ * that version — rather than at a 404.
+ */
+export function versionSwitchPath(
+  path: string,
+  from: string | undefined,
+  to: string,
+  missing: ReadonlySet<string>
+): string {
+  const target = versionPath(path, from, to);
+
+  return missing.has(target) ? to || '/' : target;
+}
+
+/**
  * Re-exported so the app can auto-import it.
  *
  * The function itself lives beside the resolver, because that is where the

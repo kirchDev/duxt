@@ -3,6 +3,11 @@ const duxt = useDuxtConfig();
 const colorMode = useColorMode();
 const path = useDuxtPath();
 const localeLink = useDuxtLink();
+const { t } = useI18n();
+
+const themeLabel = computed(() =>
+  colorMode.value === 'dark' ? t('duxt.theme.toLight') : t('duxt.theme.toDark')
+);
 
 const { data: navigation } = await useDuxtNavigation();
 
@@ -57,11 +62,18 @@ function entryActive(link: DuxtLink) {
   // entry stands for the documentation, and on a site with a second source the
   // list also holds that source's parts — which would light "Docs" on a page
   // that is not documentation at all, beside the entry that really owns it.
-  return sectionsForPath(
-    duxt.sections ?? [],
-    duxt.resolvedSources ?? [],
-    '/'
-  ).some((section) => isActive(section.to));
+  //
+  // AT THE READER'S EDITION, and only inside the root area: the sections are
+  // written at the default edition, so on `/v0.2.0/concepts` none of them
+  // prefixed the page and "Docs" went dark on every other version.
+  const sources = duxt.resolvedSources ?? [];
+  if (areaForPath(path.value, sources) !== areaForPath('/', sources)) {
+    return false;
+  }
+
+  return sectionsForPath(duxt.sections ?? [], sources, path.value).some(
+    (section) => isActive(section.to)
+  );
 }
 
 /**
@@ -153,8 +165,8 @@ function current(to?: string) {
               <Icon name="lucide:menu" class="size-5" />
             </UiButton>
           </UiSheetTrigger>
-          <UiSheetContent side="left" class="flex w-80 flex-col gap-0 p-0">
-            <UiSheetHeader class="border-b pr-14">
+          <UiSheetContent side="start" class="flex w-80 flex-col gap-0 p-0">
+            <UiSheetHeader class="border-b pe-14">
               <UiSheetTitle class="flex items-center gap-2">
                 <NuxtLink
                   :to="localeLink('/')"
@@ -220,12 +232,12 @@ function current(to?: string) {
                         <span class="truncate">{{ link.label }}</span>
                         <Icon
                           name="lucide:chevron-right"
-                          class="ml-auto size-3.5 transition-transform group-data-[state=open]:rotate-90"
+                          class="ms-auto size-3.5 transition-transform group-data-[state=open]:rotate-90"
                         />
                       </UiCollapsibleTrigger>
 
                       <UiCollapsibleContent>
-                        <ul class="mt-0.5 ml-3.5 space-y-0.5 border-l pl-2.5">
+                        <ul class="mt-0.5 ms-3.5 space-y-0.5 border-s ps-2.5">
                           <li
                             v-for="child in link.children"
                             :key="child.to ?? asText(child.label)"
@@ -356,19 +368,29 @@ function current(to?: string) {
             >
               <DuxtLocale />
 
-              <UiButton
-                variant="ghost"
-                size="icon"
-                :aria-label="$t('duxt.theme.toggle')"
-                @click="toggleTheme"
-              >
-                <Icon
-                  :name="
-                    colorMode.value === 'dark' ? 'lucide:sun' : 'lucide:moon'
-                  "
-                  class="size-4"
-                />
-              </UiButton>
+              <UiTooltip>
+                <UiTooltipTrigger as-child>
+                  <UiButton
+                    variant="ghost"
+                    size="icon"
+                    :aria-label="themeLabel"
+                    @click="toggleTheme"
+                  >
+                    <Icon
+                      :name="
+                        colorMode.value === 'dark'
+                          ? 'lucide:sun'
+                          : 'lucide:moon'
+                      "
+                      class="size-4"
+                    />
+                  </UiButton>
+                </UiTooltipTrigger>
+
+                <UiTooltipContent side="top">
+                  {{ themeLabel }}
+                </UiTooltipContent>
+              </UiTooltip>
             </UiSheetFooter>
           </UiSheetContent>
         </UiSheet>
@@ -422,7 +444,14 @@ function current(to?: string) {
                       class="mt-0.5 size-4 shrink-0"
                     />
                     <span class="min-w-0">
-                      <span class="block font-medium">{{ child.label }}</span>
+                      <!-- The same arrow the sheet draws for an external
+                           child, held to the label's last word. -->
+                      <span class="block font-medium">
+                        <DuxtLinkLabel
+                          :label="child.label"
+                          :external="child.external"
+                        />
+                      </span>
                       <span
                         v-if="child.description"
                         class="block text-xs text-muted-foreground"
@@ -450,6 +479,11 @@ function current(to?: string) {
                 :target="link.external ? '_blank' : undefined"
               >
                 {{ link.label }}
+                <Icon
+                  v-if="link.external"
+                  name="lucide:arrow-up-right"
+                  class="size-3 opacity-50"
+                />
               </NuxtLink>
             </UiButton>
           </template>
@@ -472,39 +506,64 @@ function current(to?: string) {
           <DuxtSearch />
         </div>
 
+        <!-- Desktop only, at the same lg split as the burger and the search: a
+             touch device has no keyboard, so a sheet of keys is nothing to
+             offer it — and the mobile sheet carries no copy either, since a
+             sheet is a dialog and a dialog is where the global keys stand down.
+             From lg up it stays the last control in this row that may give way:
+             on a site with `shortcuts.singleCharacter: false` it is the key
+             sheet's ONLY entry point. -->
+        <DuxtShortcutsTrigger class="hidden lg:inline-flex" />
+
         <!-- The project links give way first: they are the only icons here the
              sheet can carry as ordinary rows, where the locale and the theme
              are controls that have to stay reachable in one tap. -->
-        <UiButton
-          v-for="link in duxt.links ?? []"
-          :key="link.to"
-          as-child
-          variant="ghost"
-          size="icon"
-          class="hidden lg:inline-flex"
-          :aria-label="link.label"
-        >
-          <a :href="link.to" target="_blank" rel="noopener">
-            <Icon v-if="link.icon" :name="link.icon" class="size-4" />
-          </a>
-        </UiButton>
+        <UiTooltip v-for="link in duxt.links ?? []" :key="link.to">
+          <UiTooltipTrigger as-child>
+            <UiButton
+              as-child
+              variant="ghost"
+              size="icon"
+              class="hidden lg:inline-flex"
+              :aria-label="link.label"
+            >
+              <a :href="link.to" target="_blank" rel="noopener">
+                <Icon v-if="link.icon" :name="link.icon" class="size-4" />
+              </a>
+            </UiButton>
+          </UiTooltipTrigger>
+
+          <UiTooltipContent side="bottom">
+            {{ link.label }}
+          </UiTooltipContent>
+        </UiTooltip>
 
         <div class="hidden sm:block">
           <DuxtLocale />
         </div>
 
-        <UiButton
-          variant="ghost"
-          size="icon"
-          class="hidden sm:inline-flex"
-          :aria-label="$t('duxt.theme.toggle')"
-          @click="toggleTheme"
-        >
-          <Icon
-            :name="colorMode.value === 'dark' ? 'lucide:sun' : 'lucide:moon'"
-            class="size-4"
-          />
-        </UiButton>
+        <UiTooltip>
+          <UiTooltipTrigger as-child>
+            <UiButton
+              variant="ghost"
+              size="icon"
+              class="hidden sm:inline-flex"
+              :aria-label="themeLabel"
+              @click="toggleTheme"
+            >
+              <Icon
+                :name="
+                  colorMode.value === 'dark' ? 'lucide:sun' : 'lucide:moon'
+                "
+                class="size-4"
+              />
+            </UiButton>
+          </UiTooltipTrigger>
+
+          <UiTooltipContent side="bottom">
+            {{ themeLabel }}
+          </UiTooltipContent>
+        </UiTooltip>
       </div>
     </div>
   </header>

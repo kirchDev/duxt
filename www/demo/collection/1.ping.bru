@@ -1,0 +1,20 @@
+meta {
+  name: Ping
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/demo/echo
+  body: none
+  auth: inherit
+}
+
+headers {
+  Accept: application/json
+}
+
+docs {
+  The cheapest request in the collection: it proves the base URL resolves and
+  the token is being sent.
+}

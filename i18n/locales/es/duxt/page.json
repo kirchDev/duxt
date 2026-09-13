@@ -13,6 +13,15 @@
         "no": "No",
         "thanks": "Gracias."
       },
+      "image": {
+        "close": "Cerrar el visor de imágenes",
+        "original": "Abrir el original en una pestaña nueva",
+        "resetZoom": "Restablecer el zoom",
+        "zoom": "Ampliar imagen",
+        "zoomIn": "Acercar",
+        "zoomNamed": "Ampliar imagen: {alt}",
+        "zoomOut": "Alejar"
+      },
       "tabs": "Opciones",
       "since": "Novedad en {version}",
       "copy": {

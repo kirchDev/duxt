@@ -21,6 +21,10 @@ async function runCheck(mode: string) {
     join(root, 'scripts/check-seo.ts')
   );
   await copyFile(
+    resolve('scripts/built-server.ts'),
+    join(root, 'scripts/built-server.ts')
+  );
+  await copyFile(
     resolve('tests/fixtures/seo-server.mjs'),
     join(root, 'www/.output/server/index.mjs')
   );
@@ -138,6 +142,13 @@ test('still rejects a valid page missing a locale alternate', async () => {
     '5 og:locale:alternate tags for 6 other locales'
   );
   expect(result.output).not.toContain('invalid HTML response');
+}, 10000);
+
+test('rejects a documentation page missing its Markdown discovery links', async () => {
+  const result = await runCheck('missing-machine-links');
+  expect(result.code).toBe(1);
+  expect(result.output).toContain('Markdown alternate');
+  expect(result.output).toContain('llms.txt describedby');
 }, 10000);
 
 test.each([

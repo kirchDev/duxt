@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   isInside,
   sourceForPath,
-  versionPath
+  versionPath,
+  versionSwitchPath
 } from '../app/utils/version-paths';
 import { resolveSources } from '../sources-resolve';
 
@@ -110,6 +111,31 @@ describe('versionPath', () => {
     expect(versionPath('/demo/changelog', '/demo', '/demo/v2.x', true)).toBe(
       '/demo/v2.x'
     );
+  });
+
+  it('keeps a release page when the target version has that release', () => {
+    expect(
+      versionSwitchPath(
+        '/releases/v0.2.0',
+        '/releases',
+        '/v0.3.0/releases',
+        new Set()
+      )
+    ).toBe('/v0.3.0/releases/v0.2.0');
+  });
+
+  it('lands at the changelog overview when the target lacks the release', () => {
+    // The switcher must not carry a release slug into a version that never
+    // shipped it: that would be a 404, where the version's own release history
+    // is the page the reader was looking for.
+    expect(
+      versionSwitchPath(
+        '/releases/v0.3.0',
+        '/releases',
+        '/v0.2.0/releases',
+        new Set(['/v0.2.0/releases/v0.3.0'])
+      )
+    ).toBe('/v0.2.0/releases');
   });
 
   it('round-trips through every version of a source', () => {

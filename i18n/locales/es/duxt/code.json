@@ -7,7 +7,8 @@
       "preview": "Vista previa",
       "source": "Código",
       "previewTabs": "Ejemplo y código fuente",
-      "copiedToast": "Copiado al portapapeles"
+      "copiedToast": "Copiado al portapapeles",
+      "copyFailed": "No se pudo copiar al portapapeles."
     }
   }
 }

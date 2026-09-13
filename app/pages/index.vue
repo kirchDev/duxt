@@ -21,7 +21,6 @@
 const duxt = useDuxtConfig();
 const localeLink = useDuxtLink();
 const { t } = useI18n();
-const notify = useDuxtToast();
 
 /**
  * Where a hero button goes when the config did not say — the same fallback
@@ -48,22 +47,11 @@ const { data: highlightedCommand } = await useAsyncData(
   { watch: [command] }
 );
 
-const copied = ref(false);
-async function copyCommand() {
-  if (!command.value) return;
-
-  try {
-    await navigator.clipboard.writeText(command.value);
-    copied.value = true;
-    // The icon alone is a 3.5 rem change under the reader's own cursor, which
-    // is exactly where they are not looking after a click. The toast is the
-    // confirmation; the icon is what stays for the two seconds after it.
-    notify.success(t('duxt.code.copiedToast'));
-    setTimeout(() => (copied.value = false), 2000);
-  } catch {
-    notify.error(t('duxt.page.copyFailed'));
-  }
-}
+// The icon alone is a 3.5 rem change under the reader's own cursor, which is
+// exactly where they are not looking after a click. The toast is the
+// confirmation; the icon is what stays for the two seconds after it.
+const { copied, copy } = useDuxtCopy();
+const copyCommand = () => copy(command.value);
 
 /**
  * The badge, in either of its two shapes. A string is the label and nothing
@@ -275,12 +263,16 @@ defineOgImage('Duxt', {
             <span aria-hidden="true" class="text-muted-foreground select-none"
               >$</span
             >
+            <!-- A shell command does not turn round with the interface, so
+                 it declares its own direction and aligns to the start of THAT
+                 — which is the left, in either locale. -->
             <span
               v-if="highlightedCommand"
-              class="min-w-0 overflow-x-auto text-left [&_pre]:bg-transparent!"
+              dir="ltr"
+              class="min-w-0 overflow-x-auto text-start [&_pre]:bg-transparent!"
               v-html="highlightedCommand"
             />
-            <span v-else class="min-w-0 overflow-x-auto text-left">{{
+            <span v-else dir="ltr" class="min-w-0 overflow-x-auto text-start">{{
               command
             }}</span>
             <Icon
@@ -412,7 +404,7 @@ defineOgImage('Duxt', {
                       ? 'lucide:arrow-up-right'
                       : 'lucide:arrow-right'
                   "
-                  class="size-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5"
+                  class="size-3.5 text-muted-foreground rtl:-scale-x-100 transition-transform ltr:group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5"
                 />
               </UiCardTitle>
 
@@ -425,9 +417,9 @@ defineOgImage('Duxt', {
       </div>
     </section>
 
-    <!-- THE REST. One line each, no cards and no links: these are real and
-         worth naming, and a card apiece would say they matter as much as the
-         four above.
+    <!-- THE SUPPORTING SYSTEM. One line each, no cards and no links: these are
+         real parts of publishing and reading the content, while a card apiece
+         would say they matter as much as the primary capabilities above.
          
          A <ul>, and the entries are paragraphs rather than headings: this is a
          list of things, not a part of the document with sections under it — and

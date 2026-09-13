@@ -21,8 +21,6 @@ import type {
 } from '../../openapi-model';
 
 /** How deep an example is derived before it is called recursive enough. */
-const MAX_DEPTH = 6;
-
 /**
  * A schema's type, as the one word a table cell has room for.
  *
@@ -111,9 +109,10 @@ export function excluded(
 export function openApiExampleValue(
   schema: DuxtOpenApiSchema | undefined,
   direction: DuxtOpenApiDirection,
-  depth = 0
+  depth = 0,
+  maximumDepth = 6
 ): unknown {
-  if (!schema || schema.circular || depth > MAX_DEPTH) return null;
+  if (!schema || schema.circular || depth > maximumDepth) return null;
 
   if (schema.examples?.length) return schema.examples[0];
   if (schema.default !== undefined) return schema.default;
@@ -121,7 +120,8 @@ export function openApiExampleValue(
   if (schema.enum?.length) return schema.enum[0];
 
   const branch = schema.oneOf?.[0] ?? schema.anyOf?.[0];
-  if (branch) return openApiExampleValue(branch, direction, depth + 1);
+  if (branch)
+    return openApiExampleValue(branch, direction, depth + 1, maximumDepth);
 
   const declared = (schema.types ?? []).filter((type) => type !== 'null');
   const type =
@@ -149,24 +149,29 @@ export function openApiExampleValue(
         built[property.name] = openApiExampleValue(
           property.schema,
           direction,
-          depth + 1
+          depth + 1,
+          maximumDepth
         );
       }
 
       for (const merged of schema.allOf ?? []) {
         Object.assign(
           built,
-          openApiExampleValue(merged, direction, depth + 1) as Record<
-            string,
-            unknown
-          >
+          openApiExampleValue(
+            merged,
+            direction,
+            depth + 1,
+            maximumDepth
+          ) as Record<string, unknown>
         );
       }
 
       return built;
     }
     case 'array':
-      return [openApiExampleValue(schema.items, direction, depth + 1)];
+      return [
+        openApiExampleValue(schema.items, direction, depth + 1, maximumDepth)
+      ];
     case 'boolean':
       return true;
     case 'integer':

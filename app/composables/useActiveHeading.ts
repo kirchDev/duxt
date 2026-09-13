@@ -24,17 +24,10 @@
  * `getBoundingClientRect` per heading, coalesced into an animation frame, so at
  * most one pass per painted frame however fast the wheel turns.
  */
-export function useActiveHeading(ids: Ref<string[]>) {
+export function useActiveHeading(ids: Ref<string[]>, scrollOffset = 96) {
   const active = ref<string>();
 
-  /** Where a heading counts as reached: reading position, not the top edge. */
-  const TRIGGER = 96;
-
-  let frame = 0;
-
   function measure() {
-    frame = 0;
-
     const headings = ids.value
       .map((id) => document.getElementById(id))
       .filter((element): element is HTMLElement => Boolean(element));
@@ -58,33 +51,18 @@ export function useActiveHeading(ids: Ref<string[]>) {
 
     let current = headings[0]!;
     for (const heading of headings) {
-      if (heading.getBoundingClientRect().top > TRIGGER) break;
+      if (heading.getBoundingClientRect().top > scrollOffset) break;
       current = heading;
     }
 
     active.value = current.id;
   }
 
-  function schedule() {
-    if (frame) return;
-    frame = requestAnimationFrame(measure);
-  }
-
-  onMounted(() => {
-    measure();
-    window.addEventListener('scroll', schedule, { passive: true });
-    window.addEventListener('resize', schedule, { passive: true });
-  });
+  useDuxtViewportMeasure(measure);
 
   // A new page's headings exist only after it renders, and the ids change
   // before the DOM does.
   watch(ids, () => nextTick(measure));
-
-  onBeforeUnmount(() => {
-    if (frame) cancelAnimationFrame(frame);
-    window.removeEventListener('scroll', schedule);
-    window.removeEventListener('resize', schedule);
-  });
 
   return active;
 }

@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { DuxtSectionOptions, DuxtSectionType } from '../sections-resolve';
 import type { DuxtResolvedSource } from '../sources-resolve';
+import { changelogSectionType } from '../sections-changelog';
 import {
   duxtManifest,
+  duxtSectionInput,
   duxtSectionTypes,
   generatedSectionRef,
   missingSectionArtefact,
@@ -108,6 +110,31 @@ describe('resolveGeneratedSections', () => {
     expect(generated).toHaveLength(1);
     expect(generated[0]).toMatchObject({ prefix: '/releases' });
     expect(generated[0]!.version).toBeUndefined();
+  });
+
+  it('publishes a changelog in every version, each read at its own ref', () => {
+    const generated = resolveGeneratedSections(
+      [
+        {
+          repo: 'acme/docs',
+          path: 'docs',
+          refs: ['main', 'v1.x'],
+          generated: [section]
+        }
+      ],
+      {},
+      { stub: changelogSectionType }
+    );
+
+    // A route per version, analogous to the docs and the API reference beside
+    // it — and each one reads the CHANGELOG.md of the ref it was built from.
+    expect(
+      generated.map((entry) => [entry.prefix, entry.version, entry.ref])
+    ).toEqual([
+      ['/releases', 'main', 'main'],
+      ['/v1.x/releases', 'v1.x', 'v1.x']
+    ]);
+    expect(generated.map((entry) => entry.isDefault)).toEqual([true, false]);
   });
 
   it('gives a per-version section one collection per version', () => {
@@ -277,7 +304,7 @@ describe('resolveGeneratedSections', () => {
 
   it('lets the type name a layout per those options', () => {
     // The knob a declaration turns can change what the pages ARE — a changelog
-    // asked for as one file is an ordinary page and wants the docs chrome, the
+    // asked for as one file is an ordinary page and wants the docs shell, the
     // same one split into releases is not. So the layout is resolved from the
     // options rather than fixed per type.
     const layout = (options: DuxtSectionOptions) =>
@@ -462,6 +489,7 @@ describe('duxtSectionTypes', () => {
     const registry = duxtSectionTypes({ stub: stub() });
 
     expect(Object.keys(registry).sort()).toEqual([
+      'bruno',
       'changelog',
       'openapi',
       'stub'
@@ -531,6 +559,19 @@ describe('the severity of a section that produces nothing', () => {
     );
   });
 
+  it('fails the build when a REMOTE version lacks a file its type requires', () => {
+    // A changelog must exist in every published version. A missing one is not
+    // a stale remote to carry on past: omitting the version or falling back to
+    // another version's history would both publish the wrong thing.
+    expect(() =>
+      missingSectionArtefact(
+        entry({ remote: true }),
+        '/cache/CHANGELOG.md',
+        stub({ artefact: 'required' })
+      )
+    ).toThrow(/every published version/);
+  });
+
   it('records and builds nothing when a REMOTE source has not the file', () => {
     // A remote source can go stale between releases without that being this
     // build's fault, so it carries on — and the finding goes into the report
@@ -562,14 +603,18 @@ describe('the severity of a section that produces nothing', () => {
     // needs about the section is a knob the site turned.
     const parse = vi.fn(() => [{ file: 'index.md', body: '' }]);
 
+    const input = duxtSectionInput('CHANGELOG.md', 'anything');
+
     sectionPages(
       entry({ options: { granularity: 'flat' } }),
       stub({ parse }),
-      'anything'
+      input
     );
 
-    expect(parse).toHaveBeenCalledWith('anything', {
+    expect(parse).toHaveBeenCalledWith(input, {
       label: 'Releases',
+      collection: 'docs_releases',
+      remote: false,
       prefix: '/releases',
       options: { granularity: 'flat' },
       warn: expect.any(Function)
@@ -579,10 +624,14 @@ describe('the severity of a section that produces nothing', () => {
   it('hands a type that was given no options an empty set', () => {
     const parse = vi.fn(() => [{ file: 'index.md', body: '' }]);
 
-    sectionPages(entry(), stub({ parse }), 'anything');
+    sectionPages(
+      entry(),
+      stub({ parse }),
+      duxtSectionInput('CHANGELOG.md', 'anything')
+    );
 
     expect(parse).toHaveBeenCalledWith(
-      'anything',
+      expect.objectContaining({ path: 'CHANGELOG.md' }),
       expect.objectContaining({ options: {} })
     );
   });
@@ -593,10 +642,12 @@ describe('the severity of a section that produces nothing', () => {
     const empty = stub({ parse: () => [] });
     const remote = entry({ remote: true });
 
-    expect(() => sectionPages(entry(), empty, 'anything')).toThrow(
+    const input = duxtSectionInput('CHANGELOG.md', 'anything');
+
+    expect(() => sectionPages(entry(), empty, input)).toThrow(
       /holds nothing the "stub" type can read/
     );
-    expect(sectionPages(remote, empty, 'anything')).toEqual([]);
+    expect(sectionPages(remote, empty, input)).toEqual([]);
     expect(remote.generated!.report).toEqual({ pages: 0, warnings: [] });
   });
 
@@ -608,13 +659,13 @@ describe('the severity of a section that produces nothing', () => {
     sectionPages(
       source,
       stub({
-        parse: (_artefact, context) => {
+        parse: (_input, context) => {
           context.warn?.('the reference "#/x" points at nothing.');
           context.warn?.('the reference "#/x" points at nothing.');
           return [{ file: 'index.md', body: '' }];
         }
       }),
-      'anything'
+      duxtSectionInput('CHANGELOG.md', 'anything')
     );
 
     expect(source.generated!.report).toEqual({
@@ -651,10 +702,16 @@ describe('which generated entry claims to be the default version', () => {
 
   it('stays the default for a version-neutral type', () => {
     // One entry, served at a URL with no version in it — there is nothing else
-    // for it to be.
-    const entries = duxtManifest([source('changelog')], {}).filter(
-      (entry) => entry.generated
-    );
+    // for it to be. The changelog is per version now, so a stub stands in for
+    // the policy the registry still offers.
+    const entries = duxtManifest(
+      [source('changelog')],
+      {},
+      {
+        ...duxtSectionTypes(),
+        changelog: stub()
+      }
+    ).filter((entry) => entry.generated);
 
     expect(entries).toHaveLength(1);
     expect(entries[0]!.isDefault).toBe(true);
@@ -787,6 +844,8 @@ describe('a section versioned by its own declaration', () => {
       }
     ];
 
-    expect(() => resolveGeneratedSections(declared)).toThrow(/version-neutral/);
+    expect(() =>
+      resolveGeneratedSections(declared, {}, { changelog: stub() })
+    ).toThrow(/version-neutral/);
   });
 });

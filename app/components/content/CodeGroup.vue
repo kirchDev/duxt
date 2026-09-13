@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { TabsContent, TabsList, TabsRoot, TabsTrigger } from 'reka-ui';
+import { TabsContent, TabsRoot } from 'reka-ui';
 
 /**
  * Several fences, one block, one tab each.
@@ -29,6 +29,8 @@ interface Entry {
   label: string;
   icon: string;
   code: string;
+  /** The fence's own language, where it declared one — for the copy event. */
+  language?: string;
   node: VNode;
 }
 
@@ -56,6 +58,7 @@ const entries = computed<Entry[]>(() => {
           props.language ? 'lucide:terminal' : 'lucide:file'
         ),
         code: props.code ?? '',
+        language: props.language,
         node
       };
     });
@@ -87,9 +90,8 @@ const shell = useTemplateRef<HTMLElement>('shell');
 const body = useTemplateRef<HTMLElement>('body');
 
 useDuxtAnimatedHeight(shell, body);
-const copied = ref(false);
-const notify = useDuxtToast();
-const { t } = useI18n();
+const { copied, copy: copyText } = useDuxtCopy();
+const analytics = useDuxtAnalytics();
 
 async function copy() {
   const text =
@@ -97,14 +99,15 @@ async function copy() {
     root.value?.querySelector('[data-state="active"] code')?.textContent ||
     '';
 
-  try {
-    await navigator.clipboard.writeText(text);
-    copied.value = true;
-    notify.success(t('duxt.code.copiedToast'));
-    setTimeout(() => (copied.value = false), 2000);
-  } catch {
-    notify.error(t('duxt.page.copyFailed'));
-  }
+  if (!(await copyText(text))) return;
+
+  // Which tab was showing is the interesting part — a group exists because
+  // the same thing is spelled several ways, and this says which spelling won.
+  analytics.track({
+    name: 'copy',
+    kind: 'code-group',
+    language: current.value?.language
+  });
 }
 </script>
 
@@ -119,37 +122,26 @@ async function copy() {
          inside it is a control a screen reader is told to treat as a tab and
          cannot. So the row is a plain box and the tablist is the part of it
          that actually holds tabs. -->
-    <div
-      class="flex min-h-11 items-center gap-1 border-b bg-muted/40 px-2 py-1.5"
-    >
-      <TabsList
-        class="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto"
+    <DuxtCodeToolbar>
+      <UiTabsList
+        variant="bare"
+        class="min-w-0 flex-1 overflow-x-auto"
         :aria-label="$t('duxt.page.tabs') as string"
       >
-        <TabsTrigger
+        <UiTabsTrigger
           v-for="entry in entries"
           :key="entry.value"
           :value="entry.value"
-          class="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-2.5 py-1 font-mono text-xs transition-colors data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=inactive]:text-muted-foreground hover:bg-accent hover:text-foreground"
+          variant="pill"
+          class="font-mono"
         >
           <Icon :name="entry.icon" class="size-3.5" />
           {{ entry.label }}
-        </TabsTrigger>
-      </TabsList>
+        </UiTabsTrigger>
+      </UiTabsList>
 
-      <UiButton
-        variant="ghost"
-        size="icon"
-        class="size-7 shrink-0"
-        :aria-label="copied ? $t('duxt.code.copied') : $t('duxt.code.copy')"
-        @click="copy"
-      >
-        <Icon
-          :name="copied ? 'lucide:check' : 'lucide:copy'"
-          class="size-3.5"
-        />
-      </UiButton>
-    </div>
+      <DuxtCopyButton :copied="copied" @click="copy" />
+    </DuxtCodeToolbar>
 
     <!-- THE BLOCK FOLLOWS THE FILE THAT IS SHOWING, over 300ms.
 
@@ -166,12 +158,24 @@ async function copy() {
       ref="shell"
       class="overflow-hidden motion-safe:transition-[height] motion-safe:duration-300 motion-safe:ease-out"
     >
-      <div ref="body">
+      <div ref="body" class="relative">
+        <!-- EVERY PANEL STAYS MOUNTED, and the switch is a CROSSFADE. Mounted on
+             demand, a new panel left the body empty for about 150ms and the box
+             folded shut and opened again; hidden outright, the new file was
+             simply there, cut off by the box it had not yet grown into.
+
+             So the panel leaving is lifted out of the flow — absolute, over the
+             top of the one arriving — and fades out while the new one fades in.
+             Out of the flow it takes no height, so the box still follows the
+             file that shows. `invisible` lands when the fade ends, which keeps
+             the hidden panels out of the tab order and away from a screen
+             reader. -->
         <TabsContent
           v-for="entry in entries"
           :key="entry.value"
           :value="entry.value"
-          class="focus-visible:outline-none [&_.duxt-code]:my-0 [&_.duxt-code]:rounded-none [&_.duxt-code]:border-0"
+          force-mount
+          class="focus-visible:outline-none motion-safe:transition-[opacity,visibility] motion-safe:duration-200 motion-safe:ease-out data-[state=inactive]:pointer-events-none data-[state=inactive]:invisible data-[state=inactive]:absolute data-[state=inactive]:inset-x-0 data-[state=inactive]:top-0 data-[state=inactive]:opacity-0 [&_.duxt-code]:my-0 [&_.duxt-code]:rounded-none [&_.duxt-code]:border-0"
         >
           <!-- `:header="false"`: the tab above already says what the bar inside
                would, and the copy button now sits beside the tabs. -->

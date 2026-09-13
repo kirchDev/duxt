@@ -45,32 +45,38 @@ export default defineAppConfig({
     title: 'Acme',
     sources: [
       { path: 'docs', slug: 'acme' },                          // this repository
-      { repo: 'acme/api', path: 'docs', refs: ['main', 'v2.0.0', 'v1.4.0'] },
+      {
+        repo: 'acme/api',
+        path: 'docs',
+        releases: { select: 'minor' },                         // newest tag per minor line
+        refs: [{ branch: 'main', status: 'upcoming' }],
+      },
     ],
-    sourceOptions: { defaultRef: 'v2.0.0' },
   },
 })
 ```
 
-Two repositories and three refs become five collections, the URL prefixes that serve them, and a version switcher — none of which you write.
+The local folder and every selected release or branch become collections, the URL prefixes that serve them, and a version switcher — none of which you write. Prefer a fixed list? Tags are explicit: `{ tag: 'v2.0.0' }`; a bare string names a branch.
 
 ## ✨ Features
 
 - **📦 Extend, don't scaffold** — a Nuxt layer: theme, pages, components and `app.config` defaults arrive with `extends` and are overridden file by file where you disagree.
-- **🗂️ Sources as a list** — one compact entry per source instead of one Content collection per version × repository.
+- **🗂️ Sources and releases as a list** — one compact entry per source; select every release, or the newest per minor or major line, instead of maintaining one Content collection per version × repository.
 - **🧭 Version switcher and URL scheme** — `/[repo]/[version]/[...slug]`, collapsing cleanly when there is one source and no versions, with a lifecycle per version that decides the banner a reader gets.
 - **🌿 Git-native sourcing** — branches, tags, private repositories and hash-based caching come straight from Content v3's own `repository` support; `'latest'` resolves to the newest semver tag at build time.
-- **🤖 Machine-readable by default** — `llms.txt`, `llms-full.txt` and a real MCP server at `/mcp`, generated from the same collections the pages render from.
+- **📚 Generated reference** — publish OpenAPI documents, Bruno collections and tfplugindocs trees beside authored Markdown; OpenAPI and Bruno can power the built-in request client.
+- **🤖 Machine-readable by default** — `llms.txt`, the default-version corpus in `llms-full.txt`, every page as Markdown and a real MCP server at `/mcp`, all reading the same collections as the site.
 - **🎨 shadcn-vue theme, owned not vendored** — Tailwind 4 with the components in `app/components/ui/`, MDC components in `app/components/content/`.
-- **🔍 Search, TOC, breadcrumb, prev/next** — ⌘K fuzzy search across every source, active-heading tracking, section landing pages, feedback and "Edit this page" links.
+- **🔍 Search, TOC, breadcrumb, prev/next** — ⌘/Ctrl+K fuzzy search across every source, active-heading tracking, section landing pages, feedback and "Edit this page" links.
 - **🧯 A build that fails loudly** — a validator walks the parse cache for URL collisions, empty collections, broken links and missing titles, because every bug this layer actually had was a silent one.
+- **♻️ Cacheable build work** — remote Content downloads and rendered OG images expose stable cache keys and a warm-build report; see [Cache build work](docs/3.guides/12.cache-build-work.md).
 
 <details>
 <summary>Full feature list</summary>
 
 ### Sources & versions
 
-- **🗂️ Sources as a list** — one compact entry per source instead of one Content collection per version × repository. The single unversioned folder is the default and needs no config at all.
+- **🗂️ Sources as a list** — one compact entry per source instead of one Content collection per version × repository. The single unversioned folder is the default and needs no config at all; `releases` discovers all releases or the newest per minor or major line.
 - **🧭 Version switcher and URL scheme** — `/[repo]/[version]/[...slug]`, collapsing cleanly when there is one source and no versions, with a lifecycle per version (`upcoming`, `current`, `maintained`, `deprecated`, `eol`) that decides the banner a reader gets.
 - **🌿 Git-native sourcing** — branches, tags, private repositories and hash-based caching come straight from Content v3's own `repository` support; `'latest'` resolves to the newest semver tag at build time.
 - **🔁 Redirects from frontmatter** — `redirectFrom` on a moved page becomes route rules under every repository, version and locale prefix it is served at.
@@ -78,12 +84,20 @@ Two repositories and three refs become five collections, the URL prefixes that s
 ### Theme & reading experience
 
 - **🎨 shadcn-vue theme, owned not vendored** — Tailwind 4 with the components in `app/components/ui/`, MDC components (`::callout`, `::steps`, `::code-group`, file trees, Mermaid) in `app/components/content/`.
-- **🔍 Search, TOC, breadcrumb, prev/next** — ⌘K fuzzy search across every source, active-heading tracking, section landing pages, feedback and "Edit this page" links.
+- **🔍 Search, TOC, breadcrumb, prev/next** — ⌘/Ctrl+K fuzzy search across every source, active-heading tracking, section landing pages, feedback and "Edit this page" links.
 - **🌍 Seven locales out of the box** — `en-GB`, `en-US`, `de-DE`, `es-ES`, `fr-FR`, `pt-PT` and `pt-BR`; a site picks which of them it serves, and its own strings take a literal, a key or a per-locale record.
+- **🖼️ Responsive images** — Nuxt Image produces responsive sources and a persistent zoom affordance while SVG and GIF pass through unchanged.
+
+### Generated reference
+
+- **📄 OpenAPI** — turn a specification into navigable operation and schema pages, with an optional request client.
+- **🧰 Bruno** — publish a request collection as reference pages and a downloadable redacted collection, with opt-in try-it controls.
+- **🔌 tfplugindocs** — read a Terraform provider's generated documentation as a structured source with provider-aware navigation.
+- **📜 Changelogs** — render a global or version-aligned release history, including the contributors in each release.
 
 ### Machine-readable & SEO
 
-- **🤖 Machine-readable by default** — `llms.txt`, `llms-full.txt` and a real MCP server at `/mcp` (list pages, read a page, search), generated from the same collections the pages render from.
+- **🤖 Machine-readable by default** — `llms.txt`, the default-version corpus in `llms-full.txt`, every page as Markdown and a real MCP server at `/mcp` (`list_versions`, `list_pages`, `search_docs`, `read_page`), all reading the same collections as the site.
 - **📈 SEO and feeds included** — sitemap, robots, generated OG images, and an optional `/rss.xml` over a section you nominate.
 
 ### Layer & build
@@ -91,6 +105,7 @@ Two repositories and three refs become five collections, the URL prefixes that s
 - **📦 Extend, don't scaffold** — a Nuxt layer: theme, pages, components and `app.config` defaults arrive with `extends` and are overridden file by file where you disagree.
 - **🧯 A build that fails loudly** — a validator walks the parse cache for URL collisions, empty collections, broken links and missing titles, because every bug this layer actually had was a silent one.
 - **🔎 DevTools tab** — the resolved sources, collections, prefixes, message catalogues and download cache, in dev, where guessing used to be the only option.
+- **♻️ Cacheable build work** — `duxt-cache-key` identifies remote Content downloads and `duxt-og-cache` identifies reusable rendered cards; the [cache guide](docs/3.guides/12.cache-build-work.md) wires both into CI.
 
 </details>
 

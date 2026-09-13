@@ -15,19 +15,20 @@ const pages = new Map(
     '/demo',
     '/en-US/demo',
     '/de-DE/demo',
-    '/demo/api',
-    '/de-DE/demo/api',
-    '/demo/v1.x/api'
+    '/demo/openapi',
+    '/de-DE/demo/openapi',
+    '/demo/v1.x/openapi'
   ].map((route) => [route, renderPage(route)])
 );
 
 function renderPage(route) {
-  const fallback = route === '/de-DE/demo' || route === '/de-DE/demo/api';
+  const fallback = route === '/de-DE/demo' || route === '/de-DE/demo/openapi';
   const noindex =
-    route === '/does-not-exist' || route === '/demo/v1.x/api' || fallback;
-  const title = route.endsWith('/api') ? 'Harbour' : 'Overview';
+    route === '/does-not-exist' || route === '/demo/v1.x/openapi' || fallback;
+  const title = route.endsWith('/openapi') ? 'Harbour' : 'Overview';
   return `<html><head>
     <link rel="canonical" href="${origin}${route}">
+    ${mode === 'missing-machine-links' ? '' : `<link rel="alternate" type="text/markdown" href="${route}.md"><link rel="describedby" href="/llms.txt">`}
     ${[...locales, 'x-default'].map((locale) => `<link rel="alternate" hreflang="${locale}" href="${origin}${route}">`).join('')}
     <meta name="robots" content="${noindex ? 'noindex' : 'index'}">
     <meta property="og:title" content="Title">

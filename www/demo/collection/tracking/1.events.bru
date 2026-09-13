@@ -1,0 +1,27 @@
+meta {
+  name: Tracking events
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/demo/echo
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  bru.setVar('requestedAt', new Date().toISOString());
+}
+
+tests {
+  test('answers', function () {
+    expect(res.getStatus()).to.be.oneOf([200, 401]);
+  });
+}
+
+docs {
+  This request carries a pre-request script and a test. Neither is printed on
+  this page and neither is run by it — the page says they exist, and the
+  download is where they live.
+}

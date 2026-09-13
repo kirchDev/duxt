@@ -236,9 +236,29 @@
   <main>
     <h1>Config</h1>
     <p class="hint">The merged <code>duxt</code> config, and which side of the merge each value came from.</p>
-    <div class="stats"><div class="stat "><b>15</b><span>keys</span></div><div class="stat ok"><b>6</b><span>from the site</span></div><div class="stat "><b>8</b><span>from the layer</span></div><div class="stat "><b>1</b><span>computed</span></div></div><div class="note">Arrays are replaced whole, objects merge key by key. A row marked <span class="tag">build</span> was computed by <code>modules/config.ts</code> and is written nowhere.</div><div class="filterbar"><input type="search" class="filter" data-filter placeholder="Filter keys" aria-label="Filter keys"><span class="count" data-filter-count role="status" aria-live="polite"></span></div><div class="scroll"><table>
+    <div class="stats"><div class="stat "><b>22</b><span>keys</span></div><div class="stat ok"><b>6</b><span>from the site</span></div><div class="stat "><b>15</b><span>from the layer</span></div><div class="stat "><b>1</b><span>computed</span></div></div><div class="note">Arrays are replaced whole, objects merge key by key. A row marked <span class="tag">build</span> was computed by <code>modules/config.ts</code> and is written nowhere.</div><div class="filterbar"><input type="search" class="filter" data-filter placeholder="Filter keys" aria-label="Filter keys"><span class="count" data-filter-count role="status" aria-live="polite"></span></div><div class="scroll"><table>
     <thead><tr><th scope="col">Key</th><th scope="col">From</th><th scope="col">Value</th></tr></thead>
-    <tbody><tr><td><code>title</code></td><td><span class="tag ok">consumer</span></td><td><code>Acme SDK</code></td></tr><tr><td><code>navigation</code></td><td><span class="tag muted">layer</span></td><td><details class="json"><summary><span class="dim">1 entries</span> <code class="peek">[{&quot;label&quot;:&quot;duxt.defaults.navigation.docs&quot;,&quot;icon&quot;:&quot;lucide:book-open-text&quot;}]</code></summary><pre class="json">[
+    <tbody><tr><td><code>title</code></td><td><span class="tag ok">consumer</span></td><td><code>Acme SDK</code></td></tr><tr><td><code>copy</code></td><td><span class="tag muted">layer</span></td><td><details class="json"><summary><span class="dim">1 keys</span> <code class="peek">{&quot;models&quot;:[{&quot;label&quot;:&quot;duxt.page.copy.chatgpt&quot;,&quot;icon&quot;:&quot;simple-icons:openai&quot;,&quot;url&quot;:&quot;https://chatgpt…</code></summary><pre class="json">{
+  <span class="j-key">&quot;models&quot;</span>: [
+    {
+      <span class="j-key">&quot;label&quot;</span>: <span class="j-str">&quot;duxt.page.copy.chatgpt&quot;</span>,
+      <span class="j-key">&quot;icon&quot;</span>: <span class="j-str">&quot;simple-icons:openai&quot;</span>,
+      <span class="j-key">&quot;url&quot;</span>: <span class="j-str">&quot;https://chatgpt.com/?q=&quot;</span>
+    },
+    {
+      <span class="j-key">&quot;label&quot;</span>: <span class="j-str">&quot;duxt.page.copy.claude&quot;</span>,
+      <span class="j-key">&quot;icon&quot;</span>: <span class="j-str">&quot;simple-icons:claude&quot;</span>,
+      <span class="j-key">&quot;url&quot;</span>: <span class="j-str">&quot;https://claude.ai/new?q=&quot;</span>
+    }
+  ]
+}</pre></details></td></tr><tr><td><code>contributors</code></td><td><span class="tag muted">layer</span></td><td><span class="dim">1 keys</span> <code>{&quot;avatarUrl&quot;:&quot;https://github.com/{username}.png?size=40&quot;}</code></td></tr><tr><td><code>toc</code></td><td><span class="tag muted">layer</span></td><td><span class="dim">2 keys</span> <code>{&quot;depth&quot;:3,&quot;scrollOffset&quot;:96}</code></td></tr><tr><td><code>search</code></td><td><span class="tag muted">layer</span></td><td><details class="json"><summary><span class="dim">2 keys</span> <code class="peek">{&quot;fuzzy&quot;:{&quot;threshold&quot;:0.35,&quot;minMatchCharLength&quot;:3,&quot;limit&quot;:20},&quot;recentPages&quot;:5}</code></summary><pre class="json">{
+  <span class="j-key">&quot;fuzzy&quot;</span>: {
+    <span class="j-key">&quot;threshold&quot;</span>: <span class="j-num">0.35</span>,
+    <span class="j-key">&quot;minMatchCharLength&quot;</span>: <span class="j-num">3</span>,
+    <span class="j-key">&quot;limit&quot;</span>: <span class="j-num">20</span>
+  },
+  <span class="j-key">&quot;recentPages&quot;</span>: <span class="j-num">5</span>
+}</pre></details></td></tr><tr><td><code>openapi</code></td><td><span class="tag muted">layer</span></td><td><span class="dim">2 keys</span> <code>{&quot;exampleDepth&quot;:6,&quot;schemaDepth&quot;:8}</code></td></tr><tr><td><code>shortcuts</code></td><td><span class="tag muted">layer</span></td><td><span class="dim">1 keys</span> <code>{&quot;singleCharacter&quot;:true}</code></td></tr><tr><td><code>announcements</code></td><td><span class="tag muted">layer</span></td><td><span class="dim">0 entries</span> <code>[]</code></td></tr><tr><td><code>navigation</code></td><td><span class="tag muted">layer</span></td><td><details class="json"><summary><span class="dim">1 entries</span> <code class="peek">[{&quot;label&quot;:&quot;duxt.defaults.navigation.docs&quot;,&quot;icon&quot;:&quot;lucide:book-open-text&quot;}]</code></summary><pre class="json">[
   {
     <span class="j-key">&quot;label&quot;</span>: <span class="j-str">&quot;duxt.defaults.navigation.docs&quot;</span>,
     <span class="j-key">&quot;icon&quot;</span>: <span class="j-str">&quot;lucide:book-open-text&quot;</span>
@@ -280,7 +300,7 @@
     <span class="j-key">&quot;path&quot;</span>: <span class="j-str">&quot;docs&quot;</span>,
     <span class="j-key">&quot;repo&quot;</span>: <span class="j-str">&quot;acme/cli&quot;</span>
   }
-]</pre></details></td></tr><tr><td><code>resolvedSources</code></td><td><span class="tag">build</span></td><td><details class="json"><summary><span class="dim">6 entries</span> <code class="peek">[{&quot;collection&quot;:&quot;docs_sdk&quot;,&quot;prefix&quot;:&quot;/sdk&quot;,&quot;repo&quot;:&quot;sdk&quot;,&quot;version&quot;:&quot;v2&quot;,&quot;isDefault&quot;:true,&quot;reposito…</code></summary><pre class="json">[
+]</pre></details></td></tr><tr><td><code>resolvedSources</code></td><td><span class="tag">build</span></td><td><details class="json"><summary><span class="dim">7 entries</span> <code class="peek">[{&quot;collection&quot;:&quot;docs_sdk&quot;,&quot;prefix&quot;:&quot;/sdk&quot;,&quot;repo&quot;:&quot;sdk&quot;,&quot;version&quot;:&quot;v2&quot;,&quot;isDefault&quot;:true,&quot;reposito…</code></summary><pre class="json">[
   {
     <span class="j-key">&quot;collection&quot;</span>: <span class="j-str">&quot;docs_sdk&quot;</span>,
     <span class="j-key">&quot;prefix&quot;</span>: <span class="j-str">&quot;/sdk&quot;</span>,
@@ -362,6 +382,7 @@
     <span class="j-key">&quot;collection&quot;</span>: <span class="j-str">&quot;docs_sdk_releases&quot;</span>,
     <span class="j-key">&quot;prefix&quot;</span>: <span class="j-str">&quot;/sdk/releases&quot;</span>,
     <span class="j-key">&quot;repo&quot;</span>: <span class="j-str">&quot;sdk&quot;</span>,
+    <span class="j-key">&quot;version&quot;</span>: <span class="j-str">&quot;v2&quot;</span>,
     <span class="j-key">&quot;isDefault&quot;</span>: <span class="j-word">true</span>,
     <span class="j-key">&quot;repository&quot;</span>: <span class="j-str">&quot;acme/sdk&quot;</span>,
     <span class="j-key">&quot;repositoryUrl&quot;</span>: <span class="j-str">&quot;https://github.com/acme/sdk&quot;</span>,
@@ -380,7 +401,41 @@
       <span class="j-key">&quot;navigation&quot;</span>: <span class="j-str">&quot;sections&quot;</span>,
       <span class="j-key">&quot;icon&quot;</span>: <span class="j-str">&quot;lucide:tag&quot;</span>,
       <span class="j-key">&quot;layout&quot;</span>: <span class="j-str">&quot;changelog&quot;</span>,
-      <span class="j-key">&quot;versioning&quot;</span>: <span class="j-str">&quot;global&quot;</span>,
+      <span class="j-key">&quot;versioning&quot;</span>: <span class="j-str">&quot;per-version&quot;</span>,
+      <span class="j-key">&quot;localisation&quot;</span>: <span class="j-str">&quot;original&quot;</span>,
+      <span class="j-key">&quot;remote&quot;</span>: <span class="j-word">true</span>,
+      <span class="j-key">&quot;report&quot;</span>: {
+        <span class="j-key">&quot;pages&quot;</span>: <span class="j-num">4</span>,
+        <span class="j-key">&quot;warnings&quot;</span>: [
+          <span class="j-str">&quot;the heading \&quot;1.3 (Feb 2026)\&quot; on line 41 reads like a release but does not parse as one, so it became part of the release above it instead of a page of its own. A release heading is a version, optionally followed by a date in parentheses: `## 1.4.0 (2024-02-01)`.&quot;</span>
+        ]
+      }
+    }
+  },
+  {
+    <span class="j-key">&quot;collection&quot;</span>: <span class="j-str">&quot;docs_sdk_v1_9_releases&quot;</span>,
+    <span class="j-key">&quot;prefix&quot;</span>: <span class="j-str">&quot;/sdk/v1.9/releases&quot;</span>,
+    <span class="j-key">&quot;repo&quot;</span>: <span class="j-str">&quot;sdk&quot;</span>,
+    <span class="j-key">&quot;version&quot;</span>: <span class="j-str">&quot;v1.9&quot;</span>,
+    <span class="j-key">&quot;isDefault&quot;</span>: <span class="j-word">false</span>,
+    <span class="j-key">&quot;repository&quot;</span>: <span class="j-str">&quot;acme/sdk&quot;</span>,
+    <span class="j-key">&quot;repositoryUrl&quot;</span>: <span class="j-str">&quot;https://github.com/acme/sdk&quot;</span>,
+    <span class="j-key">&quot;ref&quot;</span>: <span class="j-str">&quot;v1.9.4&quot;</span>,
+    <span class="j-key">&quot;refKind&quot;</span>: <span class="j-str">&quot;tag&quot;</span>,
+    <span class="j-key">&quot;path&quot;</span>: <span class="j-str">&quot;CHANGELOG.md&quot;</span>,
+    <span class="j-key">&quot;locale&quot;</span>: <span class="j-str">&quot;en&quot;</span>,
+    <span class="j-key">&quot;isDefaultLocale&quot;</span>: <span class="j-word">true</span>,
+    <span class="j-key">&quot;status&quot;</span>: <span class="j-str">&quot;deprecated&quot;</span>,
+    <span class="j-key">&quot;history&quot;</span>: <span class="j-word">false</span>,
+    <span class="j-key">&quot;generated&quot;</span>: {
+      <span class="j-key">&quot;type&quot;</span>: <span class="j-str">&quot;changelog&quot;</span>,
+      <span class="j-key">&quot;label&quot;</span>: <span class="j-str">&quot;Releases&quot;</span>,
+      <span class="j-key">&quot;slug&quot;</span>: <span class="j-str">&quot;releases&quot;</span>,
+      <span class="j-key">&quot;declaration&quot;</span>: <span class="j-num">0</span>,
+      <span class="j-key">&quot;navigation&quot;</span>: <span class="j-str">&quot;sections&quot;</span>,
+      <span class="j-key">&quot;icon&quot;</span>: <span class="j-str">&quot;lucide:tag&quot;</span>,
+      <span class="j-key">&quot;layout&quot;</span>: <span class="j-str">&quot;changelog&quot;</span>,
+      <span class="j-key">&quot;versioning&quot;</span>: <span class="j-str">&quot;per-version&quot;</span>,
       <span class="j-key">&quot;localisation&quot;</span>: <span class="j-str">&quot;original&quot;</span>,
       <span class="j-key">&quot;remote&quot;</span>: <span class="j-word">true</span>,
       <span class="j-key">&quot;report&quot;</span>: {

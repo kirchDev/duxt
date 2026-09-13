@@ -255,6 +255,28 @@ describe('withGeneratedSections', () => {
     ).toHaveLength(1);
   });
 
+  it('points a hand-listed per-version section at the reader`s version', () => {
+    // Listed by hand is how the row is ORDERED; the URL still has to follow the
+    // reader, or an entry written at the default version sends a reader on
+    // `v1.x` back to it.
+    const config = {
+      sections: [
+        { label: 'Release notes', to: '/releases' },
+        { label: 'Guides', to: '/guides' }
+      ],
+      resolvedSources: perVersion()
+    };
+    const row = (path: string) =>
+      withGeneratedSections(config as never, path).sections;
+
+    expect(row('/v1.x/guides')).toEqual([
+      { label: 'Release notes', to: '/v1.x/releases' },
+      { label: 'Guides', to: '/guides' }
+    ]);
+    // Nothing moves on the default version, so the row keeps its identity.
+    expect(withGeneratedSections(config as never, '/guides')).toBe(config);
+  });
+
   it('carries the icon the section resolved to', () => {
     const config = {
       sections: [],
@@ -289,7 +311,7 @@ describe('generatedLayout', () => {
     expect(generatedLayout('/releases/v1.0.0', sources)).toBe('changelog');
   });
 
-  it('leaves every other page in the docs chrome', () => {
+  it('leaves every other page in the docs layout', () => {
     const sources = [
       base,
       section({ generated: { ...section().generated!, layout: 'changelog' } })

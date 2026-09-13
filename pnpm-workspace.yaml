@@ -49,7 +49,7 @@ overrides:
 # it. better-sqlite3 arrives transitively through @nuxt/content and db0 and
 # would compile a native addon via node-gyp — refused, not merely unapproved:
 # Content runs on Node 24's built-in node:sqlite (content.experimental
-# .nativeSqlite), so nothing here needs the addon.
+# .sqliteConnector: 'native'), so nothing here needs the addon.
 allowBuilds:
   better-sqlite3: false
   # Arrives transitively with `agents` (the Cloudflare MCP handler). Its

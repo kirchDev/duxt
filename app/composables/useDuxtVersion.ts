@@ -105,14 +105,65 @@ export function useDuxtVersion() {
     () => isPreferred.value && status.value !== 'eol'
   );
 
-  /** The same page in the preferred version, for the banner and the canonical. */
-  const preferredPath = computed(() =>
-    versionPath(
+  /**
+   * Whether the same page is MISSING from the preferred version.
+   *
+   * Only a changelog release page can be: every version publishes its own
+   * changelog, and a branch's may carry a release the default version has not
+   * shipped. Swapping the prefix alone then pointed the banner's link and the
+   * canonical at a page that does not exist. Every other per-version tree is the
+   * same tree at another ref, so nothing else is looked up.
+   *
+   * `useAsyncData`, so the server waits for it and the canonical in the
+   * prerendered HTML is already right. Keyed per path, so the banner and the
+   * page share one lookup. Nothing after the `await` touches a composable.
+   */
+  const { data: preferredMissing } = useAsyncData(
+    () => `duxt-preferred-missing-${path.value}`,
+    async () => {
+      const own = current.value;
+      const target = preferred.value;
+      if (
+        !own ||
+        !target ||
+        own === target ||
+        own.generated?.type !== 'changelog' ||
+        path.value === own.prefix
+      ) {
+        return false;
+      }
+
+      const candidate = versionPath(
+        path.value,
+        own.prefix,
+        target.prefix || '/'
+      );
+      const hit = await queryCollection(target.collection as DuxtCollectionArg)
+        .path(candidate)
+        .select('path')
+        .first();
+
+      return !hit;
+    },
+    { default: () => false, watch: [path] }
+  );
+
+  /**
+   * The same page in the preferred version, for the banner and the canonical —
+   * or that version's own root where it never published the page. The same rule
+   * the switcher follows, see `versionSwitchPath`.
+   */
+  const preferredPath = computed(() => {
+    const to = preferred.value?.prefix || '/';
+    const candidate = versionPath(path.value, current.value?.prefix, to);
+
+    return versionSwitchPath(
       path.value,
       current.value?.prefix,
-      preferred.value?.prefix || '/'
-    )
-  );
+      to,
+      new Set(preferredMissing.value ? [candidate] : [])
+    );
+  });
 
   const shouldWarn = computed(
     () =>

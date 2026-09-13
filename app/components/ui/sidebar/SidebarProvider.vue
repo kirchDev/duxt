@@ -1,11 +1,6 @@
 <script setup lang="ts">
 import type { HTMLAttributes, Ref } from 'vue';
-import {
-  defaultDocument,
-  useEventListener,
-  useMediaQuery,
-  useVModel
-} from '@vueuse/core';
+import { defaultDocument, useMediaQuery, useVModel } from '@vueuse/core';
 import { TooltipProvider } from 'reka-ui';
 import { computed, ref } from 'vue';
 import { cn } from '@duxt/lib/utils';
@@ -13,7 +8,6 @@ import {
   provideSidebarContext,
   SIDEBAR_COOKIE_MAX_AGE,
   SIDEBAR_COOKIE_NAME,
-  SIDEBAR_KEYBOARD_SHORTCUT,
   SIDEBAR_WIDTH,
   SIDEBAR_WIDTH_ICON
 } from './utils';
@@ -62,15 +56,12 @@ function toggleSidebar() {
     : setOpen(!open.value);
 }
 
-useEventListener('keydown', (event: KeyboardEvent) => {
-  if (
-    event.key === SIDEBAR_KEYBOARD_SHORTCUT &&
-    (event.metaKey || event.ctrlKey)
-  ) {
-    event.preventDefault();
-    toggleSidebar();
-  }
-});
+// Upstream binds `⌘/Ctrl+B` here. It is gone deliberately: a global key
+// registered by a primitive is one `useDuxtShortcuts()` does not know about, so
+// the sheet cannot list it, the documentation cannot describe it and
+// `shortcuts.singleCharacter` cannot switch it off — a shortcut that works and
+// that nobody can find. `SidebarTrigger` is how the sidebar is toggled; a site
+// that wants a key for it declares one the same way the layer does.
 
 // We add a state so that we can do data-state="expanded" or "collapsed".
 // This makes it easier to style the sidebar with Tailwind classes.

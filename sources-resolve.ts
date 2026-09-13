@@ -20,6 +20,16 @@ export interface DuxtSource {
    * default URL prefix without declaring two page collections for it.
    */
   content?: boolean;
+  /** Per-source conventions for draft pages and reusable Markdown blocks. */
+  exclude?: { drafts?: string; partials?: string };
+  /**
+   * The Markdown dialect this source was generated in.
+   *
+   * Dialects are layer-owned normalisers, not consumer-supplied transforms:
+   * one compact marker keeps an upstream repository readable without making
+   * its generator emit duxt-specific Markdown.
+   */
+  flavor?: DuxtSourceFlavor;
   /** `owner/name` or a full git URL. Omitted reads the local checkout. */
   repo?: string;
   /**
@@ -30,6 +40,15 @@ export interface DuxtSource {
    * build with "Could not find refs/heads/…".
    */
   refs?: DuxtRef[];
+  /**
+   * Discover release tags to publish as versions.
+   *
+   * Discovery is opt-in: a source still needs to say whether every release,
+   * one release per minor, or one per major belongs in its public URLs. Explicit
+   * `refs` stay available beside this object and override a discovered tag's
+   * label, lifecycle, default and locales.
+   */
+  releases?: DuxtSourceReleases;
   /**
    * Languages this source is available in, beyond the one written in `path`.
    *
@@ -64,6 +83,22 @@ export interface DuxtSource {
   version?: string;
   /** Shown in the version switcher and used in the URL; defaults to the ref. */
   label?: string;
+  /**
+   * What to CALL this source where the site names it to a reader.
+   *
+   * Display only — it never reaches a collection name, a URL prefix, a version
+   * or the ranking, which is what separates it from `label` and `slug`. Those
+   * two are addresses that happen to be readable; this is a name that is
+   * nothing else, so it is free to be prose and free to be translated.
+   *
+   * The one thing no rule can derive. A segment is an abbreviation as often as
+   * it is a word — `tf`, `sdk`, `api` — and a search result labelled with one
+   * tells a reader which URL they are in rather than which project. Unset, the
+   * ladder in `app/utils/search-display.ts` falls back to the segment and then
+   * to the site's own name, so a site that sets nothing is still never shown
+   * the bare `/` this key was added for.
+   */
+  name?: string | Record<string, string>;
   /**
    * Segment used in the URL for this source; defaults to the repository name.
    *
@@ -119,6 +154,9 @@ export interface DuxtSource {
   generated?: DuxtGeneratedSection[];
 }
 
+/** Source dialects the layer understands. */
+export type DuxtSourceFlavor = 'tfplugindocs';
+
 /**
  * Where a version sits in its life.
  *
@@ -155,6 +193,14 @@ export type DuxtRef =
   | string
   | ({ branch: string } & DuxtRefOptions)
   | ({ tag: string } & DuxtRefOptions);
+
+/** The release lines a source publishes when it discovers Git tags. */
+export interface DuxtSourceReleases {
+  /** Every release, or the newest release in each minor or major line. */
+  select: 'all' | 'minor' | 'major';
+  /** Include SemVer pre-releases; stable releases are the default. */
+  prereleases?: boolean;
+}
 
 interface DuxtRefOptions {
   /** Shown in the switcher and used in the URL; defaults to the ref name. */
@@ -269,6 +315,14 @@ export interface DuxtResolvedSource {
   repo?: string;
   /** Version label, when the list has more than one version. */
   version?: string;
+  /**
+   * The source's display name, as the consumer wrote it — see `DuxtSource`.
+   *
+   * Carried through UNRESOLVED, because a locale record cannot be collapsed at
+   * build time: the manifest is one object for every language the site serves,
+   * and `useDuxtConfig` resolves it per request like every other text field.
+   */
+  name?: string | Record<string, string>;
   /** True for the version served without a prefix. */
   isDefault: boolean;
   /**
@@ -298,6 +352,8 @@ export interface DuxtResolvedSource {
   status: DuxtSourceStatus;
   /** Whether the build may read this source's git history. */
   history: boolean;
+  /** The layer-owned Markdown dialect this collection is normalised from. */
+  flavor?: DuxtSourceFlavor;
   /**
    * Present when this collection is a GENERATED SECTION rather than a docs
    * tree — see `resolveGeneratedSections`.
@@ -646,6 +702,7 @@ export function resolveSources(
       prefix,
       repo: segmented(source) ? repoSlug(source) : undefined,
       version,
+      name: source.name,
       isDefault,
       repository: entry.repo ?? source.origin?.repo,
       repositoryUrl: entry.repo
@@ -673,7 +730,8 @@ export function resolveSources(
         'current',
       // A local source is a full checkout already; a remote one has to be
       // unshallowed, which is why it has to be asked for.
-      history: entry.repo ? (source.history ?? false) : true
+      history: entry.repo ? (source.history ?? false) : true,
+      flavor: source.flavor
     });
   }
 

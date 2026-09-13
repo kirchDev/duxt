@@ -11,7 +11,7 @@ const props = defineProps<{
   <span
     data-slot="command-shortcut"
     :class="
-      cn('text-muted-foreground ml-auto text-xs tracking-widest', props.class)
+      cn('text-muted-foreground ms-auto text-xs tracking-widest', props.class)
     "
   >
     <slot />

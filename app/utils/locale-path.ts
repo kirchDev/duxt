@@ -22,6 +22,22 @@ export function stripLocalePrefix(
 }
 
 /**
+ * The locale CODES out of an i18n locale list.
+ *
+ * `@nuxtjs/i18n` accepts a bare code or an object carrying one, and every place
+ * that strips a prefix — the composable, the layout middleware, the devtools
+ * path debugger — needs the plain list. Absent is an empty list: a site without
+ * the module has no prefixes to strip.
+ */
+export function localeCodesOf(
+  locales: readonly (string | { code: string })[] | undefined
+): string[] {
+  return (locales ?? []).map((entry) =>
+    typeof entry === 'string' ? entry : entry.code
+  );
+}
+
+/**
  * The same split, keeping the half that was thrown away.
  *
  * Which language a URL asks for is not decoration: original and translation
@@ -45,4 +61,31 @@ export function splitLocalePath(
   }
 
   return { path };
+}
+
+/**
+ * The routes a MACHINE reads, which exist once for the whole site.
+ *
+ * `llms.txt`, `llms-full.txt`, `rss.xml` and the MCP server are server routes
+ * at the root. They are not pages, `@nuxtjs/i18n` knows nothing of them, and
+ * `localePath('/llms.txt')` therefore hands back `/de-DE/llms.txt` — a path
+ * that falls through to the catch-all page and 404s. That is what the landing
+ * page's framed `llms.txt` did in every locale: Nitro's error response carries
+ * `X-Frame-Options: DENY`, so the reader saw a broken frame rather than a 404.
+ *
+ * An explicit list, not "has a file extension": a version segment such as
+ * `v0.1.0` reads as one. And `…/page.md` is deliberately NOT on it — the
+ * raw-markdown middleware splits the locale off and serves the translation,
+ * so a localised `.md` link is the right link.
+ *
+ * Mirrors the root rows of `DEPLOYMENT_ROUTES` in `scripts/check-routes.ts`.
+ */
+const MACHINE_ROUTES = ['/llms.txt', '/llms-full.txt', '/rss.xml', '/mcp'];
+
+export function isMachineRoute(path: string): boolean {
+  const bare = path.split(/[?#]/)[0]!.replace(/\/+$/, '');
+
+  return MACHINE_ROUTES.some(
+    (route) => bare === route || (route === '/mcp' && bare.startsWith('/mcp/'))
+  );
 }

@@ -51,15 +51,23 @@ const { headerOffset } = useDuxtSectionRow();
     <DuxtProgress />
     <DuxtShortcuts />
 
+    <!-- The site the layer is rendering may have something to say. Both strips
+         draw nothing at all until `duxt.announcements` holds one, space
+         included; the third placement, `above-content`, belongs to the page
+         rather than to the shell. -->
+    <DuxtAnnouncements placement="above-header" />
+
     <DuxtHeader />
     <DuxtSections />
+
+    <DuxtAnnouncements placement="below-header" />
 
     <div class="mx-auto flex w-full max-w-[90rem] flex-1 gap-8 px-4 lg:px-8">
       <!-- A section with one page has nothing to navigate, exactly as in the
            docs layout: the column would list the page the reader is on. -->
       <div v-if="items.length > 1" class="hidden w-64 shrink-0 lg:block">
         <div
-          class="sticky top-[var(--duxt-header-offset)] max-h-[calc(100vh-var(--duxt-header-offset)-1.5rem)] overflow-y-auto py-8 pr-2"
+          class="sticky top-[var(--duxt-header-offset)] max-h-[calc(100vh-var(--duxt-header-offset)-1.5rem)] overflow-y-auto py-8 pe-2"
         >
           <DuxtNavigation
             :items="items"

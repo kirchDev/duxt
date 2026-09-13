@@ -11,7 +11,16 @@
     <DuxtProgress />
     <DuxtShortcuts />
 
+    <!-- The site the layer is rendering may have something to say. Both strips
+         draw nothing at all until `duxt.announcements` holds one, space
+         included; the third placement, `above-content`, belongs to the page
+         rather than to the shell. -->
+    <DuxtAnnouncements placement="above-header" />
+
     <DuxtHeader />
+
+    <DuxtAnnouncements placement="below-header" />
+
     <main id="duxt-main" tabindex="-1" class="flex-1 outline-none">
       <slot />
     </main>

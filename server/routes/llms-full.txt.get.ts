@@ -3,17 +3,15 @@ import { llmsPages } from '../utils/llms-pages';
 // does not see its utils. The defaults have to come from the same file the
 // pages use, or the two descriptions drift apart.
 import { duxtDefaults, mergeDuxtConfig } from '../../app/utils/duxt-config';
-import {
-  resolveServerTexts,
-  stripFrontmatter
-} from '../utils/duxt-server-text';
+import { resolveServerTexts } from '../utils/duxt-server-text';
+import { stripFrontmatter } from '../../frontmatter';
 
 /**
  * llms-full.txt — the whole documentation as one Markdown file.
  *
- * The companion to `llms.txt`, which is an index: a model that has read the
- * index still has to fetch sixty pages, and a model given this one has read
- * them. The convention (llmstxt.org) names both.
+ * The duxt extension beside `llms.txt`, which is the llms.txt convention's
+ * index: a model that has read the index still has to fetch sixty pages, and a
+ * model given this one has read them.
  *
  * The Markdown as written, not the rendered HTML — which is why the collection
  * schema asks Content for `rawbody`. An MDC block reaches the reader as the
@@ -27,7 +25,7 @@ export default defineEventHandler(async (event) => {
     mergeDuxtConfig(appConfig.duxt, duxtDefaults)
   );
 
-  const pages = await llmsPages(event, duxt.resolvedSources);
+  const pages = await llmsPages(event, duxt.resolvedSources, true);
 
   const origin = getRequestURL(event).origin;
 
