@@ -124,6 +124,27 @@ describe('sectionLabelForPath', () => {
     expect(sectionLabelForPath('/harbour/api/ports', SECTIONS)).toBe('API');
   });
 
+  it('names the section on every edition of a documentation source without a slug', () => {
+    // The sections are written at the default edition. A hit on another one
+    // used to match none of them and fell back to the generic label.
+    const sources = [
+      { prefix: '', version: 'v0.3.4' },
+      { prefix: '/v0.2.0', version: 'v0.2.0' },
+      { prefix: '/harbour', repo: 'harbour' }
+    ];
+    const sections = [
+      { label: 'Concepts', to: '/concepts' },
+      { label: 'Harbour', to: '/harbour' }
+    ];
+
+    expect(
+      sectionLabelForPath('/v0.2.0/concepts/sources', sections, sources)
+    ).toBe('Concepts');
+    expect(searchContext('/v0.2.0/concepts/sources', sections, sources)).toBe(
+      'Concepts · v0.2.0 · /v0.2.0/concepts/sources'
+    );
+  });
+
   it('claims nothing for a route no section covers', () => {
     // Segment-aware, so a section does not swallow a sibling that merely starts
     // with its name.

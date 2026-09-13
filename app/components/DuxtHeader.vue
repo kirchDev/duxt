@@ -57,11 +57,18 @@ function entryActive(link: DuxtLink) {
   // entry stands for the documentation, and on a site with a second source the
   // list also holds that source's parts — which would light "Docs" on a page
   // that is not documentation at all, beside the entry that really owns it.
-  return sectionsForPath(
-    duxt.sections ?? [],
-    duxt.resolvedSources ?? [],
-    '/'
-  ).some((section) => isActive(section.to));
+  //
+  // AT THE READER'S EDITION, and only inside the root area: the sections are
+  // written at the default edition, so on `/v0.2.0/concepts` none of them
+  // prefixed the page and "Docs" went dark on every other version.
+  const sources = duxt.resolvedSources ?? [];
+  if (areaForPath(path.value, sources) !== areaForPath('/', sources)) {
+    return false;
+  }
+
+  return sectionsForPath(duxt.sections ?? [], sources, path.value).some(
+    (section) => isActive(section.to)
+  );
 }
 
 /**

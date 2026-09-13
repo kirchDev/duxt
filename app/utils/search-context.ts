@@ -14,7 +14,7 @@
  * nothing about ranking changes.
  */
 import { asText } from './duxt-text';
-import { currentSection } from './section-scope';
+import { currentSection, sectionsForPath } from './section-scope';
 import { sourceForPath } from './version-paths';
 
 /** Between the parts. A middle dot, not a slash: the route holds slashes. */
@@ -31,6 +31,8 @@ interface Edition {
   prefix: string;
   repo?: string;
   version?: string;
+  /** Present on a generated section, which places itself — see `sectionsForPath`. */
+  generated?: unknown;
   /** Looks the source's display name up in `names` below, where there is one. */
   collection?: string;
 }
@@ -67,9 +69,17 @@ export interface SearchContextOptions {
  */
 export function sectionLabelForPath(
   path: string,
-  sections: readonly Labelled[]
+  sections: readonly Labelled[],
+  sources: readonly Edition[] = []
 ): string | undefined {
-  return asText(currentSection([...sections], path)?.label);
+  // AT THE ROUTE'S EDITION. The sections are written at the default one, so a
+  // hit on `/v0.2.0/concepts/sources` matched nothing and fell back to the
+  // generic label — see `sectionsForPath`, which the row and the sidebar read
+  // for the same reason.
+  return asText(
+    currentSection(sectionsForPath([...sections], [...sources], path), path)
+      ?.label
+  );
 }
 
 /** `section · source/version · route`, minus whatever the site has not got. */
@@ -87,7 +97,7 @@ export function searchContext(
     : undefined;
 
   return [
-    sectionLabelForPath(route, sections),
+    sectionLabelForPath(route, sections, sources),
     // A NAME is prose and takes a part of its own; a segment is an address and
     // keeps the `repo/version` spelling, which reads as the path it is.
     ...(named

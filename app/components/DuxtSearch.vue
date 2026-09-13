@@ -88,7 +88,9 @@ const sources = computed(() => duxt.resolvedSources ?? []);
 
 /** Which section a path belongs to, for grouping the hits. */
 function sectionOf(path: string) {
-  return sectionLabelForPath(path, sections.value) ?? 'Documentation';
+  return (
+    sectionLabelForPath(path, sections.value, sources.value) ?? 'Documentation'
+  );
 }
 
 /**

@@ -29,9 +29,23 @@ export function useDuxtSection(
    * in the prose beside it — so the sidebar drew that tree instead of the
    * endpoints. Same rule, and the same bug, as `sourceForPath`.
    */
+  /**
+   * AT THE READER'S EDITION. The sections are written once, at the default
+   * edition — `/concepts` — and on `/v0.2.0/concepts/sources` nothing in that
+   * list prefixes the page: no branch was found and the sidebar drew the whole
+   * tree, every section at once, on every other version. `sectionsForPath`
+   * moves them to the edition being read, the same list the section row shows.
+   */
   const section = computed(() =>
     currentSection(
-      [...(duxt.sections ?? []), ...(duxt.navigation ?? [])],
+      [
+        ...sectionsForPath(
+          duxt.sections ?? [],
+          duxt.resolvedSources ?? [],
+          path.value
+        ),
+        ...(duxt.navigation ?? [])
+      ],
       path.value
     )
   );
