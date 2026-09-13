@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { stripFrontmatter } from '../../frontmatter';
+
 /**
  * The top action: hand this page to a model, or read its source.
  *
@@ -20,11 +22,14 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
-const notify = useDuxtToast();
 const localeLink = useDuxtLink();
 const duxt = useDuxtConfig();
 
-const copied = ref(false);
+const { copied, copy: copyText } = useDuxtCopy({
+  // The button's own label turns into "Copied"; a toast would say it twice.
+  toast: false,
+  failureKey: 'duxt.page.copyFailed'
+});
 
 const markdownPath = computed(
   () => `${localeLink(props.path) ?? props.path}.md`
@@ -38,21 +43,10 @@ function prompt() {
   return t('duxt.page.copy.prompt', { url, title: props.title ?? '' });
 }
 
-async function copy() {
-  const raw = props.rawbody;
-  if (!raw) return;
-
+function copy() {
   // Without the frontmatter: what is copied should read as the page, not as
   // the file. Same call `llms-full.txt` makes over the same field.
-  const text = raw.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '');
-
-  try {
-    await navigator.clipboard.writeText(text);
-    copied.value = true;
-    setTimeout(() => (copied.value = false), 2000);
-  } catch {
-    notify.error(t('duxt.page.copyFailed'));
-  }
+  return copyText(props.rawbody && stripFrontmatter(props.rawbody));
 }
 
 function open(base: string) {

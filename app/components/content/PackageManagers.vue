@@ -95,33 +95,21 @@ const active = computed<DuxtPackageManager>({
     stored.value = value;
   }
 });
-const copied = ref(false);
-const notify = useDuxtToast();
-const { t } = useI18n();
+const { copied, copy: copyText } = useDuxtCopy();
 const analytics = useDuxtAnalytics();
 
 async function copy() {
-  try {
-    await navigator.clipboard.writeText(commands.value[active.value]!);
-    copied.value = true;
-    // The manager, not the command: which of the four a site's readers reach
-    // for is the question this block can answer, and the command itself is
-    // already on the page for anyone who wants to know what was copied.
-    analytics.track({
-      name: 'copy',
-      kind: 'package-manager',
-      manager: active.value,
-      language: 'bash'
-    });
-    notify.success(t('duxt.code.copiedToast'));
-    setTimeout(() => (copied.value = false), 2000);
-  } catch {
-    notify.error(
-      'Could not copy',
-      'The clipboard is unavailable in this context.'
-    );
-    // Clipboard is unavailable over plain HTTP; a failed copy stays silent.
-  }
+  if (!(await copyText(commands.value[active.value]))) return;
+
+  // The manager, not the command: which of the four a site's readers reach
+  // for is the question this block can answer, and the command itself is
+  // already on the page for anyone who wants to know what was copied.
+  analytics.track({
+    name: 'copy',
+    kind: 'package-manager',
+    manager: active.value,
+    language: 'bash'
+  });
 }
 </script>
 
@@ -166,20 +154,12 @@ async function copy() {
         {{ manager }}
       </button>
 
-      <UiButton
-        variant="ghost"
-        size="icon"
-        class="ms-auto size-7"
-        :aria-label="
-          copied ? $t('duxt.code.copied') : $t('duxt.code.copyCommand')
-        "
+      <DuxtCopyButton
+        :copied="copied"
+        :label="$t('duxt.code.copyCommand')"
+        class="ms-auto"
         @click="copy"
-      >
-        <Icon
-          :name="copied ? 'lucide:check' : 'lucide:copy'"
-          class="size-3.5"
-        />
-      </UiButton>
+      />
     </div>
 
     <!-- eslint-disable-next-line vue/no-v-html -- Shiki output, built on the

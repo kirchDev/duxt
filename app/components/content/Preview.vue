@@ -68,22 +68,7 @@ const codeMeta = computed(() => {
  * the fence's header is hidden: it would say `mdc` directly under a tab that
  * already says `mdc`, and one card does not need naming twice.
  */
-const notify = useDuxtToast();
-const copied = ref(false);
-
-async function copy() {
-  const code = codeMeta.value.code;
-  if (!code) return;
-
-  try {
-    await navigator.clipboard.writeText(code);
-    copied.value = true;
-    notify.success(t('duxt.code.copiedToast'));
-    setTimeout(() => (copied.value = false), 2000);
-  } catch {
-    notify.error(t('duxt.page.copyFailed'));
-  }
-}
+const { copied, copy } = useDuxtCopy();
 
 const tabs = computed(() => [
   { value: 'preview', label: t('duxt.code.preview'), icon: 'lucide:eye' },
@@ -135,19 +120,12 @@ const tabs = computed(() => [
       <!-- Right of the tabs, where every other card on the site puts it. Only
            on the source tab: a copy button beside a rendered example copies
            something the reader cannot see. -->
-      <UiButton
+      <DuxtCopyButton
         v-if="active === 'code' && codeMeta.code"
-        variant="ghost"
-        size="icon"
-        class="ms-auto size-7"
-        :aria-label="copied ? $t('duxt.code.copied') : $t('duxt.code.copy')"
-        @click="copy"
-      >
-        <Icon
-          :name="copied ? 'lucide:check' : 'lucide:copy'"
-          class="size-3.5"
-        />
-      </UiButton>
+        :copied="copied"
+        class="ms-auto"
+        @click="copy(codeMeta.code)"
+      />
     </div>
 
     <TabsContent value="preview" class="outline-none">

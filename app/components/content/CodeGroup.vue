@@ -90,9 +90,7 @@ const shell = useTemplateRef<HTMLElement>('shell');
 const body = useTemplateRef<HTMLElement>('body');
 
 useDuxtAnimatedHeight(shell, body);
-const copied = ref(false);
-const notify = useDuxtToast();
-const { t } = useI18n();
+const { copied, copy: copyText } = useDuxtCopy();
 const analytics = useDuxtAnalytics();
 
 async function copy() {
@@ -101,21 +99,15 @@ async function copy() {
     root.value?.querySelector('[data-state="active"] code')?.textContent ||
     '';
 
-  try {
-    await navigator.clipboard.writeText(text);
-    copied.value = true;
-    // Which tab was showing is the interesting part — a group exists because
-    // the same thing is spelled several ways, and this says which spelling won.
-    analytics.track({
-      name: 'copy',
-      kind: 'code-group',
-      language: current.value?.language
-    });
-    notify.success(t('duxt.code.copiedToast'));
-    setTimeout(() => (copied.value = false), 2000);
-  } catch {
-    notify.error(t('duxt.page.copyFailed'));
-  }
+  if (!(await copyText(text))) return;
+
+  // Which tab was showing is the interesting part — a group exists because
+  // the same thing is spelled several ways, and this says which spelling won.
+  analytics.track({
+    name: 'copy',
+    kind: 'code-group',
+    language: current.value?.language
+  });
 }
 </script>
 
@@ -148,18 +140,7 @@ async function copy() {
         </TabsTrigger>
       </TabsList>
 
-      <UiButton
-        variant="ghost"
-        size="icon"
-        class="size-7 shrink-0"
-        :aria-label="copied ? $t('duxt.code.copied') : $t('duxt.code.copy')"
-        @click="copy"
-      >
-        <Icon
-          :name="copied ? 'lucide:check' : 'lucide:copy'"
-          class="size-3.5"
-        />
-      </UiButton>
+      <DuxtCopyButton :copied="copied" @click="copy" />
     </div>
 
     <!-- THE BLOCK FOLLOWS THE FILE THAT IS SHOWING, over 300ms.

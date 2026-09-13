@@ -7,7 +7,8 @@
       "preview": "Aperçu",
       "source": "Code",
       "previewTabs": "Exemple et source",
-      "copiedToast": "Copié dans le presse-papiers"
+      "copiedToast": "Copié dans le presse-papiers",
+      "copyFailed": "Impossible de copier dans le presse-papiers."
     }
   }
 }

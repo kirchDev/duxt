@@ -21,7 +21,6 @@
 const duxt = useDuxtConfig();
 const localeLink = useDuxtLink();
 const { t } = useI18n();
-const notify = useDuxtToast();
 
 /**
  * Where a hero button goes when the config did not say — the same fallback
@@ -48,22 +47,11 @@ const { data: highlightedCommand } = await useAsyncData(
   { watch: [command] }
 );
 
-const copied = ref(false);
-async function copyCommand() {
-  if (!command.value) return;
-
-  try {
-    await navigator.clipboard.writeText(command.value);
-    copied.value = true;
-    // The icon alone is a 3.5 rem change under the reader's own cursor, which
-    // is exactly where they are not looking after a click. The toast is the
-    // confirmation; the icon is what stays for the two seconds after it.
-    notify.success(t('duxt.code.copiedToast'));
-    setTimeout(() => (copied.value = false), 2000);
-  } catch {
-    notify.error(t('duxt.page.copyFailed'));
-  }
-}
+// The icon alone is a 3.5 rem change under the reader's own cursor, which is
+// exactly where they are not looking after a click. The toast is the
+// confirmation; the icon is what stays for the two seconds after it.
+const { copied, copy } = useDuxtCopy();
+const copyCommand = () => copy(command.value);
 
 /**
  * The badge, in either of its two shapes. A string is the label and nothing

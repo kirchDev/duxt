@@ -67,7 +67,6 @@ const split = computed(() => props.layout === 'split');
 
 const id = useId();
 const { t } = useI18n();
-const notify = useDuxtToast();
 const analytics = useDuxtAnalytics();
 
 const parameters = computed(() => props.operation.parameters ?? []);
@@ -590,26 +589,20 @@ watch(sampleHtml, (next, previous) => {
 
 onBeforeUnmount(() => clearTimeout(leavingTimer));
 
-const copiedSample = ref(false);
+const { copied: copiedSample, copy } = useDuxtCopy();
 
 async function copySample() {
-  try {
-    await navigator.clipboard.writeText(shown.value.code);
-    copiedSample.value = true;
-    // WHICH sample, never the sample. The code is the reader's own request
-    // written out — server, parameters, token and all — so only the two pieces
-    // of declared configuration travel.
-    analytics.track({
-      name: 'copy',
-      kind: 'request-sample',
-      sample: shown.value.id,
-      language: shown.value.language
-    });
-    notify.success(t('duxt.code.copiedToast'));
-    setTimeout(() => (copiedSample.value = false), 2000);
-  } catch {
-    notify.error(t('duxt.page.copyFailed'));
-  }
+  if (!(await copy(shown.value.code))) return;
+
+  // WHICH sample, never the sample. The code is the reader's own request
+  // written out — server, parameters, token and all — so only the two pieces
+  // of declared configuration travel.
+  analytics.track({
+    name: 'copy',
+    kind: 'request-sample',
+    sample: shown.value.id,
+    language: shown.value.language
+  });
 }
 
 /* ------------------------------------------------------------------- send */
@@ -1440,20 +1433,11 @@ function pretty(text: string): string {
                   </TabsTrigger>
                 </TabsList>
 
-                <UiButton
-                  variant="ghost"
-                  size="icon"
-                  class="ms-auto size-7 hover:bg-accent hover:text-foreground"
-                  :aria-label="
-                    copiedSample ? $t('duxt.code.copied') : $t('duxt.code.copy')
-                  "
+                <DuxtCopyButton
+                  :copied="copiedSample"
+                  class="ms-auto"
                   @click="copySample"
-                >
-                  <Icon
-                    :name="copiedSample ? 'lucide:check' : 'lucide:copy'"
-                    class="size-3.5"
-                  />
-                </UiButton>
+                />
               </div>
 
               <!-- THE CLIENTS OF THE ACTIVE LANGUAGE, in a row of their own.

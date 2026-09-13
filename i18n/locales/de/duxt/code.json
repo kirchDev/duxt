@@ -7,7 +7,8 @@
       "preview": "Vorschau",
       "source": "Code",
       "previewTabs": "Beispiel und Quelltext",
-      "copiedToast": "In die Zwischenablage kopiert"
+      "copiedToast": "In die Zwischenablage kopiert",
+      "copyFailed": "Konnte nicht in die Zwischenablage kopieren."
     }
   }
 }
