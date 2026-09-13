@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { splitLocalePath, stripLocalePrefix } from '../app/utils/locale-path';
+import {
+  isMachineRoute,
+  splitLocalePath,
+  stripLocalePrefix
+} from '../app/utils/locale-path';
 
 const codes = ['en-GB', 'en-US', 'de-DE', 'es-ES', 'fr-FR', 'pt-PT', 'pt-BR'];
 
@@ -70,5 +74,32 @@ describe('splitLocalePath', () => {
       locale: 'de-DE',
       path: '/'
     });
+  });
+});
+
+describe('isMachineRoute', () => {
+  it.each([
+    '/llms.txt',
+    '/llms-full.txt',
+    '/rss.xml',
+    '/mcp',
+    '/mcp/',
+    '/mcp/deeplink?ide=cursor',
+    '/llms.txt#top'
+  ])('keeps %s at the root, because no locale serves it', (path) => {
+    // The landing page framed `/de-DE/llms.txt`: a 404, and a broken frame.
+    expect(isMachineRoute(path)).toBe(true);
+  });
+
+  it.each([
+    '/getting-started',
+    '/getting-started.md',
+    '/guide/llms.txt',
+    '/mcp-server',
+    '/v0.1.0/getting-started',
+    '/'
+  ])('leaves %s to the locale', (path) => {
+    // `.md` included: the raw-markdown middleware serves the translation.
+    expect(isMachineRoute(path)).toBe(false);
   });
 });

@@ -30,6 +30,8 @@ export function useDuxtLink() {
 
   return (to?: string) => {
     if (!to?.startsWith('/')) return to;
+    // A root server route has no locale variant — see `isMachineRoute`.
+    if (isMachineRoute(to)) return to;
 
     // localePath resolves a route, and a trailing anchor is not part of one.
     // Split it off and put it back, so a sidebar entry pointing at a heading
