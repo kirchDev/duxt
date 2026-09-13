@@ -76,7 +76,14 @@ export interface DuxtBuildConfig {
 export function readDuxtBuildConfig(
   dirs: string[]
 ): DuxtBuildConfig | undefined {
-  const jiti = createJiti(import.meta.url, { interopDefault: true });
+  // NO MODULE CACHE. `nuxi dev` restarts Nuxt inside the same process when a
+  // config file changes, and jiti's default hands every later read the module
+  // it loaded first — so an edited `app.config.ts` kept building collections
+  // from the options the dev server started with, until the process was killed.
+  const jiti = createJiti(import.meta.url, {
+    interopDefault: true,
+    moduleCache: false
+  });
 
   // `defineAppConfig` is a Nuxt auto-import that does not exist in plain Node.
   // It is the identity function, so a stub is the whole of it.
