@@ -29,6 +29,8 @@
  * in Bruno" clone of today's HEAD can offer.
  */
 import { stringify as stringifyYaml } from 'yaml';
+import { frontmatterBlock } from './frontmatter';
+import { firstLine, pageOrder, urlSegment } from './section-markdown';
 import type {
   DuxtBrunoCollection,
   DuxtBrunoEntry,
@@ -134,7 +136,7 @@ function parseBrunoSection(
         folder,
         options,
         level.slugs[index]!,
-        `${order(index, level.width)}.`,
+        `${pageOrder(index, level.width)}.`,
         '',
         context.prefix
       )
@@ -144,7 +146,7 @@ function parseBrunoSection(
         request,
         options,
         level.slugs[collection.folders.length + index]!,
-        `${order(collection.folders.length + index, level.width)}.`,
+        `${pageOrder(collection.folders.length + index, level.width)}.`,
         ''
       )
     )
@@ -170,7 +172,7 @@ function slugsFor(
     ...folders.map((folder) => folder.name || folder.dir),
     ...requests.map((request) => request.name)
   ].map((name) => {
-    const base = segment(name);
+    const base = urlSegment(name, 'request');
 
     let candidate = base;
     let attempt = 2;
@@ -256,7 +258,7 @@ function folderPages(
       child,
       options,
       level.slugs[index]!,
-      `${order(index, level.width)}.`,
+      `${pageOrder(index, level.width)}.`,
       `${dir}/`,
       to
     )
@@ -267,7 +269,7 @@ function folderPages(
       request,
       options,
       level.slugs[folder.folders.length + index]!,
-      `${order(folder.folders.length + index, level.width)}.`,
+      `${pageOrder(folder.folders.length + index, level.width)}.`,
       `${dir}/`
     )
   );
@@ -501,41 +503,6 @@ function count(folder: DuxtBrunoFolder): number {
   );
 }
 
-/**
- * A URL segment: lowercase, no dots.
- *
- * The dots matter for the reason they matter in `sections-openapi.ts`: Content
- * reads a name made of digits and dots as a version and stops refining it,
- * which would leave the `NN.` ordering prefix in the URL.
- */
-function segment(value: string): string {
-  return (
-    value
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '') || 'request'
-  );
-}
-
-/** Zero-padded so ten pages still sort the way they read. */
-function order(index: number, total: number): string {
-  return String(index + 1).padStart(String(total).length, '0');
-}
-
-/** The first paragraph of a docs block, as one line of plain text. */
-function firstLine(value?: string): string | undefined {
-  const line = (value?.split(/\n\s*\n/)[0] ?? '')
-    .replaceAll(/!\[([^\]]*)\]\([^)]*\)/g, '$1')
-    .replaceAll(/\[([^\]]*)\]\([^)]*\)/g, '$1')
-    .replaceAll(/`([^`]*)`/g, '$1')
-    .replaceAll(/(\*\*|__)(.+?)\1/g, '$2')
-    .replaceAll(/(\*|_)(.+?)\1/g, '$2')
-    .replace(/\s+/g, ' ')
-    .trim();
-
-  return line || undefined;
-}
-
 /** An MDC block component with YAML props and Markdown inside it. */
 function component(
   name: string,
@@ -600,22 +567,5 @@ function page(
   fields: Record<string, string | undefined>,
   lines: string[]
 ): string {
-  return [frontmatter(fields), '', ...lines, ''].join('\n');
-}
-
-/**
- * A frontmatter block YAML can read back.
- *
- * Every value is a JSON string, which is also a YAML double-quoted scalar — the
- * rule `tests/frontmatter-yaml.test.ts` exists over, and a request named
- * `GET /pets/{petId}: not found` is exactly the shape that breaks it.
- */
-function frontmatter(fields: Record<string, string | undefined>): string {
-  return [
-    '---',
-    ...Object.entries(fields)
-      .filter(([, value]) => value !== undefined && value !== '')
-      .map(([key, value]) => `${key}: ${JSON.stringify(value)}`),
-    '---'
-  ].join('\n');
+  return [frontmatterBlock(fields), '', ...lines, ''].join('\n');
 }

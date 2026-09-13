@@ -24,6 +24,8 @@
  * responses, the try-it client — travels as props.
  */
 import { stringify as stringifyYaml } from 'yaml';
+import { frontmatterBlock } from './frontmatter';
+import { firstLine, pageOrder, urlSegment } from './section-markdown';
 import type {
   DuxtOpenApiOperation,
   DuxtOpenApiSecurity,
@@ -104,8 +106,8 @@ function parseOpenApiSection(
 
   const groups = spec.tags.map((tag, index) => ({
     tag,
-    slug: segment(tag.name),
-    order: order(index, spec.tags!.length)
+    slug: urlSegment(tag.name),
+    order: pageOrder(index, spec.tags!.length)
   }));
 
   // A tag whose name slugifies to the same segment as another's would serve
@@ -229,7 +231,7 @@ function pagesFor(
         group,
         operation,
         slugs[position]!,
-        order(position, width)
+        pageOrder(position, width)
       )
     )
   ];
@@ -323,8 +325,8 @@ function operationSlugs(operations: DuxtOpenApiOperation[]): string[] {
 
   return operations.map((operation) => {
     const base =
-      segment(operation.operationId ?? '') ||
-      segment(`${operation.method}-${operation.path}`) ||
+      urlSegment(operation.operationId ?? '') ||
+      urlSegment(`${operation.method}-${operation.path}`) ||
       operation.method;
 
     let candidate = base;
@@ -334,62 +336,6 @@ function operationSlugs(operations: DuxtOpenApiOperation[]): string[] {
 
     return candidate;
   });
-}
-
-/**
- * A URL segment: lowercase, no dots.
- *
- * The dots matter. Content reads a name made of digits and dots as a version
- * and stops refining it, which would leave the `NN.` ordering prefix in the
- * URL — the same trap `sections-changelog.ts` answers with a leading `v`. An
- * endpoint at `/v1.0/pets` walks straight into it, so the dot goes.
- */
-function segment(value: string): string {
-  return value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-}
-
-/** Zero-padded so ten pages still sort the way they read. */
-function order(index: number, total: number): string {
-  return String(index + 1).padStart(String(total).length, '0');
-}
-
-/**
- * The first paragraph of a description, as one line of PLAIN text.
- *
- * Plain matters because of where this goes: a page's `description`
- * frontmatter, which becomes the meta description, the og tag and the card in
- * a search result, and the summary on a group card. A CommonMark description
- * carrying `*emphasis*` or a `[link](url)` renders as prose everywhere it is
- * rendered as prose — and as its own punctuation everywhere it is not.
- *
- * Deliberately small. It undoes the four inline constructs a one-line summary
- * actually meets — emphasis, code spans, links and images — and leaves
- * everything else alone rather than growing into a second Markdown parser
- * whose disagreements with the first would be invisible.
- */
-function firstLine(value?: string): string | undefined {
-  const line = plain(value?.split(/\n\s*\n/)[0] ?? '')
-    .replace(/\s+/g, ' ')
-    .trim();
-
-  return line || undefined;
-}
-
-/** Inline Markdown, as the text it renders to. */
-function plain(value: string): string {
-  return (
-    value
-      // An image before a link: `![alt](src)` is a link with a `!` in front, and
-      // taking the link first would leave the `!` behind.
-      .replaceAll(/!\[([^\]]*)\]\([^)]*\)/g, '$1')
-      .replaceAll(/\[([^\]]*)\]\([^)]*\)/g, '$1')
-      .replaceAll(/`([^`]*)`/g, '$1')
-      .replaceAll(/(\*\*|__)(.+?)\1/g, '$2')
-      .replaceAll(/(\*|_)(.+?)\1/g, '$2')
-  );
 }
 
 /**
@@ -429,23 +375,5 @@ function page(
   fields: Record<string, string | undefined>,
   lines: string[]
 ): string {
-  return [frontmatter(fields), '', ...lines, ''].join('\n');
-}
-
-/**
- * A frontmatter block YAML can read back.
- *
- * Every value is a JSON string, which is also a YAML double-quoted scalar — so
- * a summary carrying a colon cannot end the mapping early. The rule
- * `tests/frontmatter-yaml.test.ts` exists over, and a title like
- * `GET /pets/{petId}: not found` is exactly the shape that breaks it.
- */
-function frontmatter(fields: Record<string, string | undefined>): string {
-  return [
-    '---',
-    ...Object.entries(fields)
-      .filter(([, value]) => value !== undefined && value !== '')
-      .map(([key, value]) => `${key}: ${JSON.stringify(value)}`),
-    '---'
-  ].join('\n');
+  return [frontmatterBlock(fields), '', ...lines, ''].join('\n');
 }

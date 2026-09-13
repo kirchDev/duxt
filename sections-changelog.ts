@@ -32,6 +32,7 @@
  * two components this file writes calls to.
  */
 import { stringify as stringifyYaml } from 'yaml';
+import { frontmatterBlock } from './frontmatter';
 import type { DuxtContributor } from './git-contributors';
 import {
   contributorsForVersion,
@@ -275,7 +276,7 @@ function flat(
   return {
     file: 'index.md',
     body: [
-      frontmatter({ title: context.label, release: newest }),
+      frontmatterBlock({ title: context.label, release: newest }),
       '',
       ...trim(withoutTitle(lines)),
       ''
@@ -496,7 +497,7 @@ function index(
       // props below. Keep the newest release beside the page title instead:
       // Content exposes frontmatter on the page query that `DuxtVersion` uses,
       // and parsing the file again there would make the two answers drift.
-      frontmatter({ title: context.label, release: releases[0]?.version }),
+      frontmatterBlock({ title: context.label, release: releases[0]?.version }),
       '',
       // NO `<h1>` OF ITS OWN. The page draws the docs header — breadcrumb,
       // title, description, the copy control beside it — for exactly the
@@ -528,7 +529,7 @@ function page(entry: Release, order: string): DuxtSectionPage {
   return {
     file: `${order}.${segment(entry.version)}.md`,
     body: [
-      frontmatter({
+      frontmatterBlock({
         title: entry.version,
         date: entry.date,
         compare: entry.compare
@@ -682,22 +683,5 @@ function component(
     '---',
     ...(body ? [body] : []),
     fence
-  ].join('\n');
-}
-
-/**
- * A frontmatter block YAML can read back.
- *
- * Every value is written as a JSON string, which is also a YAML double-quoted
- * scalar — so a release title carrying a colon cannot end the mapping early,
- * which is the exact failure `tests/frontmatter-yaml.test.ts` exists over.
- */
-function frontmatter(fields: Record<string, string | undefined>): string {
-  return [
-    '---',
-    ...Object.entries(fields)
-      .filter(([, value]) => value !== undefined)
-      .map(([key, value]) => `${key}: ${JSON.stringify(value)}`),
-    '---'
   ].join('\n');
 }
