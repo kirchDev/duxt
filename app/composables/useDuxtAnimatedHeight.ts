@@ -45,15 +45,6 @@ const HEIGHT_STEP = 24;
  */
 const SETTLE_MS = 60;
 
-/**
- * How long the content takes to come back once the box is on its way.
- *
- * Shorter than the box's own 300ms on purpose: the point is to be readable
- * again well before the box stops moving, not to make the reader wait out two
- * animations in a row.
- */
-const FADE_MS = 200;
-
 export function useDuxtAnimatedHeight(
   shell: Readonly<import('vue').ShallowRef<HTMLElement | null>>,
   body: Readonly<import('vue').ShallowRef<HTMLElement | null>>,
@@ -90,28 +81,16 @@ export function useDuxtAnimatedHeight(
 
     let settle: ReturnType<typeof setTimeout> | undefined;
 
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
-
     const observer = new ResizeObserver(() => {
       const next = step(content.offsetHeight);
       if (next === last) return;
 
-      // THE CONTENT FADES WHILE THE BOX TRAVELS.
-      //
-      // The new panel is there the instant the tab is clicked, and until the
-      // box has grown to fit it, `overflow-hidden` cuts it off — a taller
-      // sample appeared with its last lines sliced away for the length of the
-      // animation. Hidden for that moment and faded back in as the box arrives,
-      // there is nothing cut off to see: what a reader watches is one sample
-      // replacing another, not a box catching up with its contents.
-      //
-      // Set with the transition off, so it is instant going out and animated
-      // coming back — a fade in both directions would be twice as long a wait
-      // for the same effect.
-      if (!reduced.matches) {
-        content.style.transition = 'none';
-        content.style.opacity = '0';
-      }
+      // NOTHING FADES. The content used to be hidden while the box travelled and
+      // faded back in as it arrived, so a taller file was never seen cut off.
+      // What a reader saw instead was the block emptying first and filling
+      // again — the code gone for the length of the fade on every tab change.
+      // Clipped by `overflow-hidden` and revealed as the box opens, the new file
+      // is there the whole time.
 
       // ONLY THE VALUE IT SETTLES ON, never the ones on the way.
       //
@@ -131,13 +110,6 @@ export function useDuxtAnimatedHeight(
           last = settled;
           box.style.height = `${settled}px`;
         }
-
-        if (!reduced.matches) {
-          requestAnimationFrame(() => {
-            content.style.transition = `opacity ${FADE_MS}ms ease-out`;
-            content.style.opacity = '1';
-          });
-        }
       }, SETTLE_MS);
     });
 
@@ -148,8 +120,6 @@ export function useDuxtAnimatedHeight(
       clearTimeout(settle);
       box.style.height = '';
       box.style.transition = '';
-      content.style.opacity = '';
-      content.style.transition = '';
     });
   });
 }

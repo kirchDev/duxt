@@ -177,12 +177,24 @@ async function copy() {
       ref="shell"
       class="overflow-hidden motion-safe:transition-[height] motion-safe:duration-300 motion-safe:ease-out"
     >
-      <div ref="body">
+      <div ref="body" class="relative">
+        <!-- EVERY PANEL STAYS MOUNTED, and the switch is a CROSSFADE. Mounted on
+             demand, a new panel left the body empty for about 150ms and the box
+             folded shut and opened again; hidden outright, the new file was
+             simply there, cut off by the box it had not yet grown into.
+
+             So the panel leaving is lifted out of the flow — absolute, over the
+             top of the one arriving — and fades out while the new one fades in.
+             Out of the flow it takes no height, so the box still follows the
+             file that shows. `invisible` lands when the fade ends, which keeps
+             the hidden panels out of the tab order and away from a screen
+             reader. -->
         <TabsContent
           v-for="entry in entries"
           :key="entry.value"
           :value="entry.value"
-          class="focus-visible:outline-none [&_.duxt-code]:my-0 [&_.duxt-code]:rounded-none [&_.duxt-code]:border-0"
+          force-mount
+          class="focus-visible:outline-none motion-safe:transition-[opacity,visibility] motion-safe:duration-200 motion-safe:ease-out data-[state=inactive]:pointer-events-none data-[state=inactive]:invisible data-[state=inactive]:absolute data-[state=inactive]:inset-x-0 data-[state=inactive]:top-0 data-[state=inactive]:opacity-0 [&_.duxt-code]:my-0 [&_.duxt-code]:rounded-none [&_.duxt-code]:border-0"
         >
           <!-- `:header="false"`: the tab above already says what the bar inside
                would, and the copy button now sits beside the tabs. -->

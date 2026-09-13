@@ -545,6 +545,51 @@ const { data: sampleHtml } = await useAsyncData(
   { watch: [shown] }
 );
 
+/**
+ * A CROSSFADE between two samples, not a cut.
+ *
+ * The sample is a single block whose markup is replaced, so without help the
+ * new one simply appeared — cut off by a card that had not yet grown into it.
+ * The markup being replaced is kept for the length of the fade, laid over the
+ * top of the new one and faded out while the new one fades in; nothing is ever
+ * empty.
+ *
+ * Only for a change of language or client. The sample is also rewritten on
+ * every keystroke in the form above, and a fade per character typed is a
+ * flicker, not a transition.
+ */
+const leavingSample = ref<string>();
+const enteringSample = ref(false);
+let switchingSample = false;
+let leavingTimer: ReturnType<typeof setTimeout> | undefined;
+
+watch([group, sample], () => {
+  switchingSample = true;
+});
+
+watch(sampleHtml, (next, previous) => {
+  if (!switchingSample || !previous || next === previous) return;
+  switchingSample = false;
+
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  clearTimeout(leavingTimer);
+  leavingSample.value = previous;
+  enteringSample.value = true;
+
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => {
+      enteringSample.value = false;
+    })
+  );
+
+  leavingTimer = setTimeout(() => {
+    leavingSample.value = undefined;
+  }, 250);
+});
+
+onBeforeUnmount(() => clearTimeout(leavingTimer));
+
 const copiedSample = ref(false);
 
 async function copySample() {
@@ -686,6 +731,100 @@ const sampleBody = useTemplateRef<HTMLElement>('sampleBody');
 
 useDuxtAnimatedHeight(sampleShell, sampleBody, () => split.value);
 
+/**
+ * THE PROSE BESIDE THE FORM STAYS WHERE IT IS when an answer arrives.
+ *
+ * The row centres its two halves, so a card that grew by a response pulled the
+ * text beside it down by half that height — the paragraph the reader had just
+ * read slid away while they looked at the answer. Centring against the FORM
+ * alone keeps the first paint exactly as it was and leaves the prose put: the
+ * offset is the card's height minus the response row's, which is the same
+ * number at every frame of that row opening.
+ *
+ * Only while the halves stand side by side; stacked, there is nothing to
+ * centre against. Until mounted the row's own `items-center` places it, and
+ * that is the same position, so hydration moves nothing.
+ */
+const formProse = useTemplateRef<HTMLElement>('formProse');
+const formCard = useTemplateRef<HTMLElement>('formCard');
+const responseRow = useTemplateRef<HTMLElement>('responseRow');
+const proseOffset = ref<number>();
+
+onMounted(() => {
+  const prose = formProse.value;
+  const card = formCard.value;
+  const row = responseRow.value;
+  if (!split.value || !prose || !card || !row || !('ResizeObserver' in window))
+    return;
+
+  const place = () => {
+    const columns = getComputedStyle(card.parentElement ?? card)
+      .gridTemplateColumns.split(' ')
+      .filter(Boolean).length;
+
+    proseOffset.value =
+      columns > 1
+        ? Math.max(
+            0,
+            (card.offsetHeight - row.offsetHeight - prose.offsetHeight) / 2
+          )
+        : undefined;
+  };
+
+  const observer = new ResizeObserver(place);
+  observer.observe(card);
+  observer.observe(prose);
+  place();
+
+  onBeforeUnmount(() => observer.disconnect());
+});
+
+/**
+ * THE SAME FOR THE PROSE BESIDE THE SAMPLES, which moves for a different
+ * reason: the card changes height with every language, and a row centring its
+ * halves nudged the text up and down on each tab click.
+ *
+ * Here there is no part of the card to subtract, so the text is centred once
+ * against the column as it first stands — and again only when the WIDTH
+ * changes, which is when its own lines rewrap. A tab click changes neither.
+ */
+const sampleProse = useTemplateRef<HTMLElement>('sampleProse');
+const sampleColumn = useTemplateRef<HTMLElement>('sampleColumn');
+const sampleProseOffset = ref<number>();
+
+onMounted(() => {
+  const prose = sampleProse.value;
+  const column = sampleColumn.value;
+  if (!split.value || !prose || !column || !('ResizeObserver' in window))
+    return;
+
+  let baseline = column.offsetHeight;
+  let width = prose.offsetWidth;
+
+  const place = () => {
+    const columns = getComputedStyle(column.parentElement ?? column)
+      .gridTemplateColumns.split(' ')
+      .filter(Boolean).length;
+
+    sampleProseOffset.value =
+      columns > 1
+        ? Math.max(0, (baseline - prose.offsetHeight) / 2)
+        : undefined;
+  };
+
+  const observer = new ResizeObserver(() => {
+    if (prose.offsetWidth !== width) {
+      width = prose.offsetWidth;
+      baseline = column.offsetHeight;
+    }
+    place();
+  });
+  observer.observe(prose);
+  place();
+
+  onBeforeUnmount(() => observer.disconnect());
+});
+
 /** A JSON body, indented; anything else exactly as it arrived. */
 function pretty(text: string): string {
   try {
@@ -722,7 +861,19 @@ function pretty(text: string): string {
         split ? 'grid items-center gap-8 lg:grid-cols-2 lg:gap-16' : 'contents'
       "
     >
-      <div v-if="split" :class="reverse ? 'lg:order-2' : 'lg:order-1'">
+      <div
+        v-if="split"
+        ref="formProse"
+        :class="[
+          reverse ? 'lg:order-2' : 'lg:order-1',
+          proseOffset === undefined ? '' : 'self-start'
+        ]"
+        :style="
+          proseOffset === undefined
+            ? undefined
+            : { marginTop: `${proseOffset}px` }
+        "
+      >
         <slot name="beside-form" />
       </div>
 
@@ -730,6 +881,7 @@ function pretty(text: string): string {
            centred in its row grows in both directions when an answer arrives,
            and the form the reader is looking at moves up under their cursor. -->
       <div
+        ref="formCard"
         :class="
           split
             ? [
@@ -1133,6 +1285,7 @@ function pretty(text: string): string {
              in advance; the inner `overflow-hidden` is what lets the row be
              shorter than its content on the way. -->
         <div
+          ref="responseRow"
           class="grid motion-safe:transition-all motion-safe:duration-300 motion-safe:ease-out"
           :class="
             failure || result
@@ -1207,7 +1360,19 @@ function pretty(text: string): string {
         split ? 'grid items-center gap-8 lg:grid-cols-2 lg:gap-16' : 'contents'
       "
     >
-      <div v-if="split" :class="reverse ? 'lg:order-1' : 'lg:order-2'">
+      <div
+        v-if="split"
+        ref="sampleProse"
+        :class="[
+          reverse ? 'lg:order-1' : 'lg:order-2',
+          sampleProseOffset === undefined ? '' : 'self-start'
+        ]"
+        :style="
+          sampleProseOffset === undefined
+            ? undefined
+            : { marginTop: `${sampleProseOffset}px` }
+        "
+      >
         <slot name="beside-samples" />
       </div>
 
@@ -1220,6 +1385,7 @@ function pretty(text: string): string {
            in both directions at once, and its tab strip — the control the
            reader just clicked — moved up under their cursor. -->
       <div
+        ref="sampleColumn"
         :class="
           split
             ? ['min-w-0 self-start', reverse ? 'lg:order-2' : 'lg:order-1']
@@ -1375,14 +1541,30 @@ function pretty(text: string): string {
                  The floor stays for the panel layout, where there is no row to
                  reserve anything: on an operation page the card is in a column
                  that scrolls as a whole. -->
-              <TabsContent :value="group">
+              <TabsContent :value="group" class="relative">
                 <!-- eslint-disable-next-line vue/no-v-html -- Shiki's own output over
                a string this component built; nothing a reader typed reaches it
                unescaped. -->
+                <!-- eslint-disable-next-line vue/no-v-html -- the sample that was
+               showing, kept only for the length of the fade. -->
+                <div
+                  v-if="leavingSample"
+                  aria-hidden="true"
+                  class="duxt-code-body duxt-code-body-sm pointer-events-none absolute inset-x-0 top-0 transition-opacity duration-200 ease-out"
+                  :class="enteringSample ? 'opacity-100' : 'opacity-0'"
+                  v-html="leavingSample"
+                />
                 <div
                   v-if="sampleHtml"
                   class="duxt-code-body duxt-code-body-sm"
-                  :class="split ? '' : 'min-h-56'"
+                  :class="[
+                    split ? '' : 'min-h-56',
+                    leavingSample
+                      ? enteringSample
+                        ? 'opacity-0'
+                        : 'opacity-100 transition-opacity duration-200 ease-out'
+                      : ''
+                  ]"
                   v-html="sampleHtml"
                 />
                 <pre
