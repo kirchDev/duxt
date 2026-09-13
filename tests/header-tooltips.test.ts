@@ -6,40 +6,35 @@ const read = (path: string) =>
   readFileSync(fileURLToPath(new URL(`../${path}`, import.meta.url)), 'utf8');
 
 /**
- * The header's icon-only controls say what they do without making two floating
- * primitives lose track of which trigger owns the dropdown anchor.
+ * The header's icon-only controls say what they do — but a DROPDOWN trigger
+ * says it with `title`, never with a tooltip.
  *
- * The dropdown trigger owns a tooltip-aware BUTTON COMPONENT, matching
- * Gildstone's SidebarMenuButton composition. That component forwards the
- * dropdown primitive's attributes and listeners straight to the real button;
- * nesting both as-child triggers in DuxtLocale itself loses that boundary.
+ * The tooltip version had to swap its button for a second element when the
+ * menu closed, and reka's dropdown stays anchored to the element it saw first:
+ * the second open measured a detached node and drew the menu in the top-left
+ * corner. Gildstone fixed the same drift on its collapsed sidebar dropdowns by
+ * the same means (9122050).
  */
 describe('header tooltips', () => {
-  it('forwards the locale dropdown through a tooltip-aware button', () => {
+  it('keeps the locale dropdown trigger one stable element', () => {
     const source = read('app/components/DuxtLocale.vue');
-    const triggerPath = fileURLToPath(
-      new URL('../app/components/DuxtLocaleTrigger.vue', import.meta.url)
+    const trigger = source.slice(
+      source.indexOf('<UiDropdownMenuTrigger'),
+      source.indexOf('</UiDropdownMenuTrigger>')
     );
 
-    expect(source).toContain('<DuxtLocaleTrigger');
-    expect(source).not.toContain(
-      "from '@duxt/components/DuxtLocaleTrigger.vue'"
+    expect(trigger).toMatch(
+      /<UiButton[^>]*:title="\$t\('duxt\.locale\.switch'\)"/
     );
-    expect(source).not.toContain(':title=');
-    expect(source).toContain('@update:open="handleOpenChange"');
-    expect(source).toContain('@pointerleave="clearTooltipSuppression"');
-    expect(source).toMatch(
-      /:tooltip="\s*localeTooltipSuppressed \? undefined : \$t\('duxt\.locale\.switch'\)\s*"/
-    );
-    expect(existsSync(triggerPath)).toBe(true);
-
-    const trigger = readFileSync(triggerPath, 'utf8');
-
-    expect(trigger).toContain('<UiTooltip v-else>');
-    expect(trigger).toContain('inheritAttrs: false');
-    expect(trigger).toContain('tooltip?: string');
-    expect(trigger).toMatch(/<UiButton\s+v-if="!tooltip"/);
-    expect(trigger).toContain('v-bind="$attrs"');
+    expect(trigger).not.toContain('Tooltip');
+    expect(trigger).not.toContain('v-if="!');
+    expect(
+      existsSync(
+        fileURLToPath(
+          new URL('../app/components/DuxtLocaleTrigger.vue', import.meta.url)
+        )
+      )
+    ).toBe(false);
   });
 
   it('shows the live shortcut inside the shortcut tooltip', () => {
