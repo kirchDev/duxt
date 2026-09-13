@@ -95,7 +95,12 @@ if (!page.value) {
   throw createError({
     statusCode: 404,
     statusMessage: 'Page not found',
-    fatal: true
+    // Fatal on the CLIENT only. A client-side navigation needs it to replace
+    // the page with the error page; the server renders that page for any
+    // error thrown here. Fatal on the server, Nitro files every missing URL
+    // as a sensitive failure and logs it with a stack trace — in dev and in
+    // production alike, one line per bot probing a path that does not exist.
+    fatal: import.meta.client
   });
 }
 
