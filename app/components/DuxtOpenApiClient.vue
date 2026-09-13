@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useResizeObserver } from '@vueuse/core';
 import { TabsContent, TabsRoot } from 'reka-ui';
 import type {
   DuxtOpenApiOperation,
@@ -743,33 +744,19 @@ const formCard = useTemplateRef<HTMLElement>('formCard');
 const responseRow = useTemplateRef<HTMLElement>('responseRow');
 const proseOffset = ref<number>();
 
-onMounted(() => {
+useResizeObserver([formCard, formProse], () => {
   const prose = formProse.value;
   const card = formCard.value;
   const row = responseRow.value;
-  if (!split.value || !prose || !card || !row || !('ResizeObserver' in window))
-    return;
+  if (!split.value || !prose || !card || !row) return;
 
-  const place = () => {
-    const columns = getComputedStyle(card.parentElement ?? card)
-      .gridTemplateColumns.split(' ')
-      .filter(Boolean).length;
-
-    proseOffset.value =
-      columns > 1
-        ? Math.max(
-            0,
-            (card.offsetHeight - row.offsetHeight - prose.offsetHeight) / 2
-          )
-        : undefined;
-  };
-
-  const observer = new ResizeObserver(place);
-  observer.observe(card);
-  observer.observe(prose);
-  place();
-
-  onBeforeUnmount(() => observer.disconnect());
+  proseOffset.value =
+    gridColumns(card) > 1
+      ? Math.max(
+          0,
+          (card.offsetHeight - row.offsetHeight - prose.offsetHeight) / 2
+        )
+      : undefined;
 });
 
 /**
@@ -785,38 +772,35 @@ const sampleProse = useTemplateRef<HTMLElement>('sampleProse');
 const sampleColumn = useTemplateRef<HTMLElement>('sampleColumn');
 const sampleProseOffset = ref<number>();
 
-onMounted(() => {
+/** The column's height when the text last rewrapped, and the width it did at. */
+let sampleBaseline = 0;
+let sampleWidth: number | undefined;
+
+useResizeObserver(sampleProse, () => {
   const prose = sampleProse.value;
   const column = sampleColumn.value;
-  if (!split.value || !prose || !column || !('ResizeObserver' in window))
-    return;
+  if (!split.value || !prose || !column) return;
 
-  let baseline = column.offsetHeight;
-  let width = prose.offsetWidth;
+  if (prose.offsetWidth !== sampleWidth) {
+    sampleWidth = prose.offsetWidth;
+    sampleBaseline = column.offsetHeight;
+  }
 
-  const place = () => {
-    const columns = getComputedStyle(column.parentElement ?? column)
-      .gridTemplateColumns.split(' ')
-      .filter(Boolean).length;
-
-    sampleProseOffset.value =
-      columns > 1
-        ? Math.max(0, (baseline - prose.offsetHeight) / 2)
-        : undefined;
-  };
-
-  const observer = new ResizeObserver(() => {
-    if (prose.offsetWidth !== width) {
-      width = prose.offsetWidth;
-      baseline = column.offsetHeight;
-    }
-    place();
-  });
-  observer.observe(prose);
-  place();
-
-  onBeforeUnmount(() => observer.disconnect());
+  sampleProseOffset.value =
+    gridColumns(column) > 1
+      ? Math.max(0, (sampleBaseline - prose.offsetHeight) / 2)
+      : undefined;
 });
+
+/**
+ * How many columns the grid holding `element` lays out — one when the halves
+ * stack, which is when neither piece of prose has anything to centre against.
+ */
+function gridColumns(element: HTMLElement): number {
+  return getComputedStyle(element.parentElement ?? element)
+    .gridTemplateColumns.split(' ')
+    .filter(Boolean).length;
+}
 
 /** A JSON body, indented; anything else exactly as it arrived. */
 function pretty(text: string): string {
