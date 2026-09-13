@@ -1,8 +1,14 @@
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   contributorsForVersion,
   isGitHubApp,
-  parseReleaseContributors
+  localHistoryFor,
+  parseReleaseContributors,
+  sameRepository
 } from '../git-contributors';
 
 /**
@@ -175,5 +181,104 @@ describe('contributorsForVersion', () => {
 
   it('gives nothing at all when no history was read', () => {
     expect(contributorsForVersion(undefined, '1.0.0')).toBeUndefined();
+  });
+});
+
+describe('sameRepository', () => {
+  it('matches the shorthand URL against an ssh remote', () => {
+    expect(
+      sameRepository(
+        'https://github.com/kirchDev/duxt',
+        'git@github.com:kirchDev/duxt.git'
+      )
+    ).toBe(true);
+  });
+
+  it('ignores credentials, a trailing slash and case', () => {
+    expect(
+      sameRepository(
+        'https://token@github.com/KirchDev/Duxt/',
+        'ssh://git@github.com/kirchdev/duxt.git'
+      )
+    ).toBe(true);
+  });
+
+  it('tells a fork from the project', () => {
+    expect(
+      sameRepository(
+        'https://github.com/kirchDev/duxt',
+        'git@github.com:someone/duxt.git'
+      )
+    ).toBe(false);
+  });
+
+  it('tells two hosts apart', () => {
+    expect(
+      sameRepository(
+        'https://github.com/kirchDev/duxt',
+        'https://gitlab.com/kirchDev/duxt'
+      )
+    ).toBe(false);
+  });
+});
+
+describe('localHistoryFor', () => {
+  function checkout(...remotes: [string, string][]): string {
+    const dir = mkdtempSync(join(tmpdir(), 'duxt-history-'));
+    execFileSync('git', ['init', '-q', dir]);
+    for (const [name, url] of remotes) {
+      execFileSync('git', ['-C', dir, 'remote', 'add', name, url]);
+    }
+    return dir;
+  }
+
+  it('hands back the checkout when a remote is the downloaded repository', () => {
+    const dir = checkout(['origin', 'git@github.com:kirchDev/duxt.git']);
+    try {
+      expect(localHistoryFor('https://github.com/kirchDev/duxt', dir)).toBe(
+        dir
+      );
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('counts a remote that is not called origin', () => {
+    const dir = checkout(
+      ['origin', 'git@github.com:someone/duxt.git'],
+      ['upstream', 'https://github.com/kirchDev/duxt.git']
+    );
+    try {
+      expect(localHistoryFor('https://github.com/kirchDev/duxt', dir)).toBe(
+        dir
+      );
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('reads no history for somebody else’s repository', () => {
+    const dir = checkout(['origin', 'git@github.com:kirchDev/duxt.git']);
+    try {
+      expect(
+        localHistoryFor(
+          'https://github.com/kirchDev/terraform-provider-linear',
+          dir
+        )
+      ).toBeUndefined();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('is silent where there is no checkout', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'duxt-history-'));
+    try {
+      expect(
+        localHistoryFor('https://github.com/kirchDev/duxt', dir)
+      ).toBeUndefined();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

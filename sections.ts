@@ -42,6 +42,7 @@ import {
   sectionInputKind
 } from './section-input';
 import { resolveLatestRefs } from './sources-git';
+import { localHistoryFor } from './git-contributors';
 import { pageSchema, repositoryRoot } from './sources';
 
 /**
@@ -84,8 +85,9 @@ export function duxtGeneratedCollections(
  */
 function localCollection(entry: DuxtResolvedSource, type: DuxtSectionType) {
   // The checkout goes with the handle, which is what lets the release history
-  // read the commits between two tags. Only here: `remoteCollection` below has
-  // a `--depth 1` clone and deliberately passes none.
+  // read the commits between two tags. `remoteCollection` below has a
+  // `--depth 1` clone and passes one only where that clone is of this very
+  // repository — see `localHistoryFor`.
   const root = repositoryRoot();
   const file = join(root, entry.path);
   const kind = sectionInputKind(type);
@@ -148,8 +150,19 @@ function remoteCollection(entry: DuxtResolvedSource, type: DuxtSectionType) {
     const file = join(source.cwd, entry.path);
     const kind = sectionInputKind(type);
 
+    // The artefact is read from the download; the HISTORY, where the download
+    // is this repository, from the checkout that has all of it.
     pages = sectionArtefactExists(file, kind)
-      ? sectionPages(entry, type, diskSectionInput(file, entry.path, kind))
+      ? sectionPages(
+          entry,
+          type,
+          diskSectionInput(
+            file,
+            entry.path,
+            kind,
+            localHistoryFor(url, repositoryRoot())
+          )
+        )
       : missingSectionArtefact(entry, file);
 
     return pages;

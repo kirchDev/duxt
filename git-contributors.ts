@@ -204,6 +204,61 @@ function tagsOf(decoration: string): string[] {
     .filter(Boolean);
 }
 
+/**
+ * Two ways of writing a repository, reduced to the one thing that identifies it.
+ *
+ * `kirchDev/duxt` resolves to `https://github.com/kirchDev/duxt`, a checkout's
+ * remote is routinely `git@github.com:kirchDev/duxt.git`, and both name the same
+ * repository. Scheme, credentials, the scp-style colon, a trailing `.git` and
+ * case go; GitHub treats owner and name case-insensitively, and so does this.
+ */
+export function sameRepository(a: string, b: string): boolean {
+  const key = (url: string) =>
+    url
+      .trim()
+      .replace(/^[a-z][a-z+.-]*:\/\//i, '')
+      .replace(/^[^@/]+@/, '')
+      .replace(/^([^/:]+):(?!\d+\/)/, '$1/')
+      .replace(/\.git\/?$/i, '')
+      .replace(/\/+$/, '')
+      .toLowerCase();
+
+  return key(a) === key(b);
+}
+
+/**
+ * The local checkout's history, where a DOWNLOADED source is this very
+ * repository.
+ *
+ * Content clones a remote source at `--depth 1`, and a history like that is
+ * wrong data rather than missing data — which is why a downloaded changelog
+ * reads no contributors. But a site very often names ITS OWN repository as a
+ * source, to publish the documentation of a tag rather than of the commit being
+ * built, and then the full history is already on disk: the tags are the same
+ * tags, so a release is the same range of commits whichever copy is asked.
+ *
+ * Every remote counts, not only `origin`: a fork's checkout calls the project
+ * `upstream`. A failure is silent for the reason `releaseContributors` gives —
+ * nothing was configured, so no git means what it meant before.
+ */
+export function localHistoryFor(url: string, root: string): string | undefined {
+  try {
+    const remotes = execFileSync('git', ['-C', root, 'remote', '-v'], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore']
+    });
+
+    return remotes
+      .split('\n')
+      .map((line) => line.split(/\s+/)[1])
+      .some((remote) => remote && sameRepository(remote, url))
+      ? root
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /** One answer per repository, read the first time a section asks for it. */
 const cache = new Map<string, Map<string, DuxtContributor[]>>();
 

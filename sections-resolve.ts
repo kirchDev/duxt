@@ -200,7 +200,11 @@ export interface DuxtSectionInput {
    * artefact read out of the repository being built. A remote source is a
    * `--depth 1` clone, where every commit looks as though one person wrote it
    * — wrong data rather than missing data, which is the line
-   * `modules/git-meta.ts` already draws and for the same reason. An in-memory
+   * `modules/git-meta.ts` already draws and for the same reason. The one
+   * exception is a remote source that IS the repository being built: the
+   * artefact still comes from the download, but this points at the local
+   * checkout, which carries the same tags with their whole history — see
+   * `localHistoryFor`. An in-memory
    * input leaves it unset too, so a type under test never reaches a real
    * repository and a fixture version that happens to match a real tag cannot
    * quietly pick up real people.
