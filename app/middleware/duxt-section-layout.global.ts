@@ -51,7 +51,5 @@ function localeCodes(): string[] {
     | { locales?: { value?: (string | { code: string })[] } }
     | undefined;
 
-  return (i18n?.locales?.value ?? []).map((entry) =>
-    typeof entry === 'string' ? entry : entry.code
-  );
+  return localeCodesOf(i18n?.locales?.value);
 }

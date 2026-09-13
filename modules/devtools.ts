@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Nuxt } from '@nuxt/schema';
+import { localeCodesOf } from '../app/utils/locale-path';
 
 /**
  * A window into the layer that has been hardest to debug.
@@ -120,7 +121,5 @@ function localeCodes(nuxt: Nuxt): string[] {
     }
   ).i18n?.locales;
 
-  return (locales ?? []).map((locale) =>
-    typeof locale === 'string' ? locale : locale.code
-  );
+  return localeCodesOf(locales);
 }

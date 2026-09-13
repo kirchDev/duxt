@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   isMachineRoute,
+  localeCodesOf,
   splitLocalePath,
   stripLocalePrefix
 } from '../app/utils/locale-path';
@@ -101,5 +102,18 @@ describe('isMachineRoute', () => {
   ])('leaves %s to the locale', (path) => {
     // `.md` included: the raw-markdown middleware serves the translation.
     expect(isMachineRoute(path)).toBe(false);
+  });
+});
+
+describe('localeCodesOf', () => {
+  it('reads the code out of bare codes and locale objects alike', () => {
+    expect(localeCodesOf(['en-GB', { code: 'de-DE' }])).toEqual([
+      'en-GB',
+      'de-DE'
+    ]);
+  });
+
+  it('answers an empty list where there is no i18n', () => {
+    expect(localeCodesOf(undefined)).toEqual([]);
   });
 });

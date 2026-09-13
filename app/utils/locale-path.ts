@@ -22,6 +22,22 @@ export function stripLocalePrefix(
 }
 
 /**
+ * The locale CODES out of an i18n locale list.
+ *
+ * `@nuxtjs/i18n` accepts a bare code or an object carrying one, and every place
+ * that strips a prefix — the composable, the layout middleware, the devtools
+ * path debugger — needs the plain list. Absent is an empty list: a site without
+ * the module has no prefixes to strip.
+ */
+export function localeCodesOf(
+  locales: readonly (string | { code: string })[] | undefined
+): string[] {
+  return (locales ?? []).map((entry) =>
+    typeof entry === 'string' ? entry : entry.code
+  );
+}
+
+/**
  * The same split, keeping the half that was thrown away.
  *
  * Which language a URL asks for is not decoration: original and translation

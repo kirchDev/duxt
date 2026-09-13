@@ -8,11 +8,7 @@ export function useDuxtPath() {
   const route = useRoute();
   const { locales } = useI18n();
 
-  const codes = computed(() =>
-    locales.value.map((entry) =>
-      typeof entry === 'string' ? entry : entry.code
-    )
-  );
+  const codes = computed(() => localeCodesOf(locales.value));
 
   return computed(() => stripLocalePrefix(route.path, codes.value));
 }
