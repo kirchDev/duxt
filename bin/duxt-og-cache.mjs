@@ -27,18 +27,32 @@ import { createJiti } from 'jiti';
 // is a corrupt step output, not merely noise.
 process.removeAllListeners('warning');
 
+const guide = 'https://duxt.app/guides/cache-build-work';
+const argv = process.argv.slice(2);
+
+if (argv.includes('--help') || argv.includes('-h')) {
+  console.log(`Usage: duxt-og-cache [--root <site>] [--run <id>] [--github]
+       duxt-og-cache --report [--root <site>] [--since <ms>] [--log <file>]
+
+Print a rendered-OG cache key or report reuse after a build.
+Documentation: ${guide}`);
+  process.exit(0);
+}
+
 const jiti = createJiti(import.meta.url, { interopDefault: true });
 
 const { duxtOgImageCacheCommand } = await jiti.import('../og-image-cache');
 
 try {
-  const { output, exitCode } = duxtOgImageCacheCommand(process.argv.slice(2));
+  const { output, exitCode } = duxtOgImageCacheCommand(argv);
 
   console.log(output);
   process.exitCode = exitCode;
 } catch (error) {
   // The message, not the stack: everything thrown on this path is a statement
   // about the SITE, written to be read by whoever built it.
-  console.error(error instanceof Error ? error.message : String(error));
+  console.error(
+    `${error instanceof Error ? error.message : String(error)}\nDocumentation: ${guide}`
+  );
   process.exitCode = 1;
 }

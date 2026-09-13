@@ -24,13 +24,23 @@ import { createJiti } from 'jiti';
 // not merely noise.
 process.removeAllListeners('warning');
 
+const guide = 'https://duxt.app/guides/cache-build-work';
+const argv = process.argv.slice(2);
+
+if (argv.includes('--help') || argv.includes('-h')) {
+  console.log(`Usage: duxt-cache-key [--root <site>] [--github]
+
+Print the cache key and paths for remote Content sources.
+Documentation: ${guide}`);
+  process.exit(0);
+}
+
 const jiti = createJiti(import.meta.url, { interopDefault: true });
 
 const { duxtSourcesCache, runDuxtSourcesCacheCli } =
   await jiti.import('../sources-cache');
 
 try {
-  const argv = process.argv.slice(2);
   const rootIndex = argv.indexOf('--root');
   const rootDir = rootIndex === -1 ? undefined : argv[rootIndex + 1];
 
@@ -44,6 +54,8 @@ try {
 } catch (error) {
   // The message, not the stack: everything thrown on this path is a statement
   // about the SITE's own source list, written to be read by whoever wrote it.
-  console.error(error instanceof Error ? error.message : String(error));
+  console.error(
+    `${error instanceof Error ? error.message : String(error)}\nDocumentation: ${guide}`
+  );
   process.exitCode = 1;
 }
