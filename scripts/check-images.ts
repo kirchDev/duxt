@@ -17,16 +17,15 @@
  * responsive candidates, a narrow viewport has to be able to pick a smaller one
  * than a desktop, an original narrower than the column must not be distorted,
  * the formats a provider would ruin must carry no `srcset`, a zoomable image
- * has to be one named button with an indicator, and `zoom="false"` has to leave
- * an image completely inert.
+ * has to be one named button with an indicator, a named background has to
+ * reach the image, its viewer controls must not
+ * cover the image, and `zoom="false"` has to leave an image completely inert.
  *
  * The candidate comparison is arithmetic on the `sizes` and `srcset` the page
- * actually shipped, run through the selection rule a browser uses — not a
- * browser. jsdom has no layout and Playwright is a download in every CI run;
- * what a browser adds here is the rendered width, and `sizes` is precisely the
- * author's statement of that width. What cannot be answered this way is said
- * so rather than asserted: nothing below claims anything about how the picture
- * LOOKS.
+ * actually shipped, run through the selection rule a browser uses. The viewer
+ * overlap is the one layout question here, so it uses the Chromium-family
+ * browser the other interaction checks already require; `playwright-core`
+ * downloads none. Pixel appearance is still outside this check's claim.
  *
  * Run after `build:app`, beside `check:a11y` and `check:seo`, for the same
  * reason — what it reads is the rendered HTML.
@@ -34,6 +33,9 @@
 
 import { fileURLToPath } from 'node:url';
 import { JSDOM } from 'jsdom';
+import type { Browser } from 'playwright-core';
+import { chromium } from 'playwright-core';
+import { browserPath, missingBrowser } from './browser.ts';
 import { startBuiltServer } from './built-server.ts';
 
 const PORT = Number(process.env.IMAGE_CHECK_PORT ?? 3125);
@@ -147,7 +149,19 @@ const FIXTURES = {
 const DARK_TWIN = 'img[srcset*="screenshot-dark"]';
 
 async function main() {
+  const executablePath = browserPath();
+
+  if (!executablePath) {
+    console.error(missingBrowser('Image check'));
+    process.exitCode = 1;
+    return;
+  }
+
   const server = startBuiltServer({ port: PORT });
+  const browser = await chromium.launch({
+    executablePath,
+    args: ['--no-sandbox']
+  });
 
   try {
     await server.ready();
@@ -180,7 +194,9 @@ async function main() {
     if (!failures.length) {
       failures.push(...responsive(found, dark!));
       failures.push(...passThrough(found));
+      failures.push(...backdrop(found));
       failures.push(...affordance(found));
+      failures.push(...(await viewer(browser)));
     }
 
     if (failures.length) {
@@ -191,14 +207,78 @@ async function main() {
 
     console.log(
       `Image check passed over ${Object.keys(FIXTURES).length} images on ${ROUTE} ` +
-        `(how they LOOK is not checked: no layout here).`
+        `(including a non-overlapping viewer control).`
     );
   } catch (error) {
     console.error(`\nImage check could not run: ${String(error)}`);
     if (server.stderr().trim()) console.error(server.stderr().trim());
     process.exitCode = 1;
   } finally {
+    await browser.close();
     await server.stop();
+  }
+}
+
+/** The viewer's close control occupies its own surface, never the image. */
+async function viewer(browser: Browser): Promise<string[]> {
+  const context = await browser.newContext({
+    viewport: { width: 1280, height: 900 }
+  });
+  const page = await context.newPage();
+
+  try {
+    await page.goto(`http://localhost:${PORT}${ROUTE}`, {
+      waitUntil: 'networkidle',
+      timeout: 60_000
+    });
+
+    const image = page.locator(`img[alt="${FIXTURES.light}"]`).first();
+    const trigger = image.locator('xpath=ancestor::button[1]');
+    const pageImageBox = await image.boundingBox();
+
+    await trigger.click();
+
+    const dialog = page.getByRole('dialog');
+    const viewed = dialog.locator(`img[alt="${FIXTURES.light}"]`).first();
+    const close = dialog.locator('[data-slot="dialog-close"]');
+
+    await dialog.waitFor({ state: 'visible' });
+
+    const [imageBox, closeBox] = await Promise.all([
+      viewed.boundingBox(),
+      close.boundingBox()
+    ]);
+
+    if (!imageBox) return ['the opened viewer draws no measurable image'];
+    if (!closeBox)
+      return ['the opened viewer draws no measurable close control'];
+    if (!pageImageBox)
+      return ['the fixture page draws no measurable image to enlarge'];
+
+    const overlaps =
+      closeBox.x < imageBox.x + imageBox.width &&
+      closeBox.x + closeBox.width > imageBox.x &&
+      closeBox.y < imageBox.y + imageBox.height &&
+      closeBox.y + closeBox.height > imageBox.y;
+
+    const failures: string[] = [];
+
+    if (overlaps) {
+      failures.push(
+        'the viewer close control covers the image instead of occupying its own surface'
+      );
+    }
+
+    if (imageBox.width <= pageImageBox.width) {
+      failures.push(
+        `the ${Math.round(imageBox.width)}px viewer image is no wider than its ` +
+          `${Math.round(pageImageBox.width)}px in-page version`
+      );
+    }
+
+    return failures;
+  } finally {
+    await context.close();
   }
 }
 
@@ -352,6 +432,40 @@ function passThrough(found: Map<string, HTMLImageElement>): string[] {
         `the ${name} is served from ${image.getAttribute('src')}, not its own file`
       );
     }
+  }
+
+  return failures;
+}
+
+/**
+ * A named background reaches the image as custom properties AND as the class
+ * that reads them — one without the other paints nothing — and an image that
+ * names none carries neither.
+ */
+function backdrop(found: Map<string, HTMLImageElement>): string[] {
+  const failures: string[] = [];
+  const vector = found.get(FIXTURES.vector)!;
+  const style = vector.getAttribute('style') ?? '';
+
+  if (
+    !style.includes('--duxt-img-bg:') ||
+    !style.includes('--duxt-img-bg-dark:')
+  ) {
+    failures.push(
+      `the vector names a background for both themes, but its style is "${style}"`
+    );
+  }
+
+  if (!vector.className.includes('bg-(--duxt-img-bg)')) {
+    failures.push(
+      'the vector carries its background colours but not the class that paints them'
+    );
+  }
+
+  const badge = found.get(FIXTURES.badge)!;
+
+  if ((badge.getAttribute('style') ?? '').includes('--duxt-img-bg')) {
+    failures.push('the badge names no background, but was given one');
   }
 
   return failures;

@@ -14,8 +14,13 @@
         "thanks": "Thank you."
       },
       "image": {
+        "close": "Close image viewer",
+        "original": "Open original in a new tab",
+        "resetZoom": "Reset zoom",
         "zoom": "Enlarge image",
-        "zoomNamed": "Enlarge image: {alt}"
+        "zoomIn": "Zoom in",
+        "zoomNamed": "Enlarge image: {alt}",
+        "zoomOut": "Zoom out"
       },
       "tabs": "Options",
       "since": "New in {version}",

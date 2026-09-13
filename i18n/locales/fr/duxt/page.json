@@ -14,8 +14,13 @@
         "thanks": "Merci."
       },
       "image": {
+        "close": "Fermer la visionneuse d’image",
+        "original": "Ouvrir l’original dans un nouvel onglet",
+        "resetZoom": "Réinitialiser le zoom",
         "zoom": "Agrandir l'image",
-        "zoomNamed": "Agrandir l'image : {alt}"
+        "zoomIn": "Zoom avant",
+        "zoomNamed": "Agrandir l'image : {alt}",
+        "zoomOut": "Zoom arrière"
       },
       "tabs": "Options",
       "since": "Nouveau dans {version}",

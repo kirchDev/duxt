@@ -14,8 +14,13 @@
         "thanks": "Vielen Dank."
       },
       "image": {
+        "close": "Bildansicht schließen",
+        "original": "Original in neuem Tab öffnen",
+        "resetZoom": "Zoom zurücksetzen",
         "zoom": "Bild vergrößern",
-        "zoomNamed": "Bild vergrößern: {alt}"
+        "zoomIn": "Vergrößern",
+        "zoomNamed": "Bild vergrößern: {alt}",
+        "zoomOut": "Verkleinern"
       },
       "tabs": "Varianten",
       "since": "Neu in {version}",
