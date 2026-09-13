@@ -65,6 +65,7 @@ export function withGeneratedSections(
     // answered for the consumer's list only.
     const taken = new Set(existing.map((entry) => entry.to).filter(Boolean));
     const entries: DuxtLink[] = [];
+    const listed: DuxtResolvedSource[][] = [];
 
     for (const declaration of declarations) {
       const meta = declaration[0]!.generated!;
@@ -74,7 +75,10 @@ export function withGeneratedSections(
       // the one this reader would be given: a section listed by hand is listed,
       // and the entry `to` resolves to is always one of these prefixes, so this
       // is the de-dupe by URL as well.
-      if (declaration.some((entry) => taken.has(entry.prefix))) continue;
+      if (declaration.some((entry) => taken.has(entry.prefix))) {
+        listed.push(declaration);
+        continue;
+      }
 
       const to = entryPath(declaration, base);
 
@@ -82,25 +86,77 @@ export function withGeneratedSections(
       entries.push({ label: meta.label, to, icon: meta.icon });
     }
 
-    return entries;
+    return { entries, moved: followReader(existing, listed, base) };
   };
 
   const navigation = entriesFor('navigation', config.navigation ?? []);
   const sections = entriesFor('sections', config.sections ?? []);
 
-  if (!navigation.length && !sections.length) return config;
+  if (
+    !navigation.entries.length &&
+    !sections.entries.length &&
+    !navigation.moved &&
+    !sections.moved
+  )
+    return config;
 
   return {
     ...config,
-    // Only the row that gains something is rewritten: an empty array where the
-    // config had `undefined` is a different value, and the header reads both.
-    ...(navigation.length
-      ? { navigation: [...(config.navigation ?? []), ...navigation] }
+    // Only the row that gains or moves something is rewritten: an empty array
+    // where the config had `undefined` is a different value, and the header
+    // reads both.
+    ...(navigation.entries.length || navigation.moved
+      ? {
+          navigation: [
+            ...(navigation.moved ?? config.navigation ?? []),
+            ...navigation.entries
+          ]
+        }
       : {}),
-    ...(sections.length
-      ? { sections: [...(config.sections ?? []), ...sections] }
+    ...(sections.entries.length || sections.moved
+      ? {
+          sections: [
+            ...(sections.moved ?? config.sections ?? []),
+            ...sections.entries
+          ]
+        }
       : {})
   };
+}
+
+/**
+ * A section listed by hand keeps its POSITION, and its URL follows the reader.
+ *
+ * Placing an entry by hand is how a consumer orders the row, and a `per-version`
+ * section written at the default version's URL would otherwise send a reader on
+ * `v2.x` to `v3.x` the moment they clicked it. So an entry whose `to` is one of
+ * the declaration's own prefixes is pointed at the edition the reader is on —
+ * the same answer the appended entry gets. An entry pointing anywhere else
+ * inside the section is a page the consumer chose, and stays where it points.
+ *
+ * `undefined` when nothing moved, so an untouched row keeps its identity.
+ */
+function followReader(
+  existing: DuxtLink[],
+  listed: DuxtResolvedSource[][],
+  base: string
+): DuxtLink[] | undefined {
+  let changed = false;
+
+  const moved = existing.map((entry) => {
+    const declaration = listed.find((candidate) =>
+      candidate.some((source) => source.prefix === entry.to)
+    );
+    if (!declaration) return entry;
+
+    const to = entryPath(declaration, base);
+    if (to === entry.to) return entry;
+
+    changed = true;
+    return { ...entry, to };
+  });
+
+  return changed ? moved : undefined;
 }
 
 /**
