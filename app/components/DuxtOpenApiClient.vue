@@ -99,6 +99,12 @@ const variables = ref<Record<string, string>>({});
 
 const base = computed(() => openApiServerUrl(server.value, variables.value));
 
+// Read before `values` below, which calls it while the component is set up.
+// Declared further down it was in its temporal dead zone at that point, and
+// every operation page that renders the client answered a 500 with
+// "Cannot access 'duxt' before initialization".
+const duxt = useDuxtConfig();
+
 /* ------------------------------------------------------------- parameters */
 
 /**
@@ -174,8 +180,6 @@ const bodyKeys = computed(() => openApiBodyKeys(media.value?.schema));
  * property of one endpoint: somebody who edits the body as JSON means it on
  * the next one too. Falls back to the form the moment it cannot serve.
  */
-const duxt = useDuxtConfig();
-
 const storedMode = useDuxtChoice('request-body-view');
 
 const bodyMode = computed({
