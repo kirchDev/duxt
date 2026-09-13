@@ -22,7 +22,13 @@ const direction = useDuxtDirection();
  */
 useHead(() => ({
   htmlAttrs: { lang: locale.value, dir: direction.value },
-  title: `${props.error.statusCode} · ${duxt.title}`
+  // The status code alone, through the same template `app.vue` sets. After a
+  // client-side navigation that template is still mounted, so a title that
+  // already carried the site name came out as "404 · duxt · duxt"; rendered on
+  // the server it is not, and this page has to bring its own.
+  title: String(props.error.statusCode),
+  titleTemplate: (title?: string) =>
+    title ? `${title} · ${duxt.title}` : duxt.title
 }));
 
 /**
@@ -76,83 +82,90 @@ const elsewhere = computed(
 <template>
   <!-- The same provider `app.vue` mounts, for the same reason: this page
        replaces that one, so the reka primitives inside the layout below would
-       otherwise be left with the `ltr` default. -->
+       otherwise be left with the `ltr` default. The tooltip provider likewise:
+       the header's icon controls carry tooltips, and without one a client-side
+       navigation to this page threw before it could draw. -->
   <ConfigProvider :dir="direction">
-    <NuxtLayout>
-      <div
-        class="mx-auto flex max-w-2xl flex-col items-center px-4 py-32 text-center"
-      >
-        <p class="font-mono text-sm text-muted-foreground">
-          {{ error.statusCode }}
-        </p>
-        <h1 class="mt-3 text-3xl font-semibold tracking-tight text-balance">
-          {{ error.statusMessage ?? $t('duxt.error.title') }}
-        </h1>
-
-        <div v-if="elsewhere.length" class="mt-8 w-full">
-          <p class="mb-3 text-sm text-muted-foreground">
-            {{ $t('duxt.error.elsewhere') }}
+    <UiTooltipProvider>
+      <NuxtLayout>
+        <div
+          class="mx-auto flex max-w-2xl flex-col items-center px-4 py-32 text-center"
+        >
+          <p class="font-mono text-sm text-muted-foreground">
+            {{ error.statusCode }}
           </p>
-          <div class="flex flex-wrap justify-center gap-2">
-            <UiButton
-              v-for="entry in elsewhere"
-              :key="entry.path"
-              as-child
-              variant="outline"
-              size="sm"
-            >
-              <NuxtLink :to="localeLink(entry.path)" class="font-mono text-xs">
-                {{ entry.version.label }}
-              </NuxtLink>
-            </UiButton>
+          <h1 class="mt-3 text-3xl font-semibold tracking-tight text-balance">
+            {{ error.statusMessage ?? $t('duxt.error.title') }}
+          </h1>
+
+          <div v-if="elsewhere.length" class="mt-8 w-full">
+            <p class="mb-3 text-sm text-muted-foreground">
+              {{ $t('duxt.error.elsewhere') }}
+            </p>
+            <div class="flex flex-wrap justify-center gap-2">
+              <UiButton
+                v-for="entry in elsewhere"
+                :key="entry.path"
+                as-child
+                variant="outline"
+                size="sm"
+              >
+                <NuxtLink
+                  :to="localeLink(entry.path)"
+                  class="font-mono text-xs"
+                >
+                  {{ entry.version.label }}
+                </NuxtLink>
+              </UiButton>
+            </div>
           </div>
-        </div>
 
-        <div v-if="suggestions.length" class="mt-8 w-full">
-          <p class="mb-3 text-sm text-muted-foreground">
-            {{ $t('duxt.error.nearest') }}
-          </p>
-          <!-- ROWS, NOT A CENTRED LINE PER PAGE. Each suggestion used to be a
+          <div v-if="suggestions.length" class="mt-8 w-full">
+            <p class="mb-3 text-sm text-muted-foreground">
+              {{ $t('duxt.error.nearest') }}
+            </p>
+            <!-- ROWS, NOT A CENTRED LINE PER PAGE. Each suggestion used to be a
                title and its path run together on one centred line, so every
                row started somewhere else and the paths wandered from line to
                line. Left-aligned in one column — title over path, the way the
                search dialog lists a page — the list reads down at a glance. -->
-          <ul class="mx-auto flex w-full max-w-md flex-col gap-1 text-start">
-            <li v-for="page in suggestions" :key="page.path">
-              <NuxtLink
-                :to="localeLink(page.path)"
-                class="group flex items-center gap-3 rounded-md px-3 py-2 transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
-              >
-                <Icon
-                  name="lucide:file-text"
-                  class="size-4 shrink-0 text-muted-foreground"
-                />
-                <span class="min-w-0 flex-1">
-                  <span class="block truncate text-sm font-medium">
-                    {{ page.title ?? page.path }}
+            <ul class="mx-auto flex w-full max-w-md flex-col gap-1 text-start">
+              <li v-for="page in suggestions" :key="page.path">
+                <NuxtLink
+                  :to="localeLink(page.path)"
+                  class="group flex items-center gap-3 rounded-md px-3 py-2 transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
+                >
+                  <Icon
+                    name="lucide:file-text"
+                    class="size-4 shrink-0 text-muted-foreground"
+                  />
+                  <span class="min-w-0 flex-1">
+                    <span class="block truncate text-sm font-medium">
+                      {{ page.title ?? page.path }}
+                    </span>
+                    <span
+                      class="block truncate font-mono text-xs text-muted-foreground"
+                    >
+                      {{ page.path }}
+                    </span>
                   </span>
-                  <span
-                    class="block truncate font-mono text-xs text-muted-foreground"
-                  >
-                    {{ page.path }}
-                  </span>
-                </span>
-                <Icon
-                  name="lucide:chevron-right"
-                  class="size-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 rtl:-scale-x-100"
-                />
-              </NuxtLink>
-            </li>
-          </ul>
-        </div>
+                  <Icon
+                    name="lucide:chevron-right"
+                    class="size-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 rtl:-scale-x-100"
+                  />
+                </NuxtLink>
+              </li>
+            </ul>
+          </div>
 
-        <UiButton as-child class="mt-10">
-          <NuxtLink :to="localeLink('/')">
-            <Icon name="lucide:arrow-left" class="size-4 rtl:-scale-x-100" />
-            {{ $t('duxt.error.back') }}
-          </NuxtLink>
-        </UiButton>
-      </div>
-    </NuxtLayout>
+          <UiButton as-child class="mt-10">
+            <NuxtLink :to="localeLink('/')">
+              <Icon name="lucide:arrow-left" class="size-4 rtl:-scale-x-100" />
+              {{ $t('duxt.error.back') }}
+            </NuxtLink>
+          </UiButton>
+        </div>
+      </NuxtLayout>
+    </UiTooltipProvider>
   </ConfigProvider>
 </template>
