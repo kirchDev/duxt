@@ -81,7 +81,9 @@ const link = computed(() =>
  * the browser, which is a hydration mismatch as well as a wrong date. The
  * commit date IS a moment and is left alone.
  */
-const released = computed(() => changelogDate(page.value?.date, locale.value));
+const released = computed(() =>
+  formatDate(page.value?.date, locale.value, { calendarDay: true })
+);
 
 const updated = computed(() => {
   // The page's own date wins. Both lines would be true and only one is useful:
@@ -90,15 +92,7 @@ const updated = computed(() => {
   // one's and at worst years off.
   if (page.value?.date) return undefined;
 
-  const value = page.value?.lastUpdated;
-  if (!value) return undefined;
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return undefined;
-
-  return new Intl.DateTimeFormat(locale.value, { dateStyle: 'medium' }).format(
-    date
-  );
+  return formatDate(page.value?.lastUpdated, locale.value);
 });
 
 const contributors = computed(() => page.value?.contributors ?? []);

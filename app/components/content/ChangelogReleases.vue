@@ -114,7 +114,8 @@ function toggle(name: string) {
  * The release day, in the reader's language — shared with the meta row a
  * release page draws, so one release cannot be dated two different ways.
  */
-const formatted = (value?: string) => changelogDate(value, locale.value);
+const formatted = (value?: string) =>
+  formatDate(value, locale.value, { calendarDay: true });
 /** How many groups a row names before it starts counting the rest. */
 const SHOWN_GROUPS = 3;
 
