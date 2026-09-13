@@ -445,6 +445,22 @@ export default defineNuxtConfig({
    */
   ogImage: { ...ogImage, buildCache: { base: ogImageCache.base } },
 
+  /**
+   * unhead's dev-only head validator, OFF for this site.
+   *
+   * Every warning it printed here came from nuxt-og-image, none from duxt: the
+   * `twitter:card`, `twitter:image`, `twitter:image:src` and
+   * `twitter:image:width/height` tags it writes beside `og:image`, which the
+   * validator calls deprecated, and the numeric `tagPriority: 35` it gives
+   * them. Dropping those tags would cost the large image card on X, and the
+   * validator takes no per-rule options from here, so it is all or nothing.
+   * It runs under `nuxi dev` only — a build never carries it.
+   *
+   * In `www/` and not in the layer: a consumer that extends duxt keeps the
+   * validator for its own head tags.
+   */
+  unhead: { vite: { validate: false } },
+
   // Dev over a public tunnel: the HMR client otherwise dials ws://localhost,
   // which a phone on the other side of the tunnel cannot reach — the page
   // loads and then never updates. Only when the variable is set, so a normal
