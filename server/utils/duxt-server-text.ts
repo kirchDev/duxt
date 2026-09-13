@@ -31,16 +31,3 @@ function lookup(key: string): string | undefined {
 export function resolveServerTexts<T>(config: T): T {
   return resolveDuxtTexts(config, 'en-GB', lookup);
 }
-
-/**
- * The Markdown body without its frontmatter block.
- *
- * Content's `rawbody` is the file as it sits on disk, frontmatter included. A
- * reader wants the prose; a model handed `---\ntitle: …\n---` reads a page
- * whose first heading is a YAML fence.
- */
-export function stripFrontmatter(body: string): string {
-  const match = /^---\r?\n[\s\S]*?\r?\n---\r?\n?/.exec(body);
-
-  return match ? body.slice(match[0].length) : body;
-}

@@ -7,7 +7,7 @@ import {
   sourcesForRoute,
   type DuxtResolvedSource
 } from '../../sources-resolve';
-import { stripFrontmatter } from './duxt-server-text';
+import { stripFrontmatter } from '../../frontmatter';
 
 /**
  * What the four MCP tools know about this site's documentation.

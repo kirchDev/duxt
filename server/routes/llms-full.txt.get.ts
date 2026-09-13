@@ -3,10 +3,8 @@ import { llmsPages } from '../utils/llms-pages';
 // does not see its utils. The defaults have to come from the same file the
 // pages use, or the two descriptions drift apart.
 import { duxtDefaults, mergeDuxtConfig } from '../../app/utils/duxt-config';
-import {
-  resolveServerTexts,
-  stripFrontmatter
-} from '../utils/duxt-server-text';
+import { resolveServerTexts } from '../utils/duxt-server-text';
+import { stripFrontmatter } from '../../frontmatter';
 
 /**
  * llms-full.txt — the whole documentation as one Markdown file.
