@@ -62,8 +62,8 @@
   // SIX routes read it — `llms.txt`, `llms-full.txt`, `rss.xml`, the `.md`
   // middleware, the `/mcp` tools and the sitemap module's own
   // `/__sitemap__/nuxt-content-urls.json` all call `queryCollection()` at
-  // request time. The other runtime routes do not: `POST /demo/echo` answers
-  // from the request body, `robots.txt` composes itself from the site config,
+  // request time. The other runtime routes do not: `/demo/echo` answers
+  // from the request itself, `robots.txt` composes itself from the site config,
   // and `/mcp/deeplink`, `/mcp/badge.svg` and `/__sitemap__/style.xsl` answer
   // from the query string or the request headers. A prerendered page never
   // touches this binding; one the crawl did not reach falls through to the

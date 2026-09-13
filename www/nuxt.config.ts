@@ -333,8 +333,8 @@ export default defineNuxtConfig({
    * build produces.
    *
    * The short of it: documentation pages are files, and `llms.txt`,
-   * `llms-full.txt`, `rss.xml`, every `…/page.md`, `/mcp` and `POST
-   * /demo/echo` are not — nor are `robots.txt`, `/mcp/deeplink`,
+   * `llms-full.txt`, `rss.xml`, every `…/page.md`, `/mcp` and
+   * `/demo/echo` are not — nor are `robots.txt`, `/mcp/deeplink`,
    * `/mcp/badge.svg` and the sitemap's `style.xsl` and
    * `nuxt-content-urls.json`. A page nobody links to is served by the Worker
    * and is still correct — just slower, and that is the right failure.

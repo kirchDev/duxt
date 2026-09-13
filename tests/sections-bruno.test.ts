@@ -212,6 +212,14 @@ describe('try-it, which is off until a site turns it on', () => {
     });
   });
 
+  it("accepts the site's own origin as the base", () => {
+    const pages = parse({ tryIt: { baseUrl: '/' } });
+    const request = props(page(pages, '1.shipments/1.list-shipments.md')!.body);
+
+    expect(request.servers).toEqual([{ url: '/' }]);
+    expect(request.operation).toMatchObject({ path: '/shipments' });
+  });
+
   it('offers no client where the url holds a variable the site did not declare', () => {
     // A send button that cannot build a real URL is worse than none.
     const pages = parse(

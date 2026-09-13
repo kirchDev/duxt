@@ -234,8 +234,11 @@ export default defineAppConfig({
           // none, and the reference says so rather than inventing them.
           //
           // `tryIt` is the opt-in, and this site is the one place it can
-          // honestly be turned on: the base URL below is this site's own, and
-          // `/demo/echo` is the one endpoint it really answers. A consumer
+          // honestly be turned on: `/demo/echo` is the one endpoint it really
+          // answers, for every method the collection uses. The base is `/`
+          // rather than `https://duxt.app` so every request goes to whatever
+          // origin served the page — an absolute host sent `localhost` readers
+          // to production, which answers no cross-origin request. A consumer
           // pointing it at a host that is not public would be handing readers a
           // send button that fails for a reason the page cannot explain.
           //
@@ -249,7 +252,7 @@ export default defineAppConfig({
             slug: 'bruno',
             icon: 'vscode-icons:file-type-bruno',
             options: {
-              tryIt: { baseUrl: 'https://duxt.app' },
+              tryIt: { baseUrl: '/' },
               fetch: 'https://github.com/kirchDev/duxt.git'
             }
           },

@@ -61,7 +61,7 @@ export type RouteDelivery = 'asset' | 'worker';
 export interface DeploymentRoute {
   /** How the route is written when someone talks about it. */
   readonly route: string;
-  readonly method: 'GET' | 'POST';
+  readonly method: 'GET' | 'POST' | 'ANY';
   /** What answers the normal deployed request. */
   readonly delivery: RouteDelivery;
   /** Does answering it read D1 at request time? */
@@ -249,16 +249,17 @@ export const DEPLOYMENT_ROUTES: readonly DeploymentRoute[] = [
   },
   {
     route: '/demo/echo',
-    method: 'POST',
+    method: 'ANY',
     delivery: 'worker',
     d1: false,
     why:
-      'The one endpoint behind the API reference’s try-it client. It answers from ' +
-      'the request body — nothing is stored and no collection is read — which is ' +
-      'why it is the only D1-free route on this site that a reader ever POSTs to.',
-    fallback: 'None: a POST always runs.',
+      'The one endpoint behind the try-it clients of both API references. It ' +
+      'answers from the request alone — a POST from its body, every other method ' +
+      'on it or on any path under it by echoing what was sent — so nothing is ' +
+      'stored and no collection is read.',
+    fallback: 'None: every request runs.',
     probes: ['demo/echo'],
-    handlers: ['/demo/echo']
+    handlers: ['/demo/echo', '/demo/echo/**:path']
   },
   {
     route: '/robots.txt',
