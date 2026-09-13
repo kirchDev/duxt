@@ -417,9 +417,9 @@ defineOgImage('Duxt', {
       </div>
     </section>
 
-    <!-- THE REST. One line each, no cards and no links: these are real and
-         worth naming, and a card apiece would say they matter as much as the
-         four above.
+    <!-- THE SUPPORTING SYSTEM. One line each, no cards and no links: these are
+         real parts of publishing and reading the content, while a card apiece
+         would say they matter as much as the primary capabilities above.
          
          A <ul>, and the entries are paragraphs rather than headings: this is a
          list of things, not a part of the document with sections under it — and

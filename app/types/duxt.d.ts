@@ -685,8 +685,9 @@ declare global {
      * A CONFIG FIELD rather than one of the layer's own strings, and the line
      * between the two is whether a reader sees it. `featuresTitle` is shipped
      * because it is `sr-only` — a name the document outline needs and nobody
-     * reads. "And the rest" is prose on the page, and prose on the page belongs
-     * to the site that wrote the list underneath it.
+     * reads. The heading over the supporting capabilities is prose on the page,
+     * and prose on the page belongs to the site that wrote the list underneath
+     * it.
      *
      * Unset, the list draws no heading and its entries are paragraphs rather
      * than headings, so the outline gains nothing to explain.

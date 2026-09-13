@@ -87,7 +87,10 @@ describe('resolveDuxtTexts', () => {
     // so reached the page as its own locale record printed as JSON. Named one
     // by one rather than derived, because deriving them from the type is
     // exactly what the allowlist refuses to do.
-    const record = { 'en-GB': 'And the rest', 'de-DE': 'Und der Rest' };
+    const record = {
+      'en-GB': 'Around the content',
+      'de-DE': 'Rund um die Inhalte'
+    };
 
     const resolved = resolveDuxtTexts(
       {
@@ -115,16 +118,16 @@ describe('resolveDuxtTexts', () => {
 
     const { landing } = resolved;
 
-    expect(landing.headline).toBe('Und der Rest');
-    expect(landing.description).toBe('Und der Rest');
-    expect(landing.highlightsTitle).toBe('Und der Rest');
-    expect(landing.stats[0]!.label).toBe('Und der Rest');
-    expect(landing.demo.tabs[0]!.label).toBe('Und der Rest');
-    expect(landing.showcase[0]!.badge).toBe('Und der Rest');
-    expect(landing.showcase[0]!.title).toBe('Und der Rest');
-    expect(landing.showcase[0]!.bullets[0]!.label).toBe('Und der Rest');
-    expect(landing.showcase[0]!.action.label).toBe('Und der Rest');
-    expect(landing.highlights[0]!.title).toBe('Und der Rest');
+    expect(landing.headline).toBe('Rund um die Inhalte');
+    expect(landing.description).toBe('Rund um die Inhalte');
+    expect(landing.highlightsTitle).toBe('Rund um die Inhalte');
+    expect(landing.stats[0]!.label).toBe('Rund um die Inhalte');
+    expect(landing.demo.tabs[0]!.label).toBe('Rund um die Inhalte');
+    expect(landing.showcase[0]!.badge).toBe('Rund um die Inhalte');
+    expect(landing.showcase[0]!.title).toBe('Rund um die Inhalte');
+    expect(landing.showcase[0]!.bullets[0]!.label).toBe('Rund um die Inhalte');
+    expect(landing.showcase[0]!.action.label).toBe('Rund um die Inhalte');
+    expect(landing.highlights[0]!.title).toBe('Rund um die Inhalte');
 
     // The paths beside them are untouched, which is what the allowlist is for.
     expect(landing.demo.tabs[0]!.to).toBe('/guide');
