@@ -330,9 +330,13 @@ const searchHint = computed(() => hint('search'));
 
       <!-- Say so when the exact search came up empty, otherwise a near-miss
            reads as a match and the reader wonders why their term is missing
-           from the result. -->
+           from the result.
+
+           ONLY WITH SOMETHING TO SHOW. The approximate pass can come up empty
+           too, and then this line stood under "Nothing found" promising the
+           closest matches of a list that had none. -->
       <div
-        v-if="approximate"
+        v-if="approximate && results.length"
         class="flex items-center gap-2 px-3 pt-3 pb-1 text-xs text-muted-foreground"
       >
         <Icon name="lucide:sparkles" class="size-3.5 shrink-0" />
