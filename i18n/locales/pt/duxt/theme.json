@@ -1,7 +1,8 @@
 {
   "duxt": {
     "theme": {
-      "toggle": "Mudar o tema"
+      "toLight": "Mudar para o tema claro",
+      "toDark": "Mudar para o tema escuro"
     }
   }
 }

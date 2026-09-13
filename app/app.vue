@@ -117,8 +117,12 @@ useSchemaOrg([
        tooltip and scroll area laid out left-to-right under a right-to-left
        page. Renderless — it draws no element and changes no landmark. -->
   <ConfigProvider :dir="direction">
-    <NuxtLayout>
-      <NuxtPage />
-    </NuxtLayout>
+    <!-- One provider for every tooltip in the layer, including controls such as
+         DuxtLocale when a consumer renders them outside the stock header. -->
+    <UiTooltipProvider>
+      <NuxtLayout>
+        <NuxtPage />
+      </NuxtLayout>
+    </UiTooltipProvider>
   </ConfigProvider>
 </template>

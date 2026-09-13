@@ -26,6 +26,22 @@ const current = computed(() =>
 );
 
 /**
+ * Closing the menu returns focus to a trigger that the pointer may still be
+ * resting on. Without this guard reka immediately opens its tooltip again.
+ * Keep it absent until the pointer has genuinely left, matching Gildstone's
+ * dropdown-backed sidebar buttons.
+ */
+const localeTooltipSuppressed = ref(false);
+
+function handleOpenChange(isOpen: boolean): void {
+  if (!isOpen) localeTooltipSuppressed.value = true;
+}
+
+function clearTooltipSuppression(): void {
+  localeTooltipSuppressed.value = false;
+}
+
+/**
  * `flag:xx-4x3`, from the region half of the code — the same derivation the
  * icon client bundle in nuxt.config.ts uses, so every flag this renders is one
  * that was inlined at build time.
@@ -43,20 +59,18 @@ function flagFor(code: string): string | null {
 </script>
 
 <template>
-  <UiDropdownMenu v-if="available.length > 1">
+  <UiDropdownMenu v-if="available.length > 1" @update:open="handleOpenChange">
+    <!-- The tooltip-aware button forwards this trigger's attrs to its real
+         button, exactly as Gildstone's SidebarMenuButton does. -->
     <UiDropdownMenuTrigger as-child>
-      <UiButton
-        variant="ghost"
-        size="icon"
-        :aria-label="$t('duxt.locale.switch')"
-      >
-        <Icon
-          v-if="current?.flag"
-          :name="current.flag"
-          class="size-4 rounded-[2px]"
-        />
-        <Icon v-else name="lucide:languages" class="size-4" />
-      </UiButton>
+      <DuxtLocaleTrigger
+        :flag="current?.flag"
+        :label="$t('duxt.locale.switch')"
+        :tooltip="
+          localeTooltipSuppressed ? undefined : $t('duxt.locale.switch')
+        "
+        @pointerleave="clearTooltipSuppression"
+      />
     </UiDropdownMenuTrigger>
 
     <UiDropdownMenuContent

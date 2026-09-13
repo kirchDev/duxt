@@ -3,6 +3,11 @@ const duxt = useDuxtConfig();
 const colorMode = useColorMode();
 const path = useDuxtPath();
 const localeLink = useDuxtLink();
+const { t } = useI18n();
+
+const themeLabel = computed(() =>
+  colorMode.value === 'dark' ? t('duxt.theme.toLight') : t('duxt.theme.toDark')
+);
 
 const { data: navigation } = await useDuxtNavigation();
 
@@ -363,19 +368,29 @@ function current(to?: string) {
             >
               <DuxtLocale />
 
-              <UiButton
-                variant="ghost"
-                size="icon"
-                :aria-label="$t('duxt.theme.toggle')"
-                @click="toggleTheme"
-              >
-                <Icon
-                  :name="
-                    colorMode.value === 'dark' ? 'lucide:sun' : 'lucide:moon'
-                  "
-                  class="size-4"
-                />
-              </UiButton>
+              <UiTooltip>
+                <UiTooltipTrigger as-child>
+                  <UiButton
+                    variant="ghost"
+                    size="icon"
+                    :aria-label="themeLabel"
+                    @click="toggleTheme"
+                  >
+                    <Icon
+                      :name="
+                        colorMode.value === 'dark'
+                          ? 'lucide:sun'
+                          : 'lucide:moon'
+                      "
+                      class="size-4"
+                    />
+                  </UiButton>
+                </UiTooltipTrigger>
+
+                <UiTooltipContent side="top">
+                  {{ themeLabel }}
+                </UiTooltipContent>
+              </UiTooltip>
             </UiSheetFooter>
           </UiSheetContent>
         </UiSheet>
@@ -491,36 +506,52 @@ function current(to?: string) {
         <!-- The project links give way first: they are the only icons here the
              sheet can carry as ordinary rows, where the locale and the theme
              are controls that have to stay reachable in one tap. -->
-        <UiButton
-          v-for="link in duxt.links ?? []"
-          :key="link.to"
-          as-child
-          variant="ghost"
-          size="icon"
-          class="hidden lg:inline-flex"
-          :aria-label="link.label"
-        >
-          <a :href="link.to" target="_blank" rel="noopener">
-            <Icon v-if="link.icon" :name="link.icon" class="size-4" />
-          </a>
-        </UiButton>
+        <UiTooltip v-for="link in duxt.links ?? []" :key="link.to">
+          <UiTooltipTrigger as-child>
+            <UiButton
+              as-child
+              variant="ghost"
+              size="icon"
+              class="hidden lg:inline-flex"
+              :aria-label="link.label"
+            >
+              <a :href="link.to" target="_blank" rel="noopener">
+                <Icon v-if="link.icon" :name="link.icon" class="size-4" />
+              </a>
+            </UiButton>
+          </UiTooltipTrigger>
+
+          <UiTooltipContent side="bottom">
+            {{ link.label }}
+          </UiTooltipContent>
+        </UiTooltip>
 
         <div class="hidden sm:block">
           <DuxtLocale />
         </div>
 
-        <UiButton
-          variant="ghost"
-          size="icon"
-          class="hidden sm:inline-flex"
-          :aria-label="$t('duxt.theme.toggle')"
-          @click="toggleTheme"
-        >
-          <Icon
-            :name="colorMode.value === 'dark' ? 'lucide:sun' : 'lucide:moon'"
-            class="size-4"
-          />
-        </UiButton>
+        <UiTooltip>
+          <UiTooltipTrigger as-child>
+            <UiButton
+              variant="ghost"
+              size="icon"
+              class="hidden sm:inline-flex"
+              :aria-label="themeLabel"
+              @click="toggleTheme"
+            >
+              <Icon
+                :name="
+                  colorMode.value === 'dark' ? 'lucide:sun' : 'lucide:moon'
+                "
+                class="size-4"
+              />
+            </UiButton>
+          </UiTooltipTrigger>
+
+          <UiTooltipContent side="bottom">
+            {{ themeLabel }}
+          </UiTooltipContent>
+        </UiTooltip>
       </div>
     </div>
   </header>
