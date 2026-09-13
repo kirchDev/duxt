@@ -44,11 +44,10 @@ const DUXT_DOCS = {
     tag: 'deprecated'
   },
   refs: [
-    { tag: 'latest', default: true },
-    // Hidden while `latest` resolves to v0.2.0. The resolver retains it
-    // automatically as deprecated when v0.3.1 is cut.
-    { tag: 'v0.2.0' },
     { branch: 'main' },
+    { tag: 'latest', default: true },
+    { tag: 'v0.3.4' },
+    { tag: 'v0.2.0' },
     { tag: 'v0.1.0' }
   ],
 
