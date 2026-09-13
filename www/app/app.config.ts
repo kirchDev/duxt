@@ -20,6 +20,115 @@ const DEMO_NAME = {
   pt: 'Documentação de demonstração'
 };
 
+// This repository's documentation at the release, the unreleased branch
+// and the original release. `repo` deliberately makes Content fetch each
+// ref: a versioned source cannot read three revisions from this checkout.
+const DUXT_DOCS = {
+  repo: 'kirchDev/duxt',
+  path: 'docs',
+  // What the search captions call this source. Without it the fallback
+  // is `title` above, which says "duxt" — the SITE. These are its
+  // documentation pages specifically, and the demo tree below is the
+  // other half of the same site. A record rather than a literal, because
+  // unlike the wordmark this one is a noun that translates.
+  name: {
+    'en-GB': 'duxt documentation',
+    de: 'duxt-Dokumentation',
+    es: 'Documentación de duxt',
+    fr: 'Documentation duxt',
+    pt: 'Documentação do duxt'
+  },
+  statusDefaults: {
+    latest: 'current',
+    branch: 'upcoming',
+    tag: 'deprecated'
+  },
+  refs: [
+    { tag: 'latest', default: true },
+    // Hidden while `latest` resolves to v0.2.0. The resolver retains it
+    // automatically as deprecated when v0.3.1 is cut.
+    { tag: 'v0.2.0' },
+    { branch: 'main' },
+    { tag: 'v0.1.0' }
+  ],
+
+  // FOUR languages over one tree, named by LANGUAGE rather than locale.
+  // `docs/pt/` serves both `pt-PT` and `pt-BR`, and `en-US` reads the
+  // original through `fallbackLocale` — the same rule the locale FILES in
+  // nuxt.config already follow, so seven locales need four folders.
+  //
+  // `en-GB` is the tree in `docs/` itself and takes no folder of its own,
+  // which keeps every URL this site already serves where it is.
+  locales: ['en-GB', 'de', 'es', 'fr', 'pt'],
+
+  // An artefact that is not Markdown, published as pages of the site.
+  //
+  // The path resolves against the source's own root — this repository's,
+  // because the source is read off disk. The public release history reads
+  // the package's CHANGELOG.md, maintained by release-please.
+  //
+  // `label` is a plain string, not a record: it is also the URL segment,
+  // and a translated text is not a stable URL — the same pair a version's
+  // label makes. The entry appends itself to the section row above.
+  generated: [
+    // `navigation: 'navigation'` puts the entry in the TOP row rather
+    // than in the section row: a release log is not a part of the
+    // documentation the way "Guides" is, it is a thing the project has
+    // beside its documentation. The entry itself is written by hand up in
+    // `navigation`, between Resources and Credits — see there.
+    {
+      type: 'changelog',
+      path: 'CHANGELOG.md',
+      label: 'Releases',
+      navigation: 'navigation'
+    }
+  ]
+} satisfies DuxtSourceInput;
+
+/**
+ * IN `nuxt dev`, THE `main` EDITION IS THIS CHECKOUT.
+ *
+ * Every edition of `DUXT_DOCS` is downloaded — `latest` and `v0.2.0` from their
+ * tags, `main` from the branch on GitHub — so an edit to `docs/` changed nothing
+ * a dev server showed: the page was the pushed branch, and the working tree was
+ * read by no collection at all.
+ *
+ * So on a dev server the branch is swapped for a source that reads the
+ * checkout and NAMES the same version. Everything downstream keys off that
+ * name — the `/main` prefix, the `docs_main` collections, the switcher entry,
+ * the release pages — so the edition sits exactly where the downloaded one
+ * did, and the released editions stay the real tags beside it.
+ *
+ * WITHOUT `generated`. Generated sections are identified per declaration, so
+ * the changelog repeated here would be a SECOND artefact: a second "Releases"
+ * entry in the navbar, and release pages no longer versions of the ones beside
+ * them. The checkout's edition therefore has no release pages on a dev server;
+ * the released editions keep theirs.
+ *
+ * `NODE_ENV` is what tells the two apart: `nuxi dev` sets `development` before
+ * this file is read, and a build sets `production`. A deploy therefore still
+ * serves the pushed `main`, never somebody's working tree.
+ */
+const DUXT_DOCS_EDITIONS: DuxtSourceInput[] =
+  process.env.NODE_ENV === 'development'
+    ? [
+        {
+          ...DUXT_DOCS,
+          refs: DUXT_DOCS.refs.filter(
+            (ref) => !('branch' in ref && ref.branch === 'main')
+          )
+        },
+        {
+          path: DUXT_DOCS.path,
+          name: DUXT_DOCS.name,
+          locales: DUXT_DOCS.locales,
+          version: 'main',
+          status: 'upcoming',
+          origin: { repo: 'kirchDev/duxt', ref: 'main' }
+        }
+      ]
+    : [DUXT_DOCS];
+
 export default defineAppConfig({
   duxt: {
     /**
@@ -53,70 +162,7 @@ export default defineAppConfig({
      * update this list when it cuts the next version.
      */
     sources: [
-      // This repository's documentation at the release, the unreleased branch
-      // and the original release. `repo` deliberately makes Content fetch each
-      // ref: a versioned source cannot read three revisions from this checkout.
-      {
-        repo: 'kirchDev/duxt',
-        path: 'docs',
-        // What the search captions call this source. Without it the fallback
-        // is `title` above, which says "duxt" — the SITE. These are its
-        // documentation pages specifically, and the demo tree below is the
-        // other half of the same site. A record rather than a literal, because
-        // unlike the wordmark this one is a noun that translates.
-        name: {
-          'en-GB': 'duxt documentation',
-          de: 'duxt-Dokumentation',
-          es: 'Documentación de duxt',
-          fr: 'Documentation duxt',
-          pt: 'Documentação do duxt'
-        },
-        statusDefaults: {
-          latest: 'current',
-          branch: 'upcoming',
-          tag: 'deprecated'
-        },
-        refs: [
-          { tag: 'latest', default: true },
-          // Hidden while `latest` resolves to v0.2.0. The resolver retains it
-          // automatically as deprecated when v0.3.1 is cut.
-          { tag: 'v0.2.0' },
-          { branch: 'main' },
-          { tag: 'v0.1.0' }
-        ],
-
-        // FOUR languages over one tree, named by LANGUAGE rather than locale.
-        // `docs/pt/` serves both `pt-PT` and `pt-BR`, and `en-US` reads the
-        // original through `fallbackLocale` — the same rule the locale FILES in
-        // nuxt.config already follow, so seven locales need four folders.
-        //
-        // `en-GB` is the tree in `docs/` itself and takes no folder of its own,
-        // which keeps every URL this site already serves where it is.
-        locales: ['en-GB', 'de', 'es', 'fr', 'pt'],
-
-        // An artefact that is not Markdown, published as pages of the site.
-        //
-        // The path resolves against the source's own root — this repository's,
-        // because the source is read off disk. The public release history reads
-        // the package's CHANGELOG.md, maintained by release-please.
-        //
-        // `label` is a plain string, not a record: it is also the URL segment,
-        // and a translated text is not a stable URL — the same pair a version's
-        // label makes. The entry appends itself to the section row above.
-        generated: [
-          // `navigation: 'navigation'` puts the entry in the TOP row rather
-          // than in the section row: a release log is not a part of the
-          // documentation the way "Guides" is, it is a thing the project has
-          // beside its documentation. The entry itself is written by hand up in
-          // `navigation`, between Resources and Credits — see there.
-          {
-            type: 'changelog',
-            path: 'CHANGELOG.md',
-            label: 'Releases',
-            navigation: 'navigation'
-          }
-        ]
-      },
+      ...DUXT_DOCS_EDITIONS,
 
       // The Demo overview is one document tree at four editions. The current
       // `v3.x` tree stays at `/demo`; the other editions keep the same overview
