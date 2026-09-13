@@ -472,13 +472,14 @@ function current(to?: string) {
           <DuxtSearch />
         </div>
 
-        <!-- Beside the search at every width, unlike the locale and the theme:
-             those two have a home in the mobile sheet and this one cannot, since
-             a sheet is a dialog and a dialog is precisely where the global keys
-             stand down. It is also the sheet's ONLY entry point on a site with
-             `shortcuts.singleCharacter: false`, so it is the last control in
-             this row that may ever give way. -->
-        <DuxtShortcutsTrigger />
+        <!-- Desktop only, at the same lg split as the burger and the search: a
+             touch device has no keyboard, so a sheet of keys is nothing to
+             offer it — and the mobile sheet carries no copy either, since a
+             sheet is a dialog and a dialog is where the global keys stand down.
+             From lg up it stays the last control in this row that may give way:
+             on a site with `shortcuts.singleCharacter: false` it is the key
+             sheet's ONLY entry point. -->
+        <DuxtShortcutsTrigger class="hidden lg:inline-flex" />
 
         <!-- The project links give way first: they are the only icons here the
              sheet can carry as ordinary rows, where the locale and the theme
