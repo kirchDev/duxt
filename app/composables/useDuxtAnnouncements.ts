@@ -50,18 +50,13 @@ export function useDuxtAnnouncements(placement: DuxtAnnouncementPlacement) {
   );
 
   function read(): string[] {
-    try {
-      const stored = window.localStorage.getItem(STORAGE_KEY);
-      const parsed: unknown = stored ? JSON.parse(stored) : [];
+    // Blocked storage, or a value someone else wrote — either way, nothing has
+    // been dismissed and every due announcement shows.
+    const parsed = readStoredJson(STORAGE_KEY);
 
-      return Array.isArray(parsed)
-        ? parsed.filter((entry): entry is string => typeof entry === 'string')
-        : [];
-    } catch {
-      // Blocked storage, or a value someone else wrote — either way, nothing
-      // has been dismissed and every due announcement shows.
-      return [];
-    }
+    return Array.isArray(parsed)
+      ? parsed.filter((entry): entry is string => typeof entry === 'string')
+      : [];
   }
 
   /**
@@ -78,12 +73,9 @@ export function useDuxtAnnouncements(placement: DuxtAnnouncementPlacement) {
 
     dismissed.value = next;
 
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    } catch {
-      // A dismissal that cannot be remembered still hides the banner for this
-      // page. Not worth an error the reader would have to read.
-    }
+    // A dismissal that cannot be remembered still hides the banner for this
+    // page. Not worth an error the reader would have to read.
+    writeStoredJson(STORAGE_KEY, next);
   }
 
   /**

@@ -17,13 +17,15 @@ export function useRecentPages(limit = 5) {
   const recent = useState<RecentPage[]>('duxt-recent-pages', () => []);
 
   function read(): RecentPage[] {
-    try {
-      const stored = window.localStorage.getItem(STORAGE_KEY);
-      return stored ? (JSON.parse(stored) as RecentPage[]) : [];
-    } catch {
-      // Blocked storage, or a value someone else wrote — either way, no history.
-      return [];
-    }
+    // Blocked storage, or a value someone else wrote — either way, no history.
+    const parsed = readStoredJson(STORAGE_KEY);
+
+    return Array.isArray(parsed)
+      ? parsed.filter(
+          (entry): entry is RecentPage =>
+            typeof entry?.path === 'string' && typeof entry?.title === 'string'
+        )
+      : [];
   }
 
   function remember(page: RecentPage) {
@@ -35,11 +37,8 @@ export function useRecentPages(limit = 5) {
     ].slice(0, Math.max(0, limit));
     recent.value = next;
 
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    } catch {
-      // A convenience not worth an error.
-    }
+    // A convenience not worth an error.
+    writeStoredJson(STORAGE_KEY, next);
   }
 
   function load() {
