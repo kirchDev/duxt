@@ -232,12 +232,17 @@ const title = computed(
     <!-- The tab bar, where there is more than one page to show. Real buttons
          with `aria-selected` rather than a styled div: this is a tablist, the
          arrow keys are expected to work, and they do because the buttons are
-         focusable in order. -->
+         focusable in order.
+
+         NOT BELOW `sm`. On a phone the strip was a second navigation bar
+         stacked over the framed site's own header, eating a window that is
+         already short — and the page inside has its own menu for getting to
+         every one of those pages. -->
     <div
       v-if="tabs.length > 1"
       role="tablist"
       :aria-label="$t('duxt.defaults.landing.demoTitle')"
-      class="flex gap-1 overflow-x-auto border-b bg-muted/30 px-2 py-1.5"
+      class="hidden gap-1 overflow-x-auto border-b bg-muted/30 px-2 py-1.5 sm:flex"
     >
       <button
         v-for="(tab, index) in tabs"

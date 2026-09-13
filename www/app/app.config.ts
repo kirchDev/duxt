@@ -824,6 +824,12 @@ export default defineAppConfig({
        * the layer falls back to. This site sets only `demo`: configuring both
        * leaves the losing one in the file looking like it does something.
        */
+      // ONE PAGE, AND THEREFORE NO TAB BAR. The window used to carry four tabs
+      // — the guide, the API reference, the releases and `llms.txt` — and the
+      // strip they drew sat directly over the framed site's own header and
+      // section row: three rows of navigation stacked on top of each other
+      // before the page began. Every one of those pages is a link away inside
+      // the frame, so the strip bought nothing its own header does not.
       demo: {
         tabs: [
           {
@@ -836,43 +842,6 @@ export default defineAppConfig({
             },
             icon: 'lucide:book-open',
             to: '/getting-started'
-          },
-          {
-            label: {
-              'en-GB': 'API reference',
-              'de-DE': 'API-Referenz',
-              'es-ES': 'Referencia de API',
-              'fr-FR': 'Référence API',
-              'pt-PT': 'Referência da API'
-            },
-            icon: 'lucide:plug',
-            // The FRAGMENT is the point: the client sits beside the endpoint
-            // only above 80rem and below the whole description everywhere
-            // narrower, so a frame this size opened at the top of the page
-            // showed the prose and hid the one control the tab is named for.
-            to: '/demo/api/consignments/createconsignment#createconsignment-try-it',
-            skeleton: 'api'
-          },
-          {
-            label: {
-              'en-GB': 'Releases',
-              'de-DE': 'Releases',
-              'es-ES': 'Versiones',
-              'fr-FR': 'Versions',
-              'pt-PT': 'Versões'
-            },
-            icon: 'lucide:rocket',
-            to: '/releases'
-          },
-          // The one tab that is not a page of the theme at all: the file a
-          // model reads, served from the same content and framed as it is.
-          // Plain text, and the poster says so: a documentation page drawn in
-          // front of a `text/plain` document is a promise the frame breaks.
-          {
-            label: 'llms.txt',
-            icon: 'lucide:bot',
-            to: '/llms.txt',
-            skeleton: 'text'
           }
         ]
       },
