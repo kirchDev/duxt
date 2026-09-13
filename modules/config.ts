@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Nuxt } from '@nuxt/schema';
+import { bundledLanguagesInfo } from 'shiki/langs';
 import { enableWriteAheadLog } from '../content-cache';
 import type { DuxtBuildConfig } from '../duxt-app-config';
 import { readDuxtBuildConfig } from '../duxt-app-config';
@@ -170,6 +171,12 @@ function checkSourceLocales(
  * The three at the bottom are not samples: the package-manager block, the
  * response body and the example bodies are highlighted at runtime too, and they
  * are the same three whatever a site configures.
+ *
+ * THE LANDING DEMOS TOO. A `code` demo in `landing.showcase` goes through the
+ * same highlighter, and a file whose language was not in this map rendered as
+ * flat text — `openapi.yaml` and `widget.md` beside a coloured `nuxt.config.ts`
+ * read as the highlighter being off. So the languages the showcase names are
+ * added, and a site pays for them only if its landing page uses them.
  */
 function writeGrammars(nuxt: Nuxt, config?: DuxtBuildConfig): void {
   const shipped = new Map(
@@ -190,6 +197,25 @@ function writeGrammars(nuxt: Nuxt, config?: DuxtBuildConfig): void {
       typeof entry === 'string' ? shipped.get(entry) : entry?.language;
 
     if (language) languages.add(language);
+  }
+
+  // Aliases resolve to the grammar's id: `yml` is a name Shiki answers to, not
+  // a module under `shiki/langs/`.
+  const grammarIds = new Map(
+    bundledLanguagesInfo.flatMap((info) =>
+      [info.id, ...(info.aliases ?? [])].map((name) => [name, info.id] as const)
+    )
+  );
+
+  for (const band of config?.landing?.showcase ?? []) {
+    for (const file of band?.demo?.files ?? []) {
+      // Only names with a module behind them: `text` and anything Shiki does
+      // not ship would be an `import()` Vite cannot resolve, and that fails
+      // the build rather than degrading one block.
+      const id = grammarIds.get(file?.language?.toLowerCase() ?? '');
+
+      if (id) languages.add(id);
+    }
   }
 
   const loaders = [...languages]

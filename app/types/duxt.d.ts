@@ -860,7 +860,11 @@ declare global {
   interface DuxtDemoFile {
     /** The tab's label and the block's header — a file name, or a command. */
     name?: string;
-    /** A grammar the RUNTIME highlighter carries: bash, json, typescript. */
+    /**
+     * A Shiki language id. Highlighted at runtime: the build adds every
+     * language a showcase names to the grammars it ships. A name Shiki has no
+     * grammar for (`text`) renders as plain text.
+     */
     language?: string;
     code: string;
   }

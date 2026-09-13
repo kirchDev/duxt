@@ -54,6 +54,16 @@ export interface DuxtBuildConfig {
    * pays for that one grammar.
    */
   sampleLanguages?: string[];
+  /**
+   * The landing page — read here for the LANGUAGES of its code demos only.
+   *
+   * They are highlighted by the same runtime highlighter as the samples, so
+   * `modules/config.ts` adds each named language to its grammar set. Typed
+   * structurally for the reason `requestSamples` is.
+   */
+  landing?: {
+    showcase?: { demo?: { files?: { language?: string }[] } }[];
+  };
 }
 
 /**
