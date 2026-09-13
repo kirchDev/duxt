@@ -697,7 +697,7 @@ export default defineAppConfig({
         // was a feature list in the one line every visitor reads.
         'en-GB': 'Versioned docs, from the repositories you already have',
         'de-DE':
-          'Versionierte Dokumentation — aus den Repositories, die du schon hast',
+          'Versionierte Dokumentation aus den Repositories, die du schon hast',
         'es-ES':
           'Documentación versionada, desde los repositorios que ya tienes',
         'fr-FR':
@@ -717,15 +717,15 @@ export default defineAppConfig({
         // blurb and the RSS channel description, and none of the three renders
         // a backtick.
         'en-GB':
-          'duxt is a Nuxt layer: extend it and your docs/ folder becomes a site — theme, search, API reference and llms.txt included. Point it at other repositories, or at tags of the same one, and each becomes a version.',
+          'duxt is a Nuxt layer: extend it and your docs/ folder becomes a site, with theme, search, API reference and llms.txt included. Point it at other repositories, or at tags of the same one, and each becomes a version.',
         'de-DE':
-          'duxt ist ein Nuxt-Layer: erweitern, und dein docs/-Ordner wird zur Website — mit Theme, Suche, API-Referenz und llms.txt. Zeig damit auf andere Repositories oder auf Tags desselben, und jedes wird zu einer Version.',
+          'duxt ist ein Nuxt-Layer: erweitern, und dein docs/-Ordner wird zur Website, mit Theme, Suche, API-Referenz und llms.txt. Zeig damit auf andere Repositories oder auf Tags desselben, und jedes wird zu einer Version.',
         'es-ES':
           'duxt es una capa de Nuxt: extiéndela y tu carpeta docs/ se convierte en un sitio, con tema, búsqueda, referencia de API y llms.txt. Apúntala a otros repositorios, o a etiquetas del mismo, y cada uno se convierte en una versión.',
         'fr-FR':
-          "duxt est une couche Nuxt : étendez-la et votre dossier docs/ devient un site — thème, recherche, référence d'API et llms.txt compris. Pointez-la vers d'autres dépôts, ou vers des tags du même, et chacun devient une version.",
+          "duxt est une couche Nuxt : étendez-la et votre dossier docs/ devient un site, thème, recherche, référence d'API et llms.txt compris. Pointez-la vers d'autres dépôts, ou vers des tags du même, et chacun devient une version.",
         'pt-PT':
-          'O duxt é uma camada Nuxt: estende-a e a tua pasta docs/ torna-se um site — com tema, pesquisa, referência de API e llms.txt. Aponta-a para outros repositórios, ou para tags do mesmo, e cada um torna-se uma versão.'
+          'O duxt é uma camada Nuxt: estende-a e a tua pasta docs/ torna-se um site, com tema, pesquisa, referência de API e llms.txt. Aponta-a para outros repositórios, ou para tags do mesmo, e cada um torna-se uma versão.'
       },
 
       // How a reader installs the layer. The layer ships none — it does not
@@ -902,30 +902,30 @@ export default defineAppConfig({
           },
           description: {
             'en-GB':
-              'duxt is a Nuxt layer, so extending it brings the theme, the pages, the components and the build steps at once — and leaves every one of them replaceable.',
+              'duxt is a Nuxt layer, so extending it brings the theme, the pages, the components and the build steps at once, and leaves every one of them replaceable.',
             'de-DE':
-              'duxt ist ein Nuxt-Layer: Erweitern bringt Theme, Seiten, Komponenten und Build-Schritte auf einmal — und lässt jedes davon ersetzbar.',
+              'duxt ist ein Nuxt-Layer: Erweitern bringt Theme, Seiten, Komponenten und Build-Schritte auf einmal und lässt jedes davon ersetzbar.',
             'es-ES':
               'duxt es una capa de Nuxt: extenderla aporta el tema, las páginas, los componentes y los pasos de compilación a la vez, y deja todo reemplazable.',
             'fr-FR':
-              'duxt est une couche Nuxt : l’étendre apporte le thème, les pages, les composants et les étapes de build d’un coup — et laisse chacun remplaçable.',
+              'duxt est une couche Nuxt : l’étendre apporte le thème, les pages, les composants et les étapes de build d’un coup, et laisse chacun remplaçable.',
             'pt-PT':
-              'O duxt é uma camada Nuxt: estendê-la traz o tema, as páginas, os componentes e os passos da build de uma vez — e deixa tudo substituível.'
+              'O duxt é uma camada Nuxt: estendê-la traz o tema, as páginas, os componentes e os passos da build de uma vez, e deixa tudo substituível.'
           },
           bullets: [
             {
               icon: 'lucide:folder-open',
               label: {
                 'en-GB':
-                  'No generator and nothing to eject — your repository keeps its own files.',
+                  'No generator and nothing to eject: your repository keeps its own files.',
                 'de-DE':
-                  'Kein Generator, nichts zum Ejecten — dein Repository behält seine eigenen Dateien.',
+                  'Kein Generator, nichts zum Ejecten: dein Repository behält seine eigenen Dateien.',
                 'es-ES':
                   'Sin generador y sin nada que expulsar: tu repositorio conserva sus archivos.',
                 'fr-FR':
-                  'Aucun générateur, rien à éjecter — votre dépôt garde ses propres fichiers.',
+                  'Aucun générateur, rien à éjecter : votre dépôt garde ses propres fichiers.',
                 'pt-PT':
-                  'Sem gerador e sem nada para ejetar — o teu repositório mantém os seus ficheiros.'
+                  'Sem gerador e sem nada para ejetar: o teu repositório mantém os seus ficheiros.'
               }
             },
             {
@@ -947,15 +947,15 @@ export default defineAppConfig({
               icon: 'lucide:rocket',
               label: {
                 'en-GB':
-                  'Builds to a static site — deploy it anywhere Nuxt goes.',
+                  'Builds to a static site: deploy it anywhere Nuxt goes.',
                 'de-DE':
-                  'Baut zu einer statischen Seite — deploybar überall, wo Nuxt läuft.',
+                  'Baut zu einer statischen Seite, deploybar überall, wo Nuxt läuft.',
                 'es-ES':
                   'Compila a un sitio estático: despliégalo donde vaya Nuxt.',
                 'fr-FR':
-                  'Se compile en site statique — déployable partout où Nuxt va.',
+                  'Se compile en site statique, déployable partout où Nuxt va.',
                 'pt-PT':
-                  'Compila para um site estático — publica onde o Nuxt for.'
+                  'Compila para um site estático: publica onde o Nuxt for.'
               }
             }
           ],
@@ -1013,15 +1013,15 @@ export default defineAppConfig({
           },
           description: {
             'en-GB':
-              'A source is a repository and the refs to publish from it. duxt turns the list into one collection per version and repo, and into the URL prefixes that keep them apart — decided at build time, so nothing is resolved while a reader waits.',
+              'A source is a repository and the refs to publish from it. duxt turns the list into one collection per version and repo, and into the URL prefixes that keep them apart. Decided at build time, so nothing is resolved while a reader waits.',
             'de-DE':
-              'Eine Quelle ist ein Repository und die Refs, die daraus veröffentlicht werden. duxt macht daraus eine Collection je Version und Repository — samt der URL-Präfixe, die sie trennen. Entschieden zur Build-Zeit, damit zur Laufzeit nichts aufgelöst wird.',
+              'Eine Quelle ist ein Repository und die Refs, die daraus veröffentlicht werden. duxt macht daraus eine Collection je Version und Repository, samt der URL-Präfixe, die sie trennen. Entschieden zur Build-Zeit, damit zur Laufzeit nichts aufgelöst wird.',
             'es-ES':
               'Una fuente es un repositorio y las refs que publicar de él. duxt convierte la lista en una colección por versión y repositorio, y en los prefijos de URL que las separan: decidido en tiempo de compilación.',
             'fr-FR':
-              'Une source, c’est un dépôt et les refs à en publier. duxt transforme la liste en une collection par version et par dépôt, et en préfixes d’URL qui les distinguent — décidés au build.',
+              'Une source, c’est un dépôt et les refs à en publier. duxt transforme la liste en une collection par version et par dépôt, et en préfixes d’URL qui les distinguent, décidés au build.',
             'pt-PT':
-              'Uma fonte é um repositório e as refs a publicar dele. O duxt transforma a lista numa coleção por versão e repositório, e nos prefixos de URL que as separam — decididos na build.'
+              'Uma fonte é um repositório e as refs a publicar dele. O duxt transforma a lista numa coleção por versão e repositório, e nos prefixos de URL que as separam, decididos na build.'
           },
           bullets: [
             {
@@ -1030,7 +1030,7 @@ export default defineAppConfig({
                 'en-GB':
                   'Cloning, private-repo auth and caching are Content v3’s own, not a rebuild.',
                 'de-DE':
-                  'Klonen, Auth für private Repos und Caching kommen von Content v3 selbst — nicht nachgebaut.',
+                  'Klonen, Auth für private Repos und Caching kommen von Content v3 selbst und werden nicht nachgebaut.',
                 'es-ES':
                   'Clonado, autenticación de repos privados y caché son del propio Content v3.',
                 'fr-FR':
@@ -1043,15 +1043,15 @@ export default defineAppConfig({
               icon: 'lucide:link',
               label: {
                 'en-GB':
-                  'A single source needs no prefix at all — a segment with one value distinguishes nothing.',
+                  'A single source needs no prefix at all: a segment with one value distinguishes nothing.',
                 'de-DE':
-                  'Eine einzelne Quelle braucht gar kein Präfix — ein Segment mit nur einem Wert unterscheidet nichts.',
+                  'Eine einzelne Quelle braucht gar kein Präfix: ein Segment mit nur einem Wert unterscheidet nichts.',
                 'es-ES':
                   'Una fuente única no necesita prefijo: un segmento con un solo valor no distingue nada.',
                 'fr-FR':
-                  'Une source unique n’a besoin d’aucun préfixe — un segment à valeur unique ne distingue rien.',
+                  'Une source unique n’a besoin d’aucun préfixe : un segment à valeur unique ne distingue rien.',
                 'pt-PT':
-                  'Uma fonte única não precisa de prefixo — um segmento com um só valor não distingue nada.'
+                  'Uma fonte única não precisa de prefixo: um segmento com um só valor não distingue nada.'
               }
             },
             {
@@ -1060,7 +1060,7 @@ export default defineAppConfig({
                 'en-GB':
                   'The switcher stays on the page you are reading, and says when it does not exist there.',
                 'de-DE':
-                  'Der Umschalter bleibt auf der Seite, die du liest — und sagt es, wenn es sie dort nicht gibt.',
+                  'Der Umschalter bleibt auf der Seite, die du liest, und sagt es, wenn es sie dort nicht gibt.',
                 'es-ES':
                   'El selector permanece en la página que lees, y avisa cuando allí no existe.',
                 'fr-FR':
@@ -1136,15 +1136,15 @@ sourceOptions: { defaultRef: 'v2.0.0' }
           },
           description: {
             'en-GB':
-              'Point a source at the file and duxt builds an overview, a page per tag and a page per operation — with the schemas expanded, the security named and the examples derived. They are an ordinary collection, which is the whole point.',
+              'Point a source at the file and duxt builds an overview, a page per tag and a page per operation, with the schemas expanded, the security named and the examples derived. They are an ordinary collection, which is the whole point.',
             'de-DE':
-              'Zeig mit einer Quelle auf die Datei, und duxt baut daraus eine Übersicht, eine Seite je Tag und eine je Operation — mit aufgelösten Schemas, benannter Security und abgeleiteten Beispielen. Das Ergebnis ist eine ganz normale Collection, und genau das ist der Punkt.',
+              'Zeig mit einer Quelle auf die Datei, und duxt baut daraus eine Übersicht, eine Seite je Tag und eine je Operation, mit aufgelösten Schemas, benannter Security und abgeleiteten Beispielen. Das Ergebnis ist eine ganz normale Collection, und genau das ist der Punkt.',
             'es-ES':
               'Apunta una fuente al archivo y duxt construye un resumen, una página por etiqueta y otra por operación, con los esquemas expandidos, la seguridad nombrada y los ejemplos derivados. Son una colección normal, y ese es el objetivo.',
             'fr-FR':
-              'Pointez une source vers le fichier et duxt en construit un aperçu, une page par tag et une par opération — schémas dépliés, sécurité nommée, exemples dérivés. C’est une collection ordinaire, et c’est tout l’intérêt.',
+              'Pointez une source vers le fichier et duxt en construit un aperçu, une page par tag et une par opération : schémas dépliés, sécurité nommée, exemples dérivés. C’est une collection ordinaire, et c’est tout l’intérêt.',
             'pt-PT':
-              'Aponta uma fonte para o ficheiro e o duxt constrói uma visão geral, uma página por tag e uma por operação — com os esquemas expandidos, a segurança nomeada e os exemplos derivados. São uma coleção normal, e é esse o objetivo.'
+              'Aponta uma fonte para o ficheiro e o duxt constrói uma visão geral, uma página por tag e uma por operação, com os esquemas expandidos, a segurança nomeada e os exemplos derivados. São uma coleção normal, e é esse o objetivo.'
           },
           bullets: [
             {
@@ -1181,15 +1181,15 @@ sourceOptions: { defaultRef: 'v2.0.0' }
               icon: 'lucide:file-code-2',
               label: {
                 'en-GB':
-                  'Written next to your Markdown — an operation page can carry prose of its own.',
+                  'Written next to your Markdown: an operation page can carry prose of its own.',
                 'de-DE':
-                  'Steht neben deinem Markdown — eine Operationsseite kann eigene Prosa tragen.',
+                  'Steht neben deinem Markdown: eine Operationsseite kann eigene Prosa tragen.',
                 'es-ES':
                   'Junto a tu Markdown: una página de operación puede llevar su propia prosa.',
                 'fr-FR':
-                  'À côté de votre Markdown — une page d’opération peut porter sa propre prose.',
+                  'À côté de votre Markdown : une page d’opération peut porter sa propre prose.',
                 'pt-PT':
-                  'Ao lado do teu Markdown — uma página de operação pode ter prosa própria.'
+                  'Ao lado do teu Markdown: uma página de operação pode ter prosa própria.'
               }
             }
           ],
@@ -1228,30 +1228,30 @@ sourceOptions: { defaultRef: 'v2.0.0' }
           },
           description: {
             'en-GB':
-              'Every operation page carries a client. Fill in the parameters, edit the body against its schema, send it from your own browser — and read the response beside the sample that would have produced it.',
+              'Every operation page carries a client. Fill in the parameters, edit the body against its schema, send it from your own browser, and read the response beside the sample that would have produced it.',
             'de-DE':
-              'Jede Operationsseite bringt einen Client mit. Parameter ausfüllen, den Body gegen sein Schema bearbeiten, aus dem eigenen Browser abschicken — und die Antwort neben dem Beispiel lesen, das sie erzeugt hätte.',
+              'Jede Operationsseite bringt einen Client mit. Parameter ausfüllen, den Body gegen sein Schema bearbeiten, aus dem eigenen Browser abschicken und die Antwort neben dem Beispiel lesen, das sie erzeugt hätte.',
             'es-ES':
               'Cada página de operación lleva un cliente. Rellena los parámetros, edita el cuerpo contra su esquema, envíalo desde tu navegador y lee la respuesta junto al ejemplo que la habría producido.',
             'fr-FR':
-              'Chaque page d’opération embarque un client. Remplissez les paramètres, modifiez le corps face à son schéma, envoyez depuis votre navigateur — et lisez la réponse à côté de l’exemple qui l’aurait produite.',
+              'Chaque page d’opération embarque un client. Remplissez les paramètres, modifiez le corps face à son schéma, envoyez depuis votre navigateur, et lisez la réponse à côté de l’exemple qui l’aurait produite.',
             'pt-PT':
-              'Cada página de operação traz um cliente. Preenche os parâmetros, edita o corpo contra o seu esquema, envia a partir do teu browser — e lê a resposta ao lado do exemplo que a teria produzido.'
+              'Cada página de operação traz um cliente. Preenche os parâmetros, edita o corpo contra o seu esquema, envia a partir do teu browser, e lê a resposta ao lado do exemplo que a teria produzido.'
           },
           bullets: [
             {
               icon: 'lucide:terminal',
               label: {
                 'en-GB':
-                  'Seven samples out of the box, twelve shipped, or one of your own — rewritten as you type.',
+                  'Seven samples out of the box, twelve shipped, or one of your own, rewritten as you type.',
                 'de-DE':
-                  'Sieben Beispiele ab Werk, zwölf mitgeliefert, oder ein eigenes — mitgeschrieben beim Tippen.',
+                  'Sieben Beispiele ab Werk, zwölf mitgeliefert, oder ein eigenes, mitgeschrieben beim Tippen.',
                 'es-ES':
                   'Siete ejemplos de fábrica, doce incluidos, o uno propio: reescritos mientras escribes.',
                 'fr-FR':
-                  'Sept exemples d’origine, douze fournis, ou le vôtre — réécrits à la frappe.',
+                  'Sept exemples d’origine, douze fournis, ou le vôtre, réécrits à la frappe.',
                 'pt-PT':
-                  'Sete exemplos de origem, doze incluídos, ou um teu — reescritos enquanto escreves.'
+                  'Sete exemplos de origem, doze incluídos, ou um teu, reescritos enquanto escreves.'
               }
             },
             {
@@ -1273,15 +1273,15 @@ sourceOptions: { defaultRef: 'v2.0.0' }
               icon: 'lucide:key-round',
               label: {
                 'en-GB':
-                  'Your token stays in your browser — there is no server in this to send it to.',
+                  'Your token stays in your browser: there is no server in this to send it to.',
                 'de-DE':
-                  'Dein Token bleibt im Browser — es gibt hier keinen Server, an den es ginge.',
+                  'Dein Token bleibt im Browser: es gibt hier keinen Server, an den es ginge.',
                 'es-ES':
                   'Tu token se queda en tu navegador: aquí no hay servidor al que enviarlo.',
                 'fr-FR':
-                  'Votre jeton reste dans votre navigateur — il n’y a ici aucun serveur à qui l’envoyer.',
+                  'Votre jeton reste dans votre navigateur : il n’y a ici aucun serveur à qui l’envoyer.',
                 'pt-PT':
-                  'O teu token fica no teu browser — aqui não há servidor a quem enviá-lo.'
+                  'O teu token fica no teu browser: aqui não há servidor a quem enviá-lo.'
               }
             }
           ],
@@ -1338,15 +1338,15 @@ sourceOptions: { defaultRef: 'v2.0.0' }
               },
               description: {
                 'en-GB':
-                  'Not an example of a request like the one above — that request. The server you picked, the token you typed and the body you edited, rewritten on every keystroke into whichever client you are going to paste it in.',
+                  'Not an example of a request like the one above, but that request. The server you picked, the token you typed and the body you edited, rewritten on every keystroke into whichever client you are going to paste it in.',
                 'de-DE':
-                  'Kein Beispiel für einen Request wie den obigen — genau dieser. Der gewählte Server, das eingetippte Token, der bearbeitete Body — bei jedem Tastendruck neu geschrieben, in den Client, in den du ihn einfügen wirst.',
+                  'Kein Beispiel für einen Request wie den obigen, sondern genau dieser. Der gewählte Server, das eingetippte Token, der bearbeitete Body: bei jedem Tastendruck neu geschrieben, in den Client, in den du ihn einfügen wirst.',
                 'es-ES':
                   'No un ejemplo de una petición como la de arriba: esa petición. El servidor que elegiste, el token que escribiste y el cuerpo que editaste, reescritos en cada pulsación al cliente donde vayas a pegarlo.',
                 'fr-FR':
-                  'Pas un exemple de requête comme celle du dessus — cette requête-là. Le serveur choisi, le jeton saisi et le corps modifié, réécrits à chaque frappe dans le client où vous allez la coller.',
+                  'Pas un exemple de requête comme celle du dessus, mais cette requête-là. Le serveur choisi, le jeton saisi et le corps modifié, réécrits à chaque frappe dans le client où vous allez la coller.',
                 'pt-PT':
-                  'Não um exemplo de um pedido como o de cima — esse pedido. O servidor que escolheste, o token que escreveste e o corpo que editaste, reescritos a cada tecla para o cliente onde o vais colar.'
+                  'Não um exemplo de um pedido como o de cima, mas esse pedido. O servidor que escolheste, o token que escreveste e o corpo que editaste, reescritos a cada tecla para o cliente onde o vais colar.'
               },
               bullets: [
                 {
@@ -1355,7 +1355,7 @@ sourceOptions: { defaultRef: 'v2.0.0' }
                     'en-GB':
                       'One component, so the sample and the button can never disagree.',
                     'de-DE':
-                      'Eine Komponente — Beispiel und Button können gar nicht auseinanderlaufen.',
+                      'Eine Komponente: Beispiel und Button können gar nicht auseinanderlaufen.',
                     'es-ES':
                       'Un solo componente: el ejemplo y el botón no pueden discrepar.',
                     'fr-FR':
@@ -1370,7 +1370,7 @@ sourceOptions: { defaultRef: 'v2.0.0' }
                     'en-GB':
                       'Add your own with `requestSamples`, or drop the ones your readers do not use.',
                     'de-DE':
-                      'Eigene über `requestSamples` ergänzen — oder die weglassen, die deine Leser nicht nutzen.',
+                      'Eigene über `requestSamples` ergänzen oder die weglassen, die deine Leser nicht nutzen.',
                     'es-ES':
                       'Añade los tuyos con `requestSamples`, o quita los que tus lectores no usan.',
                     'fr-FR':
@@ -1413,7 +1413,7 @@ sourceOptions: { defaultRef: 'v2.0.0' }
             'en-GB':
               'The same content, published a second time in the shapes a machine reads: an index at llms.txt, the whole site at llms-full.txt, every page available as its own Markdown, and an MCP route an assistant can search.',
             'de-DE':
-              'Derselbe Inhalt, ein zweites Mal veröffentlicht in den Formen, die eine Maschine liest: ein Index unter llms.txt, die ganze Seite unter llms-full.txt, jede Seite als eigenes Markdown — und eine MCP-Route, die ein Assistent durchsuchen kann.',
+              'Derselbe Inhalt, ein zweites Mal veröffentlicht in den Formen, die eine Maschine liest: ein Index unter llms.txt, die ganze Seite unter llms-full.txt, jede Seite als eigenes Markdown und eine MCP-Route, die ein Assistent durchsuchen kann.',
             'es-ES':
               'El mismo contenido, publicado por segunda vez en las formas que lee una máquina: un índice en llms.txt, el sitio entero en llms-full.txt, cada página como su propio Markdown y una ruta MCP que un asistente puede buscar.',
             'fr-FR':
@@ -1426,15 +1426,15 @@ sourceOptions: { defaultRef: 'v2.0.0' }
               icon: 'lucide:file-text',
               label: {
                 'en-GB':
-                  'Build output, not a runtime service — the files are on the CDN with the pages.',
+                  'Build output, not a runtime service: the files are on the CDN with the pages.',
                 'de-DE':
-                  'Build-Ausgabe, kein Laufzeitdienst — die Dateien liegen mit den Seiten im CDN.',
+                  'Build-Ausgabe, kein Laufzeitdienst: die Dateien liegen mit den Seiten im CDN.',
                 'es-ES':
                   'Salida de compilación, no un servicio en ejecución: los archivos están en el CDN con las páginas.',
                 'fr-FR':
-                  'Sortie de build, pas un service à l’exécution — les fichiers sont sur le CDN avec les pages.',
+                  'Sortie de build, pas un service à l’exécution : les fichiers sont sur le CDN avec les pages.',
                 'pt-PT':
-                  'Saída da build, não um serviço em execução — os ficheiros estão no CDN com as páginas.'
+                  'Saída da build, não um serviço em execução: os ficheiros estão no CDN com as páginas.'
               }
             },
             {
@@ -1443,7 +1443,7 @@ sourceOptions: { defaultRef: 'v2.0.0' }
                 'en-GB':
                   'Every page has a "copy as Markdown", and a link that opens it in an assistant.',
                 'de-DE':
-                  'Jede Seite hat ein „als Markdown kopieren“ — und einen Link, der sie in einem Assistenten öffnet.',
+                  'Jede Seite hat ein „als Markdown kopieren“ und einen Link, der sie in einem Assistenten öffnet.',
                 'es-ES':
                   'Cada página tiene un «copiar como Markdown» y un enlace que la abre en un asistente.',
                 'fr-FR':
@@ -1456,15 +1456,15 @@ sourceOptions: { defaultRef: 'v2.0.0' }
               icon: 'lucide:plug-zap',
               label: {
                 'en-GB':
-                  'The MCP route serves the same collections the site queries — one source, two readers.',
+                  'The MCP route serves the same collections the site queries: one source, two readers.',
                 'de-DE':
-                  'Die MCP-Route liefert dieselben Collections, die auch die Seite abfragt — eine Quelle, zwei Leser.',
+                  'Die MCP-Route liefert dieselben Collections, die auch die Seite abfragt: eine Quelle, zwei Leser.',
                 'es-ES':
                   'La ruta MCP sirve las mismas colecciones que consulta el sitio: una fuente, dos lectores.',
                 'fr-FR':
-                  'La route MCP sert les mêmes collections que le site interroge — une source, deux lecteurs.',
+                  'La route MCP sert les mêmes collections que le site interroge : une source, deux lecteurs.',
                 'pt-PT':
-                  'A rota MCP serve as mesmas coleções que o site consulta — uma fonte, dois leitores.'
+                  'A rota MCP serve as mesmas coleções que o site consulta: uma fonte, dois leitores.'
               }
             }
           ],
@@ -1503,17 +1503,17 @@ sourceOptions: { defaultRef: 'v2.0.0' }
           },
           description: {
             'en-GB':
-              'One line of config brings theme, pages and components — override any file.',
+              'One line of config brings theme, pages and components. Override any file.',
             'de-DE':
-              'Eine Zeile Konfiguration bringt Theme, Seiten und Komponenten — jede Datei bleibt überschreibbar.',
+              'Eine Zeile Konfiguration bringt Theme, Seiten und Komponenten. Jede Datei bleibt überschreibbar.',
             'es-ES':
               'Una línea de configuración aporta tema, páginas y componentes: cualquier archivo se puede sobrescribir.',
             'fr-FR':
-              'Une ligne de configuration apporte thème, pages et composants — chaque fichier reste remplaçable.',
+              'Une ligne de configuration apporte thème, pages et composants, et chaque fichier reste remplaçable.',
             'pt-PT':
-              'Uma linha de configuração traz tema, páginas e componentes — qualquer ficheiro pode ser substituído.',
+              'Uma linha de configuração traz tema, páginas e componentes, e qualquer ficheiro pode ser substituído.',
             'pt-BR':
-              'Uma linha de configuração traz tema, páginas e componentes — qualquer arquivo pode ser substituído.'
+              'Uma linha de configuração traz tema, páginas e componentes, e qualquer arquivo pode ser substituído.'
           },
           icon: 'lucide:package',
           to: '/getting-started/installation'
@@ -1553,7 +1553,7 @@ sourceOptions: { defaultRef: 'v2.0.0' }
             'en-GB':
               'A tag becomes a version, and the switcher stays on the page you are reading.',
             'de-DE':
-              'Ein Tag wird zur Version — der Umschalter bleibt auf der Seite, die du liest.',
+              'Ein Tag wird zur Version, und der Umschalter bleibt auf der Seite, die du liest.',
             'es-ES':
               'Una etiqueta se convierte en versión, y el selector no abandona la página que lees.',
             'fr-FR':
@@ -1641,15 +1641,15 @@ sourceOptions: { defaultRef: 'v2.0.0' }
           },
           description: {
             'en-GB':
-              'MDC ships with Content — call a Vue component with block syntax.',
+              'MDC ships with Content: call a Vue component with block syntax.',
             'de-DE':
-              'MDC kommt mit Content — eine Vue-Komponente per Block-Syntax aufrufen.',
+              'MDC kommt mit Content: eine Vue-Komponente per Block-Syntax aufrufen.',
             'es-ES':
               'MDC viene con Content: llama a un componente Vue con sintaxis de bloque.',
             'fr-FR':
-              'MDC est livré avec Content — appelez un composant Vue en syntaxe de bloc.',
+              'MDC est livré avec Content : appelez un composant Vue en syntaxe de bloc.',
             'pt-PT':
-              'O MDC vem com o Content — chame um componente Vue com sintaxe de bloco.'
+              'O MDC vem com o Content: chame um componente Vue com sintaxe de bloco.'
           },
           icon: 'lucide:code',
           to: '/reference/mdc-components'
@@ -1713,15 +1713,15 @@ sourceOptions: { defaultRef: 'v2.0.0' }
           },
           description: {
             'en-GB':
-              'Fuzzy, keyboard-first, built from the same collections — no index to host.',
+              'Fuzzy, keyboard-first, built from the same collections, with no index to host.',
             'de-DE':
-              'Unscharf, tastaturzuerst, aus denselben Collections gebaut — kein Index zu hosten.',
+              'Unscharf, tastaturzuerst, aus denselben Collections gebaut, ohne Index zum Hosten.',
             'es-ES':
               'Difusa, primero el teclado, construida desde las mismas colecciones: sin índice que alojar.',
             'fr-FR':
-              'Floue, clavier d’abord, construite sur les mêmes collections — aucun index à héberger.',
+              'Floue, clavier d’abord, construite sur les mêmes collections, sans index à héberger.',
             'pt-PT':
-              'Difusa, primeiro o teclado, construída a partir das mesmas coleções — sem índice para alojar.'
+              'Difusa, primeiro o teclado, construída a partir das mesmas coleções, sem índice para alojar.'
           }
         },
         {
@@ -1779,15 +1779,15 @@ sourceOptions: { defaultRef: 'v2.0.0' }
           },
           description: {
             'en-GB':
-              'Sitemap, robots, hreflang, schema.org and a rendered card per page — from the Nuxt SEO bundle.',
+              'Sitemap, robots, hreflang, schema.org and a rendered card per page, from the Nuxt SEO bundle.',
             'de-DE':
-              'Sitemap, robots, hreflang, schema.org und eine gerenderte Karte je Seite — aus dem Nuxt-SEO-Bundle.',
+              'Sitemap, robots, hreflang, schema.org und eine gerenderte Karte je Seite, aus dem Nuxt-SEO-Bundle.',
             'es-ES':
               'Sitemap, robots, hreflang, schema.org y una tarjeta por página, del paquete Nuxt SEO.',
             'fr-FR':
-              'Sitemap, robots, hreflang, schema.org et une carte rendue par page — du bundle Nuxt SEO.',
+              'Sitemap, robots, hreflang, schema.org et une carte rendue par page, issue du bundle Nuxt SEO.',
             'pt-PT':
-              'Sitemap, robots, hreflang, schema.org e um cartão por página — do pacote Nuxt SEO.'
+              'Sitemap, robots, hreflang, schema.org e um cartão por página, do pacote Nuxt SEO.'
           }
         },
         {
@@ -1801,15 +1801,15 @@ sourceOptions: { defaultRef: 'v2.0.0' }
           },
           description: {
             'en-GB':
-              'A CHANGELOG.md becomes a release log with a feed — one entry per version, or one page flat.',
+              'A CHANGELOG.md becomes a release log with a feed: one entry per version, or one page flat.',
             'de-DE':
-              'Eine CHANGELOG.md wird zum Release-Log mit Feed — ein Eintrag je Version, oder eine Seite am Stück.',
+              'Eine CHANGELOG.md wird zum Release-Log mit Feed: ein Eintrag je Version, oder eine Seite am Stück.',
             'es-ES':
               'Un CHANGELOG.md se convierte en registro de versiones con feed: una entrada por versión, o una página entera.',
             'fr-FR':
-              'Un CHANGELOG.md devient un journal de versions avec flux — une entrée par version, ou une page entière.',
+              'Un CHANGELOG.md devient un journal de versions avec flux : une entrée par version, ou une page entière.',
             'pt-PT':
-              'Um CHANGELOG.md torna-se um registo de versões com feed — uma entrada por versão, ou uma página inteira.'
+              'Um CHANGELOG.md torna-se um registo de versões com feed: uma entrada por versão, ou uma página inteira.'
           }
         },
         {
@@ -1845,15 +1845,15 @@ sourceOptions: { defaultRef: 'v2.0.0' }
           },
           description: {
             'en-GB':
-              '/rss.xml over the section you name — off until you name one, because an edited page is not an event.',
+              '/rss.xml over the section you name. Off until you name one, because an edited page is not an event.',
             'de-DE':
-              '/rss.xml über den Bereich, den du nennst — aus, bis du einen nennst: eine bearbeitete Seite ist kein Ereignis.',
+              '/rss.xml über den Bereich, den du nennst. Aus, bis du einen nennst: eine bearbeitete Seite ist kein Ereignis.',
             'es-ES':
               '/rss.xml sobre la sección que indiques; apagado hasta entonces, porque editar una página no es un evento.',
             'fr-FR':
-              '/rss.xml sur la section que vous nommez — inactif tant que vous n’en nommez aucune : une page modifiée n’est pas un événement.',
+              '/rss.xml sur la section que vous nommez, inactif tant que vous n’en nommez aucune : une page modifiée n’est pas un événement.',
             'pt-PT':
-              '/rss.xml sobre a secção que indicares — desligado até indicares uma, porque editar uma página não é um evento.'
+              '/rss.xml sobre a secção que indicares, desligado até indicares uma, porque editar uma página não é um evento.'
           }
         },
         {
@@ -1889,9 +1889,9 @@ sourceOptions: { defaultRef: 'v2.0.0' }
           },
           description: {
             'en-GB':
-              '"Was this helpful?" posted wherever you point it — your own endpoint, or an issue on the repo.',
+              '"Was this helpful?" posted wherever you point it: your own endpoint, or an issue on the repo.',
             'de-DE':
-              '„War das hilfreich?" — gesendet wohin du zeigst: an deinen eigenen Endpunkt oder als Issue im Repository.',
+              '„War das hilfreich?" gesendet, wohin du zeigst: an deinen eigenen Endpunkt oder als Issue im Repository.',
             'es-ES':
               '«¿Te ha servido?», enviado a donde lo apuntes: tu propio endpoint o una issue en el repositorio.',
             'fr-FR':
@@ -1911,15 +1911,15 @@ sourceOptions: { defaultRef: 'v2.0.0' }
           },
           description: {
             'en-GB':
-              'Last updated, the contributors and an edit link — read from git, not written by hand.',
+              'Last updated, the contributors and an edit link, read from git, not written by hand.',
             'de-DE':
-              'Zuletzt geändert, die Mitwirkenden und ein Bearbeiten-Link — aus git gelesen, nicht getippt.',
+              'Zuletzt geändert, die Mitwirkenden und ein Bearbeiten-Link, aus git gelesen, nicht getippt.',
             'es-ES':
               'Última actualización, los colaboradores y un enlace de edición: leídos de git, no escritos a mano.',
             'fr-FR':
-              'Dernière modification, les contributeurs et un lien d’édition — lus dans git, pas saisis à la main.',
+              'Dernière modification, les contributeurs et un lien d’édition, lus dans git, pas saisis à la main.',
             'pt-PT':
-              'Última atualização, os contribuidores e uma ligação de edição — lidos do git, não escritos à mão.'
+              'Última atualização, os contribuidores e uma ligação de edição, lidos do git, não escritos à mão.'
           }
         },
         {
@@ -1933,15 +1933,15 @@ sourceOptions: { defaultRef: 'v2.0.0' }
           },
           description: {
             'en-GB':
-              'Copy it as Markdown, or open it in Claude or ChatGPT — the same content the site renders.',
+              'Copy it as Markdown, or open it in Claude or ChatGPT: the same content the site renders.',
             'de-DE':
-              'Als Markdown kopieren oder in Claude bzw. ChatGPT öffnen — derselbe Inhalt, den die Seite rendert.',
+              'Als Markdown kopieren oder in Claude bzw. ChatGPT öffnen: derselbe Inhalt, den die Seite rendert.',
             'es-ES':
               'Cópiala como Markdown, o ábrela en Claude o ChatGPT: el mismo contenido que renderiza el sitio.',
             'fr-FR':
-              'Copiez-la en Markdown, ou ouvrez-la dans Claude ou ChatGPT — le contenu même que le site rend.',
+              'Copiez-la en Markdown, ou ouvrez-la dans Claude ou ChatGPT : le contenu même que le site rend.',
             'pt-PT':
-              'Copia-a como Markdown, ou abre-a no Claude ou no ChatGPT — o mesmo conteúdo que o site apresenta.'
+              'Copia-a como Markdown, ou abre-a no Claude ou no ChatGPT: o mesmo conteúdo que o site apresenta.'
           }
         },
         {
@@ -1955,15 +1955,15 @@ sourceOptions: { defaultRef: 'v2.0.0' }
           },
           description: {
             'en-GB':
-              'Callouts, steps, tabs, file trees, package-manager blocks and Mermaid — MDC, no extra module.',
+              'Callouts, steps, tabs, file trees, package-manager blocks and Mermaid (MDC, no extra module).',
             'de-DE':
-              'Callouts, Steps, Tabs, Dateibäume, Paketmanager-Blöcke und Mermaid — MDC, ohne Zusatzmodul.',
+              'Callouts, Steps, Tabs, Dateibäume, Paketmanager-Blöcke und Mermaid (MDC, ohne Zusatzmodul).',
             'es-ES':
               'Avisos, pasos, pestañas, árboles de archivos, bloques de gestor de paquetes y Mermaid: MDC, sin módulo extra.',
             'fr-FR':
-              'Encarts, étapes, onglets, arborescences, blocs de gestionnaire de paquets et Mermaid — MDC, sans module supplémentaire.',
+              'Encarts, étapes, onglets, arborescences, blocs de gestionnaire de paquets et Mermaid (MDC, sans module supplémentaire).',
             'pt-PT':
-              'Avisos, passos, separadores, árvores de ficheiros, blocos de gestor de pacotes e Mermaid — MDC, sem módulo extra.'
+              'Avisos, passos, separadores, árvores de ficheiros, blocos de gestor de pacotes e Mermaid (MDC, sem módulo extra).'
           }
         }
       ]
