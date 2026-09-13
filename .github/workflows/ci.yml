@@ -23,4 +23,15 @@ permissions:
 jobs:
   check:
     name: CI
-    uses: kirchDev/workflows/.github/workflows/_ci-check.yml@1e57db95ff601f03ae87b78e329ef238f9d0cbf6 # v0.8.2
+    uses: kirchDev/workflows/.github/workflows/_ci-check.yml@69bab03ff0e8b0ac3791cd6dbec97a4a8328c433 # v0.11.0
+    # THE REMOTE SOURCES, CACHED BETWEEN RUNS. A site reading other repositories
+    # re-cloned every one of them on every pull request. The body restores and
+    # saves the cache itself, because a job beside this call runs on another
+    # runner and could never hand the directory to the checks.
+    #
+    # THE SAME COMMAND `deploy.yml` RUNS, and it has to stay the same: a hit
+    # across pull requests comes from the default branch's writer, so the key
+    # and the path list must agree. The command answers `cacheable=false` for a
+    # private or authenticated source, and the body then caches nothing.
+    with:
+      remote-source-cache-command: node ./bin/duxt-cache-key.mjs --root www --github >> "$GITHUB_OUTPUT"

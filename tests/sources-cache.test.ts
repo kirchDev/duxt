@@ -268,6 +268,26 @@ describe('runDuxtSourcesCacheCli', () => {
     expect(output).toMatch(/reason=.*remote source/i);
   });
 
+  it('never prints a credential to a human either', () => {
+    // The redaction rule is absolute, and the human-readable listing is the
+    // one output that printed a source's URL verbatim — a local terminal, a
+    // pasted log, a screenshot in an issue.
+    const { output } = runDuxtSourcesCacheCli([], {
+      ...duxtSourcesCacheKey([
+        {
+          repo: 'https://reader:s3cret-token@github.com/o/private',
+          path: 'docs',
+          refs: [{ branch: 'main' }]
+        }
+      ]),
+      ...duxtSourcesCachePaths('www/.data/content')
+    });
+
+    expect(output).toContain('github.com/o/private');
+    expect(output).not.toContain('s3cret-token');
+    expect(output).not.toContain('reader:');
+  });
+
   it('prints the entries it keyed over for a human', () => {
     const { output } = runDuxtSourcesCacheCli([], cacheable);
 

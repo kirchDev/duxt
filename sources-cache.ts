@@ -364,7 +364,12 @@ export function runDuxtSourcesCacheCli(
       ]
     : [`Not cached: ${data.reason}`, '', 'Remote sources:'];
 
-  for (const entry of data.entries) lines.push(`  ${entry.url}  ${entry.ref}`);
+  // REDACTED here too. The `--github` output never carries a URL, but this
+  // listing did, verbatim — and a terminal, a pasted log or a screenshot is as
+  // public as the CI log `redactRemote` was written for.
+  for (const entry of data.entries) {
+    lines.push(`  ${redactRemote(entry.url)}  ${entry.ref}`);
+  }
   if (!data.entries.length) lines.push('  (none)');
 
   return { output: lines.join('\n'), exitCode: 0 };

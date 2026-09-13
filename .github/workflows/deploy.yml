@@ -112,9 +112,10 @@ jobs:
       # it, so a list holding an SSH or credential-bearing remote gets no key at
       # all and both steps below skip.
       #
-      # HERE AND NOT IN `ci.yml`, which is a stub: a reusable workflow runs in
-      # its own job with its own filesystem, so a restore beside the call cannot
-      # reach it. That half is an input on the body in kirchDev/workflows.
+      # HERE, AND AS AN INPUT IN `ci.yml`, which is a stub: a reusable workflow
+      # runs in its own job with its own filesystem, so a restore beside the call
+      # could not reach it. The pull-request half is the body's
+      # `remote-source-cache-command`, which `ci.yml` passes this same command.
       - name: Resolve the remote-source cache key
         id: sources
         run: node ./bin/duxt-cache-key.mjs --root www --github >> "$GITHUB_OUTPUT"
