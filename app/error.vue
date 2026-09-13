@@ -112,16 +112,35 @@ const elsewhere = computed(
           <p class="mb-3 text-sm text-muted-foreground">
             {{ $t('duxt.error.nearest') }}
           </p>
-          <ul class="flex flex-col gap-1 text-sm">
+          <!-- ROWS, NOT A CENTRED LINE PER PAGE. Each suggestion used to be a
+               title and its path run together on one centred line, so every
+               row started somewhere else and the paths wandered from line to
+               line. Left-aligned in one column — title over path, the way the
+               search dialog lists a page — the list reads down at a glance. -->
+          <ul class="mx-auto flex w-full max-w-md flex-col gap-1 text-start">
             <li v-for="page in suggestions" :key="page.path">
               <NuxtLink
                 :to="localeLink(page.path)"
-                class="flex items-center justify-center gap-2 rounded-md px-3 py-1.5 transition-colors hover:bg-accent"
+                class="group flex items-center gap-3 rounded-md px-3 py-2 transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
               >
-                <span class="font-medium">{{ page.title ?? page.path }}</span>
-                <span class="font-mono text-xs text-muted-foreground">{{
-                  page.path
-                }}</span>
+                <Icon
+                  name="lucide:file-text"
+                  class="size-4 shrink-0 text-muted-foreground"
+                />
+                <span class="min-w-0 flex-1">
+                  <span class="block truncate text-sm font-medium">
+                    {{ page.title ?? page.path }}
+                  </span>
+                  <span
+                    class="block truncate font-mono text-xs text-muted-foreground"
+                  >
+                    {{ page.path }}
+                  </span>
+                </span>
+                <Icon
+                  name="lucide:chevron-right"
+                  class="size-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 rtl:-scale-x-100"
+                />
               </NuxtLink>
             </li>
           </ul>
