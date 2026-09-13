@@ -444,7 +444,14 @@ function current(to?: string) {
                       class="mt-0.5 size-4 shrink-0"
                     />
                     <span class="min-w-0">
-                      <span class="block font-medium">{{ child.label }}</span>
+                      <!-- The same arrow the sheet draws for an external
+                           child, held to the label's last word. -->
+                      <span class="block font-medium">
+                        <DuxtLinkLabel
+                          :label="child.label"
+                          :external="child.external"
+                        />
+                      </span>
                       <span
                         v-if="child.description"
                         class="block text-xs text-muted-foreground"
@@ -472,6 +479,11 @@ function current(to?: string) {
                 :target="link.external ? '_blank' : undefined"
               >
                 {{ link.label }}
+                <Icon
+                  v-if="link.external"
+                  name="lucide:arrow-up-right"
+                  class="size-3 opacity-50"
+                />
               </NuxtLink>
             </UiButton>
           </template>
