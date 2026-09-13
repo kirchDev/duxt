@@ -122,37 +122,31 @@ async function copy() {
     v-if="managers.length"
     class="duxt-code my-6 overflow-hidden rounded-lg border bg-card"
   >
-    <div
-      class="flex min-h-11 items-center gap-1 border-b bg-muted/40 px-2 py-1.5"
-    >
-      <button
-        v-for="manager in managers"
-        :key="manager"
-        type="button"
-        class="flex cursor-pointer items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors"
-        :class="
-          active === manager
-            ? 'bg-background text-foreground shadow-sm'
-            : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+    <DuxtCodeToolbar>
+      <DuxtSegmented
+        v-model="active"
+        :options="
+          managers.map((manager) => ({ value: manager, label: manager }))
         "
-        @click="active = manager"
       >
-        <Icon
-          :name="
-            managerIconsLight[manager] ??
-            managerIcons[manager] ??
-            'lucide:terminal'
-          "
-          class="size-3.5"
-          :class="managerIconsLight[manager] ? 'dark:hidden' : ''"
-        />
-        <Icon
-          v-if="managerIconsLight[manager]"
-          :name="managerIcons[manager]"
-          class="hidden size-3.5 dark:block"
-        />
-        {{ manager }}
-      </button>
+        <template #option="{ option }">
+          <Icon
+            :name="
+              managerIconsLight[option.value] ??
+              managerIcons[option.value] ??
+              'lucide:terminal'
+            "
+            class="size-3.5"
+            :class="managerIconsLight[option.value] ? 'dark:hidden' : ''"
+          />
+          <Icon
+            v-if="managerIconsLight[option.value]"
+            :name="managerIcons[option.value]"
+            class="hidden size-3.5 dark:block"
+          />
+          {{ option.label }}
+        </template>
+      </DuxtSegmented>
 
       <DuxtCopyButton
         :copied="copied"
@@ -160,7 +154,7 @@ async function copy() {
         class="ms-auto"
         @click="copy"
       />
-    </div>
+    </DuxtCodeToolbar>
 
     <!-- eslint-disable-next-line vue/no-v-html -- Shiki output, built on the
          server from this component's own prop, never from page content. -->

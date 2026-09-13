@@ -26,6 +26,14 @@ const duxt = useDuxtConfig();
 
 const media = computed(() => types.value[current.value] ?? types.value[0]);
 
+/** The index as the string a pill group keys its options by. */
+const currentValue = computed({
+  get: () => String(current.value),
+  set: (value: string) => {
+    current.value = Number(value);
+  }
+});
+
 /** The examples the document wrote, and — where it wrote none — a derived one. */
 const examples = computed(() => {
   const written = media.value?.examples ?? [];
@@ -44,23 +52,21 @@ const examples = computed(() => {
 
 <template>
   <div v-if="types.length" class="min-w-0">
-    <div v-if="types.length > 1" class="mb-3 flex flex-wrap gap-1.5">
-      <button
-        v-for="(entry, index) in types"
-        :key="entry.type"
-        type="button"
-        class="rounded-md px-2 py-1 font-mono text-xs transition-colors"
-        :class="
-          index === current
-            ? 'bg-muted text-foreground'
-            : 'text-muted-foreground hover:text-foreground'
-        "
-        :aria-pressed="index === current"
-        @click="current = index"
-      >
-        {{ entry.type }}
-      </button>
-    </div>
+    <!-- `flat`: this strip sits on the page itself, where a raised pill's
+         shadow has nothing to lift it off. -->
+    <DuxtSegmented
+      v-if="types.length > 1"
+      v-model="currentValue"
+      :options="
+        types.map((entry, index) => ({
+          value: String(index),
+          label: entry.type
+        }))
+      "
+      tone="flat"
+      mono
+      class="mb-3 flex-wrap gap-1.5"
+    />
 
     <p v-else class="mb-2 font-mono text-xs text-muted-foreground">
       {{ media?.type }}

@@ -250,12 +250,7 @@ const title = computed(
         type="button"
         role="tab"
         :aria-selected="index === active"
-        class="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
-        :class="
-          index === active
-            ? 'bg-background text-foreground shadow-sm'
-            : 'text-muted-foreground hover:bg-background/60 hover:text-foreground'
-        "
+        :class="duxtPill(index === active, { size: 'lg' })"
         @click="select(index)"
       >
         <Icon v-if="tab.icon" :name="tab.icon" class="size-4" />

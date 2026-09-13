@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { TabsContent, TabsList, TabsRoot, TabsTrigger } from 'reka-ui';
+import { TabsContent, TabsRoot } from 'reka-ui';
 
 /**
  * `::preview` — a component rendered as the page renders it, with the MDC that
@@ -99,23 +99,21 @@ const tabs = computed(() => [
          it: a `tablist` may hold tabs and nothing else, and a button inside one
          is an `aria-required-children` failure — latent here only because it
          renders on the source tab, which is not the tab a page loads on. -->
-    <div
-      class="flex min-h-11 items-center gap-1 border-b bg-muted/40 px-2 py-1.5"
-    >
-      <TabsList
-        class="flex items-center gap-1"
+    <DuxtCodeToolbar>
+      <UiTabsList
+        variant="bare"
         :aria-label="$t('duxt.code.previewTabs') as string"
       >
-        <TabsTrigger
+        <UiTabsTrigger
           v-for="tab in tabs"
           :key="tab.value"
           :value="tab.value"
-          class="flex cursor-pointer items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+          variant="pill"
         >
           <Icon :name="tab.icon" class="size-3.5" />
           {{ tab.label }}
-        </TabsTrigger>
-      </TabsList>
+        </UiTabsTrigger>
+      </UiTabsList>
 
       <!-- Right of the tabs, where every other card on the site puts it. Only
            on the source tab: a copy button beside a rendered example copies
@@ -126,7 +124,7 @@ const tabs = computed(() => [
         class="ms-auto"
         @click="copy(codeMeta.code)"
       />
-    </div>
+    </DuxtCodeToolbar>
 
     <TabsContent value="preview" class="outline-none">
       <!-- The example on the card's own surface, its outer margins taken off:

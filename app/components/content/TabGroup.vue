@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { TabsList, TabsRoot, TabsTrigger } from 'reka-ui';
+import { TabsRoot } from 'reka-ui';
 
 /**
  * `::tab-group` with `:::tab{label="…"}` children.
@@ -11,11 +11,11 @@ import { TabsList, TabsRoot, TabsTrigger } from 'reka-ui';
  * A content component may not take a name the UI kit owns. `::code-group` next
  * to it reads the same way, which is the consolation.
  *
- * Built on reka-ui's primitives directly rather than on the shadcn `Tabs`
- * wrapper, because the labels are not known until the children have registered
- * themselves: MDC hands them in as slot content, not as a prop. A provide/inject
- * pair collects them, which is also what makes a `:::tab` work at any depth
- * inside the block.
+ * The root is reka-ui's own, because the labels are not known until the
+ * children have registered themselves: MDC hands them in as slot content, not as
+ * a prop. A provide/inject pair collects them, which is also what makes a
+ * `:::tab` work at any depth inside the block. The strip is the UI kit's, in its
+ * `underline` look.
  *
  * Keyboard navigation, roving focus and the ARIA roles come from reka-ui — the
  * reason not to hand-roll this out of divs.
@@ -39,19 +39,20 @@ provide<DuxtTabGroupContext>('duxt-tabs', {
 
 <template>
   <TabsRoot v-model="active" class="my-6">
-    <TabsList
-      class="flex gap-1 border-b"
+    <UiTabsList
+      variant="bare"
+      class="border-b"
       :aria-label="$t('duxt.page.tabs') as string"
     >
-      <TabsTrigger
+      <UiTabsTrigger
         v-for="tab in tabs"
         :key="tab.value"
         :value="tab.value"
-        class="-mb-px cursor-pointer border-b-2 border-transparent px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground data-[state=active]:border-primary data-[state=active]:text-foreground"
+        variant="underline"
       >
         {{ tab.label }}
-      </TabsTrigger>
-    </TabsList>
+      </UiTabsTrigger>
+    </UiTabsList>
 
     <slot />
   </TabsRoot>

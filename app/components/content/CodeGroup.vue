@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { TabsContent, TabsList, TabsRoot, TabsTrigger } from 'reka-ui';
+import { TabsContent, TabsRoot } from 'reka-ui';
 
 /**
  * Several fences, one block, one tab each.
@@ -122,26 +122,26 @@ async function copy() {
          inside it is a control a screen reader is told to treat as a tab and
          cannot. So the row is a plain box and the tablist is the part of it
          that actually holds tabs. -->
-    <div
-      class="flex min-h-11 items-center gap-1 border-b bg-muted/40 px-2 py-1.5"
-    >
-      <TabsList
-        class="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto"
+    <DuxtCodeToolbar>
+      <UiTabsList
+        variant="bare"
+        class="min-w-0 flex-1 overflow-x-auto"
         :aria-label="$t('duxt.page.tabs') as string"
       >
-        <TabsTrigger
+        <UiTabsTrigger
           v-for="entry in entries"
           :key="entry.value"
           :value="entry.value"
-          class="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-2.5 py-1 font-mono text-xs transition-colors data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=inactive]:text-muted-foreground hover:bg-accent hover:text-foreground"
+          variant="pill"
+          class="font-mono"
         >
           <Icon :name="entry.icon" class="size-3.5" />
           {{ entry.label }}
-        </TabsTrigger>
-      </TabsList>
+        </UiTabsTrigger>
+      </UiTabsList>
 
       <DuxtCopyButton :copied="copied" @click="copy" />
-    </div>
+    </DuxtCodeToolbar>
 
     <!-- THE BLOCK FOLLOWS THE FILE THAT IS SHOWING, over 300ms.
 

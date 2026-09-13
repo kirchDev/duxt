@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { TabsContent, TabsList, TabsRoot, TabsTrigger } from 'reka-ui';
+import { TabsContent, TabsRoot } from 'reka-ui';
 import type {
   DuxtOpenApiOperation,
   DuxtOpenApiSecurity,
@@ -1132,26 +1132,18 @@ function pretty(text: string): string {
                the schema cannot describe as a form has one view, and a strip
                offering a tab that falls straight back is a control that lies
                about what it does. -->
-              <div
+              <DuxtSegmented
                 v-if="formable"
-                class="ms-auto flex items-center gap-0.5 rounded-md border p-0.5"
-              >
-                <button
-                  v-for="view in ['form', 'json'] as const"
-                  :key="view"
-                  type="button"
-                  :aria-pressed="mode === view"
-                  class="cursor-pointer rounded px-2 py-0.5 text-xs font-medium transition-colors"
-                  :class="
-                    mode === view
-                      ? 'bg-accent text-foreground'
-                      : 'text-muted-foreground hover:text-foreground'
-                  "
-                  @click="bodyMode = view"
-                >
-                  {{ $t(`duxt.openapi.client.${view}`) }}
-                </button>
-              </div>
+                :model-value="mode"
+                :options="[
+                  { value: 'form', label: $t('duxt.openapi.client.form') },
+                  { value: 'json', label: $t('duxt.openapi.client.json') }
+                ]"
+                size="sm"
+                tone="flat"
+                class="ms-auto gap-0.5 rounded-md border p-0.5"
+                @update:model-value="bodyMode = $event"
+              />
             </div>
 
             <UiSelect v-if="bodies.length > 1" v-model="bodyValue">
@@ -1415,30 +1407,30 @@ function pretty(text: string): string {
              button inside one as `aria-required-children`. The header row is
              the flex container instead, so it still sits where every other
              card on the site puts it. -->
-              <div
-                class="flex min-h-11 items-center gap-1 border-b bg-muted/40 px-2 py-1.5"
-              >
-                <TabsList
-                  class="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto"
+              <DuxtCodeToolbar>
+                <UiTabsList
+                  variant="bare"
+                  class="min-w-0 flex-1 overflow-x-auto"
                   :aria-label="$t('duxt.openapi.client.samples') as string"
                 >
-                  <TabsTrigger
+                  <UiTabsTrigger
                     v-for="entry in groups"
                     :key="entry"
                     :value="entry"
-                    class="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-2.5 py-1 font-mono text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                    variant="pill"
+                    class="font-mono"
                   >
                     <Icon :name="groupIcon(entry)" class="size-3.5" />
                     {{ entry }}
-                  </TabsTrigger>
-                </TabsList>
+                  </UiTabsTrigger>
+                </UiTabsList>
 
                 <DuxtCopyButton
                   :copied="copiedSample"
                   class="ms-auto"
                   @click="copySample"
                 />
-              </div>
+              </DuxtCodeToolbar>
 
               <!-- THE CLIENTS OF THE ACTIVE LANGUAGE, in a row of their own.
              Beside the tabs they were a control the reader had to open to learn
@@ -1451,28 +1443,20 @@ function pretty(text: string): string {
              `ui/radio-group` here to implement it. A group of pressed buttons
              promises only what it does — every one reachable by Tab, every one
              saying whether it is on. -->
-              <div
+              <DuxtSegmented
                 v-if="clients.length > 1 && clients.length < 6"
-                role="group"
-                :aria-label="$t('duxt.openapi.client.sampleClient') as string"
-                class="flex items-center gap-1 overflow-x-auto border-b bg-muted/20 px-2 py-1.5"
-              >
-                <button
-                  v-for="entry in clients"
-                  :key="entry.id"
-                  type="button"
-                  :aria-pressed="entry.id === sample"
-                  class="cursor-pointer whitespace-nowrap rounded-md px-2 py-0.5 font-mono text-xs transition-colors"
-                  :class="
-                    entry.id === sample
-                      ? 'bg-background text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:bg-accent hover:text-foreground'
-                  "
-                  @click="sample = entry.id"
-                >
-                  {{ entry.label }}
-                </button>
-              </div>
+                v-model="sample"
+                :options="
+                  clients.map((entry) => ({
+                    value: entry.id,
+                    label: entry.label
+                  }))
+                "
+                :label="$t('duxt.openapi.client.sampleClient') as string"
+                size="sm"
+                mono
+                class="overflow-x-auto border-b bg-muted/20 px-2 py-1.5"
+              />
 
               <!-- Six is where a row stops being a row. A language with that many
              clients is a site that configured them, and a select carries any
