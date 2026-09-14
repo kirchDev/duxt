@@ -5,7 +5,9 @@
   <img src=".github/assets/wordmark-light.svg" alt="duxt" width="200" />
 </picture>
 
-**Versioned, multi-repo documentation for Nuxt — one line to extend, no collection boilerplate**
+**Versioned docs, from the repositories you already have**
+
+duxt is a Nuxt layer: extend it and your docs/ folder becomes a site, with theme, search, API reference and llms.txt included. Point it at other repositories, or at tags of the same one, and each becomes a version.
 
 [![npm Version](https://img.shields.io/npm/v/@kirchdev/duxt.svg?style=flat-square&color=4f46e5)](https://www.npmjs.com/package/@kirchdev/duxt)
 [![Downloads](https://img.shields.io/npm/dm/@kirchdev/duxt.svg?style=flat-square&color=4f46e5)](https://www.npmjs.com/package/@kirchdev/duxt)

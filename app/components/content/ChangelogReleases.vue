@@ -242,7 +242,7 @@ const rows = computed(() =>
          dropped re-laid the row it shared, so the button a reader was aiming at
          slid out from under the pointer between two clicks. On a row of its own
          the header is fixed and only the row that is actually changing moves. -->
-    <div class="mt-12 mb-8 space-y-3">
+    <div class="mt-12 mb-8">
       <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
         <h2 class="text-lg font-semibold tracking-tight">
           {{ $t('duxt.changelog.history') }}
@@ -334,45 +334,62 @@ const rows = computed(() =>
            The row is ALWAYS RENDERED and hidden while empty (`empty:hidden`),
            rather than held behind a `v-if` that would take the leaving chips
            with it before they could leave. During a leave it is no longer
-           empty, so it stays laid out until the last chip is gone. -->
-      <TransitionGroup
-        tag="div"
-        role="group"
-        :aria-label="$t('duxt.changelog.selected')"
-        class="flex flex-wrap items-center gap-2 empty:hidden"
-        enter-active-class="transition duration-200 ease-out motion-reduce:transition-none"
-        enter-from-class="scale-95 opacity-0"
-        leave-active-class="transition duration-150 ease-in motion-reduce:transition-none"
-        leave-to-class="scale-95 opacity-0"
-        move-class="transition-transform duration-200 ease-out motion-reduce:transition-none"
-      >
-        <button
-          v-for="name in selected"
-          :key="name"
-          type="button"
-          class="inline-flex cursor-pointer items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-          :class="changelogTone(name).chip"
-          @click="toggle(name)"
-        >
-          <span
-            aria-hidden="true"
-            class="size-1.5 rounded-full"
-            :class="changelogTone(name).dot"
-          />
-          {{ changelogLabel(name) }}
-          <Icon name="lucide:x" class="size-3 opacity-60" />
-        </button>
+           empty, so it stays laid out until the last chip is gone.
 
-        <button
-          v-if="selected.length"
-          key="reset"
-          type="button"
-          class="cursor-pointer text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-          @click="selected = []"
-        >
-          {{ $t('duxt.changelog.reset') }}
-        </button>
-      </TransitionGroup>
+           ITS HEIGHT ANIMATES TOO. Appearing and vanishing in one step, the row
+           pushed the figures and the whole list down by its own height on the
+           first choice and pulled them back up on the last — the one jump left
+           in a gesture that otherwise moves. `grid-template-rows` from `0fr` to
+           `1fr` is the one height transition CSS can run without knowing the
+           height, and the spacing lives INSIDE the clipped track so it
+           collapses with it. The padding sits on the INNER box because a
+           grid item cannot shrink below its own padding, and it keeps a chip's
+           focus ring clear of the clip. -->
+      <div
+        class="grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none"
+        :class="selected.length ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'"
+      >
+        <div class="-mx-1 min-h-0 overflow-hidden">
+          <TransitionGroup
+            tag="div"
+            role="group"
+            :aria-label="$t('duxt.changelog.selected')"
+            class="flex flex-wrap items-center gap-2 px-1 pt-3 pb-1"
+            enter-active-class="transition duration-200 ease-out motion-reduce:transition-none"
+            enter-from-class="scale-95 opacity-0"
+            leave-active-class="transition duration-150 ease-in motion-reduce:transition-none"
+            leave-to-class="scale-95 opacity-0"
+            move-class="transition-transform duration-200 ease-out motion-reduce:transition-none"
+          >
+            <button
+              v-for="name in selected"
+              :key="name"
+              type="button"
+              class="inline-flex cursor-pointer items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+              :class="changelogTone(name).chip"
+              @click="toggle(name)"
+            >
+              <span
+                aria-hidden="true"
+                class="size-1.5 rounded-full"
+                :class="changelogTone(name).dot"
+              />
+              {{ changelogLabel(name) }}
+              <Icon name="lucide:x" class="size-3 opacity-60" />
+            </button>
+
+            <button
+              v-if="selected.length"
+              key="reset"
+              type="button"
+              class="cursor-pointer text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+              @click="selected = []"
+            >
+              {{ $t('duxt.changelog.reset') }}
+            </button>
+          </TransitionGroup>
+        </div>
+      </div>
     </div>
 
     <!-- WHAT THE LIST CANNOT SAY: how much there is. Two figures set the way

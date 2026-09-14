@@ -49,9 +49,22 @@ export function useActiveHeading(ids: Ref<string[]>, scrollOffset = 96) {
       return;
     }
 
+    // THE LINE IS NEVER ABOVE WHERE A JUMP PARKS THE HEADING. A click in the
+    // outline scrolls the heading to its own `scroll-margin-top` — 112px, to
+    // clear the header AND the section row — and a fixed 96px line sat above
+    // that, so the heading just jumped to was not yet "passed" and the entry
+    // before it stayed marked. Reading the margin off the heading follows
+    // whatever the sticky stack is on this page and at this width; the
+    // configured offset remains the floor. The pixel absorbs sub-pixel scroll
+    // positions.
     let current = headings[0]!;
     for (const heading of headings) {
-      if (heading.getBoundingClientRect().top > scrollOffset) break;
+      const margin = Number.parseFloat(
+        getComputedStyle(heading).scrollMarginTop
+      );
+      const line =
+        Math.max(scrollOffset, Number.isNaN(margin) ? 0 : margin) + 1;
+      if (heading.getBoundingClientRect().top > line) break;
       current = heading;
     }
 

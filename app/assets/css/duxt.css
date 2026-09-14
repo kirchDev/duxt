@@ -596,3 +596,21 @@ pre.shiki,
 main:has(.duxt-flush-footer) + footer {
   margin-top: 0;
 }
+
+/* The theme toggle reveals the new theme as a growing circle — see
+   `useDuxtThemeToggle`. The browser's default cross-fade is switched off so the
+   clip is the only animation, and the new snapshot is lifted above the old one
+   it opens over. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 9999;
+}
