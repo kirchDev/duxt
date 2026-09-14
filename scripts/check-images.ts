@@ -244,6 +244,38 @@ async function viewer(browser: Browser): Promise<string[]> {
 
     await dialog.waitFor({ state: 'visible' });
 
+    // MEASURE A LOADED IMAGE. The viewer's picture is sized by its own pixels
+    // (`w-auto h-auto` inside a max box), so until the file arrives it is a 0px
+    // box — and measuring it straight after the dialog opens made this check a
+    // race: green on one CI run, "the 0px viewer image" on the next, with no
+    // change to either. A file that never loads is a failure of its own.
+    const loaded = await viewed.evaluate(
+      (image: HTMLImageElement) =>
+        new Promise<string | null>((resolve) => {
+          if (image.complete)
+            return resolve(image.naturalWidth > 0 ? null : 'broken');
+          const timer = setTimeout(() => resolve('timeout'), 30_000);
+          image.addEventListener(
+            'load',
+            () => (clearTimeout(timer), resolve(null)),
+            { once: true }
+          );
+          image.addEventListener(
+            'error',
+            () => (clearTimeout(timer), resolve('broken')),
+            { once: true }
+          );
+        })
+    );
+
+    if (loaded) {
+      return [
+        loaded === 'timeout'
+          ? 'the viewer image did not load within 30 seconds'
+          : `the viewer image failed to load (${await viewed.getAttribute('src')})`
+      ];
+    }
+
     const [imageBox, closeBox] = await Promise.all([
       viewed.boundingBox(),
       close.boundingBox()
