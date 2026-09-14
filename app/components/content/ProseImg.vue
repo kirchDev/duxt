@@ -525,11 +525,18 @@ if (import.meta.server && import.meta.prerender) {
 
     <UiDialog v-if="zoomable" v-model:open="open">
       <!-- The whole viewport, transparent over the overlay: the blur is what
-           separates the picture from the page, not a border. -->
+           separates the picture from the page, not a border.
+
+           THE DARKENING AND THE BLUR BELONG TO THE OVERLAY, not to this box.
+           The content scales in from 95%, so a surface painted here reached
+           the viewport's edges only once that animation ended — and for 200ms
+           the page's text showed unblurred along the bottom. The overlay only
+           fades, so it covers the whole screen from the first frame. -->
       <UiDialogContent
         :show-close-button="false"
         :aria-describedby="undefined"
-        class="inset-0 grid h-dvh w-screen max-w-none translate-none grid-rows-[auto_minmax(0,1fr)_auto] gap-0 rounded-none border-0 bg-neutral-950/60 p-0 shadow-none backdrop-blur-md sm:max-w-none"
+        overlay-class="bg-neutral-950/90 backdrop-blur-md"
+        class="inset-0 grid h-dvh w-screen max-w-none translate-none grid-rows-[auto_minmax(0,1fr)_auto] gap-0 rounded-none border-0 bg-transparent p-0 shadow-none sm:max-w-none"
         @click.self="open = false"
         @keydown="onKeydown"
       >

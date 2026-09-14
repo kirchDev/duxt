@@ -19,6 +19,8 @@ const props = withDefaults(
   defineProps<
     DialogContentProps & {
       class?: HTMLAttributes['class'];
+      /** Classes for the backdrop, which does not scale in with the content. */
+      overlayClass?: HTMLAttributes['class'];
       showCloseButton?: boolean;
     }
   >(),
@@ -28,14 +30,19 @@ const props = withDefaults(
 );
 const emits = defineEmits<DialogContentEmits>();
 
-const delegatedProps = reactiveOmit(props, 'class', 'showCloseButton');
+const delegatedProps = reactiveOmit(
+  props,
+  'class',
+  'overlayClass',
+  'showCloseButton'
+);
 
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
 </script>
 
 <template>
   <DialogPortal>
-    <DialogOverlay />
+    <DialogOverlay :class="overlayClass" />
     <DialogContent
       data-slot="dialog-content"
       v-bind="{ ...$attrs, ...forwarded }"
