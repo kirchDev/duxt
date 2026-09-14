@@ -2,16 +2,19 @@ import { execFileSync } from 'node:child_process';
 import type {
   DuxtRef,
   DuxtSource,
-  DuxtSourceReleases
+  DuxtSourceReleases,
+  DuxtVersionTag
 } from './sources-resolve';
 import {
   compareVersionTags,
   expandSources,
   isLatestRef,
   newestTag,
+  parseVersionTag,
   refIsTag,
   refName,
-  repoUrl
+  repoUrl,
+  tagBelongsTo
 } from './sources-resolve';
 
 /**
@@ -153,32 +156,34 @@ function tagsFor(source: DuxtSource, what: string): string[] {
   return found.tags;
 }
 
-interface ParsedTag {
-  major: number;
-  minor: number;
-  prerelease: boolean;
+/**
+ * The version tags a source may publish from: every tag that reads as a
+ * version and belongs to the source's `tagComponent`, when it names one.
+ */
+function versionTags(
+  tags: string[],
+  component: string | undefined
+): { tag: string; version: DuxtVersionTag }[] {
+  return tags
+    .map((tag) => ({ tag, version: parseVersionTag(tag) }))
+    .filter(
+      (entry): entry is { tag: string; version: DuxtVersionTag } =>
+        Boolean(entry.version) && tagBelongsTo(entry.version!, component)
+    );
 }
 
-function parseTag(tag: string): ParsedTag | undefined {
-  const match = /^v?(\d+)\.(\d+)\.\d+(?:-(.+))?$/.exec(tag.trim());
-  if (!match) return undefined;
-
-  return {
-    major: Number(match[1]),
-    minor: Number(match[2]),
-    prerelease: Boolean(match[3])
-  };
-}
+/** How a source's tag restriction reads in an error, or nothing without one. */
+const componentClause = (source: DuxtSource) =>
+  source.tagComponent ? ` for the component "${source.tagComponent}"` : '';
 
 /** Tags selected by a source's explicit release policy, newest first. */
-function releaseTags(tags: string[], releases: DuxtSourceReleases): string[] {
-  const parsed = tags
-    .map((tag) => ({ tag, version: parseTag(tag) }))
-    .filter(
-      (entry): entry is { tag: string; version: ParsedTag } =>
-        Boolean(entry.version) &&
-        (releases.prereleases || !entry.version!.prerelease)
-    )
+function releaseTags(
+  tags: string[],
+  releases: DuxtSourceReleases,
+  component: string | undefined
+): string[] {
+  const parsed = versionTags(tags, component)
+    .filter((entry) => releases.prereleases || !entry.version.pre)
     .sort((left, right) => compareVersionTags(left.tag, right.tag));
 
   if (releases.select === 'all') return parsed.map((entry) => entry.tag);
@@ -186,10 +191,9 @@ function releaseTags(tags: string[], releases: DuxtSourceReleases): string[] {
   const selected = new Set<string>();
   const result: string[] = [];
   for (const entry of parsed) {
+    const [major, minor] = entry.version.numbers;
     const line =
-      releases.select === 'major'
-        ? String(entry.version.major)
-        : `${entry.version.major}.${entry.version.minor}`;
+      releases.select === 'major' ? String(major) : `${major}.${minor}`;
     if (selected.has(line)) continue;
     selected.add(line);
     result.push(entry.tag);
@@ -206,12 +210,14 @@ function resolveReleaseRefs(source: DuxtSource): DuxtSource {
 
   const tags = releaseTags(
     tagsFor(source, `releases selection "${source.releases.select}"`),
-    source.releases
+    source.releases,
+    source.tagComponent
   );
   if (!tags.length) {
     throw new Error(
       `duxt: releases selection "${source.releases.select}" on ` +
-        `${source.repo ?? 'this repository'} found no SemVer tags to publish.`
+        `${source.repo ?? 'this repository'} found no SemVer tags to publish` +
+        `${componentClause(source)}.`
     );
   }
 
@@ -248,12 +254,21 @@ export function resolveLatestRefs(sources: DuxtSource[]): DuxtSource[] {
   return discovered.map((source) => {
     if (!source.refs?.some(isLatestRef)) return source;
 
-    const newest = newestTag(tagsFor(source, "refs: ['latest']"));
+    const tags = tagsFor(source, "refs: ['latest']");
+
+    // Restricted only when a component is named: an unrestricted source keeps
+    // choosing among every tag, exactly as before component tags existed.
+    const newest = newestTag(
+      source.tagComponent
+        ? versionTags(tags, source.tagComponent).map((entry) => entry.tag)
+        : tags
+    );
 
     if (!newest) {
       throw new Error(
         `duxt: refs: ['latest'] on ${source.repo ?? 'this repository'} found ` +
-          'no tags to choose from. Name a tag explicitly, or drop the entry.'
+          `no tags to choose from${componentClause(source)}. Name a tag ` +
+          'explicitly, or drop the entry.'
       );
     }
 

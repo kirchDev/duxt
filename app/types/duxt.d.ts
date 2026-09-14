@@ -272,6 +272,13 @@ declare global {
     /** Lifecycle defaults by ref kind; an explicit ref status wins. */
     statusDefaults?: DuxtSourceStatusDefaultsInput;
     /**
+     * The one package whose tags this source publishes, in a repository that
+     * tags `<component>@vX.Y.Z` — `'duxt'` reads `duxt@v0.4.0` and ignores
+     * `duxt-typesense@v0.1.0`. Applies to `latest` and `releases`; plain
+     * `vX.Y.Z` tags still count.
+     */
+    tagComponent?: string;
+    /**
      * The repository a source read off disk lives in, for links back to it.
      * Not `repo`, which is what makes Content download a source.
      */

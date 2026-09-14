@@ -11,7 +11,7 @@
  * rest of it is: every version bug this layer has had came from prefix work
  * done inline in a component, where it could only be checked by clicking.
  */
-import { compareVersionTags } from '../../sources-resolve';
+import { compareVersionTags, parseVersionTag } from '../../sources-resolve';
 
 /**
  * What a reader needs to see first: work that may change, the edition they
@@ -33,11 +33,11 @@ function compareEditions(a: DuxtResolvedSource, b: DuxtResolvedSource): number {
 
   const aVersion = a.version!;
   const bVersion = b.version!;
-  const semver = /^v?\d+\.\d+\.\d+(?:-.+)?$/;
 
-  // The shared comparator knows full tags. Demo editions such as `v3.x` are
-  // deliberately not tags, but still sort newest-first inside their group.
-  return semver.test(aVersion) && semver.test(bVersion)
+  // The shared comparator knows full tags, component-prefixed ones included.
+  // Demo editions such as `v3.x` are deliberately not tags, but still sort
+  // newest-first inside their group.
+  return parseVersionTag(aVersion) && parseVersionTag(bVersion)
     ? compareVersionTags(aVersion, bVersion)
     : bVersion.localeCompare(aVersion);
 }

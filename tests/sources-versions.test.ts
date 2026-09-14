@@ -29,6 +29,51 @@ describe('compareVersionTags', () => {
   it('is a comparator, so a sort of equals is stable', () => {
     expect(compareVersionTags('v1.0.0', 'v1.0.0')).toBe(0);
   });
+
+  it('reads a component-prefixed tag by its version, not its name', () => {
+    // release-please's monorepo tags: `<component>@vX.Y.Z`. The prefix names
+    // the package, so `duxt@v0.10.0` is newer than `duxt@v0.9.0` and than a
+    // plain `v0.4.0` cut before the repository adopted component tags.
+    expect(
+      newestTag(['v0.4.0', 'duxt@v0.9.0', 'duxt@v0.10.0', 'nightly'])
+    ).toBe('duxt@v0.10.0');
+    expect(compareVersionTags('duxt@v1.0.0', 'v1.0.0')).toBe(0);
+  });
+});
+
+describe('component-prefixed tags', () => {
+  it('shows the version, never the component, in the label and the URL', () => {
+    const resolved = resolveSources([
+      {
+        repo: 'acme/monorepo',
+        path: 'docs',
+        refs: ['main', { tag: 'duxt@v0.4.0' }]
+      }
+    ]);
+
+    // The ref stays the tag git knows — it is what Content downloads.
+    expect(resolved[1]).toMatchObject({
+      ref: 'duxt@v0.4.0',
+      version: 'v0.4.0',
+      prefix: '/v0.4.0'
+    });
+  });
+
+  it('compares a prefixed tag with a plain one', () => {
+    expect(versionRelation('duxt@v1.0.0', 'v0.9.0')).toBe('newer');
+  });
+
+  it("still lets a ref's own label win", () => {
+    const resolved = resolveSources([
+      {
+        repo: 'acme/monorepo',
+        path: 'docs',
+        refs: ['main', { tag: 'duxt@v2.0.0', label: 'v2' }]
+      }
+    ]);
+
+    expect(resolved[1]).toMatchObject({ version: 'v2', prefix: '/v2' });
+  });
 });
 
 describe('resolved source metadata', () => {

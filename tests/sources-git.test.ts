@@ -14,6 +14,20 @@ vi.mock('node:child_process', () => ({
       });
     }
 
+    // A release-please monorepo that adopted component tags after a history
+    // of plain ones, and tags a second package beside the first.
+    if (url.endsWith('/monorepo')) {
+      return [
+        'deadbeef\trefs/tags/v0.3.4',
+        'deadbeef\trefs/tags/v0.4.0',
+        'deadbeef\trefs/tags/duxt@v0.5.0',
+        'deadbeef\trefs/tags/duxt@v0.5.1',
+        'deadbeef\trefs/tags/duxt@v0.5.1-rc.1',
+        'deadbeef\trefs/tags/duxt-typesense@v0.9.0',
+        'deadbeef\trefs/tags/nightly'
+      ].join('\n');
+    }
+
     return url.endsWith('/legacy')
       ? 'deadbeef\trefs/tags/v0.2.0\n'
       : url.endsWith('/empty')
@@ -194,6 +208,77 @@ describe('resolveLatestRefs', () => {
         { repo: 'acme/offline', releases: { select: 'minor' } }
       ])
     ).not.toThrow(/no SemVer tags/i);
+  });
+
+  it('resolves latest across every component when a source names none', () => {
+    const [source] = resolveLatestRefs([
+      { repo: 'acme/monorepo', refs: [{ tag: 'latest', default: true }] }
+    ]);
+
+    expect(source!.refs).toEqual([
+      expect.objectContaining({ tag: 'duxt-typesense@v0.9.0' })
+    ]);
+  });
+
+  it("resolves latest within one component's tags", () => {
+    const [source] = resolveLatestRefs([
+      {
+        repo: 'acme/monorepo',
+        tagComponent: 'duxt',
+        refs: [{ tag: 'latest', default: true }, { tag: 'v0.3.4' }]
+      }
+    ]);
+
+    expect(source!.refs).toEqual([
+      expect.objectContaining({ tag: 'duxt@v0.5.1', default: true }),
+      { tag: 'v0.3.4' }
+    ]);
+    expect(resolveSources([source!])[0]).toMatchObject({
+      ref: 'duxt@v0.5.1',
+      version: 'v0.5.1'
+    });
+  });
+
+  it("discovers one component's releases, plain history included", () => {
+    const [source] = resolveLatestRefs([
+      {
+        repo: 'acme/monorepo',
+        tagComponent: 'duxt',
+        releases: { select: 'minor' }
+      }
+    ]);
+
+    // The plain tags are the package's releases from before the repository
+    // adopted component tags; another component's tags are never its own.
+    expect(source!.refs).toEqual([
+      { tag: 'duxt@v0.5.1' },
+      { tag: 'v0.4.0' },
+      { tag: 'v0.3.4' }
+    ]);
+  });
+
+  it('keeps a plain-tag repository unchanged under a component', () => {
+    const [source] = resolveLatestRefs([
+      {
+        repo: 'acme/legacy',
+        tagComponent: 'duxt',
+        refs: [{ tag: 'latest', default: true }]
+      }
+    ]);
+
+    expect(source!.refs).toEqual([expect.objectContaining({ tag: 'v0.2.0' })]);
+  });
+
+  it('names the component when none of its tags exist', () => {
+    expect(() =>
+      resolveLatestRefs([
+        {
+          repo: 'acme/empty',
+          tagComponent: 'duxt',
+          refs: [{ tag: 'latest', default: true }]
+        }
+      ])
+    ).toThrow(/acme\/empty.*"duxt"/is);
   });
 
   it('reports a refused repository URL as the refusal it is', () => {

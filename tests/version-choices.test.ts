@@ -164,6 +164,32 @@ describe('versionChoices', () => {
   it('survives having no current source', () => {
     expect(versionChoices([v2, v1], undefined, undefined)).toEqual([]);
   });
+
+  it('labels and orders component-prefixed tags by their version', () => {
+    const sources = resolveSources([
+      {
+        repo: 'acme/monorepo',
+        path: 'docs',
+        refs: [
+          { tag: 'duxt@v0.10.0', default: true },
+          { tag: 'duxt@v0.9.0' },
+          { tag: 'v0.4.0' }
+        ]
+      }
+    ]);
+    const current = sources.find((entry) => entry.isDefault)!;
+
+    expect(
+      versionChoices(sources, current, undefined).map((choice) => [
+        choice.label,
+        choice.to
+      ])
+    ).toEqual([
+      ['v0.10.0', '/'],
+      ['v0.9.0', '/v0.9.0'],
+      ['v0.4.0', '/v0.4.0']
+    ]);
+  });
 });
 
 describe('a site that publishes a reference beside its documentation', () => {

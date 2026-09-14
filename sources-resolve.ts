@@ -50,6 +50,19 @@ export interface DuxtSource {
    */
   releases?: DuxtSourceReleases;
   /**
+   * The one package whose tags this source publishes from.
+   *
+   * A release-please monorepo tags every published package on its own —
+   * `duxt@v0.4.0` beside `duxt-typesense@v0.1.0` — so "the newest tag" means
+   * nothing until it says whose. Naming a component restricts `latest` and
+   * `releases` to that package's `<component>@…` tags. Plain `vX.Y.Z` tags
+   * still count: they are the history from before the repository adopted
+   * component tags, and dropping them would unpublish every earlier release.
+   *
+   * Unset, every tag that reads as a version is a candidate, prefixed or not.
+   */
+  tagComponent?: string;
+  /**
    * Languages this source is available in, beyond the one written in `path`.
    *
    * A string is the folder inside `path`: `'de-DE'` reads `docs/de-DE/`. An
@@ -655,7 +668,15 @@ export function resolveSources(
       (ref && typeof ref === 'object' ? ref.label : undefined) ?? source.label;
     const code = locale ? localeCode(locale) : defaultLocale;
     const isDefaultLocale = !code || code === defaultLocale;
-    const version = name ? slugify(label ?? name) : undefined;
+    // A component-prefixed tag is shown and addressed by its version:
+    // `duxt@v0.4.0` reads `v0.4.0` in the switcher and the URL, while `ref`
+    // below keeps the full tag git knows. A branch's name is never touched —
+    // `release@1.0.0` as a BRANCH is a name, not a release.
+    const shown =
+      effectiveRef && refIsTag(effectiveRef) && name
+        ? versionTagName(name)
+        : name;
+    const version = name ? slugify(label ?? shown!) : undefined;
     const isDefault =
       !name ||
       (ref && typeof ref === 'object' && Boolean(ref.default)) ||
@@ -816,6 +837,73 @@ export function duxtSourceManifest(
   return resolveSources(sources, options);
 }
 
+/** A version tag, taken apart. */
+export interface DuxtVersionTag {
+  /**
+   * The package a monorepo release tool named in front of the version —
+   * `duxt` in `duxt@v0.4.0`. Absent on a plain `v0.4.0`.
+   */
+  component?: string;
+  /** The version itself, as written: `v0.4.0`, `1.2.0-rc.1`. */
+  version: string;
+  numbers: [number, number, number];
+  pre?: string;
+}
+
+/**
+ * Read a tag as a version, or answer `undefined` for anything that is not one.
+ *
+ * TWO SHAPES, because release tooling writes two. A single-package repository
+ * tags `v1.2.3`; a release-please monorepo tags `<component>@v1.2.3`, one
+ * component per published package. Everything that orders or selects releases
+ * reads a tag through this one function, so `latest`, release discovery and
+ * the switcher's order cannot disagree about which tags are versions — the
+ * drift that would let a site's `latest` stay on the last plain tag, silently,
+ * after the first component tag was cut.
+ *
+ * The component is everything before the LAST `@`, so a scoped package name
+ * (`@acme/sdk@v1.0.0`) keeps its own.
+ */
+export function parseVersionTag(value: string): DuxtVersionTag | undefined {
+  const match = /^(?:(.+)@)?(v?(\d+)\.(\d+)\.(\d+)(?:-(.+))?)$/.exec(
+    value.trim()
+  );
+  if (!match) return undefined;
+
+  return {
+    component: match[1],
+    version: match[2]!,
+    numbers: [Number(match[3]), Number(match[4]), Number(match[5])],
+    pre: match[6]
+  };
+}
+
+/**
+ * The version a tag names, without the component in front of it.
+ *
+ * What a reader sees and what a URL carries: `duxt@v0.4.0` is the name git
+ * knows and Content downloads, `v0.4.0` is the release. Anything that is not a
+ * version tag comes back unchanged.
+ */
+export const versionTagName = (tag: string): string =>
+  parseVersionTag(tag)?.version ?? tag;
+
+/**
+ * Does a tag belong to `component`?
+ *
+ * A plain tag always does. In a repository that adopted component tags it is
+ * the release history from before the switch — release-please's own migration
+ * leaves exactly that — and without it a source restricted to one component
+ * would lose every release it already published. Another component's tag
+ * never does.
+ */
+export function tagBelongsTo(
+  tag: DuxtVersionTag,
+  component: string | undefined
+): boolean {
+  return !component || !tag.component || tag.component === component;
+}
+
 /**
  * Order two version-ish tag names the way a release list is ordered.
  *
@@ -825,18 +913,8 @@ export function duxtSourceManifest(
  * and anything that is not a version at all sorts last so it can never win.
  */
 export function compareVersionTags(a: string, b: string): number {
-  const parse = (value: string) => {
-    const match = /^v?(\d+)\.(\d+)\.(\d+)(?:-(.+))?$/.exec(value.trim());
-    if (!match) return undefined;
-
-    return {
-      numbers: [Number(match[1]), Number(match[2]), Number(match[3])],
-      pre: match[4]
-    };
-  };
-
-  const left = parse(a);
-  const right = parse(b);
+  const left = parseVersionTag(a);
+  const right = parseVersionTag(b);
 
   if (!left || !right) return left ? -1 : right ? 1 : a.localeCompare(b);
 
@@ -917,9 +995,9 @@ export function versionRelation(
   if (!version || !preferred) return 'unknown';
   if (version === preferred) return 'same';
 
-  const isVersion = (value: string) =>
-    /^v?\d+\.\d+\.\d+(?:-.+)?$/.test(value.trim());
-  if (!isVersion(version) || !isVersion(preferred)) return 'unknown';
+  if (!parseVersionTag(version) || !parseVersionTag(preferred)) {
+    return 'unknown';
+  }
 
   const order = compareVersionTags(version, preferred);
 

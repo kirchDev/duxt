@@ -43,6 +43,11 @@ const DUXT_DOCS = {
     branch: 'upcoming',
     tag: 'deprecated'
   },
+  // This repository tags each published package on its own — `duxt@v0.5.0`
+  // beside a provider's `duxt-typesense@v0.1.0` — so `latest` has to say
+  // whose newest tag it means. The plain `v0.1.0`…`v0.4.0` tags cut before
+  // the monorepo still count as the layer's releases.
+  tagComponent: 'duxt',
   refs: [
     { branch: 'main' },
     { tag: 'latest', default: true },
