@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.5.0](https://github.com/kirchDev/duxt/compare/v0.4.0...v0.5.0) (2026-09-14)
+
+
+### Features
+
+* **header:** reveal the new theme as a circle from the toggle ([54bd866](https://github.com/kirchDev/duxt/commit/54bd86681e36a3b1517a20bf1186276c609867b4))
+
+
+### Bug Fixes
+
+* **changelog:** animate the height of the selected-kinds row ([d5ad492](https://github.com/kirchDev/duxt/commit/d5ad49210d939fe61607b6e5e37015b48db852ac))
+* **image:** cover the whole viewport from the zoom dialog's first frame ([77f9d20](https://github.com/kirchDev/duxt/commit/77f9d201005b0866cd174432a9b7445ddafcb53c))
+* **toc:** mark the heading a table-of-contents click jumped to ([c0a7b24](https://github.com/kirchDev/duxt/commit/c0a7b24b23751f15a09d348dc511add004abff54))
+
 ## [0.4.0](https://github.com/kirchDev/duxt/compare/v0.3.4...v0.4.0) (2026-09-14)
 
 
