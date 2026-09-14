@@ -22,9 +22,7 @@ if (import.meta.prerender) {
 // The mobile sheet shows the same branch the sidebar does.
 const { items } = useDuxtSection(navigation);
 
-function toggleTheme() {
-  colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark';
-}
+const { toggle: toggleTheme } = useDuxtThemeToggle();
 
 /**
  * An entry with neither `to` nor children means "the documentation".
