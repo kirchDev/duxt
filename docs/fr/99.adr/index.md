@@ -23,3 +23,4 @@ remplace l’ancien, jamais comme une modification de celui-ci.
 | [ADR-0008](/adr/0008-build-the-theme-on-owned-shadcn-vue-components) | Bâtir le thème sur des composants shadcn-vue possédés | accepted | 2026-09-08 |
 | [ADR-0009](/adr/0009-take-the-seo-stack-from-the-nuxt-seo-bundle) | Prendre le socle SEO dans le bundle Nuxt SEO | accepted | 2026-09-08 |
 | [ADR-0010](/adr/0010-keep-contents-per-collection-search-as-the-default) | Conserver la recherche par collection de Content comme défaut | accepted | 2026-09-12 |
+| [ADR-0011](/adr/0011-host-the-provider-layers-in-a-turborepo-monorepo) | Héberger les couches fournisseurs dans un monorepo Turborepo | accepted | 2026-09-15 |

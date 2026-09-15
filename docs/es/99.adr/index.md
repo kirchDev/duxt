@@ -23,3 +23,4 @@ anterior, nunca como una edición de este.
 | [ADR-0008](/adr/0008-build-the-theme-on-owned-shadcn-vue-components) | Construir el tema sobre componentes shadcn-vue propios | accepted | 2026-09-08 |
 | [ADR-0009](/adr/0009-take-the-seo-stack-from-the-nuxt-seo-bundle) | Tomar la base de SEO del paquete Nuxt SEO | accepted | 2026-09-08 |
 | [ADR-0010](/adr/0010-keep-contents-per-collection-search-as-the-default) | Mantener la búsqueda por colección de Content como predeterminada | accepted | 2026-09-12 |
+| [ADR-0011](/adr/0011-host-the-provider-layers-in-a-turborepo-monorepo) | Alojar las capas proveedoras en un monorepo de Turborepo | accepted | 2026-09-15 |

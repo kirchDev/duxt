@@ -22,3 +22,4 @@ is written as a new ADR that supersedes the old one, never as an edit to it.
 | [ADR-0008](/adr/0008-build-the-theme-on-owned-shadcn-vue-components) | Build the theme on owned shadcn-vue components | accepted | 2026-09-08 |
 | [ADR-0009](/adr/0009-take-the-seo-stack-from-the-nuxt-seo-bundle) | Take the SEO stack from the Nuxt SEO bundle | accepted | 2026-09-08 |
 | [ADR-0010](/adr/0010-keep-contents-per-collection-search-as-the-default) | Keep Content's per-collection search as the default | accepted | 2026-09-12 |
+| [ADR-0011](/adr/0011-host-the-provider-layers-in-a-turborepo-monorepo) | Host the provider layers in a Turborepo monorepo | accepted | 2026-09-15 |
