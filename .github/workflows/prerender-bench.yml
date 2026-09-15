@@ -16,9 +16,16 @@
 # was named as one in advance.
 #
 # MANUAL, AND THAT IS A DECISION RATHER THAN AN OVERSIGHT. One build of this
-# site prerenders 1,205 routes and takes minutes; eighteen of them is around an
-# hour of runner time. On any automatic trigger that is not a measurement, it is
-# a bill.
+# site prerenders over 5,000 routes and takes minutes; eighteen of them on one
+# runner is around three hours. On any automatic trigger that is not a
+# measurement, it is a bill.
+#
+# ONE RUNNER, NOT A MATRIX. The first run (34791359819) gave every setting a
+# matrix leg of its own, and 8 came out 25% slower than both 4 and 12 — which
+# no contention model predicts and a slower machine explains. Equal core counts
+# do not make equal machines, so every setting is built on the same runner,
+# interleaved, and the order rotates each repetition so no setting always
+# inherits the coldest Vite and Nitro caches.
 #
 # IT CANNOT BE RUN UNTIL THIS FILE IS ON `main`, and that is GitHub's rule
 # rather than this repository's: a `workflow_dispatch` workflow is only
@@ -56,44 +63,13 @@ permissions:
   contents: read
 
 jobs:
-  plan:
-    name: Plan
-    runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.plan.outputs.matrix }}
-    steps:
-      # The comma-separated input, as the JSON array a matrix takes. Done here
-      # rather than in the matrix expression because `fromJSON` cannot split a
-      # string, and a matrix that silently became one job named "4,8,12" would
-      # run a sixth of the benchmark and report it as all of it.
-      - name: Expand the settings to compare
-        id: plan
-        env:
-          SETTINGS: ${{ inputs.concurrency }}
-        run: |
-          matrix=$(node -e '
-            const values = process.env.SETTINGS.split(",")
-              .map((value) => Number(value.trim()))
-              .filter((value) => Number.isInteger(value) && value > 0);
-            if (values.length === 0) throw new Error("No concurrency to compare.");
-            process.stdout.write(JSON.stringify(values));
-          ')
-          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
-
   measure:
-    name: Prerender at ${{ matrix.concurrency }}
-    needs: plan
+    name: Prerender every setting
     runs-on: ubuntu-latest
-    # Six full builds of the site, plus the install and the content parse in
-    # front of them.
-    timeout-minutes: 120
-    strategy:
-      # ONE SETTING'S FAILURE IS EVIDENCE, NOT A REASON TO STOP. A concurrency
-      # that cannot finish a build is exactly what this is looking for, and the
-      # verdict below refuses a candidate whose builds did not all succeed.
-      fail-fast: false
-      matrix:
-        concurrency: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    # Six full builds per setting, all on this one runner, plus the install and
+    # the content parse in front of them. Under the six-hour ceiling a hosted
+    # runner allows, with room for a slow day.
+    timeout-minutes: 300
     steps:
       - uses: actions/checkout@v6
         with:
@@ -128,26 +104,29 @@ jobs:
           path: ${{ steps.sources.outputs.paths }}
           key: ${{ steps.sources.outputs.key }}
 
-      # THE MEASUREMENT. Three cold/warm pairs, in that order, because a warm
-      # build is defined by #44 as one restoring the cache the immediately
-      # preceding equivalent build produced — so the pairing is local to this
-      # job and no Actions cache is involved at all. That is the more controlled
-      # arrangement as well as the simpler one: a restored cache from another
-      # commit would make "warm" mean a different thing per run.
+      # THE MEASUREMENT. Per repetition, every setting gets a cold/warm pair, in
+      # that order, because a warm build is defined by #44 as one restoring the
+      # cache the immediately preceding equivalent build produced — so the
+      # pairing is local to this job and no Actions cache is involved at all.
       #
       # `.output` is removed before every build so the OG image count is a fact
       # about THIS build. `.cache/og-image` is removed before a cold one and
       # left alone before a warm one; that single line is the whole cold/warm
       # distinction.
       #
-      # THE FIRST COLD BUILD IN A JOB IS THE SLOWEST AND IS LEFT THAT WAY. It
-      # pays for an empty Vite and Nitro cache that the five after it inherit.
-      # Three repetitions and a MEDIAN are what answer that: an outlier at
-      # either end never sits in the middle of three. Reporting it would be
-      # honest; removing it would be tuning the measurement to the answer.
-      - name: Build six times at concurrency ${{ matrix.concurrency }}
+      # THE ORDER ROTATES. The first build on a runner pays for an empty Vite
+      # and Nitro cache that every build after it inherits. With a fixed order
+      # the same setting would pay it every time; rotated, each setting leads
+      # one repetition, and three repetitions plus a MEDIAN keep that outlier
+      # out of the middle. Reporting it is honest; removing it would be tuning
+      # the measurement to the answer.
+      #
+      # ONE SETTING'S FAILED BUILD IS EVIDENCE, NOT A REASON TO STOP — the loop
+      # records `ok=false` and carries on, and the verdict refuses a candidate
+      # whose builds did not all succeed.
+      - name: Build every setting, interleaved
         env:
-          SETTING: ${{ matrix.concurrency }}
+          SETTINGS: ${{ inputs.concurrency }}
           REPETITIONS: ${{ inputs.repetitions }}
         run: |
           # `pipefail` for the reason deploy.yml states: the build is teed into
@@ -156,67 +135,67 @@ jobs:
           # the one field the verdict refuses candidates on.
           set -o pipefail
 
+          # The comma-separated input, validated. A list that silently lost a
+          # value would run part of the benchmark and report it as all of it.
+          read -r -a settings <<< "$(node -e '
+            const values = process.env.SETTINGS.split(",")
+              .map((value) => Number(value.trim()))
+              .filter((value) => Number.isInteger(value) && value > 0);
+            if (values.length === 0) throw new Error("No concurrency to compare.");
+            process.stdout.write(values.join(" "));
+          ')"
+          count=${#settings[@]}
+
           for run in $(seq 1 "$REPETITIONS"); do
-            for state in cold warm; do
-              rm -rf apps/www/.output
-              if [ "$state" = cold ]; then rm -rf apps/www/.cache/og-image; fi
+            for offset in $(seq 0 $((count - 1))); do
+              setting=${settings[$(((run - 1 + offset) % count))]}
 
-              started=$(date +%s%3N)
-              # `/usr/bin/time` for #44's "resource use where available": `%M`
-              # is the peak resident set across the whole process tree, which is
-              # the number that says whether a faster setting bought its time
-              # with memory. Its own output goes to a file so the build's stays
-              # on the pipe and reaches `tee` unchanged.
-              if /usr/bin/time -f '%M' -o rss.txt \
-                env DUXT_PRERENDER_CONCURRENCY="$SETTING" pnpm build:www 2>&1 \
-                | tee build.log; then ok=true; else ok=false; fi
-              elapsed=$(($(date +%s%3N) - started))
+              for state in cold warm; do
+                rm -rf apps/www/.output
+                if [ "$state" = cold ]; then rm -rf apps/www/.cache/og-image; fi
 
-              node ./packages/duxt/bin/duxt-og-cache.mjs --root apps/www --report --github \
-                --since "$started" --log build.log > og.txt
+                started=$(date +%s%3N)
+                # `/usr/bin/time` for #44's "resource use where available": `%M`
+                # is the peak resident set across the whole process tree, which
+                # says whether a faster setting bought its time with memory. Its
+                # own output goes to a file so the build's stays on the pipe.
+                if /usr/bin/time -f '%M' -o rss.txt \
+                  env DUXT_PRERENDER_CONCURRENCY="$setting" pnpm build:www 2>&1 \
+                  | tee build.log; then ok=true; else ok=false; fi
+                elapsed=$(($(date +%s%3N) - started))
 
-              node apps/www/scripts/prerender-bench.ts --measure \
-                --concurrency "$SETTING" --state "$state" --run "$run" \
-                --log build.log --og og.txt --build-ms "$elapsed" --ok "$ok" \
-                --max-rss-kb "$(tail -n 1 rss.txt)" --cores "$(nproc)" \
-                >> "runs-$SETTING.jsonl"
+                node ./packages/duxt/bin/duxt-og-cache.mjs --root apps/www --report --github \
+                  --since "$started" --log build.log > og.txt
 
-              echo "recorded concurrency $SETTING, $state run $run (ok=$ok)"
+                node apps/www/scripts/prerender-bench.ts --measure \
+                  --concurrency "$setting" --state "$state" --run "$run" \
+                  --log build.log --og og.txt --build-ms "$elapsed" --ok "$ok" \
+                  --max-rss-kb "$(tail -n 1 rss.txt)" --cores "$(nproc)" \
+                  >> runs.jsonl
+
+                echo "recorded concurrency $setting, $state run $run (ok=$ok)"
+              done
             done
           done
 
-      # THIS LEG'S OWN NUMBERS, while the others are still building. Reading the
-      # setting as its own baseline gives a one-row table and no comparison,
-      # which is exactly what a single leg has to say — the verdict job is where
-      # the three are put against each other.
-      - name: Summarise concurrency ${{ matrix.concurrency }}
-        if: always() && hashFiles(format('runs-{0}.jsonl', matrix.concurrency)) != ''
-        env:
-          SETTING: ${{ matrix.concurrency }}
-        run: |
-          node apps/www/scripts/prerender-bench.ts --verdict \
-            --results "runs-$SETTING.jsonl" --baseline "$SETTING" \
-            >> "$GITHUB_STEP_SUMMARY"
-
-      # ALWAYS, AND THAT IS THE WHOLE REASON IT IS GUARDED RATHER THAN PLAIN. An
-      # hour of builds lives in this one file; a step that failed after four of
+      # ALWAYS, AND THAT IS THE WHOLE REASON IT IS GUARDED RATHER THAN PLAIN.
+      # Hours of builds live in this one file; a step that failed after four of
       # them still has four measurements worth keeping, and without `always()`
       # they go in the bin with the runner.
       - uses: actions/upload-artifact@v7
-        if: always() && hashFiles(format('runs-{0}.jsonl', matrix.concurrency)) != ''
+        if: always() && hashFiles('runs.jsonl') != ''
         with:
-          name: prerender-bench-${{ matrix.concurrency }}
-          path: runs-${{ matrix.concurrency }}.jsonl
+          name: prerender-bench-measured
+          path: runs.jsonl
           retention-days: 7
           if-no-files-found: error
 
   verdict:
     name: Verdict
     needs: measure
-    # EVEN WHEN A SETTING FAILED. A matrix leg that could not finish is a
+    # EVEN WHEN THE MEASUREMENT FAILED PART-WAY. The builds it did record are a
     # finding, and the rule refuses a candidate whose builds did not all
-    # succeed — so the table is still worth printing, and the leg that survived
-    # is still the baseline it has to be compared against. A matrix that never
+    # succeed — so the table is still worth printing. A measurement that never
     # started is the one case with nothing to say.
     if: always() && needs.measure.result != 'skipped'
     runs-on: ubuntu-latest

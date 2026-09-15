@@ -294,6 +294,33 @@ describe('the rule that would replace concurrency 8', () => {
   });
 
   /**
+   * COMPLETE MEANS COMPLETE FOR THAT REPETITION, NOT FOR THE BEST BUILD EVER.
+   * The first benchmark (run 34791359819) produced 1,315 images in repetition 1
+   * and 1,399 in repetitions 2 and 3 — at 4, at 8 and at 12 alike. The count
+   * moved with the repetition, not with the setting, and a rule measuring every
+   * build against the overall maximum refused both candidates for a shortfall
+   * the baseline shared, then kept the baseline 25% slower than either.
+   */
+  it('does not refuse a candidate for a shortfall every setting shared', () => {
+    const shortFirst = (runs: PrerenderRun[]) =>
+      runs.map((build) =>
+        build.run === 1 ? { ...build, images: 270 } : build
+      );
+
+    const verdict = prerenderBenchVerdict({
+      runs: [
+        ...shortFirst(sixRuns(8)),
+        ...shortFirst(sixRuns(12, { prerenderMs: 100_000 }))
+      ]
+    });
+
+    expect(
+      verdict.candidates.find((c) => c.concurrency === 12)?.refusals
+    ).toEqual([]);
+    expect(verdict.chosen).toBe(12);
+  });
+
+  /**
    * NOT ZERO ERRORS — NO NEW ONES. This site prerenders 42 links to routes
    * nothing serves, deliberately, and a rule demanding a clean crawl would
    * refuse every candidate including the baseline for a reason that has
@@ -513,5 +540,25 @@ describe('the benchmark workflow', () => {
       .join('\n');
 
     expect(commands).not.toMatch(/wrangler|deploy:www|publish:cf/);
+  });
+
+  /**
+   * ONE RUNNER FOR EVERY SETTING. The first benchmark gave each concurrency a
+   * matrix leg of its own, and 8 came out slower than both 4 and 12 — a result
+   * no contention model predicts and a slower machine explains. Same core count
+   * is not same machine, so the only comparison that holds is the one where all
+   * settings share a runner.
+   */
+  it('measures every setting on the same runner', () => {
+    const jobs = workflow.jobs as Record<
+      string,
+      { strategy?: unknown; steps?: { run?: string }[] }
+    >;
+    const building = Object.values(jobs).filter((job) =>
+      (job.steps ?? []).some((step) => step.run?.includes('pnpm build:www'))
+    );
+
+    expect(building).toHaveLength(1);
+    expect(building[0]!.strategy).toBeUndefined();
   });
 });
