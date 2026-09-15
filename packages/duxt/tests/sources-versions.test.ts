@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   compareVersionTags,
   newestTag,
+  parseVersionTag,
   reservedSegments,
   resolveSources,
   versionRelation
@@ -38,6 +39,30 @@ describe('compareVersionTags', () => {
       newestTag(['v0.4.0', 'duxt@v0.9.0', 'duxt@v0.10.0', 'nightly'])
     ).toBe('duxt@v0.10.0');
     expect(compareVersionTags('duxt@v1.0.0', 'v1.0.0')).toBe(0);
+  });
+
+  it('never lets the pre-release swallow a component separator', () => {
+    // A tag name is library input — any repository a site points at can push
+    // one. CodeQL flagged the first shape of this parser (js/polynomial-redos)
+    // because a component and a pre-release could each take the other's `@`,
+    // leaving the engine two overlapping ways to split one string. V8 happens
+    // to run it fast, which is not a property to rest on. So the pre-release
+    // carries semver's own characters only, and a tag that puts an `@` after
+    // its version is not a version at all.
+    expect(parseVersionTag('v1.0.0-a@b')).toBeUndefined();
+    expect(parseVersionTag('9.9.9-a@9.9.9-a')?.component).toBe('9.9.9-a');
+  });
+
+  it('takes the component from the last `@` and keeps a scoped name whole', () => {
+    expect(parseVersionTag('@acme/sdk@v1.2.3-rc.1')).toEqual({
+      component: '@acme/sdk',
+      version: 'v1.2.3-rc.1',
+      numbers: [1, 2, 3],
+      pre: 'rc.1'
+    });
+    expect(parseVersionTag('v1.2.3')?.component).toBeUndefined();
+    expect(parseVersionTag('@v1.2.3')).toBeUndefined();
+    expect(parseVersionTag('duxt@')).toBeUndefined();
   });
 });
 

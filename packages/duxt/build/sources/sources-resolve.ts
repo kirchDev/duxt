@@ -863,18 +863,30 @@ export interface DuxtVersionTag {
  *
  * The component is everything before the LAST `@`, so a scoped package name
  * (`@acme/sdk@v1.0.0`) keeps its own.
+ *
+ * SPLIT BY INDEX, NOT BY ONE PATTERN. A tag name is input from whatever
+ * repository a site points at, and a single expression with a component and a
+ * pre-release that could each take the other's `@` gave the engine overlapping
+ * ways to split one string — CodeQL's js/polynomial-redos. Cutting at the last
+ * `@` first leaves the pattern nothing to choose between, and the pre-release
+ * keeps to semver's own characters, so an `@` after the version makes the tag
+ * not a version rather than part of its pre-release.
  */
 export function parseVersionTag(value: string): DuxtVersionTag | undefined {
-  const match = /^(?:(.+)@)?(v?(\d+)\.(\d+)\.(\d+)(?:-(.+))?)$/.exec(
-    value.trim()
+  const tag = value.trim();
+  const at = tag.lastIndexOf('@');
+  if (at === 0) return undefined;
+
+  const match = /^(v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.+-]+))?)$/.exec(
+    tag.slice(at + 1)
   );
   if (!match) return undefined;
 
   return {
-    component: match[1],
-    version: match[2]!,
-    numbers: [Number(match[3]), Number(match[4]), Number(match[5])],
-    pre: match[6]
+    component: at > 0 ? tag.slice(0, at) : undefined,
+    version: match[1]!,
+    numbers: [Number(match[2]), Number(match[3]), Number(match[4])],
+    pre: match[5]
   };
 }
 
