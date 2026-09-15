@@ -1,7 +1,28 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 
-# release-please and the npm publish both live in kirchDev/workflows; this file
-# carries the triggers and composes the two.
+# release-please lives in kirchDev/workflows and is called as a stub. The npm
+# publish does NOT, and this header is the written argument CLAUDE.md asks of a
+# workflow that carries its own jobs.
+#
+# WHY THE PUBLISH JOBS ARE OWN BODIES. The central `_publish-npm.yml` publishes
+# the repository ROOT: it runs `pnpm publish` where it checks out, and derives a
+# prerelease from the newest release tag with a leading `v` stripped. Since the
+# monorepo move the root is a private workspace, the layer lives in
+# `packages/duxt`, and its tags read `duxt@vX.Y.Z` — so that body would publish
+# the wrong thing or nothing. And `_release-please.yml` forwards only
+# release-please's ROOT `release_created`, which a path package never sets
+# (release-please writes `packages/duxt--release_created` instead), so the old
+# gate would never have opened again. What belongs centrally is a working
+# directory input and the per-path outputs, which is a change to
+# kirchDev/workflows; until that exists, the jobs below are what publishes.
+#
+# THE REGISTRY DECIDES A STABLE PUBLISH, NOT AN OUTPUT. Every workspace package
+# under `packages/` that is not private is a candidate, and one is published
+# when its `package.json` version has a `<component>@v<version>` tag and npm
+# does not have that version yet. A package release-please did not bump has
+# neither a new tag nor a new version, so nothing unchanged is ever released —
+# the rule the monorepo decision rests on — and a publish that failed halfway is
+# picked up again by the next push to main.
 name: Release Please
 
 on:
@@ -25,34 +46,165 @@ jobs:
     secrets:
       BWS_ACCESS_TOKEN: ${{ secrets.BWS_ACCESS_TOKEN }}
 
-  publish-release:
-    name: Publish stable release
+  plan:
+    name: Plan the publishes
     needs: release-please
-    if: needs.release-please.outputs.release-created == 'true'
+    if: github.ref_name == 'main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      stable: ${{ steps.plan.outputs.stable }}
+      prerelease: ${{ steps.plan.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # The push's `before` commit has to be present to tell which packages
+          # this push changed.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: List what to publish
+        id: plan
+        env:
+          BEFORE: ${{ github.event.before }}
+          HEAD_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          node --input-type=module -e '
+            import { execFileSync } from "node:child_process";
+            import { appendFileSync, existsSync, readFileSync, readdirSync } from "node:fs";
+
+            const run = (command, args) =>
+              execFileSync(command, args, { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+            const succeeds = (command, args) => {
+              try { run(command, args); return true; } catch { return false; }
+            };
+
+            const packages = readdirSync("packages", { withFileTypes: true })
+              .filter((entry) => entry.isDirectory() && existsSync(`packages/${entry.name}/package.json`))
+              .map((entry) => {
+                const dir = `packages/${entry.name}`;
+                const manifest = JSON.parse(readFileSync(`${dir}/package.json`, "utf8"));
+                return { dir, name: manifest.name, version: manifest.version, private: manifest.private === true };
+              })
+              .filter((pkg) => !pkg.private)
+              // release-please strips the scope to name the component.
+              .map((pkg) => ({ ...pkg, tag: `${pkg.name.replace(/^@[^/]+\//, "")}@v${pkg.version}` }));
+
+            const published = (pkg) => {
+              try { return run("npm", ["view", `${pkg.name}@${pkg.version}`, "version"]).trim() !== ""; }
+              catch { return false; }
+            };
+
+            const stable = packages.filter((pkg) =>
+              succeeds("git", ["ls-remote", "--exit-code", "--tags", "origin", `refs/tags/${pkg.tag}`]) &&
+              !published(pkg)
+            );
+
+            // A prerelease for every package this push changed, and none on the
+            // version-bump commit release-please merges onto main.
+            const message = process.env.HEAD_COMMIT_MESSAGE ?? "";
+            const releaseCommit = /^chore(\(main\))?: release/.test(message);
+            const before = process.env.BEFORE ?? "";
+            const known = /^[0-9a-f]{40}$/.test(before) && !/^0+$/.test(before) &&
+              succeeds("git", ["cat-file", "-e", `${before}^{commit}`]);
+            const changed = (pkg) =>
+              !known || run("git", ["diff", "--name-only", before, "HEAD", "--", pkg.dir]).trim() !== "";
+            const prerelease = releaseCommit ? [] : packages.filter(changed);
+
+            appendFileSync(
+              process.env.GITHUB_OUTPUT,
+              `stable=${JSON.stringify(stable)}\nprerelease=${JSON.stringify(prerelease)}\n`
+            );
+            console.log(`stable: ${stable.map((pkg) => pkg.tag).join(", ") || "none"}`);
+            console.log(`prerelease: ${prerelease.map((pkg) => pkg.name).join(", ") || "none"}`);
+          '
+
+  publish-release:
+    name: Publish ${{ matrix.package.tag }}
+    needs: plan
+    if: needs.plan.outputs.stable != '' && needs.plan.outputs.stable != '[]'
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       # npm Trusted Publishing (OIDC) and the provenance attestation. No
       # NPM_TOKEN exists in this repo.
       id-token: write
-    uses: kirchDev/workflows/.github/workflows/_publish-npm.yml@1e57db95ff601f03ae87b78e329ef238f9d0cbf6 # v0.8.2
-    with:
-      tag-name: ${{ needs.release-please.outputs.tag-name }}
-      # The layer ships source files; build the consumer to verify SSR.
-      build-script: build:app
+    strategy:
+      fail-fast: false
+      matrix:
+        package: ${{ fromJSON(needs.plan.outputs.stable) }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ matrix.package.tag }}
+
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # The layer ships source files; build the site that consumes it to verify
+      # SSR before anything reaches the registry.
+      - name: Build
+        run: pnpm build:app
+
+      - name: Publish
+        env:
+          PACKAGE_DIR: ${{ matrix.package.dir }}
+        working-directory: ${{ matrix.package.dir }}
+        run: pnpm publish --access public --provenance --no-git-checks --tag latest
 
   publish-prerelease:
-    name: Publish prerelease
-    # Skip the version-bump merges release-please pushes onto main.
-    if: >-
-      ${{
-        github.ref_name == 'main'
-        && !startsWith(github.event.head_commit.message, 'chore(main): release')
-        && !startsWith(github.event.head_commit.message, 'chore: release')
-      }}
+    name: Publish ${{ matrix.package.name }} prerelease
+    needs: plan
+    if: needs.plan.outputs.prerelease != '' && needs.plan.outputs.prerelease != '[]'
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
-    uses: kirchDev/workflows/.github/workflows/_publish-npm.yml@1e57db95ff601f03ae87b78e329ef238f9d0cbf6 # v0.8.2
-    with:
-      prerelease: true
-      build-script: build:app
+    strategy:
+      fail-fast: false
+      matrix:
+        package: ${{ fromJSON(needs.plan.outputs.prerelease) }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build:app
+
+      # The same scheme the central body used: the next patch after the version
+      # on main, then `dev-main.<run>-<sha>`, under the `dev-main` dist-tag.
+      - name: Compute the prerelease version
+        working-directory: ${{ matrix.package.dir }}
+        env:
+          RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          set -euo pipefail
+          base=$(node -p 'const [a, b, c] = require("./package.json").version.split("-")[0].split(".").map(Number); `${a}.${b}.${c + 1}`')
+          npm version --no-git-tag-version --allow-same-version \
+            "${base}-dev-main.${RUN_NUMBER}-${GITHUB_SHA::7}"
+
+      - name: Publish
+        working-directory: ${{ matrix.package.dir }}
+        run: pnpm publish --access public --provenance --no-git-checks --tag dev-main

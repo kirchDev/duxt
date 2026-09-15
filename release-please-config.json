@@ -1,14 +1,16 @@
 {
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
   "release-type": "node",
-  "include-component-in-tag": false,
+  "include-component-in-tag": true,
+  "tag-separator": "@",
   "include-v-in-tag": true,
   "bump-minor-pre-major": true,
   "bump-patch-for-minor-pre-major": false,
+  "last-release-sha": "95231e35776cd493df0cdc2a6b4bd75977c6f9e1",
   "packages": {
-    ".": {
+    "packages/duxt": {
       "package-name": "@kirchdev/duxt",
-      "changelog-path": "CHANGELOG.md"
+      "changelog-path": "/CHANGELOG.md"
     }
   }
 }

@@ -14,11 +14,13 @@
     "isolatedModules": true,
     "skipLibCheck": true,
     "paths": {
-      "@duxt/*": ["./app/*"]
+      "@duxt/*": ["./packages/duxt/app/*"]
     }
   },
   "include": [
     "scripts/**/*.ts",
+    "apps/www/scripts/**/*.ts",
+    "packages/duxt/scripts/**/*.ts",
     "commitlint.config.ts",
     "lint-staged.config.ts",
     "taze.config.ts"

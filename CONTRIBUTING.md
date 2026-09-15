@@ -37,21 +37,35 @@ Separate worktrees have separate ownership.
 
 After a crash, retry once the owning process has exited: the operating system
 releases the ownership transaction automatically. Nuxt also reclaims its own
-`www/node_modules/.cache/nuxt/.nuxt/nuxt.lock` when its recorded PID no longer
-exists. Never remove a live process's lock, `.data`, SQLite database or WAL files.
-If a Nuxt lock cannot be read, confirm the owning process is gone before removing
-that lock manually. A lock's age alone is not proof that its owner has stopped.
+`apps/www/node_modules/.cache/nuxt/.nuxt/nuxt.lock` when its recorded PID no
+longer exists. Never remove a live process's lock, `.data`, SQLite database or
+WAL files. If a Nuxt lock cannot be read, confirm the owning process is gone
+before removing that lock manually. A lock's age alone is not proof that its
+owner has stopped.
+
+## Where things live
+
+This is a pnpm workspace driven by Turborepo:
+
+- `packages/duxt` — the published layer, `@kirchdev/duxt`.
+- `apps/www` — the site that develops it, and the checks that read its build.
+- The root — workspace and meta configuration, plus `docs/`, which is what
+  `apps/www` publishes.
+
+Run everything from the root. The root scripts delegate package tasks to
+`turbo run`, which caches only what its inputs fully determine.
 
 ## Running the suite
 
-| Command              | What it does                                               |
-| :------------------- | :--------------------------------------------------------- |
-| `pnpm lint`          | oxlint across the repo.                                    |
-| `pnpm format`        | oxfmt check across JS / TS / JSON / YAML / MD.             |
-| `pnpm typecheck`     | `tsc --noEmit` over the meta scripts.                      |
-| `pnpm typecheck:app` | `nuxt typecheck` over the layer, via `www/`.               |
-| `pnpm check`         | Runs `lint`, `format`, both typechecks and `check:policy`. |
-| `pnpm check:fix`     | Auto-fix lint + format issues.                             |
+| Command              | What it does                                                |
+| :------------------- | :---------------------------------------------------------- |
+| `pnpm lint`          | oxlint across the repo.                                     |
+| `pnpm format`        | oxfmt check across JS / TS / JSON / YAML / MD.              |
+| `pnpm typecheck`     | `tsc --noEmit` over the meta and check scripts.             |
+| `pnpm typecheck:app` | `nuxt typecheck` over the layer, via `apps/www`.            |
+| `pnpm test`          | Every package's vitest suite, through `turbo run test`.     |
+| `pnpm check`         | The CI gate — the full chain is in the root `package.json`. |
+| `pnpm check:fix`     | Auto-fix lint + format issues.                              |
 
 The same commands run in CI — keep them green before you push.
 

@@ -1,0 +1,46 @@
+{
+  "$schema": "https://www.schemastore.org/package.json",
+  "name": "www",
+  "version": "0.4.0",
+  "private": true,
+  "description": "The duxt documentation site — consumes the layer exactly as a downstream repo does.",
+  "type": "module",
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "build:cf": "NITRO_PRESET=cloudflare-module nuxt build && pnpm run check:routes",
+    "check:a11y": "node scripts/check-a11y.ts",
+    "check:adapters": "node scripts/check-adapters.ts",
+    "check:images": "node scripts/check-images.ts",
+    "check:keyboard": "node scripts/check-keyboard.ts",
+    "check:overflow": "node scripts/check-overflow.ts",
+    "check:routes": "node scripts/check-routes.ts",
+    "check:seo": "node scripts/check-seo.ts",
+    "deploy": "pnpm run build:cf && pnpm run publish:cf",
+    "publish:cf": "wrangler deploy",
+    "preview:cf": "pnpm run build:cf && wrangler dev",
+    "test": "vitest run",
+    "typecheck": "nuxt typecheck"
+  },
+  "dependencies": {
+    "@iconify-json/vscode-icons": "^1.2.76",
+    "@kirchdev/duxt": "workspace:*",
+    "agents": "^0.20.1",
+    "nuxt": "^4.5.2"
+  },
+  "devDependencies": {
+    "@libsql/client": "^0.18.0",
+    "@types/jsdom": "^30.0.0",
+    "@types/node": "^26.4.0",
+    "axe-core": "^4.13.0",
+    "jsdom": "^30.0.1",
+    "nuxtseo-layer-devtools": "^5.3.14",
+    "pg": "^8.23.0",
+    "playwright-core": "^1.63.0",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.11",
+    "vue-tsc": "^3.3.11",
+    "wrangler": "^4.114.0",
+    "yaml": "^2.9.0"
+  }
+}
