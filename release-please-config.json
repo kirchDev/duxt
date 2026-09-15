@@ -6,7 +6,7 @@
   "include-v-in-tag": true,
   "bump-minor-pre-major": true,
   "bump-patch-for-minor-pre-major": false,
-  "last-release-sha": "06a48acf386fde72624ea96f09b80c1736dfa352",
+  "last-release-sha": "04bc8c0ff942285c5b5fb03895a589220c0d5a92",
   "packages": {
     "packages/duxt": {
       "package-name": "@kirchdev/duxt",
