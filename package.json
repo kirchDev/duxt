@@ -1,7 +1,7 @@
 {
   "$schema": "https://www.schemastore.org/package.json",
   "name": "@kirchdev/duxt",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "duxt is a Nuxt layer: extend it and your docs/ folder becomes a site, with theme, search, API reference and llms.txt included. Point it at other repositories, or at tags of the same one, and each becomes a version.",
   "keywords": [
     "content-v3",
