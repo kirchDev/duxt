@@ -107,7 +107,8 @@ const SEPARATOR = '\u001f';
 const RECORD = '\u0001';
 
 /** The fields one record carries, in order. */
-const FORMAT = `${RECORD}%P${SEPARATOR}%an${SEPARATOR}%ae${SEPARATOR}%D`;
+const FORMAT =
+  `${RECORD}%H${SEPARATOR}%P${SEPARATOR}%an` + `${SEPARATOR}%ae${SEPARATOR}%D`;
 
 /** What git is asked, and the whole of why each flag is there. */
 const ARGUMENTS = [
@@ -119,10 +120,9 @@ const ARGUMENTS = [
   // bucketing those into the newest tag would credit people for work that has
   // not shipped.
   '--tags',
-  // Keeps a merged branch's commits together instead of letting their commit
-  // dates interleave them with another line of history. It is what makes the
-  // walk below equal to one `rev-list <previous>..<tag>` per release without
-  // paying for one `git` process per release.
+  // Children before their parents is what lets the pass below propagate a
+  // release through the graph. It does NOT make tag ranges contiguous: two
+  // parents of one merge may be walked in either order.
   '--topo-order',
   '--decorate=short',
   '--decorate-refs=refs/tags/*',
@@ -132,12 +132,18 @@ const ARGUMENTS = [
 /**
  * Every release tag, with the people whose commits it carries.
  *
- * ONE `git log` FOR THE WHOLE HISTORY, walked newest-first: a commit carrying a
- * tag OPENS that tag's release, and every commit after it in the walk belongs
- * there until the next tag opens the release before it. That is exactly the
- * range `<previous tag>..<tag>` names, and the alternative — a `git log` per
- * release — is the cost `modules/git-meta.ts` already paid once: the work is
- * never the history, it is spawning the processes.
+ * ONE `git log` FOR THE WHOLE HISTORY, walked children-first and reconstructed
+ * as a graph in memory. Every tag seeds a release number on its commit; that
+ * number flows to its parents, while an older tag replaces a newer number at
+ * its own boundary. A commit therefore belongs to the oldest tag that can
+ * reach it — exactly the set `<previous tag>..<tag>` names — without paying for
+ * one git process per release.
+ *
+ * THE GRAPH IS LOAD-BEARING. Tag markers do not delimit contiguous slices of a
+ * topo-ordered log: where a release merge has the older tag on one parent and
+ * new work on another, git may print the older tag before that parallel branch.
+ * A mutable "current tag" then gives the work to the release before it and
+ * leaves the release that merged it empty.
  *
  * A MERGE COMMIT SETS THE BOUNDARY AND CREDITS NOBODY. It has to be walked,
  * because release-please tags the merge commit its release pull request
@@ -149,40 +155,67 @@ const ARGUMENTS = [
 export function parseReleaseContributors(
   output: string
 ): Map<string, DuxtContributor[]> {
-  const commits = new Map<string, DuxtCommitAuthor[]>();
-  const contributors = new Map<string, DuxtContributor[]>();
-
-  /** The tags whose release the commits now being read belong to. */
-  let current: string[] = [];
+  const commits: {
+    hash: string;
+    parents: string[];
+    author: DuxtCommitAuthor;
+    merge: boolean;
+    tags: string[];
+  }[] = [];
+  const tagGroups: string[][] = [];
 
   for (const record of output.split(RECORD)) {
     if (!record.trim()) continue;
 
-    const [parents, name, email, decoration] = record
+    const [hash, parents, name, email, decoration] = record
       .split('\n')[0]!
       .split(SEPARATOR);
-
     const tags = tagsOf(decoration ?? '');
 
-    if (tags.length) {
-      current = tags;
-      for (const tag of tags) commits.set(tag, commits.get(tag) ?? []);
-    }
+    commits.push({
+      hash: hash ?? '',
+      parents: (parents ?? '').trim().split(/\s+/).filter(Boolean),
+      author: { name: name ?? '', email: email ?? '' },
+      merge: (parents ?? '').trim().includes(' '),
+      tags
+    });
 
-    if (!current.length) continue;
-
-    // A merge carries more than one parent. It opened the release above and
-    // says nothing else.
-    if ((parents ?? '').trim().includes(' ')) continue;
-
-    const author = { name: name ?? '', email: email ?? '' };
-    if (isGitHubApp(author)) continue;
-
-    for (const tag of current) commits.get(tag)!.push(author);
+    if (tags.length) tagGroups.push(tags);
   }
 
-  for (const [tag, authors] of commits) {
-    contributors.set(tag, contributorsOf(authors));
+  /** The release each reachable commit belongs to, newest group numbered 0. */
+  const owners = new Map<string, number>();
+  const authors = tagGroups.map(() => [] as DuxtCommitAuthor[]);
+  let group = 0;
+
+  // Seed every boundary before walking. A newer release reaches an older tag's
+  // commit too; the larger number there is what stops that propagation.
+  for (const commit of commits) {
+    if (!commit.tags.length) continue;
+    owners.set(commit.hash, group);
+    group += 1;
+  }
+
+  for (const commit of commits) {
+    const owner = owners.get(commit.hash);
+    if (owner === undefined) continue;
+
+    // A merge carries more than one parent. It sets and propagates the boundary
+    // but says nothing itself; apps are omitted for the same reason as before.
+    if (!commit.merge && !isGitHubApp(commit.author)) {
+      authors[owner]!.push(commit.author);
+    }
+
+    for (const parent of commit.parents) {
+      const previous = owners.get(parent);
+      if (previous === undefined || owner > previous) owners.set(parent, owner);
+    }
+  }
+
+  const contributors = new Map<string, DuxtContributor[]>();
+  for (const [index, tags] of tagGroups.entries()) {
+    const people = contributorsOf(authors[index]!);
+    for (const tag of tags) contributors.set(tag, people);
   }
 
   return contributors;

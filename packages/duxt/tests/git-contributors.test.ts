@@ -13,23 +13,33 @@ import {
 
 /**
  * The log as `git log --tags --topo-order --decorate=short
- * --decorate-refs='refs/tags/*' --format=$'\x01%P\x1f%an\x1f%ae\x1f%D'`
+ * --decorate-refs='refs/tags/*'
+ * --format=$'\x01%H\x1f%P\x1f%an\x1f%ae\x1f%D'`
  * actually writes it: one line per commit, newest first, and a trailing
  * newline git adds after each.
  */
 function log(
   ...commits: {
+    hash?: string;
+    parentHashes?: string[];
     parents?: number;
     name?: string;
     email: string;
     tags?: string[];
   }[]
 ): string {
+  const hashes = commits.map((commit, index) => commit.hash ?? `c${index}`);
+
   return commits
-    .map((commit) => {
-      const parents = Array.from(
-        { length: commit.parents ?? 1 },
-        (_, index) => `p${index}`
+    .map((commit, commitIndex) => {
+      const parentCount = commit.parents ?? (hashes[commitIndex + 1] ? 1 : 0);
+      const parents = (
+        commit.parentHashes ??
+        Array.from({ length: parentCount }, (_, parentIndex) =>
+          parentIndex === 0 && hashes[commitIndex + 1]
+            ? hashes[commitIndex + 1]!
+            : `${hashes[commitIndex]}-parent-${parentIndex}`
+        )
       ).join(' ');
 
       const decoration = (commit.tags ?? [])
@@ -37,7 +47,8 @@ function log(
         .join(', ');
 
       return (
-        `\u0001${parents}\u001f${commit.name ?? 'A Name'}` +
+        `\u0001${hashes[commitIndex]}\u001f${parents}` +
+        `\u001f${commit.name ?? 'A Name'}` +
         `\u001f${commit.email}\u001f${decoration}\n`
       );
     })
@@ -60,6 +71,42 @@ describe('parseReleaseContributors', () => {
     ]);
     expect([...releases.keys()]).toEqual(['v1.1.0', 'v1.0.0']);
     expect(releases.get('v1.0.0')).toHaveLength(2);
+  });
+
+  it('keeps a topo-ordered side branch with the release that merged it', () => {
+    // Both tag commits are merges, so topo-order may walk the older release
+    // parent before the parallel branch the newer release merged. The tag
+    // markers therefore do not delimit contiguous slices of this log.
+    const releases = parseReleaseContributors(
+      log(
+        {
+          hash: 'new',
+          parentHashes: ['old', 'feature'],
+          email: 'merger@x',
+          tags: ['v1.1.0']
+        },
+        {
+          hash: 'old',
+          parentHashes: ['old-base', 'old-release'],
+          email: 'merger@x',
+          tags: ['v1.0.0']
+        },
+        {
+          hash: 'feature',
+          parentHashes: ['feature-base'],
+          name: 'Feature Author',
+          email: 'feature@x'
+        }
+      )
+    );
+
+    expect(releases.get('v1.1.0')).toEqual([
+      {
+        name: 'Feature Author',
+        commits: 1,
+        username: undefined
+      }
+    ]);
   });
 
   it('credits nobody for a commit no release carries yet', () => {
