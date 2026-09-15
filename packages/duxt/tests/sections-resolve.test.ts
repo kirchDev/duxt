@@ -1,0 +1,854 @@
+import { describe, expect, it, vi } from 'vitest';
+import type {
+  DuxtSectionOptions,
+  DuxtSectionType
+} from '../build/sections/sections-resolve';
+import type { DuxtResolvedSource } from '../build/sources/sources-resolve';
+import { changelogSectionType } from '../build/sections/sections-changelog';
+import {
+  duxtManifest,
+  duxtSectionInput,
+  duxtSectionTypes,
+  generatedSectionRef,
+  missingSectionArtefact,
+  resolveGeneratedSections,
+  sectionPages
+} from '../build/sections/sections-resolve';
+
+/** A type that does nothing, so the policies are the only variable. */
+const stub = (over: Partial<DuxtSectionType> = {}): DuxtSectionType => ({
+  parse: () => [{ file: 'index.md', body: '' }],
+  versioning: 'global',
+  localisation: 'original',
+  ...over
+});
+
+const types = (over: Partial<DuxtSectionType> = {}) => ({ stub: stub(over) });
+
+const section = { type: 'stub', path: 'CHANGELOG.md', label: 'Releases' };
+
+describe('resolveGeneratedSections', () => {
+  it('inherits the default language when its source omits locales', () => {
+    const source = { path: 'demo', slug: 'demo', generated: [section] };
+    const options = { defaultLocale: 'en-GB' };
+    const implicit = resolveGeneratedSections([source], options, types());
+    const explicit = resolveGeneratedSections(
+      [{ ...source, locales: ['en-GB'] }],
+      options,
+      types()
+    );
+
+    expect(implicit).toEqual(explicit);
+    expect(implicit[0]).toMatchObject({
+      locale: 'en-GB',
+      isDefaultLocale: true,
+      collection: 'docs_demo_releases',
+      prefix: '/demo/releases'
+    });
+  });
+
+  it('produces nothing until a source declares one', () => {
+    expect(resolveGeneratedSections([{ path: 'docs' }])).toEqual([]);
+  });
+
+  it('serves a section from the source prefix plus its own segment', () => {
+    const [only] = resolveGeneratedSections(
+      [{ path: 'docs', generated: [section] }],
+      {},
+      types()
+    );
+
+    expect(only).toMatchObject({
+      collection: 'docs_releases',
+      prefix: '/releases',
+      // The ARTEFACT, so "edit this page" links at the file every page in the
+      // section came out of.
+      path: 'CHANGELOG.md',
+      isDefault: true,
+      // Its pages have no file of their own for git to answer about.
+      history: false
+    });
+  });
+
+  it('takes the URL segment from `slug` over the label', () => {
+    const [only] = resolveGeneratedSections(
+      [{ path: 'docs', generated: [{ ...section, slug: 'changelog' }] }],
+      {},
+      types()
+    );
+
+    expect(only!.prefix).toBe('/changelog');
+    expect(only!.collection).toBe('docs_changelog');
+  });
+
+  it('sits under the repository segment once there is more than one', () => {
+    const generated = resolveGeneratedSections(
+      [
+        { path: 'docs', repo: 'kirchDev/duxt', generated: [section] },
+        { path: 'docs', repo: 'kirchDev/workflows' }
+      ],
+      {},
+      types()
+    );
+
+    expect(generated.map((entry) => entry.prefix)).toEqual(['/duxt/releases']);
+  });
+
+  it('puts a global section on the default version only, without one', () => {
+    const generated = resolveGeneratedSections(
+      [
+        {
+          repo: 'acme/docs',
+          path: 'docs',
+          refs: ['main', 'v1.x'],
+          generated: [section]
+        }
+      ],
+      {},
+      types()
+    );
+
+    // One history, at a version-neutral URL — never a copy per version, each
+    // missing the releases that came after it.
+    expect(generated).toHaveLength(1);
+    expect(generated[0]).toMatchObject({ prefix: '/releases' });
+    expect(generated[0]!.version).toBeUndefined();
+  });
+
+  it('publishes a changelog in every version, each read at its own ref', () => {
+    const generated = resolveGeneratedSections(
+      [
+        {
+          repo: 'acme/docs',
+          path: 'docs',
+          refs: ['main', 'v1.x'],
+          generated: [section]
+        }
+      ],
+      {},
+      { stub: changelogSectionType }
+    );
+
+    // A route per version, analogous to the docs and the API reference beside
+    // it — and each one reads the CHANGELOG.md of the ref it was built from.
+    expect(
+      generated.map((entry) => [entry.prefix, entry.version, entry.ref])
+    ).toEqual([
+      ['/releases', 'main', 'main'],
+      ['/v1.x/releases', 'v1.x', 'v1.x']
+    ]);
+    expect(generated.map((entry) => entry.isDefault)).toEqual([true, false]);
+  });
+
+  it('gives a per-version section one collection per version', () => {
+    const generated = resolveGeneratedSections(
+      [
+        {
+          repo: 'acme/docs',
+          path: 'docs',
+          refs: ['main', 'v1.x'],
+          generated: [section]
+        }
+      ],
+      {},
+      types({ versioning: 'per-version' })
+    );
+
+    expect(generated.map((entry) => entry.prefix)).toEqual([
+      '/releases',
+      '/v1.x/releases'
+    ]);
+    expect(generated.map((entry) => entry.version)).toEqual(['main', 'v1.x']);
+  });
+
+  it('builds an `original` section from the default locale alone', () => {
+    const generated = resolveGeneratedSections(
+      [{ path: 'docs', locales: ['en-GB', 'de'], generated: [section] }],
+      {},
+      types()
+    );
+
+    expect(generated).toHaveLength(1);
+    expect(generated[0]!.locale).toBe('en-GB');
+    expect(generated[0]!.isDefaultLocale).toBe(true);
+  });
+
+  it('follows the source languages when the type is per-locale', () => {
+    const generated = resolveGeneratedSections(
+      [
+        {
+          path: 'docs',
+          locales: ['en-GB', 'de'],
+          generated: [{ ...section, locales: { de: 'CHANGELOG.de.md' } }]
+        }
+      ],
+      {},
+      types({ localisation: 'per-locale' })
+    );
+
+    // Identical prefixes on purpose: the locale lives in front of the URL, not
+    // in the content tree, so two languages behind one prefix is the design.
+    expect(generated.map((entry) => entry.locale)).toEqual(['en-GB', 'de']);
+    expect(generated.map((entry) => entry.prefix)).toEqual([
+      '/releases',
+      '/releases'
+    ]);
+    expect(generated.map((entry) => entry.collection)).toEqual([
+      'docs_releases',
+      'docs_de_releases'
+    ]);
+    // Each reads ITS OWN artefact — which is the whole reason a per-locale
+    // type is per-locale rather than one collection copied per language.
+    expect(generated.map((entry) => entry.path)).toEqual([
+      'CHANGELOG.md',
+      'CHANGELOG.de.md'
+    ]);
+  });
+
+  it('builds nothing for a language that declares no artefact', () => {
+    const generated = resolveGeneratedSections(
+      [{ path: 'docs', locales: ['en-GB', 'de'], generated: [section] }],
+      {},
+      types({ localisation: 'per-locale' })
+    );
+
+    // The DEFAULT language only. A collection per language all reading the one
+    // file would serve the original under a German URL with nothing saying so
+    // — `sourcesForRoute` instead falls through to the default entry, and
+    // `DuxtTranslationBanner` says the reader is looking at the original.
+    expect(generated.map((entry) => entry.locale)).toEqual(['en-GB']);
+  });
+
+  it('lets a language answer for its regions', () => {
+    const generated = resolveGeneratedSections(
+      [
+        {
+          path: 'docs',
+          locales: ['en-GB', 'pt-BR'],
+          generated: [{ ...section, locales: { pt: 'CHANGELOG.pt.md' } }]
+        }
+      ],
+      {},
+      types({ localisation: 'per-locale' })
+    );
+
+    // One `pt` artefact serves `pt-PT` and `pt-BR`, exactly as one `pt` locale
+    // FILE does.
+    expect(generated.map((entry) => entry.path)).toEqual([
+      'CHANGELOG.md',
+      'CHANGELOG.pt.md'
+    ]);
+  });
+
+  it('defaults the navbar entry to the second row', () => {
+    const [only] = resolveGeneratedSections(
+      [{ path: 'docs', generated: [section] }],
+      {},
+      types()
+    );
+
+    expect(only!.generated).toMatchObject({
+      navigation: 'sections',
+      type: 'stub',
+      label: 'Releases',
+      slug: 'releases',
+      versioning: 'global',
+      localisation: 'original'
+    });
+  });
+
+  it('carries the placement and the icon a section declares', () => {
+    const [only] = resolveGeneratedSections(
+      [
+        {
+          path: 'docs',
+          generated: [
+            { ...section, navigation: 'navigation', icon: 'lucide:star' }
+          ]
+        }
+      ],
+      {},
+      types({ icon: 'lucide:tag' })
+    );
+
+    expect(only!.generated).toMatchObject({
+      navigation: 'navigation',
+      icon: 'lucide:star'
+    });
+  });
+
+  it('falls back to the type icon and layout', () => {
+    const [only] = resolveGeneratedSections(
+      [{ path: 'docs', generated: [section] }],
+      {},
+      types({ icon: 'lucide:tag', layout: 'changelog' })
+    );
+
+    expect(only!.generated).toMatchObject({
+      icon: 'lucide:tag',
+      layout: 'changelog'
+    });
+  });
+
+  it('carries the declaration`s own options for the type to read', () => {
+    const [only] = resolveGeneratedSections(
+      [
+        {
+          path: 'docs',
+          generated: [{ ...section, options: { granularity: 'flat' } }]
+        }
+      ],
+      {},
+      types()
+    );
+
+    expect(only!.generated!.options).toEqual({ granularity: 'flat' });
+  });
+
+  it('lets the type name a layout per those options', () => {
+    // The knob a declaration turns can change what the pages ARE — a changelog
+    // asked for as one file is an ordinary page and wants the docs shell, the
+    // same one split into releases is not. So the layout is resolved from the
+    // options rather than fixed per type.
+    const layout = (options: DuxtSectionOptions) =>
+      options.granularity === 'flat' ? undefined : 'changelog';
+
+    const [split] = resolveGeneratedSections(
+      [{ path: 'docs', generated: [section] }],
+      {},
+      types({ layout })
+    );
+
+    const [flat] = resolveGeneratedSections(
+      [
+        {
+          path: 'docs',
+          generated: [{ ...section, options: { granularity: 'flat' } }]
+        }
+      ],
+      {},
+      types({ layout })
+    );
+
+    expect(split!.generated!.layout).toBe('changelog');
+    expect(flat!.generated!.layout).toBeUndefined();
+  });
+
+  it('tells the entries of one declaration from those of another', () => {
+    // WHICH DECLARATION an entry came from is known here and nowhere after, so
+    // it is recorded rather than reconstructed downstream: the navbar puts one
+    // link in the row per declaration, and it used to guess the grouping from
+    // (slug, repository) — a pair the resolver never promised was unique.
+    const generated = resolveGeneratedSections(
+      [
+        {
+          repo: 'acme/docs',
+          path: 'docs',
+          refs: ['main', 'v1.x'],
+          // One artefact declared twice, as `www` declares its own changelog.
+          generated: [section, { ...section, slug: 'changelog' }]
+        },
+        { path: 'other', slug: 'other', generated: [section] }
+      ],
+      { showRepo: true },
+      types({ versioning: 'per-version' })
+    );
+
+    expect(
+      generated.map((entry) => [entry.prefix, entry.generated!.declaration])
+    ).toEqual([
+      ['/docs/releases', 0],
+      ['/docs/v1.x/releases', 0],
+      ['/docs/changelog', 1],
+      ['/docs/v1.x/changelog', 1],
+      ['/other/releases', 2]
+    ]);
+  });
+
+  it('marks a downloaded source as remote and a local one as not', () => {
+    const generated = resolveGeneratedSections(
+      [
+        { path: 'docs', generated: [section] },
+        {
+          path: 'docs',
+          repo: 'kirchDev/workflows',
+          generated: [{ ...section, slug: 'other' }]
+        }
+      ],
+      {},
+      types()
+    );
+
+    expect(generated.map((entry) => entry.generated!.remote)).toEqual([
+      false,
+      true
+    ]);
+  });
+
+  it('rejects a type no registry answers to', () => {
+    expect(() =>
+      resolveGeneratedSections(
+        [{ path: 'docs', generated: [{ ...section, type: 'openapi' }] }],
+        {},
+        types()
+      )
+    ).toThrow(/openapi/);
+  });
+
+  it('rejects a section colliding with the documentation', () => {
+    expect(() =>
+      resolveGeneratedSections(
+        [
+          { path: 'docs', repo: 'kirchDev/duxt', generated: [section] },
+          // Slugged to the segment the section above claims.
+          { path: 'docs', repo: 'kirchDev/other', slug: 'releases' }
+        ],
+        { showRepo: false },
+        types()
+      )
+    ).toThrow(/already claims|same URL prefix/);
+  });
+
+  it('rejects two sections claiming one segment', () => {
+    expect(() =>
+      resolveGeneratedSections(
+        [{ path: 'docs', generated: [section, { ...section }] }],
+        {},
+        types()
+      )
+    ).toThrow(/already claims/);
+  });
+});
+
+describe('duxtManifest', () => {
+  it('appends the sections after the documentation', () => {
+    const manifest = duxtManifest(
+      [{ path: 'docs', generated: [section] }],
+      {},
+      types()
+    );
+
+    expect(manifest.map((entry) => entry.prefix)).toEqual(['', '/releases']);
+    expect(manifest[0]!.generated).toBeUndefined();
+  });
+
+  it('is the source manifest exactly when nothing is declared', () => {
+    expect(duxtManifest([{ path: 'docs' }])).toHaveLength(1);
+  });
+
+  it('lets a generated-only source share a default overview prefix', () => {
+    const manifest = duxtManifest(
+      [
+        { path: 'demo/docs', slug: 'demo', version: 'v3.x' },
+        {
+          path: 'demo/docs',
+          slug: 'demo',
+          version: 'v2.x',
+          status: 'deprecated'
+        },
+        {
+          path: 'demo/docs',
+          slug: 'demo',
+          content: false,
+          generated: [
+            {
+              type: 'stub',
+              path: 'demo/v3.md',
+              label: 'Demo API',
+              slug: 'api',
+              versions: [
+                { version: 'v3.x', path: 'demo/v3.md', default: true },
+                { version: 'v2.x', path: 'demo/v2.md' }
+              ]
+            }
+          ]
+        }
+      ],
+      { defaultRef: 'v3.x' },
+      types({ versioning: 'per-version' })
+    );
+
+    expect(
+      manifest
+        .filter((entry) => !entry.generated)
+        .map(({ version, prefix }) => ({ version, prefix }))
+    ).toEqual([
+      { version: 'v3.x', prefix: '/demo' },
+      { version: 'v2.x', prefix: '/demo/v2.x' }
+    ]);
+    expect(
+      manifest
+        .filter((entry) => entry.generated)
+        .map(({ version, prefix }) => ({ version, prefix }))
+    ).toEqual([
+      { version: 'v3.x', prefix: '/demo/api' },
+      { version: 'v2.x', prefix: '/demo/v2.x/api' }
+    ]);
+  });
+});
+
+describe('duxtSectionTypes', () => {
+  it('ships the layer`s own types and lets a consumer add to it', () => {
+    const registry = duxtSectionTypes({ stub: stub() });
+
+    expect(Object.keys(registry).sort()).toEqual([
+      'bruno',
+      'changelog',
+      'openapi',
+      'stub'
+    ]);
+  });
+
+  it('lets a consumer replace a type the layer ships', () => {
+    const own = stub({ versioning: 'per-version' });
+
+    expect(duxtSectionTypes({ changelog: own }).changelog).toBe(own);
+  });
+});
+
+describe('generatedSectionRef', () => {
+  it('gives a tag back as a tag and a branch back as a branch', () => {
+    const base = {
+      collection: 'docs',
+      prefix: '',
+      isDefault: true,
+      isDefaultLocale: true,
+      path: 'docs',
+      status: 'current' as const,
+      history: false
+    };
+
+    expect(
+      generatedSectionRef({ ...base, ref: 'v1.0.0', refKind: 'tag' })
+    ).toEqual({ tag: 'v1.0.0' });
+    expect(
+      generatedSectionRef({ ...base, ref: 'main', refKind: 'branch' })
+    ).toEqual({ branch: 'main' });
+    expect(generatedSectionRef(base)).toBeUndefined();
+  });
+});
+
+describe('the severity of a section that produces nothing', () => {
+  const entry = (
+    over: Partial<DuxtResolvedSource['generated']> = {}
+  ): DuxtResolvedSource => ({
+    collection: 'docs_releases',
+    prefix: '/releases',
+    path: 'CHANGELOG.md',
+    isDefault: true,
+    isDefaultLocale: true,
+    status: 'current',
+    history: false,
+    repository: 'kirchDev/duxt',
+    ref: 'v1.0.0',
+    refKind: 'tag',
+    generated: {
+      type: 'stub',
+      label: 'Releases',
+      slug: 'releases',
+      navigation: 'sections',
+      versioning: 'global',
+      localisation: 'original',
+      remote: false,
+      ...over
+    }
+  });
+
+  it('fails the build when a LOCAL source declares a file it has not', () => {
+    // The site's own configuration, so a path that does not exist is a mistake
+    // in it — the rule `modules/validate.ts` states, applied here.
+    expect(() => missingSectionArtefact(entry(), '/repo/CHANGELOG.md')).toThrow(
+      /which this repository does not have/
+    );
+  });
+
+  it('fails the build when a REMOTE version lacks a file its type requires', () => {
+    // A changelog must exist in every published version. A missing one is not
+    // a stale remote to carry on past: omitting the version or falling back to
+    // another version's history would both publish the wrong thing.
+    expect(() =>
+      missingSectionArtefact(
+        entry({ remote: true }),
+        '/cache/CHANGELOG.md',
+        stub({ artefact: 'required' })
+      )
+    ).toThrow(/every published version/);
+  });
+
+  it('records and builds nothing when a REMOTE source has not the file', () => {
+    // A remote source can go stale between releases without that being this
+    // build's fault, so it carries on — and the finding goes into the report
+    // rather than onto the console, which is what puts it in the same list as
+    // every other finding this layer produces.
+    const source = entry({ remote: true });
+
+    expect(missingSectionArtefact(source, '/cache/CHANGELOG.md')).toEqual([]);
+    expect(source.generated!.report).toEqual({
+      pages: 0,
+      warnings: [],
+      missing: true
+    });
+  });
+
+  it('records the missing artefact for a LOCAL source before it throws', () => {
+    // The throw is the severity; the report is what a reader sees if anything
+    // catches it. Both, in that order.
+    const source = entry();
+
+    expect(() =>
+      missingSectionArtefact(source, '/repo/CHANGELOG.md')
+    ).toThrow();
+    expect(source.generated!.report?.missing).toBe(true);
+  });
+
+  it('hands the type the label, the prefix and the declared options', () => {
+    // The context is the whole of what a parser is told: everything else it
+    // needs about the section is a knob the site turned.
+    const parse = vi.fn(() => [{ file: 'index.md', body: '' }]);
+
+    const input = duxtSectionInput('CHANGELOG.md', 'anything');
+
+    sectionPages(
+      entry({ options: { granularity: 'flat' } }),
+      stub({ parse }),
+      input
+    );
+
+    expect(parse).toHaveBeenCalledWith(input, {
+      label: 'Releases',
+      collection: 'docs_releases',
+      remote: false,
+      prefix: '/releases',
+      options: { granularity: 'flat' },
+      warn: expect.any(Function)
+    });
+  });
+
+  it('hands a type that was given no options an empty set', () => {
+    const parse = vi.fn(() => [{ file: 'index.md', body: '' }]);
+
+    sectionPages(
+      entry(),
+      stub({ parse }),
+      duxtSectionInput('CHANGELOG.md', 'anything')
+    );
+
+    expect(parse).toHaveBeenCalledWith(
+      expect.objectContaining({ path: 'CHANGELOG.md' }),
+      expect.objectContaining({ options: {} })
+    );
+  });
+
+  it('treats a type that read nothing as the same finding', () => {
+    // An empty collection is a 404 on every URL the section claims, with
+    // nothing said about why — the same outcome as a file that is not there.
+    const empty = stub({ parse: () => [] });
+    const remote = entry({ remote: true });
+
+    const input = duxtSectionInput('CHANGELOG.md', 'anything');
+
+    expect(() => sectionPages(entry(), empty, input)).toThrow(
+      /holds nothing the "stub" type can read/
+    );
+    expect(sectionPages(remote, empty, input)).toEqual([]);
+    expect(remote.generated!.report).toEqual({ pages: 0, warnings: [] });
+  });
+
+  it('collects what the type warned about, once per message', () => {
+    // Deduplicated in the scaffold rather than in each type: one unresolvable
+    // `$ref` is reached from every operation that uses it.
+    const source = entry();
+
+    sectionPages(
+      source,
+      stub({
+        parse: (_input, context) => {
+          context.warn?.('the reference "#/x" points at nothing.');
+          context.warn?.('the reference "#/x" points at nothing.');
+          return [{ file: 'index.md', body: '' }];
+        }
+      }),
+      duxtSectionInput('CHANGELOG.md', 'anything')
+    );
+
+    expect(source.generated!.report).toEqual({
+      pages: 1,
+      warnings: ['the reference "#/x" points at nothing.']
+    });
+  });
+});
+
+describe('which generated entry claims to be the default version', () => {
+  const source = (type: string) => ({
+    path: 'docs',
+    repo: 'acme/sdk',
+    refs: [
+      { branch: 'main', label: 'v2' },
+      { tag: 'v1.9.4', label: 'v1.9' }
+    ],
+    generated: [{ type, path: 'artefact', label: 'Section' }]
+  });
+
+  it('follows the version it was read at, for a per-version type', () => {
+    // Hard-wired to `true`, the deprecated reference claimed to be the default
+    // as loudly as the current one — which kept it in the sitemap and put a
+    // second "default" in the version switcher.
+    const entries = duxtManifest([source('openapi')], {}).filter(
+      (entry) => entry.generated
+    );
+
+    expect(entries.map((entry) => [entry.version, entry.isDefault])).toEqual([
+      ['v2', true],
+      ['v1.9', false]
+    ]);
+  });
+
+  it('stays the default for a version-neutral type', () => {
+    // One entry, served at a URL with no version in it — there is nothing else
+    // for it to be. The changelog is per version now, so a stub stands in for
+    // the policy the registry still offers.
+    const entries = duxtManifest(
+      [source('changelog')],
+      {},
+      {
+        ...duxtSectionTypes(),
+        changelog: stub()
+      }
+    ).filter((entry) => entry.generated);
+
+    expect(entries).toHaveLength(1);
+    expect(entries[0]!.isDefault).toBe(true);
+    expect(entries[0]!.version).toBeUndefined();
+  });
+});
+
+/**
+ * A section that carries its OWN versions — the shape an API is usually kept
+ * in: two documents in one checkout, versioned by file rather than by tag.
+ *
+ * The identity is what makes this work at all: both entries come from one
+ * declaration, so `sameArtefact` offers them as versions of one another. Two
+ * separate declarations never are, whatever versions they name.
+ */
+describe('a section versioned by its own declaration', () => {
+  const sources = [
+    {
+      path: 'docs',
+      generated: [
+        {
+          type: 'openapi',
+          label: 'API',
+          path: 'openapi/v2.yaml',
+          versions: [
+            { version: 'v2', path: 'openapi/v2.yaml' },
+            {
+              version: 'v1',
+              path: 'openapi/v1.yaml',
+              status: 'deprecated' as const
+            }
+          ]
+        }
+      ]
+    }
+  ];
+
+  const resolve = () => resolveGeneratedSections(sources);
+
+  it('serves the default at the section`s own URL and the rest under theirs', () => {
+    expect(resolve().map((entry) => entry.prefix)).toEqual(['/api', '/v1/api']);
+  });
+
+  it('reads a different artefact per version', () => {
+    expect(resolve().map((entry) => entry.path)).toEqual([
+      'openapi/v2.yaml',
+      'openapi/v1.yaml'
+    ]);
+  });
+
+  it('gives each version a collection of its own', () => {
+    // The bug this exists over: a ref-versioned source hands every version its
+    // own base entry, so the collection name already differed. A declaration's
+    // versions share one base — both claimed `docs_api`, the second overwrote
+    // the first in `content.config.ts`, and the DEFAULT version 404'd while the
+    // deprecated one rendered.
+    const [current, old] = resolve();
+
+    expect(current!.collection).not.toBe(old!.collection);
+  });
+
+  it('keeps both under one declaration, which is what makes them versions', () => {
+    const [current, old] = resolve();
+
+    expect(current!.generated!.declaration).toBe(old!.generated!.declaration);
+    expect(current!.version).toBe('v2');
+    expect(old!.version).toBe('v1');
+    expect(current!.isDefault).toBe(true);
+    expect(old!.isDefault).toBe(false);
+    expect(old!.status).toBe('deprecated');
+  });
+
+  it('takes the default the list names rather than the first', () => {
+    const declared = [
+      {
+        path: 'docs',
+        generated: [
+          {
+            type: 'openapi',
+            label: 'API',
+            path: 'openapi/v2.yaml',
+            versions: [
+              { version: 'v2', path: 'openapi/v2.yaml' },
+              { version: 'v1', path: 'openapi/v1.yaml', default: true }
+            ]
+          }
+        ]
+      }
+    ];
+
+    const entries = resolveGeneratedSections(declared);
+
+    expect(entries.map((entry) => entry.prefix)).toEqual(['/v2/api', '/api']);
+  });
+
+  it('refuses versions on a section whose source is versioned by refs', () => {
+    const declared = [
+      {
+        repo: 'acme/docs',
+        path: 'docs',
+        refs: [{ tag: 'v2.0.0' }, { tag: 'v1.0.0' }],
+        generated: [
+          {
+            type: 'openapi',
+            label: 'API',
+            path: 'openapi/v2.yaml',
+            versions: [{ version: 'v2', path: 'openapi/v2.yaml' }]
+          }
+        ]
+      }
+    ];
+
+    expect(() => resolveGeneratedSections(declared)).toThrow(
+      /same segment of the URL/
+    );
+  });
+
+  it('refuses versions on a version-neutral type', () => {
+    const declared = [
+      {
+        path: 'docs',
+        generated: [
+          {
+            type: 'changelog',
+            label: 'Releases',
+            path: 'CHANGELOG.md',
+            versions: [{ version: 'v2', path: 'CHANGELOG.md' }]
+          }
+        ]
+      }
+    ];
+
+    expect(() =>
+      resolveGeneratedSections(declared, {}, { changelog: stub() })
+    ).toThrow(/version-neutral/);
+  });
+});

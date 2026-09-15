@@ -5,7 +5,7 @@
 # no body for "build one repository's site eighteen times and compare the
 # prerender phase", and there is unlikely ever to be a second caller for one.
 #
-# WHAT IT IS FOR. `prerender.concurrency: 8` in `www/nuxt.config.ts` is the
+# WHAT IT IS FOR. `prerender.concurrency: 8` in `apps/www/nuxt.config.ts` is the
 # answer to a build that produced 335 `createImage timeout` lines — 335 pages
 # that shipped with no OG image, silently, because a missing OG image fails
 # nothing. Eight brought that to 140 and the number was never revisited. Issue
@@ -119,7 +119,7 @@ jobs:
       # number: Nitro's own timing starts after the content is parsed.
       - name: Resolve the remote-source cache key
         id: sources
-        run: node ./bin/duxt-cache-key.mjs --root www --github >> "$GITHUB_OUTPUT"
+        run: node ./packages/duxt/bin/duxt-cache-key.mjs --root apps/www --github >> "$GITHUB_OUTPUT"
 
       - name: Restore the downloaded sources
         if: steps.sources.outputs.cacheable == 'true'
@@ -158,8 +158,8 @@ jobs:
 
           for run in $(seq 1 "$REPETITIONS"); do
             for state in cold warm; do
-              rm -rf www/.output
-              if [ "$state" = cold ]; then rm -rf www/.cache/og-image; fi
+              rm -rf apps/www/.output
+              if [ "$state" = cold ]; then rm -rf apps/www/.cache/og-image; fi
 
               started=$(date +%s%3N)
               # `/usr/bin/time` for #44's "resource use where available": `%M`
@@ -172,10 +172,10 @@ jobs:
                 | tee build.log; then ok=true; else ok=false; fi
               elapsed=$(($(date +%s%3N) - started))
 
-              node ./bin/duxt-og-cache.mjs --root www --report --github \
+              node ./packages/duxt/bin/duxt-og-cache.mjs --root apps/www --report --github \
                 --since "$started" --log build.log > og.txt
 
-              node scripts/prerender-bench.ts --measure \
+              node apps/www/scripts/prerender-bench.ts --measure \
                 --concurrency "$SETTING" --state "$state" --run "$run" \
                 --log build.log --og og.txt --build-ms "$elapsed" --ok "$ok" \
                 --max-rss-kb "$(tail -n 1 rss.txt)" --cores "$(nproc)" \
@@ -194,7 +194,7 @@ jobs:
         env:
           SETTING: ${{ matrix.concurrency }}
         run: |
-          node scripts/prerender-bench.ts --verdict \
+          node apps/www/scripts/prerender-bench.ts --verdict \
             --results "runs-$SETTING.jsonl" --baseline "$SETTING" \
             >> "$GITHUB_STEP_SUMMARY"
 
@@ -251,7 +251,7 @@ jobs:
           find runs -name '*.jsonl' -exec cat {} + >> all.jsonl
 
           decide() {
-            node scripts/prerender-bench.ts --verdict --results all.jsonl \
+            node apps/www/scripts/prerender-bench.ts --verdict --results all.jsonl \
               --baseline "$BASELINE" --threshold "$THRESHOLD" \
               --repetitions "$REPETITIONS" "$@"
           }
@@ -267,7 +267,7 @@ jobs:
           retention-days: 90
 
       # A benchmark that found a better setting has found a CODE CHANGE, and
-      # changing `www/nuxt.config.ts` from a workflow would land an unreviewed
+      # changing `apps/www/nuxt.config.ts` from a workflow would land an unreviewed
       # commit off the back of a measurement. So it says so and stops.
       - name: Say what the measurement asks for
         if: steps.verdict.outputs.adopt == 'true'
@@ -275,4 +275,4 @@ jobs:
           CHOSEN: ${{ steps.verdict.outputs.chosen }}
         run: |
           echo "::notice::Measured: prerender.concurrency should become" \
-            "$CHOSEN. Change www/nuxt.config.ts in a pull request."
+            "$CHOSEN. Change apps/www/nuxt.config.ts in a pull request."

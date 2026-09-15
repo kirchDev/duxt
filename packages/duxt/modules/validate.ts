@@ -1,0 +1,140 @@
+import { fileURLToPath } from 'node:url';
+import type { Nuxt } from '@nuxt/schema';
+import { readDuxtBuildConfig } from '../build/config/duxt-app-config';
+import {
+  duxtManifest,
+  duxtSectionTypes
+} from '../build/sections/sections-resolve';
+import { resolveLatestRefs } from '../build/sources/sources-git';
+import { readContentCache } from '../build/content/content-cache';
+import type { Collected, PageRecord } from '../build/cli/validate-report';
+import { report, walk } from '../build/cli/validate-report';
+
+/**
+ * Catch the silent failures.
+ *
+ * Every bug this layer actually had was quiet: a collection Content dropped
+ * because its name was not an identifier, a page that 404ed because a link had
+ * gone stale, a navigation that came back empty. None of the three said
+ * anything — the build was green and the site was wrong.
+ *
+ * All four checks read ONE thing: the parse cache, through
+ * `readContentCache`. See that file for why the parse hook is the wrong seam.
+ *
+ * Severity is not uniform, on purpose:
+ *
+ *  - a URL collision or an empty collection is an ERROR, because the page it
+ *    costs is unreachable and no amount of reading the site would say why;
+ *  - a broken link or a missing `title` is a WARNING naming the file, because
+ *    the page still renders and a remote source can go stale between releases
+ *    without that being this build's fault;
+ *  - what each language carries, and what has stood still behind its original,
+ *    is a NOTE — a state of the site rather than a defect in it. It is here
+ *    because nothing else in the layer ever says it out loud, and a translation
+ *    that quietly stopped moving is the failure this whole file is about.
+ */
+
+export default function duxtValidate(_options: unknown, nuxt: Nuxt) {
+  const layerDir = fileURLToPath(new URL('..', import.meta.url));
+
+  const dirs = [
+    ...nuxt.options._layers.flatMap((entry) => [
+      entry.config.rootDir,
+      entry.config.srcDir
+    ]),
+    layerDir
+  ].filter(Boolean) as string[];
+
+  const config = readDuxtBuildConfig(dirs);
+  const sources = duxtManifest(
+    resolveLatestRefs(config?.sources ?? [{ path: 'docs' }]),
+    config?.sourceOptions ?? {},
+    duxtSectionTypes(config?.sectionTypes)
+  );
+
+  // `build:done` rather than `modules:done`: Content fills the cache in a
+  // `modules:done` listener of its own, and this module is registered before
+  // Content so its listener would run first and read the previous build's
+  // answer.
+  nuxt.hook('build:done', () => {
+    const cached = readContentCache(
+      nuxt,
+      sources.map((source) => source.collection)
+    );
+
+    if (!cached) return;
+
+    // The reports come from `modules/config.ts`, which read the artefacts once
+    // and left them on the manifest it wrote into `appConfig`. Merged rather
+    // than read again: a second parse of the same OpenAPI document, to reach
+    // the same answer, is a cost this build does not need — and two parses are
+    // two chances to disagree.
+    const reported = new Map(
+      (
+        (
+          nuxt.options.appConfig.duxt as
+            | { resolvedSources?: typeof sources }
+            | undefined
+        )?.resolvedSources ?? []
+      )
+        .filter((source) => source.generated?.report)
+        .map((source) => [source.collection, source.generated!.report] as const)
+    );
+
+    for (const source of sources) {
+      if (source.generated && reported.has(source.collection)) {
+        source.generated.report = reported.get(source.collection);
+      }
+    }
+
+    const pages: PageRecord[] = cached.map((entry) => {
+      const collected: Collected = {
+        anchors: new Set<string>(),
+        links: [],
+        commands: []
+      };
+      walk(entry.content.body, collected);
+
+      return {
+        collection: entry.collection,
+        path: entry.path,
+        file: entry.file,
+        title:
+          typeof entry.content.title === 'string'
+            ? entry.content.title
+            : undefined,
+        description:
+          typeof entry.content.description === 'string'
+            ? entry.content.description
+            : undefined,
+        anchors: collected.anchors,
+        links: collected.links,
+        commands: collected.commands,
+        lastUpdated:
+          typeof entry.content.lastUpdated === 'string'
+            ? entry.content.lastUpdated
+            : undefined
+      };
+    });
+
+    const problems = report(sources, pages);
+
+    // The translation report is INFORMATION, not a finding: an untranslated
+    // page is a state of the site rather than a defect in it, and printing it
+    // as a warning would train everyone to ignore the warnings.
+    if (problems.notes.length) {
+      console.info('[duxt] translations');
+      for (const note of problems.notes) console.info(`[duxt]   ${note}`);
+    }
+
+    for (const warning of problems.warnings) {
+      console.warn(`[duxt] ${warning}`);
+    }
+
+    if (problems.errors.length) {
+      throw new Error(
+        `duxt: the documentation did not validate.\n  - ${problems.errors.join('\n  - ')}`
+      );
+    }
+  });
+}

@@ -1,0 +1,63 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "envMode": "loose",
+  "ui": "stream",
+  "tasks": {
+    "test": {
+      "outputs": []
+    },
+    "@kirchdev/duxt#test": {
+      "outputs": [],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/apps/www/app/app.config.ts",
+        "$TURBO_ROOT$/docs/**"
+      ]
+    },
+    "www#test": {
+      "outputs": [],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/docs/**",
+        "$TURBO_ROOT$/scripts/**",
+        "$TURBO_ROOT$/.github/workflows/**"
+      ]
+    },
+    "check:previews": {
+      "outputs": []
+    },
+    "previews": {
+      "cache": false
+    },
+    "typecheck": {
+      "cache": false
+    },
+    "build": {
+      "cache": false
+    },
+    "build:cf": {
+      "cache": false
+    },
+    "check:a11y": {
+      "cache": false
+    },
+    "check:adapters": {
+      "cache": false
+    },
+    "check:images": {
+      "cache": false
+    },
+    "check:keyboard": {
+      "cache": false
+    },
+    "check:overflow": {
+      "cache": false
+    },
+    "check:routes": {
+      "cache": false
+    },
+    "check:seo": {
+      "cache": false
+    }
+  }
+}

@@ -115,7 +115,17 @@ $RECYCLE.BIN/
 # The rendered OG images kept between builds. Not `node_modules/.cache`, where
 # nuxt-og-image would put them by default: they survive a wiped install on
 # purpose, and a deploy carries this directory between runs by name.
-www/.cache
+apps/www/.cache
+
+# Turborepo's local task cache and per-package logs. Local only by decision: no
+# remote cache, no account and no token secret.
+.turbo
+
+# `prepack` copies the repository's README and LICENSE into the layer so the
+# published tarball carries them, and `postpack` removes them again. Ignored in
+# case a pack is interrupted between the two.
+/packages/duxt/README.md
+/packages/duxt/LICENSE
 
 # The benchmark harness writes these beside the repo root when its commands
 # are run by hand rather than by `.github/workflows/prerender-bench.yml` — the

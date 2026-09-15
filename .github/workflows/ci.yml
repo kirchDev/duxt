@@ -34,4 +34,4 @@ jobs:
     # and the path list must agree. The command answers `cacheable=false` for a
     # private or authenticated source, and the body then caches nothing.
     with:
-      remote-source-cache-command: node ./bin/duxt-cache-key.mjs --root www --github >> "$GITHUB_OUTPUT"
+      remote-source-cache-command: node ./packages/duxt/bin/duxt-cache-key.mjs --root apps/www --github >> "$GITHUB_OUTPUT"

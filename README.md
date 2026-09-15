@@ -125,7 +125,7 @@ Everything lives under the `duxt` key of `app.config.ts`. The keys most sites to
 Every text field takes a literal, an i18n key, or a per-locale record — a single-language site never sees the other two.
 
 > [!TIP]
-> The full surface — `navigation`, `sections`, `landing`, `feed`, `footer` and the rest — is typed, and the types are the documentation: [`app/types/duxt.d.ts`](app/types/duxt.d.ts) carries a comment per key explaining what it costs and when it is read.
+> The full surface — `navigation`, `sections`, `landing`, `feed`, `footer` and the rest — is typed, and the types are the documentation: [`packages/duxt/app/types/duxt.d.ts`](packages/duxt/app/types/duxt.d.ts) carries a comment per key explaining what it costs and when it is read.
 
 ## 🧪 Development
 
@@ -136,7 +136,7 @@ pnpm install   # wires the husky hooks
 pnpm check     # lint + format + typecheck + tests + policy parity + build + a11y
 ```
 
-The repo root **is** the layer — `nuxt.config.ts`, `content.config.ts`, `app/`, `modules/` and `server/` live there, and `package.json` points at them. `www/` beside it is the site that consumes the layer, and the development target: it deliberately carries the awkward cases — two repositories, four refs, one version of each lifecycle. It is not a template; the exemplary starting point lives in [`kirchDev/duxt-starter`](https://github.com/kirchDev/duxt-starter).
+A pnpm workspace driven by Turborepo. The layer is [`packages/duxt`](packages/duxt) — `nuxt.config.ts`, `content.config.ts`, `app/`, `modules/`, `server/` and the build-time modules under `build/`. [`apps/www`](apps/www) is the site that consumes it, and the development target: it deliberately carries the awkward cases — two repositories, four refs, one version of each lifecycle. The root holds only the workspace and meta configuration, plus `docs/`, which `apps/www` publishes. It is not a template; the exemplary starting point lives in [`kirchDev/duxt-starter`](https://github.com/kirchDev/duxt-starter).
 
 ## 🎨 Assets & branding
 
@@ -148,7 +148,7 @@ The mark is the package name with its first letter bracketed — `[d]uxt` — be
 Every asset, the colour values, why the icon's brackets are redrawn and the font licensing are in [Conventions → Branding](https://duxt.app/conventions/branding).
 
 > [!IMPORTANT]
-> The layer ships **no** branding. `duxt.logo` is unset by default, so `DuxtBrand` falls back to the consumer's own `duxt.title` beside a generic icon: a site extending duxt shows its own name in the header and footer and its own icon in the tab, never this one. These assets belong to this repository and to `www/`, not to the published package.
+> The layer ships **no** branding. `duxt.logo` is unset by default, so `DuxtBrand` falls back to the consumer's own `duxt.title` beside a generic icon: a site extending duxt shows its own name in the header and footer and its own icon in the tab, never this one. These assets belong to this repository and to `apps/www`, not to the published package.
 
 ## 🤝 Contributing
 

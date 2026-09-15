@@ -28,12 +28,65 @@ nodeLinker: isolated
 # field, which is the closest match to the old packageManagerStrict: true plus
 # packageManagerStrictVersion: false. Setting pmOnFail here would only weaken that.
 
-# The layer is developed against www/ — see CLAUDE.md.
+# The published packages live in packages/, the sites that develop them in apps/
+# — see CLAUDE.md. The root is not a package of its own: it carries the
+# workspace and the meta layer. apps/www depends on the layer by name rather
+# than by path, the same way a consumer installs it, exports map included.
 packages:
-  # The layer itself, so www can depend on it by name rather than by path —
-  # the same way a consumer installs it, exports map included.
-  - .
-  - www
+  - packages/*
+  - apps/*
+
+# The layer's dependencies, hoisted to the workspace root so apps/www resolves
+# them exactly as it did while the root WAS the layer. The site builds the
+# layer's code from its own directory and resolves bare imports upwards from
+# there; these are dependencies of packages/duxt, not of the site, and without
+# a copy at the root two things broke that nothing about the move meant to
+# change. `nuxt typecheck` lost the packages its generated declarations import
+# by name, so every Content query typed as `never`; and the Workers build,
+# which bundles dependencies rather than externalising them, could no longer
+# resolve `shiki` and died on its `onig.wasm`.
+#
+# THE LIST IS A MEASUREMENT, not a guess: every direct dependency of
+# packages/duxt that resolved from www/ before the move. The six that did not
+# resolve then (@nuxtjs/color-mode, @nuxtjs/mcp-toolkit, @nuxtjs/sitemap,
+# shadcn-nuxt, tw-animate-css, vue-sonner) stay unhoisted, so the site sees
+# neither more nor less than it did. A dependency added to the layer that the
+# site has to reach belongs here too.
+publicHoistPattern:
+  - '@codemirror/autocomplete'
+  - '@codemirror/commands'
+  - '@codemirror/lang-json'
+  - '@codemirror/language'
+  - '@codemirror/lint'
+  - '@codemirror/state'
+  - '@codemirror/view'
+  - '@iconify-json/flag'
+  - '@iconify-json/lucide'
+  - '@iconify-json/simple-icons'
+  - '@lezer/highlight'
+  - '@lucide/vue'
+  - '@nuxt/content'
+  - '@nuxt/icon'
+  - '@nuxt/image'
+  - '@nuxtjs/i18n'
+  - '@nuxtjs/seo'
+  - '@resvg/resvg-js'
+  - '@shikijs/transformers'
+  - '@tailwindcss/vite'
+  - '@vueuse/core'
+  - citty
+  - class-variance-authority
+  - clsx
+  - fuse.js
+  - jiti
+  - mermaid
+  - reka-ui
+  - satori
+  - shiki
+  - tailwind-merge
+  - tailwindcss
+  - yaml
+  - zod
 
 # Vue declares `typescript` as an optional peer with range `*`, and with
 # autoInstallPeers any package that does not pin it can pull in TypeScript 7 —
