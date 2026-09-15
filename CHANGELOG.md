@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.6.0](https://github.com/kirchDev/duxt/compare/duxt@v0.5.0...duxt@v0.6.0) (2026-09-15)
+
+
+### Features
+
+* **sources:** recognise component-prefixed release tags ([cb93d59](https://github.com/kirchDev/duxt/commit/cb93d59fa983448aed1c42c5c4d2c424093a5294))
+
+
+### Bug Fixes
+
+* **changelog:** assign contributors through the git graph ([a707406](https://github.com/kirchDev/duxt/commit/a7074069f83801c5c0840b3b5a5ebb4606c3735b))
+* **sources:** split a release tag at its last @ instead of by one pattern ([52a92ee](https://github.com/kirchDev/duxt/commit/52a92eeb19874f9b6db039e99d45b735f819ba90))
+* **types:** accept releases on a source in app.config ([d2ce31f](https://github.com/kirchDev/duxt/commit/d2ce31fe4bf3547949ff31a69f141b1c2c177fa2))
+
 ## [0.5.0](https://github.com/kirchDev/duxt/compare/v0.4.0...v0.5.0) (2026-09-14)
 
 
