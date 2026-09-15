@@ -23,6 +23,7 @@ import { parse } from 'yaml';
 /** The `github` context a run carries, reduced to what this workflow reads. */
 interface RunContext {
   event_name: string;
+  head_commit_message: string;
   sha: string;
   run_id: string;
 }
@@ -37,6 +38,7 @@ interface Step {
 }
 
 interface Job {
+  if?: string;
   needs?: string | string[];
   outputs?: Record<string, string>;
   concurrency?: { group: string; 'cancel-in-progress': boolean };
@@ -94,19 +96,59 @@ function interpolate(template: string, github: RunContext): string {
 }
 
 function push(sha: string, runId: string): RunContext {
-  return { event_name: 'push', sha, run_id: runId };
+  return {
+    event_name: 'push',
+    head_commit_message: 'fix(page): correct the title',
+    sha,
+    run_id: runId
+  };
 }
 
 function dispatch(runId: string): RunContext {
-  return { event_name: 'workflow_dispatch', sha: 'ccc', run_id: runId };
+  return {
+    event_name: 'workflow_dispatch',
+    head_commit_message: '',
+    sha: 'ccc',
+    run_id: runId
+  };
 }
 
 function release(runId: string): RunContext {
-  return { event_name: 'release', sha: 'ddd', run_id: runId };
+  return {
+    event_name: 'release',
+    head_commit_message: '',
+    sha: 'ddd',
+    run_id: runId
+  };
 }
 
 const build = () => workflow.jobs.build!;
 const publish = () => workflow.jobs.publish!;
+
+/**
+ * The one build condition this workflow is allowed to carry.
+ *
+ * A release-please merge first fires `push`, while its tag does not exist, and
+ * then `release`, when it does. The first build must stand down. Keeping the
+ * evaluator deliberately narrow makes a rewritten condition fail loudly.
+ */
+function builds(github: RunContext): boolean {
+  const condition = build().if?.replaceAll(/\s+/g, ' ').trim();
+  const expected =
+    "${{ github.event_name != 'push' || " +
+    "!startsWith(github.event.head_commit.message, 'chore(main): release') " +
+    "&& !startsWith(github.event.head_commit.message, 'chore: release') }}";
+
+  if (condition !== expected) {
+    throw new Error('deploy.yml uses a build condition this test cannot read');
+  }
+
+  return (
+    github.event_name !== 'push' ||
+    (!github.head_commit_message.startsWith('chore(main): release') &&
+      !github.head_commit_message.startsWith('chore: release'))
+  );
+}
 
 /** What `actions/checkout` is told to check out, for one run. */
 function checkoutRef(job: Job, github: RunContext): string {
@@ -119,6 +161,18 @@ function checkoutRef(job: Job, github: RunContext): string {
 }
 
 describe('deploy build supersession', () => {
+  it('leaves a release commit to the build that can see its tag', () => {
+    const scoped = push('aaa', '1');
+    scoped.head_commit_message = 'chore(main): release 1.2.3 (#42)';
+    const unscoped = push('bbb', '2');
+    unscoped.head_commit_message = 'chore: release 1.2.3';
+
+    expect(builds(scoped)).toBe(false);
+    expect(builds(unscoped)).toBe(false);
+    expect(builds(push('ccc', '3'))).toBe(true);
+    expect(builds(release('4'))).toBe(true);
+  });
+
   it('puts two pushes to main in one group that cancels the older build', () => {
     // The complaint on #46: a running build finishes even though its commit is
     // already stale, and the newest state waits behind it. Same group plus

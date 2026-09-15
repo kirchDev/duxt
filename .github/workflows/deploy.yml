@@ -22,12 +22,13 @@ on:
   # the hostname — none of which is a commit.
   workflow_dispatch:
 
-# ON EVERY PUSH TO MAIN, THEN AGAIN FOR A PUBLISHED RELEASE. `apps/www/` reads
+# ON EVERY ORDINARY PUSH TO MAIN, AND FOR A PUBLISHED RELEASE. `apps/www/` reads
 # `docs/` off the CHECKOUT — `origin.ref` in its `app.config.ts` names the
 # repository for the edit links and downloads nothing — so a documentation fix
-# does not wait for a release. The second build is deliberately redundant: it
-# runs only after release-please has created the tag, which makes `latest`
-# deterministic rather than dependent on two workflows' scheduling.
+# does not wait for a release. A release-please merge is the exception: its push
+# arrives before the tag and stands down for the release event that follows.
+# Otherwise both builds may publish in either order, and the tag-blind push can
+# overwrite the release build that resolved `latest` correctly.
 #
 # The consequence, stated rather than hidden: the version badge comes from
 # `package.json`, which release-please bumps, so between a promotion and its
@@ -53,6 +54,16 @@ jobs:
   build:
     name: Build www
     runs-on: ubuntu-latest
+    # A release-please merge fires this workflow before its tag exists. The
+    # published-release event fires it again once the tag is available, so only
+    # that second run may build and publish the release commit. Both subject
+    # forms are already recognised by the prerelease workflow beside this one.
+    if: >-
+      ${{
+        github.event_name != 'push'
+        || !startsWith(github.event.head_commit.message, 'chore(main): release')
+        && !startsWith(github.event.head_commit.message, 'chore: release')
+      }}
     # DISPOSABLE WORK, BUT ONLY WHEN A COMMIT ASKED FOR IT. A newer push to
     # main makes this build's artefact stale before it exists, so the runner
     # drops it rather than finishing it and queueing an upload nobody wants —
