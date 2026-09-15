@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.6.0](https://github.com/kirchDev/duxt/compare/duxt@v0.5.0...duxt@v0.6.0) (2026-09-15)
+## [0.6.0](https://github.com/kirchDev/duxt/compare/v0.5.0...duxt@v0.6.0) (2026-09-15)
 
 
 ### Features
