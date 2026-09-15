@@ -20,9 +20,9 @@ const DEMO_NAME = {
   pt: 'Documentação de demonstração'
 };
 
-// This repository's documentation at the release, the unreleased branch
-// and the original release. `repo` deliberately makes Content fetch each
-// ref: a versioned source cannot read three revisions from this checkout.
+// This repository's documentation at its release lines and the unreleased
+// branch. `repo` deliberately makes Content fetch each ref: a versioned source
+// cannot read several revisions from this checkout.
 const DUXT_DOCS = {
   repo: 'kirchDev/duxt',
   path: 'docs',
@@ -43,18 +43,13 @@ const DUXT_DOCS = {
     branch: 'upcoming',
     tag: 'deprecated'
   },
-  // This repository tags each published package on its own — `duxt@v0.5.0`
-  // beside a provider's `duxt-typesense@v0.1.0` — so `latest` has to say
-  // whose newest tag it means. The plain `v0.1.0`…`v0.4.0` tags cut before
-  // the monorepo still count as the layer's releases.
+  // This repository tags each published package on its own — `duxt@v0.6.0`
+  // beside a provider's `duxt-typesense@v0.1.0` — so `latest` and the release
+  // selection have to say whose tags they mean. The plain `v0.1.0`…`v0.5.0`
+  // tags cut before the monorepo still count as the layer's releases.
   tagComponent: 'duxt',
-  refs: [
-    { branch: 'main' },
-    { tag: 'latest', default: true },
-    { tag: 'v0.3.4' },
-    { tag: 'v0.2.0' },
-    { tag: 'v0.1.0' }
-  ],
+  releases: { select: 'minor' },
+  refs: [{ branch: 'main' }, { tag: 'latest', default: true }],
 
   // FOUR languages over one tree, named by LANGUAGE rather than locale.
   // `docs/pt/` serves both `pt-PT` and `pt-BR`, and `en-US` reads the
@@ -92,7 +87,7 @@ const DUXT_DOCS = {
 /**
  * IN `nuxt dev`, THE `main` EDITION IS THIS CHECKOUT.
  *
- * Every edition of `DUXT_DOCS` is downloaded — `latest` and `v0.2.0` from their
+ * Every edition of `DUXT_DOCS` is downloaded — released editions from their
  * tags, `main` from the branch on GitHub — so an edit to `docs/` changed nothing
  * a dev server showed: the page was the pushed branch, and the working tree was
  * read by no collection at all.
@@ -160,10 +155,10 @@ export default defineAppConfig({
     },
 
     /**
-     * The release is canonical; the work in `main` and the retired first
-     * release are explicitly reachable as editions. `latest` is resolved from
-     * the remote tags during every build, so release-please never needs to
-     * update this list when it cuts the next version.
+     * The release is canonical; the work in `main` and the retained minor
+     * release lines remain reachable as editions. Tags are resolved from the
+     * remote during every build, so release-please never needs to update this
+     * list when it cuts the next version.
      */
     sources: [
       ...DUXT_DOCS_EDITIONS,
