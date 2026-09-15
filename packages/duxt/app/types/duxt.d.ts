@@ -272,6 +272,16 @@ declare global {
     /** Lifecycle defaults by ref kind; an explicit ref status wins. */
     statusDefaults?: DuxtSourceStatusDefaultsInput;
     /**
+     * Discover release tags to publish as versions, beside or instead of
+     * `refs`: every release, or the newest one per minor or major line. An
+     * explicit ref still overrides a discovered tag's label, lifecycle, default
+     * and locales. Pre-releases are left out unless asked for.
+     */
+    releases?: {
+      select: 'all' | 'minor' | 'major';
+      prereleases?: boolean;
+    };
+    /**
      * The one package whose tags this source publishes, in a repository that
      * tags `<component>@vX.Y.Z` — `'duxt'` reads `duxt@v0.4.0` and ignores
      * `duxt-typesense@v0.1.0`. Applies to `latest` and `releases`; plain
