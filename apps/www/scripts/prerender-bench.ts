@@ -370,6 +370,23 @@ export function prerenderBenchVerdict(
     .filter((count): count is number => count !== undefined);
   const expectedImages = images.length ? Math.max(...images) : undefined;
 
+  // COMPLETE IS JUDGED PER REPETITION. The first benchmark wrote 1,315 images
+  // in repetition 1 and 1,399 in the two after it, at every setting alike, so
+  // the count followed the repetition rather than the concurrency. Held to the
+  // overall maximum, every candidate was refused for a shortfall the baseline
+  // shared. The fullest build of the same repetition, across all settings, is
+  // what a complete build of THAT repetition looks like.
+  const expectedByRepetition = new Map<number, number>();
+  for (const run of input.runs) {
+    if (run.images === undefined) continue;
+    expectedByRepetition.set(
+      run.run,
+      Math.max(expectedByRepetition.get(run.run) ?? 0, run.images)
+    );
+  }
+  const expectedFor = (run: PrerenderRun) =>
+    expectedByRepetition.get(run.run) ?? expectedImages;
+
   const at = (concurrency: number) =>
     input.runs.filter((run) => run.concurrency === concurrency);
 
@@ -443,13 +460,15 @@ export function prerenderBenchVerdict(
         );
       } else {
         const short = runs.filter(
-          (run) => run.images === undefined || run.images < expectedImages
+          (run) => run.images === undefined || run.images < expectedFor(run)!
         );
 
         if (short.length > 0) {
+          const expected = [...new Set(short.map(expectedFor))].join(', ');
           refusals.push(
             `${short.length} build${short.length === 1 ? '' : 's'} produced ` +
-              `fewer than the ${expectedImages} OG images the best build did.`
+              `fewer OG images than the fullest build of the same repetition ` +
+              `(${expected}).`
           );
         }
       }
