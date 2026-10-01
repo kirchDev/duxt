@@ -23,7 +23,7 @@ permissions:
 jobs:
   check:
     name: CI
-    uses: kirchDev/workflows/.github/workflows/_ci-check.yml@69bab03ff0e8b0ac3791cd6dbec97a4a8328c433 # v0.11.0
+    uses: kirchDev/workflows/.github/workflows/_ci-check.yml@ea3a3c15385340fe1f9751e0afefaef32970aad7 # v0.12.0
     # THE REMOTE SOURCES, CACHED BETWEEN RUNS. A site reading other repositories
     # re-cloned every one of them on every pull request. The body restores and
     # saves the cache itself, because a job beside this call runs on another

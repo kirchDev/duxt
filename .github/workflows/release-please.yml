@@ -42,7 +42,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-    uses: kirchDev/workflows/.github/workflows/_release-please.yml@1e57db95ff601f03ae87b78e329ef238f9d0cbf6 # v0.8.2
+    uses: kirchDev/workflows/.github/workflows/_release-please.yml@ea3a3c15385340fe1f9751e0afefaef32970aad7 # v0.12.0
     secrets:
       BWS_ACCESS_TOKEN: ${{ secrets.BWS_ACCESS_TOKEN }}
 
@@ -142,7 +142,7 @@ jobs:
         with:
           ref: ${{ matrix.package.tag }}
 
-      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6
 
       - uses: actions/setup-node@v6
         with:
@@ -179,7 +179,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6
 
       - uses: actions/setup-node@v6
         with:
