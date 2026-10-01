@@ -57,7 +57,7 @@ jobs:
       stable: ${{ steps.plan.outputs.stable }}
       prerelease: ${{ steps.plan.outputs.prerelease }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           # The push's `before` commit has to be present to tell which packages
           # this push changed.
@@ -138,7 +138,7 @@ jobs:
       matrix:
         package: ${{ fromJSON(needs.plan.outputs.stable) }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: ${{ matrix.package.tag }}
 
@@ -177,7 +177,7 @@ jobs:
       matrix:
         package: ${{ fromJSON(needs.plan.outputs.prerelease) }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
 

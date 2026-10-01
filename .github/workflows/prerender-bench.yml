@@ -71,7 +71,7 @@ jobs:
     # runner allows, with room for a slow day.
     timeout-minutes: 300
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           # The layer reads git for "last updated" and the edit links, and a
           # shallow clone gives every page the same commit date — which would
@@ -200,7 +200,7 @@ jobs:
     if: always() && needs.measure.result != 'skipped'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       # No install: the benchmark's arithmetic imports nothing but node
       # builtins, and Node 24 strips the types itself.
