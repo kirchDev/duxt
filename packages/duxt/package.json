@@ -121,7 +121,7 @@
     "jsdom": "^30.0.1",
     "nuxt": "^4.5.2",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.11"
+    "vitest": "^5.0.3"
   },
   "peerDependencies": {
     "nuxt": "^4.0.0"
