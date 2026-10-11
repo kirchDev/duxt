@@ -10,8 +10,11 @@ on:
   push:
     branches:
       - 'ai/queue-**'
-  # An approval arrived. This is the ONE automatic landing trigger, and it fires
-  # only from the DEFAULT branch's copy of this file.
+  # An approval arrived. This is the ONE automatic landing trigger. Like
+  # `pull_request`, it runs the copy of this file on the PR's MERGE REF, not
+  # the default branch's — so a queue branch that edits this workflow runs its
+  # own edit, with this repository's secrets. Branch-level trust is therefore
+  # what protects the gate, not this file.
   #
   # THE APPROVAL MUST COME LAST — an approval counts only while its commit is
   # still the head, so any push after it un-approves the PR, and nothing fires
