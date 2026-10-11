@@ -19,6 +19,25 @@
 import { existsSync, readdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
+import type { Page } from 'playwright-core';
+
+/** Wait for Nuxt to attach handlers before interacting with SSR markup. */
+export async function hydrated(page: Page) {
+  await page.waitForFunction(
+    () => {
+      const root = document.querySelector('#__nuxt') as Element & {
+        __vue_app__?: {
+          config: { globalProperties: { $nuxt?: { isHydrating: boolean } } };
+        };
+      };
+      return (
+        root?.__vue_app__?.config.globalProperties.$nuxt?.isHydrating === false
+      );
+    },
+    undefined,
+    { timeout: 60_000 }
+  );
+}
 
 /**
  * A Chromium-family browser already on this machine, or null.

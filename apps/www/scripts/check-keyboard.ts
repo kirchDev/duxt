@@ -45,7 +45,7 @@
 
 import type { Browser, Page } from 'playwright-core';
 import { chromium } from 'playwright-core';
-import { browserPath, missingBrowser } from './browser.ts';
+import { browserPath, missingBrowser, hydrated } from './browser.ts';
 import { startBuiltServer } from './built-server.ts';
 
 const PORT = Number(process.env.KEYBOARD_CHECK_PORT ?? 3126);
@@ -163,9 +163,21 @@ async function drive(browser: Browser) {
 
   const at = () => page.evaluate(probe);
   const step = async (key: string) => {
+    const before = await at();
     await page.keyboard.press(key);
-    // The highlight moves on reka's own next tick, and Enter navigates.
-    await page.waitForTimeout(200);
+    if (key === 'Enter')
+      await page
+        .waitForFunction((path) => location.pathname !== path, before.path, {
+          timeout: 5000
+        })
+        .catch(() => {});
+    else
+      await page.evaluate(
+        () =>
+          new Promise<void>((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+          )
+      );
 
     return at();
   };
@@ -178,6 +190,7 @@ async function drive(browser: Browser) {
     await page.goto(url(ROUTE), { waitUntil: 'networkidle', timeout: 60_000 });
     await page.goto(url('/'), { waitUntil: 'networkidle', timeout: 60_000 });
 
+    await hydrated(page);
     const opened = await open(page);
 
     if (!opened.open) {
@@ -239,8 +252,9 @@ async function drive(browser: Browser) {
     // ---- the reported leg: real search results, with their captions ----
     await open(page);
     await page.keyboard.type(QUERY, { delay: 30 });
-    // Past the 120 ms debounce, the index fetch and the query itself.
-    await page.waitForTimeout(2500);
+    await page
+      .locator('[role="dialog"] [aria-busy="false"]')
+      .waitFor({ timeout: 30_000 });
 
     const results = await at();
 
@@ -374,7 +388,10 @@ async function closed(page: Page): Promise<boolean> {
 async function open(page: Page) {
   for (const combination of ['Control+k', 'Meta+k']) {
     await page.keyboard.press(combination);
-    await page.waitForTimeout(500);
+    await page
+      .locator('[role="dialog"]')
+      .waitFor({ state: 'visible', timeout: 1500 })
+      .catch(() => {});
 
     if (await page.locator('[role="dialog"]').count()) break;
   }
@@ -384,13 +401,23 @@ async function open(page: Page) {
 
     if (await trigger.count()) {
       await trigger.click();
-      await page.waitForTimeout(500);
+      await page
+        .locator('[role="dialog"]')
+        .waitFor({ state: 'visible', timeout: 3000 });
     }
   }
 
   // The list is fetched on first open; the entry list is not, but the dialog's
   // own transition is.
-  await page.waitForTimeout(400);
+  if (await page.locator('[role="dialog"]').count()) {
+    await page
+      .locator('[role="dialog"] input')
+      .waitFor({ state: 'visible', timeout: 3000 });
+    await page.waitForFunction(
+      () => document.activeElement?.tagName === 'INPUT',
+      { timeout: 3000 }
+    );
+  }
 
   return page.evaluate(probe);
 }

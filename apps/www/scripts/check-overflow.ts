@@ -51,7 +51,7 @@
 
 import type { Browser } from 'playwright-core';
 import { chromium } from 'playwright-core';
-import { browserPath, missingBrowser } from './browser.ts';
+import { browserPath, missingBrowser, hydrated } from './browser.ts';
 import { startBuiltServer } from './built-server.ts';
 
 const PORT = Number(process.env.OVERFLOW_CHECK_PORT ?? 3127);
@@ -247,6 +247,7 @@ async function sweep(browser: Browser) {
           continue;
         }
 
+        await hydrated(page);
         const measured: Measured = {
           status,
           ...(await page.evaluate(measure))

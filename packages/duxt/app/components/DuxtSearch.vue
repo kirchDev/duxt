@@ -33,6 +33,7 @@ const results = ref<DuxtSearchHit[]>([]);
  * results already on screen makes the previews jump while the reader types.
  */
 const matched = ref('');
+const searching = ref(false);
 
 /** True while the list shows near-misses rather than actual matches. */
 const approximate = ref(false);
@@ -48,11 +49,12 @@ let run = 0;
 // dependency in a layer a consumer installs.
 watch(query, (term) => {
   clearTimeout(pending);
+  const current = ++run;
+  searching.value = Boolean(term.trim());
   pending = setTimeout(async () => {
-    const current = ++run;
-
     const settle = (hits: DuxtSearchHit[], fuzzy: boolean) => {
       if (current !== run) return false;
+      searching.value = false;
       results.value = hits;
       approximate.value = fuzzy;
       matched.value = term;
@@ -78,6 +80,10 @@ watch(query, (term) => {
       });
     }
   }, 120);
+});
+onBeforeUnmount(() => {
+  clearTimeout(pending);
+  run++;
 });
 
 const duxt = useDuxtConfig();
@@ -271,7 +277,7 @@ const searchHint = computed(() => hint('search'));
          rather than an `<input>`, is in `DuxtSearchInput`. -->
     <DuxtSearchInput ref="filter" v-model="query" />
 
-    <UiCommandList class="max-h-[60vh]">
+    <UiCommandList :aria-busy="searching" class="max-h-[60vh]">
       <!-- An empty box is a dead end. Without a term the dialog offers the
            sections as entry points and, once there is any history, the pages
            this reader came from — which is what they are most likely after. -->

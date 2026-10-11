@@ -35,7 +35,7 @@ import { fileURLToPath } from 'node:url';
 import { JSDOM } from 'jsdom';
 import type { Browser } from 'playwright-core';
 import { chromium } from 'playwright-core';
-import { browserPath, missingBrowser } from './browser.ts';
+import { browserPath, missingBrowser, hydrated } from './browser.ts';
 import { startBuiltServer } from './built-server.ts';
 
 const PORT = Number(process.env.IMAGE_CHECK_PORT ?? 3125);
@@ -232,6 +232,7 @@ async function viewer(browser: Browser): Promise<string[]> {
       timeout: 60_000
     });
 
+    await hydrated(page);
     const image = page.locator(`img[alt="${FIXTURES.light}"]`).first();
     const trigger = image.locator('xpath=ancestor::button[1]');
     const pageImageBox = await image.boundingBox();
