@@ -76,7 +76,11 @@
         "json": "JSON",
         "format": "Format",
         "invalidJson": "Not valid JSON yet — the request will be sent as written.",
-        "noForm": "This body cannot be drawn as a form: edit it as JSON."
+        "noForm": "This body cannot be drawn as a form: edit it as JSON.",
+        "cancel": "Cancel",
+        "cancelled": "Request cancelled.",
+        "timeout": "The request timed out after 30 seconds.",
+        "truncated": "Response preview limited to 1 MiB."
       },
       "version": "API version",
       "operations": "Operations",

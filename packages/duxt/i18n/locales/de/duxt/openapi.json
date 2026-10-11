@@ -76,7 +76,11 @@
         "json": "JSON",
         "format": "Formatieren",
         "invalidJson": "Noch kein gültiges JSON — die Anfrage wird so gesendet, wie sie dasteht.",
-        "noForm": "Dieser Body lässt sich nicht als Formular darstellen: bitte als JSON bearbeiten."
+        "noForm": "Dieser Body lässt sich nicht als Formular darstellen: bitte als JSON bearbeiten.",
+        "cancel": "Abbrechen",
+        "cancelled": "Anfrage abgebrochen.",
+        "timeout": "Zeitüberschreitung nach 30 Sekunden.",
+        "truncated": "Antwortvorschau auf 1 MiB begrenzt."
       },
       "version": "API-Version",
       "operations": "Operationen",
