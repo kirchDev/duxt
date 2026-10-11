@@ -82,13 +82,16 @@ try {
     await page.evaluate((apiOrigin) => {
       const original = window.fetch;
       window.fetch = (input, init) => {
-        const url =
+        const url = new URL(
           typeof input === 'string'
             ? input
             : input instanceof URL
               ? input.href
-              : input.url;
-        return url.includes('/demo/echo') || url.includes('api.example.org')
+              : input.url,
+          window.location.href
+        );
+        return url.pathname.includes('/demo/echo') ||
+          url.hostname === 'api.example.org'
           ? original(apiOrigin, init)
           : original(input, init);
       };
