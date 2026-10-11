@@ -60,12 +60,18 @@ try {
   await page.getByRole('button', { name: 'Change diagram theme' }).click();
   await page.locator('#diagram-source').fill('graph TD; Latest --> Wins');
   await diagram.locator('svg').filter({ hasText: 'Latest' }).waitFor();
+  await page
+    .locator('#diagram-source')
+    .fill('graph TD; A["$$x^2 + y^2 = z^2$$"] --> B["Mathematics"]');
+  await diagram.locator('svg .katex').waitFor();
+  assert.equal(await diagram.locator('svg .katex-error').count(), 0);
+  assert.match((await diagram.locator('svg .katex').textContent()) ?? '', /x/);
   await page.locator('#diagram-source').fill('invalid diagram syntax');
   await diagram.locator('div.whitespace-pre').waitFor({ state: 'visible' });
   assert.equal(await diagram.locator('svg').count(), 0);
   assert.match((await diagram.textContent()) ?? '', /invalid diagram syntax/);
   console.log(
-    'Mermaid: multiple instances, reactive source, overlapping themes and authored error fallback passed.'
+    'Mermaid: multiple instances, reactive source, overlapping themes, mathematical labels and authored error fallback passed.'
   );
 
   async function requestPage(path: string) {
