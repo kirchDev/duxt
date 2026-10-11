@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { renderDuxtMermaid } from '../../utils/mermaid-render';
 /**
  * A mermaid diagram, from ```mermaid or from `::mermaid`.
  *
@@ -13,58 +14,71 @@
  */
 const props = defineProps<{ code?: string }>();
 
-const container = useTemplateRef<HTMLElement>('container');
+const authored = useTemplateRef<HTMLElement>('authored');
 const colorMode = useColorMode();
-const slots = useSlots();
 const source = ref('');
 const failed = ref(false);
-
-let mermaid: typeof import('mermaid').default | undefined;
-let counter = 0;
+const svg = ref('');
+const id = `duxt-mermaid-${useId().replace(/[^A-Za-z0-9_-]/g, '_')}`;
+let revision = 0;
+let mounted = false;
 
 async function render() {
-  if (!import.meta.client || !container.value) return;
-
+  if (!import.meta.client || !mounted) return;
+  const current = ++revision;
   const text = source.value.trim();
-  if (!text) return;
+  if (!text) {
+    svg.value = '';
+    return;
+  }
 
   try {
-    mermaid ??= (await import('mermaid')).default;
-
-    mermaid.initialize({
-      startOnLoad: false,
-      securityLevel: 'strict',
-      theme: colorMode.value === 'dark' ? 'dark' : 'default'
-    });
-
-    const { svg } = await mermaid.render(`duxt-mermaid-${counter++}`, text);
-    container.value.innerHTML = svg;
+    const rendered = await renderDuxtMermaid(
+      `${id}-${current}`,
+      text,
+      colorMode.value === 'dark',
+      () => mounted && current === revision
+    );
+    if (current !== revision || !mounted) return;
+    svg.value = rendered;
     failed.value = false;
   } catch {
+    if (current !== revision || !mounted) return;
     // A diagram that does not parse must not take the page with it. The source
     // stays on screen, which is more useful than an empty box.
+    svg.value = '';
     failed.value = true;
   }
 }
 
 onMounted(() => {
-  source.value =
-    props.code ??
-    container.value?.textContent?.trim() ??
-    (typeof slots.default?.()[0]?.children === 'string'
-      ? (slots.default()[0]!.children as string)
-      : '');
-
+  mounted = true;
+  source.value = props.code ?? authored.value?.textContent?.trim() ?? '';
   void render();
 });
-
+onUpdated(() => {
+  const next = props.code ?? authored.value?.textContent?.trim() ?? '';
+  if (next !== source.value) {
+    source.value = next;
+    void render();
+  }
+});
 watch(() => colorMode.value, render);
+onBeforeUnmount(() => {
+  mounted = false;
+  revision++;
+});
 </script>
 
 <template>
   <div class="my-6 flex justify-center overflow-x-auto rounded-lg border p-4">
-    <div ref="container" :class="{ 'text-sm whitespace-pre': failed }">
+    <div
+      ref="authored"
+      :hidden="Boolean(svg)"
+      :class="{ 'text-sm whitespace-pre': failed }"
+    >
       <slot>{{ code }}</slot>
     </div>
+    <div v-if="svg" v-html="svg" />
   </div>
 </template>
