@@ -17,7 +17,10 @@ const pages = new Map(
     '/de-DE/demo',
     '/demo/openapi',
     '/de-DE/demo/openapi',
-    '/demo/v1.x/openapi'
+    '/demo/v1.x/openapi',
+    '/demo/v1.x/openapi/shipments',
+    '/demo/v1.x/openapi/shipments/createshipment',
+    '/demo/v1.x/openapi/shipments/listshipments'
   ].map((route) => [route, renderPage(route)])
 );
 
@@ -27,7 +30,7 @@ function renderPage(route) {
     route === '/does-not-exist' || route === '/demo/v1.x/openapi' || fallback;
   const title = route.endsWith('/openapi') ? 'Harbour' : 'Overview';
   return `<html><head>
-    <link rel="canonical" href="${origin}${route}">
+    <link rel="canonical" href="${origin}${route.startsWith('/demo/v1.x/openapi/shipments') ? '/demo/openapi' : route}">
     ${mode === 'missing-machine-links' ? '' : `<link rel="alternate" type="text/markdown" href="${route}.md"><link rel="describedby" href="/llms.txt">`}
     ${[...locales, 'x-default'].map((locale) => `<link rel="alternate" hreflang="${locale}" href="${origin}${route}">`).join('')}
     <meta name="robots" content="${noindex ? 'noindex' : 'index'}">
