@@ -92,6 +92,8 @@ async function main() {
     ]);
 
     if (failures.length) {
+      if (server.stderr().trim())
+        console.error(server.stderr().trim().slice(-4000));
       console.error(
         `\nAdapter check failed on ${ADAPTER}:\n  - ${failures.join('\n  - ')}\n`
       );
@@ -111,6 +113,10 @@ async function main() {
   }
 }
 
+function request(url: string, options: RequestInit = {}): Promise<Response> {
+  return fetch(url, { ...options, signal: AbortSignal.timeout(TIMEOUT) });
+}
+
 /**
  * A rendered page.
  *
@@ -120,7 +126,7 @@ async function main() {
  * below are asked anything.
  */
 async function checkPage(): Promise<string[]> {
-  const response = await fetch(`${ORIGIN}${PAGE}`, {
+  const response = await request(`${ORIGIN}${PAGE}`, {
     headers: { accept: 'text/html' }
   });
 
@@ -145,7 +151,7 @@ async function checkPage(): Promise<string[]> {
  * through `queryCollection()`: it selects `rawbody` for one path.
  */
 async function checkRawMarkdown(): Promise<string[]> {
-  const response = await fetch(`${ORIGIN}${PAGE}.md`);
+  const response = await request(`${ORIGIN}${PAGE}.md`);
 
   if (!response.ok) return [`${PAGE}.md answered ${response.status}`];
 
@@ -165,7 +171,7 @@ async function checkLlms(): Promise<string[]> {
   const failures: string[] = [];
 
   for (const route of ['/llms.txt', '/llms-full.txt']) {
-    const response = await fetch(`${ORIGIN}${route}`);
+    const response = await request(`${ORIGIN}${route}`);
 
     if (!response.ok) {
       failures.push(`${route} answered ${response.status}`);
@@ -208,7 +214,7 @@ async function checkLlms(): Promise<string[]> {
 async function checkMcp(): Promise<string[]> {
   const accept = 'application/json, text/event-stream';
 
-  const initialize = await fetch(`${ORIGIN}/mcp`, {
+  const initialize = await request(`${ORIGIN}/mcp`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', accept },
     body: JSON.stringify({
@@ -233,7 +239,7 @@ async function checkMcp(): Promise<string[]> {
 
   await initialize.text();
 
-  await fetch(`${ORIGIN}/mcp`, {
+  await request(`${ORIGIN}/mcp`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', accept, ...withSession },
     body: JSON.stringify({
@@ -249,7 +255,7 @@ async function checkMcp(): Promise<string[]> {
     name: string,
     args: Record<string, unknown>
   ): Promise<{ text?: string; failure?: string }> => {
-    const called = await fetch(`${ORIGIN}/mcp`, {
+    const called = await request(`${ORIGIN}/mcp`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', accept, ...withSession },
       body: JSON.stringify({

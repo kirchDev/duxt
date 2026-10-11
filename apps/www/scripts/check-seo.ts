@@ -25,6 +25,8 @@
  */
 
 import { JSDOM } from 'jsdom';
+import { fileURLToPath } from 'node:url';
+import { checkStaticSeo } from './static-seo.ts';
 import { startBuiltServer } from './built-server.ts';
 
 const PORT = Number(process.env.SEO_CHECK_PORT ?? 3124);
@@ -63,6 +65,11 @@ async function main() {
       'SEO_CHECK_PORT must be 1..65535 and SEO_CHECK_TIMEOUT_MS must be 1..120000'
     );
   }
+  const artefacts = checkStaticSeo(
+    fileURLToPath(new URL('../.output/public', import.meta.url)),
+    'https://duxt.app'
+  );
+  if (artefacts.failures.length) throw new Error(artefacts.failures.join('\n'));
   const server = startBuiltServer({
     port: PORT,
     origin: ORIGIN,
@@ -87,6 +94,7 @@ async function main() {
           ...(await checkMachineReadableLinks()),
           ...(await checkRobots()),
           ...(await checkSourceLanguage()),
+          ...(await checkRemovedVersionPages()),
           ...(await checkSocial()),
           ...(await checkSchemaOrg())
         ];
@@ -318,6 +326,30 @@ async function checkSourceLanguage() {
     if (Boolean(meta(document, 'robots')?.includes('noindex')) !== noindex) {
       failures.push(`${route}: unexpected robots indexing state`);
     }
+  }
+  return failures;
+}
+
+/** Removed historical API paths must link to a real preferred overview. */
+async function checkRemovedVersionPages() {
+  const failures: string[] = [];
+  for (const route of [
+    '/demo/v1.x/openapi/shipments',
+    '/demo/v1.x/openapi/shipments/createshipment',
+    '/demo/v1.x/openapi/shipments/listshipments'
+  ]) {
+    const document = await head(route);
+    const canonical = document
+      .querySelector('link[rel="canonical"]')
+      ?.getAttribute('href');
+    if (canonical !== `${ORIGIN}/demo/openapi`)
+      failures.push(
+        `${route}: removed page canonical did not fall back to the preferred overview: ${canonical}`
+      );
+    if (document.querySelector('a[href^="/demo/openapi/shipments"]'))
+      failures.push(
+        `${route}: lifecycle banner still links to a missing endpoint`
+      );
   }
   return failures;
 }

@@ -4,7 +4,11 @@ import { context } from './context';
 import { page, PANELS } from './shell';
 import { pathsPanel, sourcesPanel, versionsPanel } from './sources';
 import { checksPanel, pagesPanel, searchPanel } from './content';
-import { cacheEntryToDrop } from './entry-path';
+import {
+  cacheEntryToDrop,
+  isListedCacheEntry,
+  sameOriginMutation
+} from './entry-path';
 import { cachePanel, configPanel, i18nPanel, redirectsPanel } from './system';
 
 /**
@@ -39,10 +43,26 @@ export default defineEventHandler(async (event) => {
   // The one mutation in the tab: dropping a cache entry. A POST because it
   // deletes, so a reload or a prefetch cannot trigger it.
   if (event.method === 'POST' && slug === 'cache') {
+    const allowed = sameOriginMutation({
+      secFetchSite: getRequestHeader(event, 'sec-fetch-site'),
+      origin: getRequestHeader(event, 'origin'),
+      selfOrigin: getRequestURL(event).origin
+    });
+
+    if (!allowed) {
+      setResponseStatus(event, 403);
+      return html(
+        page(
+          slug,
+          cachePanel('Refused: the request did not come from this tab.')
+        )
+      );
+    }
+
     const body = (await readBody(event)) as { drop?: string } | undefined;
     const target = cacheEntryToDrop(context.dataDir, body?.drop);
 
-    if (!target) {
+    if (!target || !isListedCacheEntry(target)) {
       return html(
         page(
           slug,

@@ -3,18 +3,16 @@ import {
   DUXT_PAGE_MAX,
   DUXT_PAGE_SIZE,
   duxtBadCursor,
-  duxtCursorPage,
   duxtExcerpt,
   duxtLocaleSetup,
   duxtMcpEvent,
   duxtPageLine,
   duxtScope,
-  duxtScopedPages,
+  duxtScopedPage,
   duxtSources,
   duxtUnknownScope,
   duxtValidCursor
 } from '../../utils/mcp-docs';
-import { duxtPageSearchable } from '../../../app/utils/page-controls';
 
 /**
  * Search, so a model does not have to read every page to find one.
@@ -60,7 +58,7 @@ export default defineMcpTool({
       .describe('`nextCursor` from a previous call, to continue the results')
   },
 
-  async handler({ query, prefix, limit, cursor }) {
+  async handler({ query, prefix, limit, cursor }, extra) {
     if (cursor && !duxtValidCursor(cursor)) return duxtBadCursor(cursor);
 
     const event = duxtMcpEvent();
@@ -68,21 +66,17 @@ export default defineMcpTool({
     const scope = duxtScope(prefix, duxtSources(), setup);
     if (!scope) return duxtUnknownScope(prefix!);
 
-    const term = query.toLowerCase();
-    const holds = (value: string | undefined) =>
-      Boolean(value?.toLowerCase().includes(term));
-
-    // `search: false` is applied HERE rather than in `duxtScopedPages`, which
-    // also feeds `list_pages` and `list_versions`: the opt-out makes a page
-    // un-findable, not unpublished, so the tree and the page itself are left
-    // alone. Same predicate the client search and the llms indexes use.
-    const matches = (await duxtScopedPages(event, scope, setup, true)).filter(
-      (page) =>
-        duxtPageSearchable(page) &&
-        (holds(page.title) || holds(page.description) || holds(page.rawbody))
+    const { items, nextCursor } = await duxtScopedPage(
+      event,
+      scope,
+      setup,
+      limit,
+      cursor,
+      query.toLowerCase(),
+      extra.signal
     );
 
-    if (!matches.length)
+    if (!items.length)
       return {
         content: [
           {
@@ -92,7 +86,6 @@ export default defineMcpTool({
         ]
       };
 
-    const { items, nextCursor } = duxtCursorPage(matches, limit, cursor);
     const listing = items.flatMap((page) => {
       const excerpt = duxtExcerpt(page.rawbody, query);
 

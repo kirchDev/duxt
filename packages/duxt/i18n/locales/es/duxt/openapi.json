@@ -76,7 +76,11 @@
         "json": "JSON",
         "format": "Formatear",
         "invalidJson": "Todavía no es JSON válido: la petición se enviará tal cual.",
-        "noForm": "Este cuerpo no puede mostrarse como formulario: edítalo como JSON."
+        "noForm": "Este cuerpo no puede mostrarse como formulario: edítalo como JSON.",
+        "cancel": "Cancelar",
+        "cancelled": "Solicitud cancelada.",
+        "timeout": "La solicitud superó los 30 segundos.",
+        "truncated": "Vista previa limitada a 1 MiB."
       },
       "version": "Versión de la API",
       "operations": "Operaciones",

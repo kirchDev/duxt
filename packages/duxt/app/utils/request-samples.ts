@@ -62,10 +62,50 @@ function inlineList(items: unknown[], rendered: string[]): string | undefined {
 /** A JavaScript key that needs no quotes. */
 const bareKey = /^[A-Za-z_$][\w$]*$/;
 
+/*
+ * EVERY STRING IN A SAMPLE IS DATA, and is written with an encoder that is
+ * complete for its language. The URL, the method, the headers and the body all
+ * come from a document this layer did not write — a server URL holding
+ * `'+(…)+'` must stay one string literal, not become an expression in a snippet
+ * a reader copies and runs. Escaping the quote alone is not enough: a value
+ * ending in a backslash escapes the closing quote instead.
+ */
+
+/** A JavaScript string literal, single-quoted as a person writes one. */
+function jsString(value: string): string {
+  const inner = JSON.stringify(value)
+    .slice(1, -1)
+    .replaceAll('\\"', '"')
+    .replaceAll("'", "\\'");
+
+  return `'${inner}'`;
+}
+
+/**
+ * A Python or Go string literal. JSON's escapes are a subset of both
+ * languages' double-quoted strings, so `JSON.stringify` is complete for them.
+ */
+const quoted = (value: string) => JSON.stringify(value);
+
+/** A PHP single-quoted literal, whose only escapes are `\\` and `\'`. */
+function phpString(value: string): string {
+  return `'${value.replaceAll('\\', '\\\\').replaceAll("'", "\\'")}'`;
+}
+
+/**
+ * The response type as a type argument, or nothing.
+ *
+ * The name is a component key out of the document, and a key is any string:
+ * only one that is an identifier — optionally an array of one — is code.
+ */
+function typeArgument(name?: string): string {
+  return name && /^[A-Za-z_$][\w$]*(?:\[\])?$/.test(name) ? `<${name}>` : '';
+}
+
 /** A value as a JavaScript literal, indented for the depth it sits at. */
 function js(value: unknown, depth = 1): string {
   if (value === null) return 'null';
-  if (typeof value === 'string') return `'${value.replaceAll("'", "\\'")}'`;
+  if (typeof value === 'string') return jsString(value);
   if (typeof value === 'number' || typeof value === 'boolean') {
     return String(value);
   }
@@ -89,7 +129,7 @@ function js(value: unknown, depth = 1): string {
 
   const written = entries
     .map(([key, item]) => {
-      const name = bareKey.test(key) ? key : `'${key}'`;
+      const name = bareKey.test(key) ? key : jsString(key);
       return `${pad(depth + 1)}${name}: ${js(item, depth + 1)}`;
     })
     .join(',\n');
@@ -104,7 +144,7 @@ function py(value: unknown, depth = 1): string {
   if (value === null) return 'None';
   if (typeof value === 'boolean') return value ? 'True' : 'False';
   if (typeof value === 'number') return String(value);
-  if (typeof value === 'string') return `"${value.replaceAll('"', '\\"')}"`;
+  if (typeof value === 'string') return quoted(value);
 
   if (Array.isArray(value)) {
     if (!value.length) return '[]';
@@ -126,7 +166,7 @@ function py(value: unknown, depth = 1): string {
   const written = entries
     .map(
       ([key, item]) =>
-        `${step(depth + 1)}"${key.replaceAll('"', '\\"')}": ${py(item, depth + 1)}`
+        `${step(depth + 1)}${quoted(key)}: ${py(item, depth + 1)}`
     )
     .join(',\n');
 
@@ -140,7 +180,7 @@ function php(value: unknown, depth = 1): string {
   if (value === null) return 'null';
   if (typeof value === 'boolean') return value ? 'true' : 'false';
   if (typeof value === 'number') return String(value);
-  if (typeof value === 'string') return `'${value.replaceAll("'", "\\'")}'`;
+  if (typeof value === 'string') return phpString(value);
 
   if (Array.isArray(value)) {
     if (!value.length) return '[]';
@@ -162,7 +202,7 @@ function php(value: unknown, depth = 1): string {
   const written = entries
     .map(
       ([key, item]) =>
-        `${step(depth + 1)}'${key.replaceAll("'", "\\'")}' => ${php(item, depth + 1)}`
+        `${step(depth + 1)}${phpString(key)} => ${php(item, depth + 1)}`
     )
     .join(',\n');
 
@@ -218,7 +258,7 @@ function jsOptions(
   const options: string[] = [];
 
   if (request.method !== 'GET') {
-    options.push(`  method: '${request.method}'`);
+    options.push(`  method: ${jsString(request.method)}`);
   }
 
   if (hasHeaders(request)) {
@@ -256,13 +296,13 @@ function jsCall(
   body: 'stringify' | 'object',
   typed = false
 ): string {
-  const generic =
-    typed && request.responseType ? `<${request.responseType}>` : '';
+  const generic = typed ? typeArgument(request.responseType) : '';
+  const url = jsString(request.url);
 
   const options = jsOptions(request, body);
-  if (!options.length) return `${call}${generic}('${request.url}');`;
+  if (!options.length) return `${call}${generic}(${url});`;
 
-  return `${call}${generic}('${request.url}', {\n${options.join(',\n')}\n});`;
+  return `${call}${generic}(${url}, {\n${options.join(',\n')}\n});`;
 }
 
 /** The request as a `fetch` call. A JSON body is written as the data it is. */
@@ -290,8 +330,8 @@ export function openApiUseFetch(request: DuxtOpenApiRequest): string {
 /** axios through its uniform form, so the shape does not change per method. */
 export function openApiAxios(request: DuxtOpenApiRequest): string {
   const options = [
-    `  method: '${request.method.toLowerCase()}'`,
-    `  url: '${request.url}'`
+    `  method: ${jsString(request.method.toLowerCase())}`,
+    `  url: ${jsString(request.url)}`
   ];
 
   if (hasHeaders(request)) options.push(`  headers: ${js(request.headers)}`);
@@ -301,7 +341,7 @@ export function openApiAxios(request: DuxtOpenApiRequest): string {
     options.push(`  data: ${data === undefined ? js(request.body) : js(data)}`);
   }
 
-  const generic = request.responseType ? `<${request.responseType}>` : '';
+  const generic = typeArgument(request.responseType);
 
   return `await axios${generic}({\n${options.join(',\n')}\n});`;
 }
@@ -316,8 +356,8 @@ function pyCall(module: string, request: DuxtOpenApiRequest): string {
     : `${module}.request(`;
 
   const args = known
-    ? [`    "${request.url}"`]
-    : [`    "${request.method}"`, `    "${request.url}"`];
+    ? [`    ${quoted(request.url)}`]
+    : [`    ${quoted(request.method)}`, `    ${quoted(request.url)}`];
 
   if (hasHeaders(request)) args.push(`    headers=${py(request.headers)}`);
 
@@ -349,7 +389,10 @@ export function openApiUrllib(request: DuxtOpenApiRequest): string {
     ? 'import json\nimport urllib.request'
     : 'import urllib.request';
 
-  const args = [`    "${request.url}"`, `    method="${request.method}"`];
+  const args = [
+    `    ${quoted(request.url)}`,
+    `    method=${quoted(request.method)}`
+  ];
 
   if (hasHeaders(request)) args.push(`    headers=${py(request.headers)}`);
 
@@ -392,7 +435,7 @@ export function openApiGo(request: DuxtOpenApiRequest): string {
   }
 
   lines.push(
-    `req, err := http.NewRequest("${request.method}", "${request.url}", ${request.body ? 'body' : 'nil'})`,
+    `req, err := http.NewRequest(${quoted(request.method)}, ${quoted(request.url)}, ${request.body ? 'body' : 'nil'})`,
     'if err != nil {',
     '\treturn err',
     '}'
@@ -401,7 +444,7 @@ export function openApiGo(request: DuxtOpenApiRequest): string {
   if (hasHeaders(request)) {
     lines.push('');
     for (const [name, value] of Object.entries(request.headers)) {
-      lines.push(`req.Header.Set("${name}", "${value}")`);
+      lines.push(`req.Header.Set(${quoted(name)}, ${quoted(value)})`);
     }
   }
 
@@ -428,9 +471,10 @@ export function openApiGuzzle(request: DuxtOpenApiRequest): string {
   }
 
   const client = '$client = new \\GuzzleHttp\\Client();';
+  const head = `$client->request(${phpString(request.method)}, ${phpString(request.url)}`;
   const call = options.length
-    ? `$client->request('${request.method}', '${request.url}', [\n${options.join(',\n')},\n]);`
-    : `$client->request('${request.method}', '${request.url}');`;
+    ? `${head}, [\n${options.join(',\n')},\n]);`
+    : `${head});`;
 
   return `${client}\n\n${call}`;
 }
@@ -448,12 +492,12 @@ export function openApiLaravelHttp(request: DuxtOpenApiRequest): string {
     ? `, ${data === undefined ? php(request.body) : php(data, 1)}`
     : '';
 
-  return `${head}${verb}('${request.url}'${payload});`;
+  return `${head}${verb}(${phpString(request.url)}${payload});`;
 }
 
 /** The curl extension, for a project with no HTTP client at all. */
 export function openApiPhpCurl(request: DuxtOpenApiRequest): string {
-  const options = [`    CURLOPT_CUSTOMREQUEST => '${request.method}'`];
+  const options = [`    CURLOPT_CUSTOMREQUEST => ${phpString(request.method)}`];
 
   if (hasHeaders(request)) {
     const headers = Object.entries(request.headers).map(
@@ -469,7 +513,7 @@ export function openApiPhpCurl(request: DuxtOpenApiRequest): string {
   options.push('    CURLOPT_RETURNTRANSFER => true');
 
   return [
-    `$ch = curl_init('${request.url}');`,
+    `$ch = curl_init(${phpString(request.url)});`,
     '',
     'curl_setopt_array($ch, [',
     options.join(',\n') + ',',

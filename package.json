@@ -16,7 +16,7 @@
     "format": "oxfmt --check .",
     "format:fix": "oxfmt .",
     "typecheck": "tsc --noEmit",
-    "check": "pnpm lint && pnpm format && pnpm typecheck && pnpm typecheck:app && pnpm test && pnpm check:policy && pnpm check:previews && pnpm build:app && pnpm check:a11y && pnpm check:seo && pnpm check:images && pnpm check:keyboard && pnpm check:overflow",
+    "check": "pnpm lint && pnpm format && pnpm typecheck && pnpm typecheck:app && pnpm test && pnpm check:policy && pnpm check:security && pnpm check:previews && pnpm build:app && pnpm check:a11y && pnpm check:seo && pnpm check:images && pnpm check:keyboard && pnpm check:overflow && pnpm check:interactive",
     "check:fix": "pnpm lint:fix && pnpm format:fix",
     "previews": "turbo run previews --filter=@kirchdev/duxt",
     "check:previews": "turbo run check:previews --filter=@kirchdev/duxt",
@@ -40,23 +40,25 @@
     "check:keyboard": "turbo run check:keyboard --filter=www",
     "check:overflow": "turbo run check:overflow --filter=www",
     "check:adapters": "turbo run check:adapters --filter=www",
-    "check:routes": "turbo run check:routes --filter=www"
+    "check:routes": "turbo run check:routes --filter=www",
+    "check:security": "node scripts/check-security.ts",
+    "check:interactive": "turbo run check:interactive --filter=www"
   },
   "devDependencies": {
-    "@commitlint/cli": "^21.2.2",
-    "@commitlint/config-conventional": "^21.2.2",
-    "@commitlint/types": "^21.2.0",
-    "@types/node": "^26.4.0",
+    "@commitlint/cli": "^21.2.3",
+    "@commitlint/config-conventional": "^21.2.3",
+    "@commitlint/types": "^21.2.3",
+    "@types/node": "^26.6.4",
     "husky": "^9.1.7",
-    "lint-staged": "^17.4.1",
-    "oxfmt": "0.65.0",
-    "oxlint": "1.80.0",
-    "taze": "^21.1.0",
-    "turbo": "^2.10.12",
+    "lint-staged": "^17.6.0",
+    "oxfmt": "0.72.0",
+    "oxlint": "1.87.0",
+    "taze": "^21.3.0",
+    "turbo": "^2.11.7",
     "typescript": "^6.0.3"
   },
   "engines": {
-    "node": ">=24"
+    "node": ">=24.15.0"
   },
-  "packageManager": "pnpm@12.3.4"
+  "packageManager": "pnpm@12.10.1"
 }

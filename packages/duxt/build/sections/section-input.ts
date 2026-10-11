@@ -12,8 +12,14 @@
  * documents: a resolver that understood a Bruno collection would have to
  * understand the next type's tree as well.
  */
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { join, relative, sep } from 'node:path';
+import {
+  existsSync,
+  readFileSync,
+  readdirSync,
+  realpathSync,
+  statSync
+} from 'node:fs';
+import { isAbsolute, join, relative, sep } from 'node:path';
 import type { DuxtSectionInput, DuxtSectionType } from './sections-resolve';
 
 /**
@@ -36,16 +42,48 @@ export function sectionInputKind(type: DuxtSectionType): 'file' | 'directory' {
  * A directory where a file was declared is as missing as nothing at all — the
  * type would read it and find nothing — and saying so here is what lets
  * `missingSectionArtefact` keep one message for both.
+ *
+ * `checkout`, for a REMOTE repository, is the directory the artefact must stay
+ * inside once every symlink is resolved. The walk below already refuses a
+ * symlinked CHILD, but the declared path itself is joined as a string: a
+ * repository that commits `CHANGELOG.md` as a link to `/proc/self/environ`
+ * would otherwise have the build read that file and publish it as its release
+ * history. A repository controls the bytes of its own checkout, not the
+ * machine that downloads it, so an artefact that resolves outside it fails the
+ * build rather than reading as missing — a missing file and a link out are
+ * different things to fix. Omitted for a local section, whose path the
+ * operator wrote and may legitimately point past the repository.
  */
 export function sectionArtefactExists(
   absolute: string,
-  kind: 'file' | 'directory'
+  kind: 'file' | 'directory',
+  checkout?: string
 ): boolean {
   if (!existsSync(absolute)) return false;
+
+  if (checkout) assertInsideCheckout(absolute, checkout);
 
   const stats = statSync(absolute);
 
   return kind === 'directory' ? stats.isDirectory() : stats.isFile();
+}
+
+/** Whether `absolute`, symlinks resolved, lies inside `checkout`. */
+export function resolvesInside(absolute: string, checkout: string): boolean {
+  const rel = relative(realpathSync(checkout), realpathSync(absolute));
+
+  return !(rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel));
+}
+
+/** Throws when `absolute`, symlinks resolved, lies outside `checkout`. */
+function assertInsideCheckout(absolute: string, checkout: string): void {
+  if (!resolvesInside(absolute, checkout)) {
+    throw new Error(
+      `duxt: "${absolute}" resolves outside its checkout (${checkout}). ` +
+        'A generated section reads only files inside the repository it is ' +
+        'declared on; replace the symlink with the file itself.'
+    );
+  }
 }
 
 /**

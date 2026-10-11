@@ -1,9 +1,10 @@
-import { join, resolve } from 'node:path';
+import { lstatSync } from 'node:fs';
+import { isAbsolute, join, resolve } from 'node:path';
 
 /**
  * Resolve a cache entry the tab may delete, or refuse.
  *
- * Its own file, importing nothing but `node:path`, for the same reason
+ * Its own file, importing nothing but `node:path` and `node:fs`, for the same reason
  * `validate-report.ts` is its own file: everything else under `devtools/`
  * reaches the virtual module the build generates, and a guard that cannot be
  * tested without booting Nitro is a guard nobody re-checks. This is the one
@@ -19,7 +20,13 @@ export function cacheEntryToDrop(
   dataDir: string,
   name: unknown
 ): string | undefined {
-  if (typeof name !== 'string' || !name || name === '.' || name === '..') {
+  if (
+    typeof name !== 'string' ||
+    !name ||
+    name === '.' ||
+    name === '..' ||
+    isAbsolute(name)
+  ) {
     return undefined;
   }
 
@@ -27,4 +34,42 @@ export function cacheEntryToDrop(
   if (resolve(join(target, '..')) !== resolve(dataDir)) return undefined;
 
   return target;
+}
+
+/**
+ * Whether `target` is one of the entries the panel lists: a real directory.
+ *
+ * The panel offers downloaded repositories, which are directories. Content's
+ * parse cache sits beside them as a file and is not offered, and a symlink is
+ * neither — so neither may be dropped by naming it.
+ */
+export function isListedCacheEntry(target: string): boolean {
+  try {
+    return lstatSync(target).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Whether a mutation came from the tab itself rather than from another site.
+ *
+ * The dev server listens on localhost, and any page the developer has open can
+ * POST a form at it — no cookie is needed when the authority is simply being
+ * able to reach the listener. So the request has to prove it came from this
+ * origin: `Sec-Fetch-Site`, which a browser sets and a page cannot, must say
+ * `same-origin`; a browser too old to send it still sends `Origin` on a
+ * cross-origin POST, which must then match the server's own. A request with
+ * neither did not come from a browser, and a cross-site request is one only a
+ * browser can be tricked into sending.
+ */
+export function sameOriginMutation(headers: {
+  secFetchSite?: string;
+  origin?: string;
+  selfOrigin: string;
+}): boolean {
+  if (headers.secFetchSite) return headers.secFetchSite === 'same-origin';
+  if (headers.origin) return headers.origin === headers.selfOrigin;
+
+  return true;
 }

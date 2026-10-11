@@ -96,6 +96,20 @@ publicHoistPattern:
 # reason. Revisit when vue-tsc supports 7.
 overrides:
   typescript: ^6.0.3
+  # Security fixes outside the parents' declared ranges. Keep the selectors
+  # narrow and remove each override once its parent accepts a patched release.
+  # These root-only settings are not inherited by published-layer consumers.
+  'fontless>esbuild': 0.28.2
+  'satori>fflate': 0.7.5
+  '@shuding/opentype.js>fflate': 0.7.5
+  '@nuxt/devtools>simple-git': 4.0.2
+  'mermaid>katex': 0.19.0
+  'miniflare>sharp': 0.35.5
+  # agents uses both MCP generations; keep the v2 client/server/core aligned
+  # and share the toolkit's v1 SDK so its legacy instanceof checks still work.
+  'agents>@modelcontextprotocol/client': 2.3.1
+  'agents>@modelcontextprotocol/server': 2.3.1
+  'agents>@modelcontextprotocol/sdk': 1.32.1
 
 # Build scripts are blocked by default; each one is answered explicitly here.
 # esbuild places a platform binary in its postinstall and does not run without
@@ -119,3 +133,8 @@ allowBuilds:
   # nobody uses, and refusing the build only moves the failure to the first
   # person who tries.
   workerd: true
+
+# DevTools still imports the default factory removed by the patched simple-git
+# major. Drop this import-only patch when DevTools adopts its named export.
+patchedDependencies:
+  '@nuxt/devtools@3.4.2': patches/@nuxt__devtools@3.4.2.patch

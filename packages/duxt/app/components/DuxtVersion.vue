@@ -66,11 +66,8 @@ function caption(version: DuxtLink) {
  * The pages this one would become in each version, checked where they may not
  * exist.
  *
- * Only inside a per-version CHANGELOG, and only below its overview: a release
- * page carries a release slug, and an older version's changelog has no page
- * for a release cut after it. Those are looked up in the target's own
- * collection; any other page keeps its place exactly as `versionPath` puts it,
- * because every other per-version tree is the same tree at another ref.
+ * Editions may remove ordinary pages and generated endpoints too. A missing
+ * target lands at that edition's root instead of a URL nobody serves.
  *
  * Nothing is read after the first `await` but plain values captured before it —
  * the rule `tests/async-data-context.test.ts` holds.
@@ -80,7 +77,7 @@ const { data: missing } = useAsyncData(
   async () => {
     const sources = duxt.resolvedSources ?? [];
     const own = source.value;
-    if (own?.generated?.type !== 'changelog' || path.value === own.prefix) {
+    if (!own || path.value === own.prefix) {
       return [];
     }
 
@@ -93,7 +90,10 @@ const { data: missing } = useAsyncData(
         version.to ?? '/'
       );
       const owner = sourceForPath(target, sources);
-      if (!owner || owner.generated?.type !== 'changelog') continue;
+      if (!owner) {
+        gone.push(target);
+        continue;
+      }
 
       const hit = await queryCollection(owner.collection as DuxtCollectionArg)
         .path(target)

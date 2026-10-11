@@ -10,8 +10,11 @@ on:
   push:
     branches:
       - 'ai/queue-**'
-  # An approval arrived. This is the ONE automatic landing trigger, and it fires
-  # only from the DEFAULT branch's copy of this file.
+  # An approval arrived. This is the ONE automatic landing trigger. Like
+  # `pull_request`, it runs the copy of this file on the PR's MERGE REF, not
+  # the default branch's — so a queue branch that edits this workflow runs its
+  # own edit, with this repository's secrets. Branch-level trust is therefore
+  # what protects the gate, not this file.
   #
   # THE APPROVAL MUST COME LAST — an approval counts only while its commit is
   # still the head, so any push after it un-approves the PR, and nothing fires
@@ -34,7 +37,7 @@ jobs:
       pull-requests: read
       checks: read
       statuses: read
-    uses: kirchDev/workflows/.github/workflows/_fast-forward-queue.yml@1e57db95ff601f03ae87b78e329ef238f9d0cbf6 # v0.8.2
+    uses: kirchDev/workflows/.github/workflows/_fast-forward-queue.yml@ea3a3c15385340fe1f9751e0afefaef32970aad7 # v0.12.0
     with:
       pr: ${{ inputs.pr }}
     secrets:

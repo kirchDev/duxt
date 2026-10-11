@@ -608,20 +608,27 @@ async function copySample() {
 
 /* ------------------------------------------------------------------- send */
 
-interface Result {
-  status: number;
-  statusText: string;
-  duration: number;
-  headers: [string, string][];
-  body: string;
-}
-
-/** How long the send button shows its spinner, however fast the answer is. */
-const MINIMUM_WAIT = 300;
-
-const sending = ref(false);
-const result = ref<Result>();
-const failure = ref<string>();
+const requestState = useDuxtRequest({
+  settled: (outcome, duration, status) =>
+    report(
+      outcome,
+      duration,
+      status === undefined ? undefined : duxtStatusClass(status)
+    )
+});
+const { sending, result, cancel } = requestState;
+const failure = computed(() => {
+  switch (requestState.failure.value) {
+    case 'cancelled':
+      return t('duxt.openapi.client.cancelled');
+    case 'timeout':
+      return t('duxt.openapi.client.timeout');
+    case 'blocked':
+      return t('duxt.openapi.client.blocked');
+    default:
+      return undefined;
+  }
+});
 
 /**
  * The request that just settled, described entirely by the DOCUMENT.
@@ -654,64 +661,11 @@ function report(
 }
 
 async function send() {
-  sending.value = true;
-  // THE PREVIOUS ANSWER STAYS UNTIL THIS ONE ARRIVES. Clearing it here emptied
-  // the panel the moment the button was pressed, so the page collapsed by the
-  // height of a response and grew back a moment later — under the cursor that
-  // had just clicked. It is dimmed and marked busy instead, and replaced when
-  // there is something to replace it with.
-
-  const started = performance.now();
-
-  try {
-    const response = await fetch(request.value.url, {
-      method: request.value.method,
-      headers: request.value.headers,
-      body: request.value.body
-    });
-
-    const text = await response.text();
-    const duration = Math.round(performance.now() - started);
-
-    failure.value = undefined;
-    result.value = {
-      status: response.status,
-      statusText: response.statusText,
-      duration,
-      headers: [...response.headers.entries()],
-      body: pretty(text)
-    };
-
-    report('response', duration, duxtStatusClass(response.status));
-  } catch (error) {
-    // `fetch` rejects with a bare TypeError for a CORS refusal, a DNS failure
-    // and an offline browser alike — the browser deliberately tells the page
-    // nothing more — so the message says what the possibilities are rather than
-    // pretending to know which one happened.
-    result.value = undefined;
-    failure.value =
-      error instanceof Error && error.name !== 'TypeError'
-        ? error.message
-        : t('duxt.openapi.client.blocked');
-
-    // No status and no class: nothing came back to have one. The message is not
-    // reported either — for a CORS refusal it is this component's own guess.
-    report('failed', Math.round(performance.now() - started));
-  } finally {
-    // A FLOOR UNDER THE WAIT. The demo endpoint answers in a few milliseconds,
-    // so the spinner appeared and vanished inside one frame — which reads as
-    // the button having flickered rather than as a request having been made.
-    // Held long enough to be seen, and the button stays disabled for it, so the
-    // same request cannot be fired twice while the first is in flight.
-    const elapsed = performance.now() - started;
-    if (elapsed < MINIMUM_WAIT) {
-      await new Promise((resolve) =>
-        setTimeout(resolve, MINIMUM_WAIT - elapsed)
-      );
-    }
-
-    sending.value = false;
-  }
+  await requestState.send(request.value.url, {
+    method: request.value.method,
+    headers: request.value.headers,
+    body: request.value.body
+  });
 }
 
 /**
@@ -803,13 +757,6 @@ function gridColumns(element: HTMLElement): number {
 }
 
 /** A JSON body, indented; anything else exactly as it arrived. */
-function pretty(text: string): string {
-  try {
-    return JSON.stringify(JSON.parse(text), null, 2);
-  } catch {
-    return text;
-  }
-}
 </script>
 
 <template>
@@ -1235,6 +1182,15 @@ function pretty(text: string): string {
             {{ $t('duxt.openapi.client.send') }}
           </UiButton>
 
+          <UiButton
+            v-if="sending"
+            type="button"
+            variant="outline"
+            class="w-full"
+            @click="cancel"
+          >
+            {{ $t('duxt.openapi.client.cancel') }}
+          </UiButton>
           <p class="text-xs text-muted-foreground">
             {{ $t('duxt.openapi.client.direct') }}
           </p>
@@ -1288,6 +1244,13 @@ function pretty(text: string): string {
                   language="json"
                 />
 
+                <p
+                  v-if="result.truncated"
+                  role="status"
+                  class="text-sm text-muted-foreground"
+                >
+                  {{ $t('duxt.openapi.client.truncated') }}
+                </p>
                 <details v-if="result.headers.length" class="mt-2">
                   <summary class="cursor-pointer text-xs text-muted-foreground">
                     {{ $t('duxt.openapi.headers') }}

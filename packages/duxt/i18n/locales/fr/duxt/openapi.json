@@ -76,7 +76,11 @@
         "json": "JSON",
         "format": "Formater",
         "invalidJson": "Ce n'est pas encore du JSON valide — la requête sera envoyée telle quelle.",
-        "noForm": "Ce corps ne peut pas être présenté sous forme de formulaire : modifiez-le en JSON."
+        "noForm": "Ce corps ne peut pas être présenté sous forme de formulaire : modifiez-le en JSON.",
+        "cancel": "Annuler",
+        "cancelled": "Requête annulée.",
+        "timeout": "La requête a dépassé 30 secondes.",
+        "truncated": "Aperçu de la réponse limité à 1 Mio."
       },
       "version": "Version de l’API",
       "operations": "Opérations",

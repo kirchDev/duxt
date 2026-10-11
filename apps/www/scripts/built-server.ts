@@ -18,6 +18,8 @@
  *    move them off an address `localhost` may resolve past.
  */
 import { spawn, type ChildProcess } from 'node:child_process';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -60,6 +62,9 @@ export function startBuiltServer({
   env = {},
   timeout = 30_000
 }: BuiltServerOptions): BuiltServer {
+  // Content restores collection dumps on first use. Two checks sharing the
+  // runtime SQLite file can interleave table restoration and serve false 404s.
+  const databaseRoot = mkdtempSync(join(tmpdir(), 'duxt-built-server-'));
   const bound = origin
     ? {
         HOST: '127.0.0.1',
@@ -70,13 +75,28 @@ export function startBuiltServer({
       }
     : {};
 
+  const adapter = env.DUXT_CONTENT_ADAPTER ?? process.env.DUXT_CONTENT_ADAPTER;
+  const databaseUrl =
+    env.NUXT_CONTENT_DATABASE_URL ??
+    process.env.NUXT_CONTENT_DATABASE_URL ??
+    env.DUXT_CONTENT_DATABASE_URL ??
+    process.env.DUXT_CONTENT_DATABASE_URL;
+  const localLibsql =
+    adapter === 'libsql' && (!databaseUrl || databaseUrl.startsWith('file:'));
+
   const child = spawn(process.execPath, [entry], {
     env: {
       ...process.env,
       PORT: String(port),
       NITRO_PORT: String(port),
       ...bound,
-      ...env
+      ...env,
+      NUXT_CONTENT_DATABASE_FILENAME: join(databaseRoot, 'content.sqlite'),
+      ...(localLibsql
+        ? {
+            NUXT_CONTENT_DATABASE_URL: `file:${join(databaseRoot, 'content.db')}`
+          }
+        : {})
     },
     // stdout is only read while waiting for the announcement. Piped and never
     // drained, it would fill and stall the server, so without one it is dropped.
@@ -105,7 +125,10 @@ export function startBuiltServer({
     stderr: () => stderr,
     exited,
     ready: () => (origin ? announced(child, origin, timeout) : answering(port)),
-    stop: () => stop(child)
+    stop: async () => {
+      await stop(child);
+      rmSync(databaseRoot, { recursive: true, force: true });
+    }
   };
 }
 
@@ -131,6 +154,9 @@ function announced(
 
       if (stdout.split(/\r?\n/).includes(`Listening on ${origin}`)) {
         clearTimeout(timer);
+        // Keep draining after readiness; later Content/log output must not
+        // fill the pipe and stall a long-running check.
+        child.stdout?.on('data', () => {});
         child.stdout?.off('data', onData);
         resolve();
       }

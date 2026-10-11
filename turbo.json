@@ -1,6 +1,7 @@
 {
   "$schema": "https://turborepo.com/schema.json",
   "envMode": "loose",
+  "agentGuidance": false,
   "ui": "stream",
   "tasks": {
     "test": {
@@ -57,6 +58,9 @@
       "cache": false
     },
     "check:seo": {
+      "cache": false
+    },
+    "check:interactive": {
       "cache": false
     }
   }

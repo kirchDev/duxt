@@ -24,21 +24,45 @@ interface Row {
   search?: boolean;
 }
 
-const database = vi.hoisted(() => ({ pages: {} as Record<string, Row[]> }));
+const database = vi.hoisted(() => ({
+  pages: {} as Record<string, Row[]>,
+  reads: [] as { fields: string[]; rows: number }[]
+}));
 
 vi.mock('@nuxt/content/nitro', () => ({
   queryCollection: (_event: unknown, name: string) => {
     let wanted: string | undefined;
+    let wantedPaths: string[] | undefined;
+    let maximum = Infinity;
+    let fields: string[] = [];
     const builder = {
       path(value: string) {
         wanted = value;
         return builder;
       },
-      select() {
+      select(...selected: string[]) {
+        fields = selected;
+        return builder;
+      },
+      where(_field: string, _operator: string, paths: string[]) {
+        wantedPaths = paths;
+        return builder;
+      },
+      limit(value: number) {
+        maximum = value;
         return builder;
       },
       async all() {
-        return database.pages[name] ?? [];
+        const selected = (database.pages[name] ?? [])
+          .filter((row) => !wantedPaths || wantedPaths.includes(row.path))
+          .slice(0, maximum)
+          .map((row) =>
+            Object.fromEntries(
+              fields.map((field) => [field, row[field as keyof Row]])
+            )
+          );
+        database.reads.push({ fields, rows: selected.length });
+        return selected;
       },
       async first() {
         return (database.pages[name] ?? []).find((row) => row.path === wanted);
@@ -170,6 +194,8 @@ const text = async (name: string, args?: Record<string, unknown>) =>
   (await call(name, args)).text;
 
 beforeEach(() => {
+  vi.resetModules();
+  database.reads = [];
   sources = manifest();
   i18n = {
     locales: ['en', 'de'],
@@ -402,6 +428,26 @@ describe('search_docs', () => {
     expect(found.text.toLowerCase()).toContain('nothing');
   });
 
+  it('stops reading once the client has cancelled the search', async () => {
+    // A miss reads every body in scope; a cancelled request must not.
+    const cancelled = new AbortController();
+    cancelled.abort();
+    const definition = await tool('search-docs');
+
+    await expect(
+      definition.handler(
+        ...([
+          { query: 'nothing here at all' },
+          { signal: cancelled.signal, requestId: 2 }
+        ] as never[])
+      )
+    ).rejects.toThrow();
+    // The path listings are read; no page body is.
+    expect(
+      database.reads.filter((read) => read.fields.includes('rawbody'))
+    ).toEqual([]);
+  });
+
   /**
    * `search: false` makes a page UN-FINDABLE, not unpublished — decided, and
    * the reason the filter sits in this tool rather than in `duxtScopedPages`
@@ -480,4 +526,43 @@ describe('error responses', () => {
     expect(answer.result.isError).toBe(true);
     expect(answer.text).toContain('list_pages');
   });
+});
+
+it('reuses paths and reads only bounded payloads for large listings and Unicode searches', async () => {
+  const source = sources.find(
+    (source) => source.prefix === '/app' && source.isDefaultLocale
+  )!;
+  database.pages[source.collection] = Array.from(
+    { length: 2000 },
+    (_, index) => ({
+      path: `/app/page-${String(index).padStart(4, '0')}`,
+      title: 'Übersicht',
+      rawbody: 'content '.repeat(1000)
+    })
+  );
+  await text('list-pages', { prefix: '/app', limit: 20 });
+  const indexReads = database.reads.filter(
+    (read) => read.fields.length === 1
+  ).length;
+  expect(
+    database.reads
+      .filter((read) => read.fields.length > 1)
+      .reduce((sum, read) => sum + read.rows, 0)
+  ).toBeLessThanOrEqual(21);
+  database.reads = [];
+  const result = await text('search-docs', {
+    prefix: '/app',
+    query: 'übersicht',
+    limit: 20
+  });
+  expect(result).toContain('nextCursor');
+  expect(
+    database.reads
+      .filter((read) => read.fields.includes('rawbody'))
+      .reduce((sum, read) => sum + read.rows, 0)
+  ).toBeLessThanOrEqual(64);
+  expect(
+    database.reads.filter((read) => read.fields.length === 1)
+  ).toHaveLength(0);
+  expect(indexReads).toBeGreaterThan(0);
 });

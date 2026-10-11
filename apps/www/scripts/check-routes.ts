@@ -400,6 +400,13 @@ export const EXEMPT_HANDLERS: readonly ExemptHandler[] = [
     why: 'The lazy-loaded message bundles `@nuxtjs/i18n` fetches per locale.'
   },
   {
+    handler: '/__sitemap__',
+    why:
+      'Nitro’s root alias for the sitemap wildcard handler. Without a sitemap ' +
+      'name it returns an empty 204 response rather than a public sitemap. ' +
+      'The named child sitemaps are classified above.'
+  },
+  {
     handler: '/_ipx/',
     why:
       'The image transformer. Every `<img>` on a prerendered page already points ' +

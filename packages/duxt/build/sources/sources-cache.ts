@@ -251,17 +251,15 @@ export function duxtSourcesCacheKey(
     };
   }
 
-  for (const source of sources) {
-    for (const repo of [
-      source.repo,
-      ...(source.locales ?? []).map((locale) =>
-        typeof locale === 'string' ? undefined : locale.repo
-      )
-    ]) {
-      const reason = repo ? privateRemoteReason(repo) : undefined;
-      if (reason)
-        return { cacheable: false, reason, key: '', entries, ...where };
-    }
+  // Over the SAME expansion the entries came from, so every repository that is
+  // downloaded is one that was checked. Walking `source.repo` and
+  // `source.locales` by hand missed a private repository named by a locale
+  // override inside `refs[]` — downloaded, cached, and never looked at.
+  for (const { effective } of expandSources(sources, options)) {
+    const reason = effective.repo
+      ? privateRemoteReason(effective.repo)
+      : undefined;
+    if (reason) return { cacheable: false, reason, key: '', entries, ...where };
   }
 
   // A SPACE AND A NEWLINE are enough to separate the fields unambiguously: git

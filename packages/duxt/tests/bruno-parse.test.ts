@@ -165,6 +165,21 @@ describe('parseBruFile', () => {
     expect(JSON.stringify(request)).not.toContain('sk-live-9fj2k3');
   });
 
+  it('blanks a credential whose name is percent-encoded in the url', () => {
+    // `%61pi_key` and `api%5Fkey` are `api_key` to every server that reads the
+    // query, so the name rule has to see them decoded.
+    for (const name of ['%61pi_key', 'api%5Fkey']) {
+      const request = parseBruFile(
+        'a.bru',
+        `meta {\n  name: a\n}\n\nget {\n  url: https://api.test/x?${name}=sk-live-9fj2k3&q=x\n}\n`,
+        []
+      );
+
+      expect(request!.url).toBe(`https://api.test/x?${name}=&q=x`);
+      expect(request!.urlRedacted).toBe(true);
+    }
+  });
+
   it('leaves a url whose credential is a placeholder alone', () => {
     // Same reason the header rule keeps `Bearer {{token}}`: the variable name
     // is the one thing the reader needs, and it carries no secret.

@@ -108,11 +108,9 @@ export function useDuxtVersion() {
   /**
    * Whether the same page is MISSING from the preferred version.
    *
-   * Only a changelog release page can be: every version publishes its own
-   * changelog, and a branch's may carry a release the default version has not
-   * shipped. Swapping the prefix alone then pointed the banner's link and the
-   * canonical at a page that does not exist. Every other per-version tree is the
-   * same tree at another ref, so nothing else is looked up.
+   * Any edition may rename or remove a page, including an API endpoint. Resolve
+   * existence before rendering the banner and canonical, rather than creating
+   * a link to a guessed target that the preferred version never published.
    *
    * `useAsyncData`, so the server waits for it and the canonical in the
    * prerendered HTML is already right. Keyed per path, so the banner and the
@@ -123,13 +121,7 @@ export function useDuxtVersion() {
     async () => {
       const own = current.value;
       const target = preferred.value;
-      if (
-        !own ||
-        !target ||
-        own === target ||
-        own.generated?.type !== 'changelog' ||
-        path.value === own.prefix
-      ) {
+      if (!own || !target || own === target || path.value === own.prefix) {
         return false;
       }
 

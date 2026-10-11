@@ -202,6 +202,31 @@ describe('what may be cached at all', () => {
 
     expect(result.cacheable).toBe(false);
   });
+
+  it('declines a private repository a locale override names inside a ref', () => {
+    // The override is downloaded like any other repository, so the privacy
+    // check has to see it — not only the source-level `repo` and `locales`.
+    const result = duxtSourcesCacheKey([
+      {
+        repo: 'o/public',
+        path: 'docs',
+        refs: [
+          {
+            tag: 'v1.0.0',
+            locales: [
+              {
+                locale: 'en',
+                repo: 'https://x-access-token:secret@github.com/o/private.git'
+              }
+            ]
+          }
+        ]
+      }
+    ] as DuxtSource[]);
+
+    expect(result.cacheable).toBe(false);
+    expect(result.reason).not.toContain('secret');
+  });
 });
 
 describe('what the cache is allowed to hold', () => {

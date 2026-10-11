@@ -3,12 +3,11 @@ import {
   DUXT_PAGE_MAX,
   DUXT_PAGE_SIZE,
   duxtBadCursor,
-  duxtCursorPage,
   duxtLocaleSetup,
   duxtMcpEvent,
   duxtPageLine,
   duxtScope,
-  duxtScopedPages,
+  duxtScopedPage,
   duxtSources,
   duxtUnknownScope,
   duxtValidCursor
@@ -65,8 +64,13 @@ export default defineMcpTool({
     const scope = duxtScope(prefix, duxtSources(), setup);
     if (!scope) return duxtUnknownScope(prefix!);
 
-    const pages = await duxtScopedPages(event, scope, setup);
-    const { items, nextCursor } = duxtCursorPage(pages, limit, cursor);
+    const { items, nextCursor } = await duxtScopedPage(
+      event,
+      scope,
+      setup,
+      limit,
+      cursor
+    );
 
     if (!items.length)
       return {

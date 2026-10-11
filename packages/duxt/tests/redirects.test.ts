@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { redirectRules } from '../modules/redirects';
+import { isLiteralPath, redirectRules } from '../modules/redirects';
 
 describe('redirectRules', () => {
   it('resolves an old URL against the page own source prefix', () => {
@@ -41,5 +41,42 @@ describe('redirectRules', () => {
     );
 
     expect(rules).toEqual({});
+  });
+});
+
+/**
+ * Route rules match by pattern, so a pattern in a page's frontmatter would be a
+ * rule over every URL it matches — written by whoever may edit that page.
+ */
+describe('isLiteralPath', () => {
+  it.each(['/old', '/old/url', '/old/', '/v1.2/guide', '/a-b_c'])(
+    'accepts %j',
+    (path) => {
+      expect(isLiteralPath(path)).toBe(true);
+    }
+  );
+
+  it.each([
+    'old',
+    '/**',
+    '/api/**',
+    '/:slug',
+    '/a/:id/b',
+    '/a/../mcp',
+    '/./a',
+    '//evil.test',
+    '/a//b',
+    '/a\\b'
+  ])('refuses %j', (path) => {
+    expect(isLiteralPath(path)).toBe(false);
+  });
+
+  it('writes no rule for a pattern a page names', () => {
+    const rules = redirectRules(
+      [{ path: '/guide', prefix: '', redirectFrom: ['/**', '/:slug', '/old'] }],
+      []
+    );
+
+    expect(Object.keys(rules)).toEqual(['/old']);
   });
 });
