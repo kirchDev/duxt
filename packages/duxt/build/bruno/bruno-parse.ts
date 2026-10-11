@@ -524,8 +524,11 @@ export function redactUrl(url: string): { url: string; redacted: boolean } {
       const equals = pair.indexOf('=');
       if (equals < 1) return pair;
 
+      // Classified DECODED: `%61pi_key` is `api_key` to every server that
+      // reads the query, so it has to be `api_key` here too. The name is
+      // published as written.
       const name = pair.slice(0, equals);
-      if (!withheld(name, pair.slice(equals + 1))) return pair;
+      if (!withheld(queryName(name), pair.slice(equals + 1))) return pair;
 
       redacted = true;
       return `${name}=`;
@@ -536,6 +539,15 @@ export function redactUrl(url: string): { url: string; redacted: boolean } {
     url: `${stripped.slice(0, mark)}?${cleaned}${end < 0 ? '' : stripped.slice(end)}`,
     redacted
   };
+}
+
+/** A query name as a server reads it; the raw name if it does not decode. */
+function queryName(name: string): string {
+  try {
+    return decodeURIComponent(name.replaceAll('+', ' '));
+  } catch {
+    return name;
+  }
 }
 
 /** `collection.bru`'s `auth { mode: … }`, which `auth: inherit` resolves to. */
