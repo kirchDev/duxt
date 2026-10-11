@@ -1,5 +1,12 @@
 import { spawn } from 'node:child_process';
-import { mkdtemp, mkdir, copyFile, symlink, rm } from 'node:fs/promises';
+import {
+  mkdtemp,
+  mkdir,
+  copyFile,
+  symlink,
+  rm,
+  writeFile
+} from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -28,6 +35,15 @@ async function runCheck(mode: string) {
   await copyFile(
     resolve('tests/fixtures/seo-server.mjs'),
     join(root, '.output/server/index.mjs')
+  );
+  await copyFile(
+    resolve('scripts/static-seo.ts'),
+    join(root, 'scripts/static-seo.ts')
+  );
+  await mkdir(join(root, '.output/public'), { recursive: true });
+  await writeFile(
+    join(root, '.output/public/index.html'),
+    '<head><link rel="canonical" href="https://duxt.app"></head>'
   );
   const foreign =
     mode === 'occupied'

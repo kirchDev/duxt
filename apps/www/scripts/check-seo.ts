@@ -25,6 +25,8 @@
  */
 
 import { JSDOM } from 'jsdom';
+import { fileURLToPath } from 'node:url';
+import { checkStaticSeo } from './static-seo.ts';
 import { startBuiltServer } from './built-server.ts';
 
 const PORT = Number(process.env.SEO_CHECK_PORT ?? 3124);
@@ -63,6 +65,11 @@ async function main() {
       'SEO_CHECK_PORT must be 1..65535 and SEO_CHECK_TIMEOUT_MS must be 1..120000'
     );
   }
+  const artefacts = checkStaticSeo(
+    fileURLToPath(new URL('../.output/public', import.meta.url)),
+    'https://duxt.app'
+  );
+  if (artefacts.failures.length) throw new Error(artefacts.failures.join('\n'));
   const server = startBuiltServer({
     port: PORT,
     origin: ORIGIN,
