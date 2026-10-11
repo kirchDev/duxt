@@ -378,3 +378,48 @@ describe('the response type', () => {
     expect([...groups]).toEqual(['TypeScript']);
   });
 });
+
+/**
+ * Every string in a sample comes from a document this layer did not write, so
+ * a hostile one must stay a single literal in every language — never an
+ * expression in a snippet a reader copies and runs.
+ */
+describe('request samples keep document data as data', () => {
+  const hostile: DuxtOpenApiRequest = {
+    method: 'POST',
+    url: 'https://api.test/\'+(globalThis.pwned=1)+\'"+str(1)+"\\',
+    headers: { "X-'Key\\": 'a\'b"c\\' },
+    body: 'not json',
+    responseType: "Pet>('x');pwned(1);<X"
+  };
+
+  it('evaluates the fetch sample to the same url, not to an expression', async () => {
+    const sample = openApiFetch(hostile);
+    const seen: unknown[] = [];
+    const run = new Function('fetch', `return (async () => { ${sample} })();`);
+
+    await run((...args: unknown[]) => seen.push(args));
+
+    expect((globalThis as { pwned?: number }).pwned).toBeUndefined();
+    expect((seen[0] as unknown[])[0]).toBe(hostile.url);
+    expect(
+      (seen[0] as [string, { headers: Record<string, string> }])[1].headers
+    ).toEqual(hostile.headers);
+  });
+
+  it('writes the python, go and php literals with complete escaping', () => {
+    expect(openApiRequests(hostile)).toContain(JSON.stringify(hostile.url));
+    expect(openApiUrllib(hostile)).toContain(JSON.stringify(hostile.url));
+    expect(openApiGo(hostile)).toContain(
+      `http.NewRequest("POST", ${JSON.stringify(hostile.url)}, body)`
+    );
+    expect(openApiGuzzle(hostile)).toContain(
+      `'https://api.test/\\'+(globalThis.pwned=1)+\\'"+str(1)+"\\\\'`
+    );
+  });
+
+  it('drops a response type that is not an identifier', () => {
+    expect(openApiOfetch(hostile)).not.toContain('pwned(1)');
+    expect(openApiAxios(hostile)).toContain('await axios({');
+  });
+});
