@@ -1,6 +1,7 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import { once } from 'node:events';
 import {
+  cpSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -148,15 +149,20 @@ it('does not expire a live legacy Nuxt lock based on its age', async () => {
 
 it('keeps serving when a .env change restarts Nuxt dev', async () => {
   const port = await reservePort();
-  /**
-   * INSIDE `apps/www/`, by a bare name. nuxi watches only its own working
-   * directory and compares the changed file's NAME with `--dotenv`, so a file
-   * handed over as an absolute path elsewhere never restarts anything — which
-   * is what this test used to do, and why it passed without a restart ever
-   * happening. `.env.*` is ignored by git; the site's own `.env` is left alone.
-   */
-  const name = `.env.duxt-reload-test-${process.pid}`;
-  const env = join(project, name);
+  // Use a local Content fixture rather than resolving the development site's
+  // remote repositories, OG images and thousands of generated pages twice.
+  mkdirSync(join(project, '.data'), { recursive: true });
+  const fixtureProject = mkdtempSync(join(project, '.data/nuxt-reload-'));
+  cpSync(join(project, 'tests/fixtures/nuxt-reload'), fixtureProject, {
+    recursive: true
+  });
+  mkdirSync(join(fixtureProject, 'scripts'));
+  cpSync(
+    join(project, 'scripts/nuxt-process-guard.ts'),
+    join(fixtureProject, 'scripts/nuxt-process-guard.ts')
+  );
+  const name = '.env.restart';
+  const env = join(fixtureProject, name);
   writeFileSync(env, '');
   const probe = `http://reload-probe-${process.pid}.invalid`;
 
@@ -164,14 +170,13 @@ it('keeps serving when a .env change restarts Nuxt dev', async () => {
     process.execPath,
     [nuxt, 'dev', '--port', String(port), '--dotenv', name],
     {
-      cwd: project,
+      cwd: fixtureProject,
       detached: true,
       env: {
         ...process.env,
         NODE_ENV: 'development',
         TEST: undefined,
-        NUXT_PUBLIC_I18N_BASE_URL: undefined,
-        NUXT_SITE_URL: undefined
+        NUXT_PUBLIC_RELOAD_PROBE: undefined
       },
       stdio: ['ignore', 'pipe', 'pipe']
     }
@@ -201,28 +206,24 @@ it('keeps serving when a .env change restarts Nuxt dev', async () => {
   };
 
   try {
-    // A cold start of the whole site is well over a minute on a loaded
-    // machine; 90 seconds failed on exactly that and nothing else.
+    // A real page, including its Content database, must survive the reload.
     await expect
-      .poll(page, { timeout: 240_000, interval: 1000 })
-      .toContain('<h1');
+      .poll(page, { timeout: 90_000, interval: 1000 })
+      .toContain('Ownership restart fixture');
     expect(await page()).not.toContain(probe);
 
     // THE RESTART, PROVEN BY WHAT IT SERVES. The origin comes from the
     // environment at request time, so the probe reaches the canonical and the
     // alternates only once a restarted Nuxt has read the changed file — and
     // only if the ownership guard let that restarted instance start at all.
-    writeFileSync(
-      env,
-      `NUXT_PUBLIC_I18N_BASE_URL=${probe}\nNUXT_SITE_URL=${probe}\n`
-    );
+    writeFileSync(env, `NUXT_PUBLIC_RELOAD_PROBE=${probe}\n`);
 
     await expect
-      .poll(page, { timeout: 240_000, interval: 1000 })
+      .poll(page, { timeout: 90_000, interval: 1000 })
       .toContain(probe);
     expect(output).not.toContain('Stop that process before retrying');
   } finally {
     await stopProcessGroup(server);
-    rmSync(env, { force: true });
+    rmSync(fixtureProject, { recursive: true, force: true });
   }
-}, 540_000);
+}, 210_000);
