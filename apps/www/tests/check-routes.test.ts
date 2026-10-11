@@ -168,6 +168,19 @@ test('an exempted handler is not reported', () => {
   ).toEqual([]);
 });
 
+test('the sitemap wildcard root is exempt without hiding new sitemap handlers', () => {
+  expect(
+    verifyHandlerCoverage([...registeredHandlers(), '/__sitemap__'])
+  ).toEqual([]);
+  expect(
+    verifyHandlerCoverage([
+      ...registeredHandlers(),
+      '/__sitemap__',
+      '/__sitemap__/new-endpoint'
+    ]).join('\n')
+  ).toContain('/__sitemap__/new-endpoint');
+});
+
 test('every exemption says why the route is not the site’s to classify', () => {
   for (const entry of EXEMPT_HANDLERS) {
     // `''` is the middleware group and the one pattern that is not a path.

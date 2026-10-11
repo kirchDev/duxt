@@ -350,7 +350,12 @@ export default defineNuxtConfig({
    */
   routeRules: {
     ...movedDemoRoutes,
-    ...(cloudflare ? { '/**': { prerender: true } } : {})
+    ...(cloudflare
+      ? {
+          '/**': { prerender: true },
+          '/__sitemap__/style.xsl': { prerender: false }
+        }
+      : {})
   },
 
   /**
@@ -359,7 +364,11 @@ export default defineNuxtConfig({
    * dumps it always writes and not one page, which looks like a working build
    * and is a fully dynamic site.
    *
-   * So the crawler is turned on and pointed at `/`. What it reaches is every
+   * So the crawler is turned on and pointed at `/`. The sitemap root is also
+   * named: Sitemap decides whether to generate its XML from these starting
+   * routes before the crawl, and an XML link cannot start that generation.
+   * The stylesheet stays dynamic because it reads the request's Referer.
+   * What the crawler reaches is every
    * page in the sidebar — and ONLY pages. Nitro follows a discovered link only
    * when its extension is `""` or `.json`, so the `.md` twin beside each page,
    * the `llms.txt` the landing page's tabs and every page's head link, and the
@@ -376,7 +385,7 @@ export default defineNuxtConfig({
         ? {
             prerender: {
               crawlLinks: true,
-              routes: ['/'],
+              routes: ['/', '/sitemap.xml'],
 
               /*
                * A BROKEN LINK COSTS ONE PAGE, NOT THE DEPLOY.
