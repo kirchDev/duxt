@@ -58,6 +58,9 @@
     },
     "check:seo": {
       "cache": false
+    },
+    "check:interactive": {
+      "cache": false
     }
   }
 }

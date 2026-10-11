@@ -21,7 +21,8 @@
     "preview:cf": "pnpm run build:cf && wrangler dev",
     "test": "vitest run",
     "typecheck": "nuxt typecheck",
-    "check:seo:static": "node scripts/check-static-seo.ts"
+    "check:seo:static": "node scripts/check-static-seo.ts",
+    "check:interactive": "node scripts/check-interactive.ts"
   },
   "dependencies": {
     "@iconify-json/vscode-icons": "^1.2.86",
