@@ -175,6 +175,10 @@ jobs:
     name: Publish ${{ matrix.package.tag }}
     needs: [plan, pack-release]
     runs-on: ubuntu-latest
+    # Deployable from `main` only (kirchDev/infrastructure), and the environment
+    # npm's Trusted Publisher is bound to — so a branch copy of this job is
+    # refused by GitHub, and its OIDC token by npm.
+    environment: npm
     permissions:
       contents: read
       # npm Trusted Publishing (OIDC) and the provenance attestation. No
@@ -263,6 +267,7 @@ jobs:
     name: Publish ${{ matrix.package.name }} prerelease
     needs: [plan, pack-prerelease]
     runs-on: ubuntu-latest
+    environment: npm
     permissions:
       contents: read
       id-token: write
