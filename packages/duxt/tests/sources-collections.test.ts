@@ -227,3 +227,50 @@ it('keeps local generated sections versioned by their files', async () => {
     rmSync(folder, { recursive: true, force: true });
   }
 });
+
+/**
+ * Content follows symlinks when it globs a downloaded repository, so a page
+ * committed as a link out of the checkout would be read off the build machine
+ * and published. Such a key is dropped; a link that stays inside is a page.
+ */
+it('drops a downloaded page that links out of its checkout', async () => {
+  const { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } =
+    await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+
+  const base = mkdtempSync(join(tmpdir(), 'duxt-remote-keys-'));
+  const checkout = join(base, 'checkout');
+  try {
+    mkdirSync(join(checkout, 'docs'), { recursive: true });
+    writeFileSync(join(base, 'secret.txt'), 'NOT_FOR_PUBLICATION');
+    writeFileSync(join(checkout, 'docs', 'index.md'), '# Index');
+    symlinkSync(join(base, 'secret.txt'), join(checkout, 'docs', 'env.md'));
+    symlinkSync(
+      join(checkout, 'docs', 'index.md'),
+      join(checkout, 'docs', 'alias.md')
+    );
+
+    const collections = duxtSources([
+      { repo: 'o/r', path: 'docs', refs: [{ branch: 'main' }] }
+    ]) as Record<
+      string,
+      {
+        source?: {
+          repository?: unknown;
+          cwd: string;
+          getKeys?: () => Promise<string[]>;
+        }[];
+      }
+    >;
+
+    const source = Object.values(collections)
+      .flatMap((collection) => collection.source ?? [])
+      .find((entry) => entry.repository && entry.getKeys)!;
+    source.cwd = checkout;
+
+    expect((await source.getKeys!()).sort()).toEqual(['alias.md', 'index.md']);
+  } finally {
+    rmSync(base, { recursive: true, force: true });
+  }
+});

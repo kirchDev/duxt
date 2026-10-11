@@ -68,11 +68,16 @@ export function sectionArtefactExists(
   return kind === 'directory' ? stats.isDirectory() : stats.isFile();
 }
 
-/** Throws when `absolute`, symlinks resolved, lies outside `checkout`. */
-function assertInsideCheckout(absolute: string, checkout: string): void {
+/** Whether `absolute`, symlinks resolved, lies inside `checkout`. */
+export function resolvesInside(absolute: string, checkout: string): boolean {
   const rel = relative(realpathSync(checkout), realpathSync(absolute));
 
-  if (rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel)) {
+  return !(rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel));
+}
+
+/** Throws when `absolute`, symlinks resolved, lies outside `checkout`. */
+function assertInsideCheckout(absolute: string, checkout: string): void {
+  if (!resolvesInside(absolute, checkout)) {
     throw new Error(
       `duxt: "${absolute}" resolves outside its checkout (${checkout}). ` +
         'A generated section reads only files inside the repository it is ' +

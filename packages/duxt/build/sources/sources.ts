@@ -13,6 +13,7 @@ import { resolveLatestRefs } from './sources-git';
 // Re-exported under the name it has always had here: it moved out so a Nuxt
 // module could reach it without this file's imports coming with it.
 import { repositoryRoot } from './repository-root';
+import { resolvesInside } from '../sections/section-input';
 export { repositoryRoot };
 export type {
   DuxtResolvedSource,
@@ -285,7 +286,7 @@ export function duxtSources(
         (other) => `${other.effective.path.slice(effective.path.length + 1)}/**`
       );
 
-    collections[entry.collection] = defineCollection({
+    const collection = defineCollection({
       type: 'page',
       schema: pageSchema,
       source: effective.repo
@@ -311,6 +312,10 @@ export function duxtSources(
             prefix: entry.prefix
           }
     });
+
+    containedKeys(collection);
+
+    collections[entry.collection] = collection;
   });
 
   // One partials collection per LANGUAGE, named the way the page collections
@@ -320,6 +325,40 @@ export function duxtSources(
   }
 
   return collections;
+}
+
+/**
+ * Keep a downloaded repository's keys to files that are inside its checkout.
+ *
+ * Content globs a repository source with symlinks followed and reads every key
+ * it finds, so a repository that commits `docs/env.md` as a link to
+ * `/proc/self/environ` would have the build read that file and publish it as a
+ * page. A repository controls the bytes of its own checkout, not the machine
+ * that downloads it: a key that resolves outside the checkout is dropped. A
+ * link to another file inside the checkout is still a page. Local sources are
+ * left alone — their paths are the operator's own.
+ *
+ * A key is resolved the way Content's `getItem` resolves it: against the part
+ * of the include before its first `*`.
+ */
+function containedKeys(collection: ReturnType<typeof defineCollection>) {
+  for (const source of collection.source ?? []) {
+    if (!source.repository) continue;
+
+    const keys = source.getKeys!;
+    const base = source.include.includes('*')
+      ? source.include.split('*')[0]!
+      : '';
+
+    source.getKeys = async () =>
+      (await keys()).filter((key) => {
+        try {
+          return resolvesInside(join(source.cwd, base, key), source.cwd);
+        } catch {
+          return false;
+        }
+      });
+  }
 }
 
 /** One folder list per language: where that language's `_partials/` live. */
@@ -392,9 +431,13 @@ function definePartials(
   // `select('rawbody')` in the layer stops compiling. The cost is that partials
   // carry a `sitemap` field too, which is why `/_partials/**` is excluded in
   // `nuxt.config.ts`.
-  return defineCollection({
+  const collection = defineCollection({
     type: 'page',
     source: entries,
     schema: pageSchema
   });
+
+  containedKeys(collection);
+
+  return collection;
 }
