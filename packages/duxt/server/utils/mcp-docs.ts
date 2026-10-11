@@ -412,7 +412,8 @@ export async function duxtScopedPage(
   setup: DuxtLocaleSetup,
   limit: number = DUXT_PAGE_SIZE,
   cursor?: string,
-  term?: string
+  term?: string,
+  signal?: AbortSignal
 ): Promise<DuxtCursorPage<DuxtScopedPage>> {
   const found = new Map<string, DuxtResolvedSource>();
   for (const group of scope.groups) {
@@ -442,6 +443,9 @@ export async function duxtScopedPage(
     offset < candidates.length && matches.length <= size;
     offset += batchSize
   ) {
+    // A miss reads the whole scope, which is the price of exact matching; a
+    // client that has given up on the answer should not keep paying it.
+    signal?.throwIfAborted();
     const batch = candidates.slice(offset, offset + batchSize);
     const rows = new Map<string, DuxtScopedPage>();
     for (const source of new Set(batch.map((page) => page.source))) {

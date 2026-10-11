@@ -428,6 +428,26 @@ describe('search_docs', () => {
     expect(found.text.toLowerCase()).toContain('nothing');
   });
 
+  it('stops reading once the client has cancelled the search', async () => {
+    // A miss reads every body in scope; a cancelled request must not.
+    const cancelled = new AbortController();
+    cancelled.abort();
+    const definition = await tool('search-docs');
+
+    await expect(
+      definition.handler(
+        ...([
+          { query: 'nothing here at all' },
+          { signal: cancelled.signal, requestId: 2 }
+        ] as never[])
+      )
+    ).rejects.toThrow();
+    // The path listings are read; no page body is.
+    expect(
+      database.reads.filter((read) => read.fields.includes('rawbody'))
+    ).toEqual([]);
+  });
+
   /**
    * `search: false` makes a page UN-FINDABLE, not unpublished — decided, and
    * the reason the filter sits in this tool rather than in `duxtScopedPages`

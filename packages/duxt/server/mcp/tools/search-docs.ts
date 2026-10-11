@@ -58,7 +58,7 @@ export default defineMcpTool({
       .describe('`nextCursor` from a previous call, to continue the results')
   },
 
-  async handler({ query, prefix, limit, cursor }) {
+  async handler({ query, prefix, limit, cursor }, extra) {
     if (cursor && !duxtValidCursor(cursor)) return duxtBadCursor(cursor);
 
     const event = duxtMcpEvent();
@@ -72,7 +72,8 @@ export default defineMcpTool({
       setup,
       limit,
       cursor,
-      query.toLowerCase()
+      query.toLowerCase(),
+      extra.signal
     );
 
     if (!items.length)
