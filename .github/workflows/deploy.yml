@@ -84,7 +84,7 @@ jobs:
       committed-at: ${{ steps.source.outputs.committed-at }}
       sha: ${{ steps.source.outputs.sha }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           # WHAT PRODUCTION IS, RATHER THAN WHAT STARTED THE RUN. A push builds
           # its own commit; everything else builds `main` as it stands now.
@@ -102,7 +102,7 @@ jobs:
 
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: pnpm
@@ -300,13 +300,13 @@ jobs:
       # wrangler, `apps/www/wrangler.jsonc` and the workspace it resolves from. The
       # site itself is not rebuilt here; it arrives as the artefact below, so
       # this checkout follows the build's ref rather than the trigger's.
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.event_name == 'push' && github.sha || 'main' }}
 
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: pnpm
