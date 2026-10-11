@@ -80,6 +80,26 @@ const isObject = (value: unknown): value is Node =>
 const str = (value: unknown): string | undefined =>
   typeof value === 'string' ? value : undefined;
 
+/**
+ * A URL the document hands a reader to click, or nothing.
+ *
+ * `http`, `https`, `mailto` or relative, and NOTHING ELSE: these land in an
+ * `href` on the site's own origin, and `javascript:` in a contact or licence URL
+ * is a script this layer would be running for whoever wrote the document. MDC
+ * checks a component's `href` prop, but these arrive nested inside objects it
+ * never looks into. The scheme is read the way a browser reads it — with tabs,
+ * newlines and control characters removed — or `java\tscript:` walks past.
+ */
+const link = (value: unknown): string | undefined => {
+  const url = str(value);
+  if (!url) return undefined;
+
+  const compact = [...url].filter((char) => char > ' ').join('');
+  const scheme = /^([a-z][a-z0-9+.-]*):/i.exec(compact);
+
+  return !scheme || /^(?:https?|mailto)$/i.test(scheme[1]!) ? url : undefined;
+};
+
 const num = (value: unknown): number | undefined =>
   typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 
@@ -205,7 +225,7 @@ function read(document: Node, dialect: '3.0' | '3.1'): DuxtOpenApiSpec {
   /** The externalDocs object, wherever one may appear. */
   const externalDocs = (node: unknown): DuxtOpenApiExternalDocs | undefined => {
     if (!isObject(node)) return undefined;
-    const url = str(node.url);
+    const url = link(node.url);
     return url ? { url, description: str(node.description) } : undefined;
   };
 
@@ -731,11 +751,11 @@ function read(document: Node, dialect: '3.0' | '3.1'): DuxtOpenApiSpec {
       version: str(info.version) ?? '',
       summary: str(info.summary),
       description: str(info.description),
-      termsOfService: str(info.termsOfService),
+      termsOfService: link(info.termsOfService),
       contact: isObject(info.contact)
         ? {
             name: str(info.contact.name),
-            url: str(info.contact.url),
+            url: link(info.contact.url),
             email: str(info.contact.email)
           }
         : undefined,
@@ -743,7 +763,7 @@ function read(document: Node, dialect: '3.0' | '3.1'): DuxtOpenApiSpec {
         ? {
             name: str(info.license.name) ?? '',
             identifier: str(info.license.identifier),
-            url: str(info.license.url)
+            url: link(info.license.url)
           }
         : undefined
     },

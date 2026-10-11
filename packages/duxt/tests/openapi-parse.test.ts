@@ -579,3 +579,54 @@ paths:
     });
   });
 });
+
+/**
+ * Metadata URLs end up in an `href` on the site's own origin, nested inside
+ * props MDC never inspects — so only a scheme a reader can safely follow
+ * survives the parse.
+ */
+describe('parseOpenApiDocument link schemes', () => {
+  const document = (url: string) =>
+    parseOpenApiDocument(
+      JSON.stringify({
+        openapi: '3.1.0',
+        info: {
+          title: 'Pets',
+          version: '1',
+          termsOfService: url,
+          contact: { url },
+          license: { name: 'MIT', url }
+        },
+        externalDocs: { url },
+        paths: {}
+      })
+    );
+
+  it.each([
+    'javascript:alert(1)',
+    'JavaScript:alert(1)',
+    'java\tscript:alert(1)',
+    ' \u0001javascript:alert(1)',
+    'data:text/html,<script>alert(1)</script>',
+    'vbscript:msgbox(1)'
+  ])('drops %j', (url) => {
+    const parsed = document(url);
+
+    expect(parsed.info.termsOfService).toBeUndefined();
+    expect(parsed.info.contact?.url).toBeUndefined();
+    expect(parsed.info.license?.url).toBeUndefined();
+    expect(parsed.externalDocs).toBeUndefined();
+  });
+
+  it.each([
+    'https://example.com/terms',
+    'http://x.test',
+    'mailto:a@b.test',
+    '/terms'
+  ])('keeps %j', (url) => {
+    const parsed = document(url);
+
+    expect(parsed.info.termsOfService).toBe(url);
+    expect(parsed.externalDocs?.url).toBe(url);
+  });
+});
