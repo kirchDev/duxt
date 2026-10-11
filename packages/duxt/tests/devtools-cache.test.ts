@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { cacheEntryToDrop } from '../server/devtools/entry-path';
+import {
+  cacheEntryToDrop,
+  sameOriginMutation
+} from '../server/devtools/entry-path';
 
 /**
  * The one destructive thing the devtools tab can do, and the only part of it
@@ -36,5 +39,40 @@ describe('cacheEntryToDrop', () => {
     expect(cacheEntryToDrop(dataDir, '.')).toBeUndefined();
     expect(cacheEntryToDrop(dataDir, undefined)).toBeUndefined();
     expect(cacheEntryToDrop(dataDir, 42)).toBeUndefined();
+  });
+});
+
+/**
+ * Any page the developer has open can POST a form at the local dev server, so
+ * deleting a cache entry needs proof the request came from the tab itself.
+ */
+describe('sameOriginMutation', () => {
+  const selfOrigin = 'http://localhost:3000';
+
+  it('accepts the tab posting to itself', () => {
+    expect(
+      sameOriginMutation({ secFetchSite: 'same-origin', selfOrigin })
+    ).toBe(true);
+  });
+
+  it.each(['cross-site', 'same-site', 'none'])(
+    'refuses Sec-Fetch-Site %s',
+    (secFetchSite) => {
+      expect(
+        sameOriginMutation({ secFetchSite, origin: selfOrigin, selfOrigin })
+      ).toBe(false);
+    }
+  );
+
+  it('falls back to Origin where Sec-Fetch-Site is absent', () => {
+    expect(sameOriginMutation({ origin: selfOrigin, selfOrigin })).toBe(true);
+    expect(
+      sameOriginMutation({ origin: 'https://evil.test', selfOrigin })
+    ).toBe(false);
+    expect(sameOriginMutation({ origin: 'null', selfOrigin })).toBe(false);
+  });
+
+  it('lets a non-browser client through, which no other site can drive', () => {
+    expect(sameOriginMutation({ selfOrigin })).toBe(true);
   });
 });

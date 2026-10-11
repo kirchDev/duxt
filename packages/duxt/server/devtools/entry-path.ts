@@ -28,3 +28,26 @@ export function cacheEntryToDrop(
 
   return target;
 }
+
+/**
+ * Whether a mutation came from the tab itself rather than from another site.
+ *
+ * The dev server listens on localhost, and any page the developer has open can
+ * POST a form at it — no cookie is needed when the authority is simply being
+ * able to reach the listener. So the request has to prove it came from this
+ * origin: `Sec-Fetch-Site`, which a browser sets and a page cannot, must say
+ * `same-origin`; a browser too old to send it still sends `Origin` on a
+ * cross-origin POST, which must then match the server's own. A request with
+ * neither did not come from a browser, and a cross-site request is one only a
+ * browser can be tricked into sending.
+ */
+export function sameOriginMutation(headers: {
+  secFetchSite?: string;
+  origin?: string;
+  selfOrigin: string;
+}): boolean {
+  if (headers.secFetchSite) return headers.secFetchSite === 'same-origin';
+  if (headers.origin) return headers.origin === headers.selfOrigin;
+
+  return true;
+}
