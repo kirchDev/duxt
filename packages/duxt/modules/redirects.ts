@@ -130,7 +130,7 @@ export function redirectRules(
 
   for (const page of pages) {
     for (const from of page.redirectFrom) {
-      if (!from.startsWith('/')) continue;
+      if (!isLiteralPath(from)) continue;
 
       const source = isInsidePrefix(from, page.prefix)
         ? from
@@ -149,6 +149,32 @@ export function redirectRules(
   }
 
   return rules;
+}
+
+/**
+ * A former URL written out in full: one path, not a pattern.
+ *
+ * Route rules are matched by pattern, so `/**` or `/:slug` in a page's
+ * frontmatter would be a rule over every URL it matches — the whole site, the
+ * MCP endpoint and `llms.txt` included — written by whoever may edit a page.
+ * A page owns the URLs it used to live at, so only a literal path is one: no
+ * wildcard or parameter segment, no `.`/`..` segment, no empty segment, no
+ * backslash.
+ */
+export function isLiteralPath(path: string): boolean {
+  if (!path.startsWith('/') || path.includes('\\')) return false;
+
+  return path
+    .slice(1)
+    .split('/')
+    .every(
+      (segment, index, all) =>
+        (segment !== '' || index === all.length - 1) &&
+        segment !== '.' &&
+        segment !== '..' &&
+        !segment.includes('*') &&
+        !segment.startsWith(':')
+    );
 }
 
 const isInsidePrefix = (path: string, prefix: string) =>
