@@ -4,7 +4,11 @@ import { context } from './context';
 import { page, PANELS } from './shell';
 import { pathsPanel, sourcesPanel, versionsPanel } from './sources';
 import { checksPanel, pagesPanel, searchPanel } from './content';
-import { cacheEntryToDrop, sameOriginMutation } from './entry-path';
+import {
+  cacheEntryToDrop,
+  isListedCacheEntry,
+  sameOriginMutation
+} from './entry-path';
 import { cachePanel, configPanel, i18nPanel, redirectsPanel } from './system';
 
 /**
@@ -58,7 +62,7 @@ export default defineEventHandler(async (event) => {
     const body = (await readBody(event)) as { drop?: string } | undefined;
     const target = cacheEntryToDrop(context.dataDir, body?.drop);
 
-    if (!target) {
+    if (!target || !isListedCacheEntry(target)) {
       return html(
         page(
           slug,

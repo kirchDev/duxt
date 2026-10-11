@@ -1,9 +1,10 @@
-import { join, resolve } from 'node:path';
+import { lstatSync } from 'node:fs';
+import { isAbsolute, join, resolve } from 'node:path';
 
 /**
  * Resolve a cache entry the tab may delete, or refuse.
  *
- * Its own file, importing nothing but `node:path`, for the same reason
+ * Its own file, importing nothing but `node:path` and `node:fs`, for the same reason
  * `validate-report.ts` is its own file: everything else under `devtools/`
  * reaches the virtual module the build generates, and a guard that cannot be
  * tested without booting Nitro is a guard nobody re-checks. This is the one
@@ -19,7 +20,13 @@ export function cacheEntryToDrop(
   dataDir: string,
   name: unknown
 ): string | undefined {
-  if (typeof name !== 'string' || !name || name === '.' || name === '..') {
+  if (
+    typeof name !== 'string' ||
+    !name ||
+    name === '.' ||
+    name === '..' ||
+    isAbsolute(name)
+  ) {
     return undefined;
   }
 
@@ -27,6 +34,21 @@ export function cacheEntryToDrop(
   if (resolve(join(target, '..')) !== resolve(dataDir)) return undefined;
 
   return target;
+}
+
+/**
+ * Whether `target` is one of the entries the panel lists: a real directory.
+ *
+ * The panel offers downloaded repositories, which are directories. Content's
+ * parse cache sits beside them as a file and is not offered, and a symlink is
+ * neither — so neither may be dropped by naming it.
+ */
+export function isListedCacheEntry(target: string): boolean {
+  try {
+    return lstatSync(target).isDirectory();
+  } catch {
+    return false;
+  }
 }
 
 /**

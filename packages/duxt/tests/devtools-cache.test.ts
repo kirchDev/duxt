@@ -1,6 +1,16 @@
-import { describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
+import {
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import {
   cacheEntryToDrop,
+  isListedCacheEntry,
   sameOriginMutation
 } from '../server/devtools/entry-path';
 
@@ -28,6 +38,8 @@ describe('cacheEntryToDrop', () => {
   it('refuses an absolute path, whatever it points at', () => {
     expect(cacheEntryToDrop(dataDir, '/etc')).toBeUndefined();
     expect(cacheEntryToDrop(dataDir, '/site/.data/content')).toBeUndefined();
+    // Even one that would resolve to a direct child: the field carries a name.
+    expect(cacheEntryToDrop(dataDir, '/site/.data/content/x')).toBeUndefined();
   });
 
   it('refuses a nested entry, which Content never creates at the top level', () => {
@@ -74,5 +86,25 @@ describe('sameOriginMutation', () => {
 
   it('lets a non-browser client through, which no other site can drive', () => {
     expect(sameOriginMutation({ selfOrigin })).toBe(true);
+  });
+});
+
+/** Only what the panel lists — a downloaded repository's directory — may go. */
+describe('isListedCacheEntry', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'duxt-devtools-cache-'));
+  mkdirSync(join(dir, 'github.com-o-r-main'));
+  writeFileSync(join(dir, 'contents.sqlite'), '');
+  symlinkSync(join(dir, 'github.com-o-r-main'), join(dir, 'link'));
+
+  afterAll(() => rmSync(dir, { recursive: true, force: true }));
+
+  it('accepts a directory', () => {
+    expect(isListedCacheEntry(join(dir, 'github.com-o-r-main'))).toBe(true);
+  });
+
+  it('refuses the parse cache, a symlink and a missing name', () => {
+    expect(isListedCacheEntry(join(dir, 'contents.sqlite'))).toBe(false);
+    expect(isListedCacheEntry(join(dir, 'link'))).toBe(false);
+    expect(isListedCacheEntry(join(dir, 'nope'))).toBe(false);
   });
 });
