@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
-import { chromium } from 'playwright-core';
+import { chromium, type Browser } from 'playwright-core';
 import { browserPath, missingBrowser, hydrated } from './browser.ts';
 import { startBuiltServer } from './built-server.ts';
 
@@ -8,11 +8,7 @@ const executablePath = browserPath();
 if (!executablePath) throw new Error(missingBrowser('check:interactive'));
 const origin = 'http://127.0.0.1:3137';
 const server = startBuiltServer({ port: 3137, origin });
-const browser = await chromium.launch({
-  executablePath,
-  args: ['--no-sandbox']
-});
-const page = await browser.newPage();
+let browser: Browser | undefined;
 let mode: 'large' | 'stall' = 'large';
 let disconnected = 0;
 let requests = 0;
@@ -35,11 +31,16 @@ const api = createServer((request, response) => {
   response.write('{"pending":');
   response.once('close', () => disconnected++);
 });
-await new Promise<void>((resolve) => api.listen(0, '127.0.0.1', resolve));
-const address = api.address();
-assert.ok(address && typeof address !== 'string');
-const apiOrigin = `http://127.0.0.1:${address.port}`;
 try {
+  browser = await chromium.launch({ executablePath, args: ['--no-sandbox'] });
+  const page = await browser.newPage();
+  await new Promise<void>((resolve, reject) => {
+    api.once('error', reject);
+    api.listen(0, '127.0.0.1', resolve);
+  });
+  const address = api.address();
+  assert.ok(address && typeof address !== 'string');
+  const apiOrigin = `http://127.0.0.1:${address.port}`;
   await server.ready();
   await page.goto(`${origin}/demo/diagrams`);
   await hydrated(page);
@@ -141,8 +142,11 @@ try {
     console.error(server.stderr().trim().slice(-4000));
   throw error;
 } finally {
-  await browser.close();
-  await server.stop();
-  api.closeAllConnections();
-  await new Promise<void>((resolve) => api.close(() => resolve()));
+  try {
+    await browser?.close();
+  } finally {
+    await server.stop();
+    api.closeAllConnections();
+    await new Promise<void>((resolve) => api.close(() => resolve()));
+  }
 }
