@@ -379,56 +379,111 @@ export interface DuxtScopedPage {
   source: DuxtResolvedSource;
 }
 
-/**
- * Every page in a scope, translations resolved.
- *
- * One pass per collection rather than one query per page: the chain is short
- * and the first collection holding a path wins, which is the same fallback the
- * rendered page takes. `rawbody` is only asked for when the caller needs it —
- * a table of contents that loads every body is the cost `llms.txt` already had
- * to have taken out of it.
- */
-export async function duxtScopedPages(
+// Production collections are immutable for the lifetime of a deployment.
+// Cache paths alone: retaining raw bodies here would turn every Worker into a
+// second database. Dev bypasses the cache so authored changes appear at once.
+const collectionPaths = new Map<string, Promise<string[]>>();
+async function paths(event: H3Event, collection: string): Promise<string[]> {
+  const load = async () => {
+    const rows = await queryCollection(
+      event,
+      collection as Parameters<typeof queryCollection>[1]
+    )
+      .select('path')
+      .all();
+    return rows.flatMap((row) =>
+      typeof row.path === 'string' ? [row.path] : []
+    );
+  };
+  if (import.meta.dev) return load();
+  let cached = collectionPaths.get(collection);
+  if (!cached) {
+    cached = load();
+    collectionPaths.set(collection, cached);
+    cached.catch(() => collectionPaths.delete(collection));
+  }
+  return cached;
+}
+
+/** Bounded payload reads, retaining locale precedence and Unicode matching. */
+export async function duxtScopedPage(
   event: H3Event,
   scope: DuxtScope,
   setup: DuxtLocaleSetup,
-  withBody = false
-): Promise<DuxtScopedPage[]> {
-  const fields = withBody
-    ? (['path', 'title', 'description', 'rawbody', 'search'] as const)
-    : (['path', 'title', 'description', 'search'] as const);
-  const found = new Map<string, DuxtScopedPage>();
-
+  limit: number = DUXT_PAGE_SIZE,
+  cursor?: string,
+  term?: string
+): Promise<DuxtCursorPage<DuxtScopedPage>> {
+  const found = new Map<string, DuxtResolvedSource>();
   for (const group of scope.groups) {
     for (const source of group.sources) {
-      const pages = (await queryCollection(
-        event,
-        source.collection as Parameters<typeof queryCollection>[1]
-      )
-        .select(...fields)
-        .all()) as unknown as {
-        path?: string;
-        title?: string;
-        description?: string;
-        rawbody?: string;
-        search?: boolean;
-      }[];
-
-      for (const page of pages) {
-        const documentPath = page.path;
-        if (!documentPath || found.has(documentPath)) continue;
-
-        found.set(documentPath, {
-          ...page,
-          documentPath,
-          path: duxtPublicPath(documentPath, scope.locale, setup),
-          source
-        });
+      for (const path of await paths(event, source.collection)) {
+        if (!found.has(path)) found.set(path, source);
       }
     }
   }
-
-  return [...found.values()].sort((a, b) => a.path.localeCompare(b.path));
+  const candidates = [...found]
+    .map(([documentPath, source]) => ({
+      documentPath,
+      source,
+      path: duxtPublicPath(documentPath, scope.locale, setup)
+    }))
+    .sort((a, b) => a.path.localeCompare(b.path))
+    .filter((page) => !cursor || page.path.localeCompare(cursor) > 0);
+  const size = Math.max(1, Math.min(DUXT_PAGE_MAX, limit));
+  const matches: DuxtScopedPage[] = [];
+  const batchSize = term === undefined ? size + 1 : 64;
+  const fields =
+    term === undefined
+      ? (['path', 'title', 'description', 'search'] as const)
+      : (['path', 'title', 'description', 'rawbody', 'search'] as const);
+  for (
+    let offset = 0;
+    offset < candidates.length && matches.length <= size;
+    offset += batchSize
+  ) {
+    const batch = candidates.slice(offset, offset + batchSize);
+    const rows = new Map<string, DuxtScopedPage>();
+    for (const source of new Set(batch.map((page) => page.source))) {
+      const wanted = batch.filter((page) => page.source === source);
+      const pages = await queryCollection(
+        event,
+        source.collection as Parameters<typeof queryCollection>[1]
+      )
+        .where(
+          'path',
+          'IN',
+          wanted.map((page) => page.documentPath)
+        )
+        .select(...fields)
+        .limit(wanted.length)
+        .all();
+      for (const page of pages) {
+        if (typeof page.path !== 'string') continue;
+        rows.set(page.path, {
+          ...page,
+          documentPath: page.path,
+          path: duxtPublicPath(page.path, scope.locale, setup),
+          source
+        } as DuxtScopedPage);
+      }
+    }
+    for (const candidate of batch) {
+      const page = rows.get(candidate.documentPath);
+      if (!page) continue;
+      if (
+        term !== undefined &&
+        (page.search === false ||
+          ![page.title, page.description, page.rawbody].some((value) =>
+            value?.toLowerCase().includes(term)
+          ))
+      )
+        continue;
+      matches.push(page);
+      if (matches.length > size) break;
+    }
+  }
+  return duxtCursorPage(matches, size);
 }
 
 /** How many results a listing returns when the caller does not say. */
