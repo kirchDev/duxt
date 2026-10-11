@@ -152,7 +152,7 @@ function remoteCollection(entry: DuxtResolvedSource, type: DuxtSectionType) {
 
     // The artefact is read from the download; the HISTORY, where the download
     // is this repository, from the checkout that has all of it.
-    pages = sectionArtefactExists(file, kind)
+    pages = sectionArtefactExists(file, kind, source.cwd)
       ? sectionPages(
           entry,
           type,
