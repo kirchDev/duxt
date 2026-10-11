@@ -384,20 +384,26 @@ async function closed(page: Page): Promise<boolean> {
   }
 }
 
-/** Open the dialog: the shortcut first, the header's own trigger as the fallback. */
+/**
+ * Open the dialog: the shortcut first, the header's own trigger as the fallback.
+ *
+ * ONE keystroke, not one per modifier. The binding accepts `metaKey || ctrlKey`
+ * as the same chord and toggles, so a second chord pressed while a slow runner
+ * is still mounting the dialog closes it again. The trigger is the VISIBLE one:
+ * the header draws a second search button for narrow viewports, hidden here.
+ */
 async function open(page: Page) {
-  for (const combination of ['Control+k', 'Meta+k']) {
-    await page.keyboard.press(combination);
-    await page
-      .locator('[role="dialog"]')
-      .waitFor({ state: 'visible', timeout: 1500 })
-      .catch(() => {});
-
-    if (await page.locator('[role="dialog"]').count()) break;
-  }
+  await page.keyboard.press('ControlOrMeta+k');
+  await page
+    .locator('[role="dialog"]')
+    .waitFor({ state: 'visible', timeout: 5000 })
+    .catch(() => {});
 
   if (!(await page.locator('[role="dialog"]').count())) {
-    const trigger = page.locator('header button:has(kbd)').first();
+    const trigger = page
+      .locator('header button:has(kbd)')
+      .filter({ visible: true })
+      .first();
 
     if (await trigger.count()) {
       await trigger.click();
