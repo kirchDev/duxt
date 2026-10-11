@@ -1,8 +1,6 @@
-import { queryCollection } from '@nuxt/content/nitro';
 import { defineEventHandler, setHeader } from 'h3';
-import { splitLocalePath } from '../../app/utils/locale-path';
-import { sourcesForRoute } from '../../build/sources/sources-resolve';
-import { duxtDefaults, mergeDuxtConfig } from '../../app/utils/duxt-config';
+import { duxtDocPage } from '../utils/doc-page';
+import { duxtLocaleSetup, duxtSources } from '../utils/mcp-docs';
 import { stripFrontmatter } from '../../build/content/frontmatter';
 
 /**
@@ -21,45 +19,13 @@ export default defineEventHandler(async (event) => {
   const path = event.path?.split('?')[0];
   if (!path?.endsWith('.md')) return;
 
-  const appConfig = useAppConfig() as { duxt?: Partial<DuxtConfig> };
-  const duxt = mergeDuxtConfig(appConfig.duxt, duxtDefaults);
-
-  const i18n = (
-    useRuntimeConfig(event).public as {
-      i18n?: {
-        locales?: ({ code: string } | string)[];
-        defaultLocale?: string;
-      };
-    }
-  ).i18n;
-  const { path: wanted, locale } = splitLocalePath(
+  const found = await duxtDocPage(
+    event,
     path.slice(0, -'.md'.length),
-    (i18n?.locales ?? []).map((entry) =>
-      typeof entry === 'string' ? entry : entry.code
-    )
+    duxtSources(),
+    duxtLocaleSetup(event)
   );
-  // Nuxt i18n loads the consumer's merged Vue I18n config in its request hook.
-  // Browser-language detection's fallback is a different policy.
-  const fallbackLocale = event.context.nuxtI18n?.vueI18nOptions
-    ?.fallbackLocale as string | string[] | undefined;
-  const sources = sourcesForRoute(
-    wanted,
-    locale ?? i18n?.defaultLocale,
-    duxt.resolvedSources ?? [],
-    fallbackLocale
-  );
-
-  let page;
-  for (const source of sources) {
-    page = await queryCollection(
-      event,
-      source.collection as Parameters<typeof queryCollection>[1]
-    )
-      .path(wanted)
-      .select('title', 'rawbody')
-      .first();
-    if (page) break;
-  }
+  const page = found?.page;
 
   // No page is not this middleware's error to raise: falling through lets the
   // app answer with its own 404, which knows how to suggest a near miss.

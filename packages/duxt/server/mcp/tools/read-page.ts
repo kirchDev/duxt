@@ -1,7 +1,5 @@
-import { queryCollection } from '@nuxt/content/nitro';
 import { z } from 'zod';
-import { splitLocalePath } from '../../../app/utils/locale-path';
-import { sourcesForRoute } from '../../../build/sources/sources-resolve';
+import { duxtDocPage } from '../../utils/doc-page';
 import {
   duxtAuthoredMarkdown,
   duxtFrontmatter,
@@ -49,29 +47,9 @@ export default defineMcpTool({
     const event = duxtMcpEvent();
     const setup = duxtLocaleSetup(event);
     const sources = duxtSources();
-    const { locale, path: wanted } = splitLocalePath(path, setup.codes);
-
-    // The same chain the rendered page takes: the requested language, its
-    // siblings, the configured fallback, then the untranslated original.
-    const chain = sourcesForRoute(
-      wanted,
-      locale ?? setup.defaultLocale,
-      sources,
-      setup.fallbackLocale
-    );
-
-    for (const source of chain) {
-      const page = (await queryCollection(
-        event,
-        source.collection as Parameters<typeof queryCollection>[1]
-      )
-        .path(wanted)
-        .select('title', 'description', 'rawbody')
-        .first()) as unknown as
-        | { title?: string; description?: string; rawbody?: string }
-        | undefined;
-
-      if (!page) continue;
+    const found = await duxtDocPage(event, path, sources, setup);
+    if (found) {
+      const { page, source, locale, path: wanted } = found;
 
       const frontmatter = duxtFrontmatter({
         path: duxtPublicPath(wanted, locale, setup),
