@@ -1,6 +1,7 @@
 import { queryCollection } from '@nuxt/content/nitro';
 import { duxtDefaults, mergeDuxtConfig } from '../../app/utils/duxt-config';
 import { resolveServerTexts } from '../utils/duxt-server-text';
+import { duxtPublicOrigin } from '../utils/public-origin';
 
 /**
  * An RSS feed over one section — a changelog, a release log, a blog.
@@ -36,7 +37,7 @@ export default defineEventHandler(async (event) => {
     mergeDuxtConfig(appConfig.duxt, duxtDefaults)
   );
 
-  const origin = getRequestURL(event).origin;
+  const origin = duxtPublicOrigin(event);
   const feed = duxt.feed;
   const title = typeof feed?.title === 'string' ? feed.title : undefined;
 

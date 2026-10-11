@@ -4,6 +4,7 @@ import { llmsPages } from '../utils/llms-pages';
 // pages use, or the two descriptions drift apart.
 import { duxtDefaults, mergeDuxtConfig } from '../../app/utils/duxt-config';
 import { resolveServerTexts } from '../utils/duxt-server-text';
+import { duxtPublicOrigin } from '../utils/public-origin';
 
 /**
  * llms.txt — the site's own map, for a model reading it.
@@ -24,7 +25,7 @@ export default defineEventHandler(async (event) => {
   // has none by that name, and llms.txt is the whole site's index.
   const pages = await llmsPages(event, duxt.resolvedSources);
 
-  const origin = getRequestURL(event).origin;
+  const origin = duxtPublicOrigin(event);
 
   const lines = [
     `# ${duxt.title}`,

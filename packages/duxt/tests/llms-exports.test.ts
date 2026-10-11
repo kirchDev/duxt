@@ -45,6 +45,7 @@ beforeEach(() => {
     () => new URL('https://docs.example/llms.txt')
   );
   vi.stubGlobal('setHeader', vi.fn());
+  vi.stubGlobal('getSiteConfig', () => ({}));
   database.pages = {};
   database.selections = [];
   event.context.nuxtI18n.vueI18nOptions.fallbackLocale = 'en';

@@ -4,6 +4,7 @@ import { llmsPages } from '../utils/llms-pages';
 // pages use, or the two descriptions drift apart.
 import { duxtDefaults, mergeDuxtConfig } from '../../app/utils/duxt-config';
 import { resolveServerTexts } from '../utils/duxt-server-text';
+import { duxtPublicOrigin } from '../utils/public-origin';
 import { stripFrontmatter } from '../../build/content/frontmatter';
 
 /**
@@ -27,7 +28,7 @@ export default defineEventHandler(async (event) => {
 
   const pages = await llmsPages(event, duxt.resolvedSources, true);
 
-  const origin = getRequestURL(event).origin;
+  const origin = duxtPublicOrigin(event);
 
   const lines = [
     `# ${duxt.title}`,
