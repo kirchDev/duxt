@@ -273,7 +273,9 @@ export default defineNuxtConfig({
     '@kirchdev/duxt',
     ...(process.env.DUXT_SEARCH_PROVIDER === 'typesense'
       ? ['@kirchdev/duxt-typesense']
-      : [])
+      : process.env.DUXT_SEARCH_PROVIDER === 'meilisearch'
+        ? ['@kirchdev/duxt-meilisearch']
+        : [])
   ],
   ...(process.env.DUXT_SEARCH_PROVIDER === 'typesense'
     ? {
@@ -282,6 +284,24 @@ export default defineNuxtConfig({
           collection: process.env.TYPESENSE_COLLECTION ?? 'duxt_docs',
           searchKey: process.env.TYPESENSE_SEARCH_KEY,
           adminKey: process.env.TYPESENSE_ADMIN_KEY
+        }
+      }
+    : {}),
+  ...(process.env.DUXT_SEARCH_PROVIDER === 'meilisearch'
+    ? {
+        duxtMeilisearch: {
+          host: process.env.MEILISEARCH_HOST,
+          index: process.env.MEILISEARCH_INDEX ?? 'duxt_docs',
+          searchKey: process.env.MEILISEARCH_SEARCH_KEY,
+          syncKey: process.env.MEILISEARCH_SYNC_KEY,
+          taskKey: process.env.MEILISEARCH_TASK_KEY,
+          sync: {
+            enabled: process.env.MEILISEARCH_SYNC_ENABLED === 'true',
+            deployment:
+              process.env.DUXT_DEPLOYMENT === 'production'
+                ? 'production'
+                : 'preview'
+          }
         }
       }
     : {}),

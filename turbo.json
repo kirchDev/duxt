@@ -70,6 +70,14 @@
     },
     "check:interactive": {
       "cache": false
+    },
+    "@kirchdev/duxt-meilisearch#test": {
+      "outputs": [],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/packages/duxt/app/**",
+        "$TURBO_ROOT$/packages/duxt/build/**"
+      ]
     }
   }
 }
