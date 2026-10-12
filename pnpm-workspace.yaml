@@ -100,8 +100,8 @@ overrides:
   # narrow and remove each override once its parent accepts a patched release.
   # These root-only settings are not inherited by published-layer consumers.
   'fontless>esbuild': 0.28.2
-  'satori>fflate': 0.7.5
-  '@shuding/opentype.js>fflate': 0.7.5
+  'satori>fflate': 0.8.3
+  '@shuding/opentype.js>fflate': 0.8.3
   '@nuxt/devtools>simple-git': 4.0.2
   'mermaid>katex': 0.19.0
   'miniflare>sharp': 0.35.5

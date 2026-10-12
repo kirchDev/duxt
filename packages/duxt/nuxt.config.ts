@@ -252,6 +252,9 @@ export default defineNuxtConfig({
     // history at parse time.
     layer('./modules/git-meta.ts'),
 
+    // Mount documentation media before @nuxt/image discovers its input dirs.
+    layer('./modules/documentation-media.ts'),
+
     // `redirectFrom:` in a page's frontmatter, under every prefix the site
     // serves that page at.
     layer('./modules/redirects.ts'),

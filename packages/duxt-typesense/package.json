@@ -1,0 +1,49 @@
+{
+  "$schema": "https://www.schemastore.org/package.json",
+  "name": "@kirchdev/duxt-typesense",
+  "version": "0.0.0",
+  "description": "Opt-in Typesense search and build-time synchronization for duxt.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kirchDev/duxt.git",
+    "directory": "packages/duxt-typesense"
+  },
+  "files": [
+    "nuxt.config.ts",
+    "module.ts",
+    "sync.ts",
+    "search.ts",
+    "app",
+    "CHANGELOG.md",
+    "README.md",
+    "LICENSE"
+  ],
+  "type": "module",
+  "main": "./nuxt.config.ts",
+  "exports": {
+    ".": "./nuxt.config.ts",
+    "./sync": "./sync.ts",
+    "./search": "./search.ts"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "prepack": "node -e \"require('node:fs').copyFileSync('../../LICENSE', 'LICENSE')\"",
+    "postpack": "node -e \"require('node:fs').rmSync('LICENSE', { force: true })\""
+  },
+  "devDependencies": {
+    "@kirchdev/duxt": "workspace:*",
+    "vitest": "^5.0.3"
+  },
+  "peerDependencies": {
+    "@kirchdev/duxt": ">=0.4.0 <1",
+    "nuxt": "^4.0.0",
+    "vue": "^3.5.0"
+  },
+  "engines": {
+    "node": ">=24.15.0"
+  }
+}

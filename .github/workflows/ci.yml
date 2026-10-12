@@ -23,7 +23,7 @@ permissions:
 jobs:
   check:
     name: CI
-    uses: kirchDev/workflows/.github/workflows/_ci-check.yml@ea3a3c15385340fe1f9751e0afefaef32970aad7 # v0.12.0
+    uses: kirchDev/workflows/.github/workflows/_ci-check.yml@4767c07534dcf886d6a387f29dc70a097b44c591 # v0.14.0
     # THE REMOTE SOURCES, CACHED BETWEEN RUNS. A site reading other repositories
     # re-cloned every one of them on every pull request. The body restores and
     # saves the cache itself, because a job beside this call runs on another
@@ -34,4 +34,5 @@ jobs:
     # and the path list must agree. The command answers `cacheable=false` for a
     # private or authenticated source, and the body then caches nothing.
     with:
+      node-version: '26'
       remote-source-cache-command: node ./packages/duxt/bin/duxt-cache-key.mjs --root apps/www --github >> "$GITHUB_OUTPUT"

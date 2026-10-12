@@ -6,6 +6,8 @@ updates:
     commit-message:
       prefix: 'fix(deps)'
       prefix-development: 'chore(deps-dev)'
+    # The root pnpm workspace covers apps/www and all packages, including
+    # duxt-typesense and duxt-meilisearch; separate directory jobs would duplicate workspace PRs.
     directory: '/'
     target-branch: 'dev'
     schedule:

@@ -1,0 +1,141 @@
+import {
+  existsSync,
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterEach, expect, it } from 'vitest';
+import {
+  publishDocumentationMedia,
+  documentationImageUrl,
+  rewriteDocumentationImages
+} from '../build/sources/documentation-media';
+
+const roots: string[] = [];
+afterEach(() =>
+  roots
+    .splice(0)
+    .forEach((root) => rmSync(root, { recursive: true, force: true }))
+);
+
+function fixture() {
+  const root = mkdtempSync(join(tmpdir(), 'duxt-media-'));
+  roots.push(root);
+  const docs = join(root, 'docs');
+  const output = join(root, 'public');
+  mkdirSync(join(docs, '_assets'), { recursive: true });
+  mkdirSync(join(docs, '1.guides'), { recursive: true });
+  writeFileSync(join(docs, '_assets/demo.gif'), 'generated animation');
+  writeFileSync(join(docs, '_assets/demo-dark.png'), 'dark variant');
+  return { docs, output };
+}
+
+it('publishes a docs-only image and resolves its authored relative reference', () => {
+  const { docs, output } = fixture();
+  const media = publishDocumentationMedia(docs, output, 'local docs');
+  const url = documentationImageUrl(
+    '../_assets/demo.gif',
+    join(docs, '1.guides/1.demo.md'),
+    media
+  );
+  expect(url).toMatch(/^\/_duxt\/media\/[^/]+\/_assets\/demo\.gif$/);
+  expect(readFileSync(join(output, url), 'utf8')).toBe('generated animation');
+});
+
+it('rewrites parsed images and dark variants while preserving page links and code', () => {
+  const { docs, output } = fixture();
+  const media = publishDocumentationMedia(docs, output, 'local docs');
+  const content = {
+    body: {
+      value: [
+        [
+          'img',
+          { src: '../_assets/demo.gif', dark: '../_assets/demo-dark.png' }
+        ],
+        ['a', { href: '../_assets/demo.gif' }],
+        ['pre', {}, '![Example](../_assets/demo.gif)']
+      ]
+    }
+  };
+  rewriteDocumentationImages(content, join(docs, '1.guides/1.demo.md'), media);
+  expect(content.body.value[0]![1]).toEqual({
+    src: `${media.prefix}/_assets/demo.gif`,
+    dark: `${media.prefix}/_assets/demo-dark.png`
+  });
+  expect(content.body.value[1]![1]).toEqual({ href: '../_assets/demo.gif' });
+  expect(content.body.value[2]![2]).toBe('![Example](../_assets/demo.gif)');
+});
+
+it('does not publish a documentation root symlinked outside the source checkout', () => {
+  const { docs, output } = fixture();
+  const checkout = join(docs, '../checkout');
+  mkdirSync(checkout);
+  const linked = join(checkout, 'docs');
+  symlinkSync(docs, linked);
+  const media = publishDocumentationMedia(linked, output, 'remote docs');
+  expect(existsSync(join(output, media.prefix, '_assets/demo.gif'))).toBe(
+    false
+  );
+});
+
+it('keeps remote media inside the checkout when an ancestor directory is a symlink', () => {
+  const { docs, output } = fixture();
+  const checkout = join(docs, '../checkout');
+  mkdirSync(checkout);
+  symlinkSync(join(docs, '..'), join(checkout, 'linked'));
+  const media = publishDocumentationMedia(
+    join(checkout, 'linked/docs'),
+    output,
+    'remote docs',
+    checkout
+  );
+  expect(existsSync(join(output, media.prefix, '_assets/demo.gif'))).toBe(
+    false
+  );
+});
+
+it('preserves public image URLs that are not published documentation artifacts', () => {
+  const { docs, output } = fixture();
+  const media = publishDocumentationMedia(docs, output, 'local docs');
+  const file = join(docs, '1.guides/1.demo.md');
+  expect(documentationImageUrl('/_assets/brand.svg', file, media)).toBe(
+    '/_assets/brand.svg'
+  );
+  expect(documentationImageUrl('../_assets/missing.gif', file, media)).toBe(
+    '../_assets/missing.gif'
+  );
+  expect(documentationImageUrl('/_assets/demo.gif', file, media)).toBe(
+    `${media.prefix}/_assets/demo.gif`
+  );
+});
+
+it('never republishes its nested output while retaining sibling authored assets', () => {
+  const { docs } = fixture();
+  const output = join(docs, '0.published');
+  mkdirSync(output);
+  mkdirSync(join(docs, '0.published-not-output/_assets'), { recursive: true });
+  writeFileSync(
+    join(docs, '0.published-not-output/_assets/demo.svg'),
+    'authored sibling'
+  );
+  const expected = [
+    '0.published-not-output/_assets/demo.svg',
+    '_assets/demo-dark.png',
+    '_assets/demo.gif'
+  ];
+  for (let pass = 0; pass < 3; pass++) {
+    const media = publishDocumentationMedia(docs, output, 'local docs');
+    expect(media.files.sort()).toEqual(expected);
+    expect(
+      readdirSync(join(output, media.prefix), { recursive: true })
+        .filter((file) => /\.(svg|png|gif)$/.test(file))
+        .sort()
+    ).toEqual(expected);
+  }
+});

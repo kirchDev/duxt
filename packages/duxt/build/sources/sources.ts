@@ -14,6 +14,10 @@ import { resolveLatestRefs } from './sources-git';
 // module could reach it without this file's imports coming with it.
 import { repositoryRoot } from './repository-root';
 import { resolvesInside } from '../sections/section-input';
+import {
+  documentationMediaDirectory,
+  publishDocumentationMedia
+} from './documentation-media';
 export { repositoryRoot };
 export type {
   DuxtResolvedSource,
@@ -232,7 +236,9 @@ const excluded = (source: DuxtSource) => {
   const partials = source.exclude?.partials ?? PARTIALS;
   const drafts = source.exclude?.drafts ?? DRAFTS;
 
-  return includeDrafts() ? [partials] : [partials, drafts];
+  return includeDrafts()
+    ? [partials, '**/_assets/**']
+    : [partials, '**/_assets/**', drafts];
 };
 
 /**
@@ -315,6 +321,20 @@ export function duxtSources(
 
     containedKeys(collection);
 
+    const base = source.path ?? 'docs';
+    const mediaPath =
+      effective.path === base || effective.path.startsWith(`${base}/`)
+        ? base
+        : effective.path;
+    const identity = JSON.stringify([
+      effective.repo ?? repositoryRoot(),
+      mediaPath,
+      usedRef ? [refIsTag(usedRef) ? 'tag' : 'branch', refName(usedRef)] : null
+    ]);
+    for (const contentSource of collection.source ?? []) {
+      prepareMedia(contentSource, effective.repo, mediaPath, identity);
+    }
+
     collections[entry.collection] = collection;
   });
 
@@ -325,6 +345,37 @@ export function duxtSources(
   }
 
   return collections;
+}
+
+/** Prepare media for a source, including partial sources sharing a collection. */
+function prepareMedia(
+  contentSource: NonNullable<
+    ReturnType<typeof defineCollection>['source']
+  >[number],
+  repo: string | undefined,
+  mediaPath: string,
+  identity: string
+) {
+  const output = documentationMediaDirectory();
+  const keys = contentSource.getKeys!;
+  const prepared = contentSource as typeof contentSource & {
+    duxtMediaIdentity?: string;
+    duxtMedia?: import('./documentation-media').DocumentationMedia;
+  };
+  // Include source ownership in Content's checksum, even when Markdown is unchanged.
+  prepared.duxtMediaIdentity = identity;
+  contentSource.getKeys = async () => {
+    const root = repo
+      ? join(contentSource.cwd, mediaPath)
+      : join(repositoryRoot(), mediaPath);
+    prepared.duxtMedia = publishDocumentationMedia(
+      root,
+      output,
+      identity,
+      repo ? contentSource.cwd : undefined
+    );
+    return keys();
+  };
 }
 
 /**
@@ -367,11 +418,11 @@ function partialFolders(
   expanded: ReturnType<typeof expandSources>
 ): Map<
   string | undefined,
-  { repo?: string; path: string; partials: string }[]
+  { repo?: string; path: string; partials: string; mediaPath: string }[]
 > {
   const byLocale = new Map<
     string | undefined,
-    { repo?: string; path: string; partials: string }[]
+    { repo?: string; path: string; partials: string; mediaPath: string }[]
   >();
   const seen = new Set<string>();
 
@@ -389,7 +440,17 @@ function partialFolders(
     seen.add(claim);
 
     const list = byLocale.get(key) ?? [];
-    list.push({ repo: effective.repo, path: effective.path, partials });
+    const base = source.path ?? 'docs';
+    const mediaPath =
+      effective.path === base || effective.path.startsWith(`${base}/`)
+        ? base
+        : effective.path;
+    list.push({
+      repo: effective.repo,
+      path: effective.path,
+      partials,
+      mediaPath
+    });
     byLocale.set(key, list);
   });
 
@@ -411,7 +472,12 @@ function partialFolders(
  * than resolves; see `modules/validate.ts`.
  */
 function definePartials(
-  folders: { repo?: string; path: string; partials: string }[]
+  folders: {
+    repo?: string;
+    path: string;
+    partials: string;
+    mediaPath: string;
+  }[]
 ) {
   const entries = folders.map((folder) =>
     folder.repo
@@ -438,6 +504,16 @@ function definePartials(
   });
 
   containedKeys(collection);
+  for (const [index, contentSource] of (collection.source ?? []).entries()) {
+    const folder = folders[index]!;
+    // Partials stay shared across versions and read the repository's default ref.
+    const identity = JSON.stringify([
+      folder.repo ?? repositoryRoot(),
+      folder.mediaPath,
+      null
+    ]);
+    prepareMedia(contentSource, folder.repo, folder.mediaPath, identity);
+  }
 
   return collection;
 }
