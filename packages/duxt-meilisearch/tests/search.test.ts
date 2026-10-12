@@ -32,7 +32,11 @@ it('uses only the browser key and exact escaped provenance filters, preserving n
     },
     [
       { source: '/', version: 'v1', locale: 'de' },
-      { source: '/api" OR source = "bad', locale: 'en' }
+      {
+        source: '/api" OR source = "bad',
+        locale: 'en',
+        excludePages: ['/api/page" OR source = "bad']
+      }
     ],
     20,
     fetcher
@@ -41,7 +45,7 @@ it('uses only the browser key and exact escaped provenance filters, preserving n
     q: 'Einführung',
     limit: 20,
     filter:
-      '(source = "/" AND locale = "de" AND version = "v1") OR (source = "/api\\" OR source = \\"bad" AND locale = "en" AND version NOT EXISTS)'
+      '(source = "/" AND locale = "de" AND version = "v1") OR (source = "/api\\" OR source = \\"bad" AND locale = "en" AND version NOT EXISTS AND page NOT IN ["/api/page\\" OR source = \\"bad"])'
   });
   expect(hits).toEqual([record]);
 });

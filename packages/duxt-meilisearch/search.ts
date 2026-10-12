@@ -9,6 +9,8 @@ export interface MeilisearchSearchScope {
   source: string;
   version?: string;
   locale: string;
+  /** Page URLs covered by a preferred language in this exact scope. */
+  excludePages?: readonly string[];
 }
 
 /** Browser-only HTTP search; no imports of the private synchronization code. */
@@ -30,6 +32,8 @@ export async function searchMeilisearch(
           ? 'version NOT EXISTS'
           : `version = ${JSON.stringify(entry.version)}`
       ];
+      if (entry.excludePages?.length)
+        parts.push(`page NOT IN ${JSON.stringify(entry.excludePages)}`);
       return `(${parts.join(' AND ')})`;
     })
     .join(' OR ');

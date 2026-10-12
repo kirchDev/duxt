@@ -93,7 +93,7 @@ export async function syncMeilisearch(
   try {
     await task(`/indexes/${staging}/settings`, 'PATCH', {
       searchableAttributes: ['title', 'content'],
-      filterableAttributes: ['source', 'version', 'locale'],
+      filterableAttributes: ['source', 'version', 'locale', 'page'],
       displayedAttributes: [
         'id',
         'url',
@@ -108,7 +108,10 @@ export async function syncMeilisearch(
       await task(
         `/indexes/${staging}/documents`,
         'POST',
-        records.slice(offset, offset + 100)
+        records.slice(offset, offset + 100).map((record) => ({
+          ...record,
+          page: record.url.split('#')[0]
+        }))
       );
     const previous = await request(`/indexes/${options.index}`);
     if (previous.status === 404)

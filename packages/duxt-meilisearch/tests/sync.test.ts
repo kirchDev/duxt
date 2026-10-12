@@ -52,7 +52,7 @@ it('waits for the complete staging snapshot before swapping and removes the old 
       method: 'PATCH',
       body: {
         searchableAttributes: ['title', 'content'],
-        filterableAttributes: ['source', 'version', 'locale'],
+        filterableAttributes: ['source', 'version', 'locale', 'page'],
         displayedAttributes: [
           'id',
           'url',
@@ -65,7 +65,11 @@ it('waits for the complete staging snapshot before swapping and removes the old 
       }
     },
     { path: '/tasks/2', method: 'GET', body: undefined },
-    { path: `/indexes/${staging}/documents`, method: 'POST', body: records },
+    {
+      path: `/indexes/${staging}/documents`,
+      method: 'POST',
+      body: [{ ...records[0], page: '/de/v1/guide' }]
+    },
     { path: '/tasks/3', method: 'GET', body: undefined },
     { path: '/indexes/docs', method: 'GET', body: undefined },
     {

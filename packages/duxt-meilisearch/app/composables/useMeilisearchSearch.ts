@@ -83,13 +83,19 @@ export function useMeilisearchSearch() {
             )
         )
       );
-      const scope = wanted.map((entry) => ({
+      const codes = localeCodesOf(locales?.value ?? wanted.map(contentLocale));
+      const scope = wanted.map((entry, index) => ({
         source: identity(entry),
         version: entry.version,
-        locale: contentLocale(entry)
+        locale: contentLocale(entry),
+        // Content language and routed locale may differ (es vs es-ES). These
+        // are exactly the route forms stripped by the page-preference check.
+        excludePages: [...hidden[index]!].flatMap((path) => [
+          path,
+          ...codes.map((code) => `/${code}${path === '/' ? '' : path}`)
+        ])
       }));
-      const records = await searchMeilisearch(term, options, scope, 1000);
-      const codes = localeCodesOf(locales?.value ?? wanted.map(contentLocale));
+      const records = await searchMeilisearch(term, options, scope, limit);
       const hits: DuxtSearchHit[] = [];
       for (const record of records) {
         const index = wanted.findIndex(

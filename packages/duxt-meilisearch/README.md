@@ -42,7 +42,7 @@ matters. Each concurrent sync owns a unique staging index; the last successful
 swap wins.
 
 The build creates a fresh staging index, applies title/plaintext search and
-source/version/locale filters, imports batches of 100, and waits for **every**
+source/version/locale/page filters, imports batches of 100, and waits for **every**
 asynchronous task. It then swaps the complete snapshot with the live index,
 waits for the swap task to succeed, and only then deletes staging (which now
 holds the prior snapshot). Deleted records disappear on the next sync; an empty
@@ -83,8 +83,13 @@ including generated sections and its content-language fallback chain. Existing
 translations suppress their original pages even when a query matches only the
 original; untranslated pages remain searchable in the fallback language. This
 requires a cached page-path inventory through Content's public `queryCollection`
-API, separate from Meilisearch ranking. Search asks for up to 1,000 ranked
-candidates before applying page-language preference and the dialog limit.
+API. The provider adds a filter-only `page` field (the URL without its anchor)
+to indexed documents. Preferred page URLs are excluded within each exact
+source/version/locale scope **before** Meilisearch ranks and limits results,
+so hidden original sections cannot consume the engine's 1,000-hit window.
+The dialog limit counts visible results. Run a production sync before enabling
+this browser integration against an index created by an earlier provider build,
+so its documents and filterable settings include `page`.
 Service failures yield no results and a console warning.
 
 For custom UIs, `@kirchdev/duxt-meilisearch/search` exports `searchMeilisearch`;
@@ -99,6 +104,11 @@ the ordinary site keeps built-in search and requires no credentials.
 The implementation follows the official [atomic swap API](https://specs.meilisearch.dev/specifications/text/0191-swap-indexes-api.html),
 [asynchronous tasks](https://www.meilisearch.com/docs/reference/api/async-task-management/get-task),
 and [scoped keys](https://www.meilisearch.com/docs/reference/api/keys/create-api-key).
+
+Repository regression: after installing the frozen workspace, run
+`node packages/duxt-meilisearch/tests/consumer-types.ts` to check the documented
+plain Nuxt configuration in a separate consuming app, including a rejected
+numeric browser key.
 
 [MIT](LICENSE) © [Titus Kirch](https://github.com/TitusKirch/) /
 [IT-Dienstleistungen Titus Kirch](https://kirch.dev)
