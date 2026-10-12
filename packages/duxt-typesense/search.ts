@@ -25,7 +25,8 @@ export async function searchTypesense(
   options: TypesenseSearchOptions,
   scope: readonly TypesenseSearchScope[],
   limit = 20,
-  fetcher: typeof fetch = fetch
+  fetcher: typeof fetch = fetch,
+  page = 1
 ): Promise<DuxtSearchRecord[]> {
   if (!term.trim() || !scope.length || limit <= 0) return [];
   const filter = scope
@@ -46,6 +47,7 @@ export async function searchTypesense(
     q: term,
     query_by: 'title,content',
     filter_by: filter,
+    page: String(page),
     per_page: String(Math.min(250, Math.floor(limit)))
   }).toString();
   const response = await fetcher(url.toString(), {

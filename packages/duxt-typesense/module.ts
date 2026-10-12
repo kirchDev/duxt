@@ -18,6 +18,13 @@ declare module '@nuxt/schema' {
 }
 
 export default function duxtTypesenseModule(_options: unknown, nuxt: Nuxt) {
+  // The layer loads this module by path, so its option declarations must also
+  // reach the consumer's TypeScript program without a manual type import.
+  nuxt.hook('prepare:types', ({ references }) => {
+    references.push({
+      path: fileURLToPath(new URL('./module.ts', import.meta.url))
+    });
+  });
   const options = nuxt.options.duxtTypesense ?? {};
   const endpoint = options.endpoint ?? '';
   const collection = options.collection ?? 'docs';
