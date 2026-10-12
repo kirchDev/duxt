@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.8.0](https://github.com/kirchDev/duxt/compare/duxt@v0.7.0...duxt@v0.8.0) (2026-10-12)
+
+
+### Features
+
+* **media:** publish documentation image artifacts ([00e1826](https://github.com/kirchDev/duxt/commit/00e182665869f126409e3602f3eb3f83bd118bf5))
+
+
+### Bug Fixes
+
+* **deps:** update gated workspace dependencies ([c9ca655](https://github.com/kirchDev/duxt/commit/c9ca65535fedebcf3ff1d6cf0c57eb53360e0f1d))
+* **media:** exclude generated and cached source artifacts ([4007678](https://github.com/kirchDev/duxt/commit/40076785684a7916b8f6dd0005e484570de97876))
+* **media:** preserve unpublished public image urls ([7fc87de](https://github.com/kirchDev/duxt/commit/7fc87de87a965a3e74b9a3d1939497971373745c))
+* **media:** resolve partial images from their source ([9e51310](https://github.com/kirchDev/duxt/commit/9e513107aac948a671b3e89b595c28774c129c63))
+
 ## [0.7.0](https://github.com/kirchDev/duxt/compare/duxt@v0.6.0...duxt@v0.7.0) (2026-10-11)
 
 
