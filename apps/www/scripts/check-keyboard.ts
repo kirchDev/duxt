@@ -164,20 +164,50 @@ async function drive(browser: Browser) {
   const at = () => page.evaluate(probe);
   const step = async (key: string) => {
     const before = await at();
-    await page.keyboard.press(key);
-    if (key === 'Enter')
-      await page
-        .waitForFunction((path) => location.pathname !== path, before.path, {
+    if (key === 'Enter') {
+      // A changed URL precedes Nuxt's new page/layout. Subscribe before the key
+      // so the next opening cannot belong to the outgoing header.
+      const navigation = await page.evaluateHandle((path) => {
+        const root = document.querySelector('#__nuxt') as Element & {
+          __vue_app__?: {
+            config: {
+              globalProperties: {
+                $nuxt?: {
+                  hook: (name: string, callback: () => void) => () => void;
+                };
+              };
+            };
+          };
+        };
+        const nuxt = root?.__vue_app__?.config.globalProperties.$nuxt;
+        if (!nuxt) throw new Error('Nuxt is unavailable for navigation');
+        const state = { finished: false };
+        const unhook = nuxt.hook('page:finish', () => {
+          if (location.pathname === path) return;
+          state.finished = true;
+          clearTimeout(timeout);
+          unhook();
+        });
+        const timeout = setTimeout(unhook, 5000);
+        return state;
+      }, before.path);
+      try {
+        await page.keyboard.press(key);
+        await page.waitForFunction((state) => state.finished, navigation, {
           timeout: 5000
-        })
-        .catch(() => {});
-    else
+        });
+      } finally {
+        await navigation.dispose();
+      }
+    } else {
+      await page.keyboard.press(key);
       await page.evaluate(
         () =>
           new Promise<void>((resolve) =>
             requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
           )
       );
+    }
 
     return at();
   };
@@ -421,6 +451,7 @@ async function open(page: Page) {
       .waitFor({ state: 'visible', timeout: 3000 });
     await page.waitForFunction(
       () => document.activeElement?.tagName === 'INPUT',
+      undefined,
       { timeout: 3000 }
     );
   }
