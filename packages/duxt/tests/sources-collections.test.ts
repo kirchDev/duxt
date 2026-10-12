@@ -1,4 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
+import {
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { duxtSources, repositoryRoot } from '../build/sources/sources';
 
 vi.mock('node:child_process', async (importOriginal) => ({
@@ -23,6 +32,35 @@ vi.mock('@nuxtjs/sitemap/content', () => ({
   defineSitemapSchema: ({ z }: { z: typeof import('@nuxt/content').z }) =>
     z.object({})
 }));
+
+it('publishes docs media through the prepared source without creating asset pages', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'duxt-source-media-'));
+  const cwd = process.cwd();
+  try {
+    mkdirSync(join(root, 'docs/_assets'), { recursive: true });
+    writeFileSync(join(root, 'docs/_assets/demo.gif'), 'generated GIF');
+    writeFileSync(join(root, 'docs/_assets/demo.tape'), 'capture source');
+    writeFileSync(join(root, 'docs/_assets/index.md'), '# Asset provenance');
+    writeFileSync(join(root, 'docs/index.md'), '# Documentation');
+    writeFileSync(join(root, '.git'), 'isolated fixture');
+    process.chdir(root);
+    const collection = duxtSources([{ path: 'docs' }]).docs;
+    const source = collection.source![0]!;
+    await source.prepare!({ rootDir: root });
+    expect(await source.getKeys!()).toEqual(['index.md']);
+    const media = (source as unknown as { duxtMedia: { prefix: string } })
+      .duxtMedia;
+    expect(
+      readFileSync(
+        join(root, '.data/duxt-media/public', media.prefix, '_assets/demo.gif'),
+        'utf8'
+      )
+    ).toBe('generated GIF');
+  } finally {
+    process.chdir(cwd);
+    rmSync(root, { recursive: true, force: true });
+  }
+});
 
 describe('local checkout refs', () => {
   it('rejects publishing the checkout under a declared Git ref', () => {
@@ -79,6 +117,7 @@ it('uses a source’s custom draft and partial patterns', () => {
 
     expect(collections.docs.source?.[0]?.exclude).toEqual([
       '**/_includes/**',
+      '**/_assets/**',
       '**/*.wip.md'
     ]);
   } finally {

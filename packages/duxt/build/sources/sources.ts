@@ -14,6 +14,10 @@ import { resolveLatestRefs } from './sources-git';
 // module could reach it without this file's imports coming with it.
 import { repositoryRoot } from './repository-root';
 import { resolvesInside } from '../sections/section-input';
+import {
+  documentationMediaDirectory,
+  publishDocumentationMedia
+} from './documentation-media';
 export { repositoryRoot };
 export type {
   DuxtResolvedSource,
@@ -232,7 +236,9 @@ const excluded = (source: DuxtSource) => {
   const partials = source.exclude?.partials ?? PARTIALS;
   const drafts = source.exclude?.drafts ?? DRAFTS;
 
-  return includeDrafts() ? [partials] : [partials, drafts];
+  return includeDrafts()
+    ? [partials, '**/_assets/**']
+    : [partials, '**/_assets/**', drafts];
 };
 
 /**
@@ -314,6 +320,40 @@ export function duxtSources(
     });
 
     containedKeys(collection);
+
+    const base = source.path ?? 'docs';
+    const mediaPath =
+      effective.path === base || effective.path.startsWith(`${base}/`)
+        ? base
+        : effective.path;
+    const identity = JSON.stringify([
+      effective.repo ?? repositoryRoot(),
+      mediaPath,
+      usedRef ? [refIsTag(usedRef) ? 'tag' : 'branch', refName(usedRef)] : null
+    ]);
+    const output = documentationMediaDirectory();
+    for (const contentSource of collection.source ?? []) {
+      const keys = contentSource.getKeys!;
+      const prepared = contentSource as typeof contentSource & {
+        duxtMediaIdentity?: string;
+        duxtMedia?: import('./documentation-media').DocumentationMedia;
+      };
+      // Include the closed-over identity in Content's collection checksum.
+      // Identical Markdown moved to a different docs root needs new URLs too.
+      prepared.duxtMediaIdentity = identity;
+      contentSource.getKeys = async () => {
+        const root = effective.repo
+          ? join(contentSource.cwd, mediaPath)
+          : join(repositoryRoot(), mediaPath);
+        prepared.duxtMedia = publishDocumentationMedia(
+          root,
+          output,
+          identity,
+          effective.repo ? contentSource.cwd : undefined
+        );
+        return keys();
+      };
+    }
 
     collections[entry.collection] = collection;
   });

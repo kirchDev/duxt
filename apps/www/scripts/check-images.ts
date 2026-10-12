@@ -142,7 +142,8 @@ const FIXTURES = {
   badge: 'A build badge',
   vector: 'How a source becomes a page',
   animation: 'A spinner, looping',
-  inert: 'A decorative ornament, not zoomable'
+  inert: 'A decorative ornament, not zoomable',
+  documentation: 'A documentation-owned terminal demo'
 };
 
 /** The dark twin, which shares the light file's alt and so needs its own handle. */
@@ -192,6 +193,24 @@ async function main() {
     if (!dark) failures.push(`the dark twin is not on ${ROUTE}`);
 
     if (!failures.length) {
+      for (const alt of [FIXTURES.badge, FIXTURES.documentation]) {
+        const image = found.get(alt)!;
+        const src = image.getAttribute('src') ?? '';
+        if (!src.includes('/_duxt/media/'))
+          failures.push(`${alt} has no documentation media URL: ${src}`);
+        const loaded = await fetch(`http://localhost:${PORT}${src}`);
+        if (
+          !loaded.ok ||
+          !loaded.headers.get('content-type')?.startsWith('image/')
+        )
+          failures.push(`${alt} did not load an image (${loaded.status})`);
+      }
+      const gif = found.get(FIXTURES.documentation)?.getAttribute('src') ?? '';
+      const tape = await fetch(
+        `http://localhost:${PORT}${gif.replace(/\.gif$/, '.tape')}`
+      );
+      if (tape.status !== 404)
+        failures.push(`documentation tape is public (${tape.status})`);
       failures.push(...responsive(found, dark!));
       failures.push(...passThrough(found));
       failures.push(...backdrop(found));
