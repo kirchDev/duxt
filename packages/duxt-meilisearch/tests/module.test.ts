@@ -1,6 +1,22 @@
-import { expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import type { Nuxt } from 'nuxt/schema';
 import meilisearchModule from '../module';
+
+beforeEach(() => {
+  for (const key of [
+    'GITHUB_EVENT_NAME',
+    'VERCEL_ENV',
+    'CONTEXT',
+    'CF_PAGES',
+    'CF_PAGES_BRANCH',
+    'DUXT_PRODUCTION_BRANCH',
+    'CI_MERGE_REQUEST_IID',
+    'CHANGE_ID',
+    'CI_PULL_REQUEST'
+  ])
+    vi.stubEnv(key, undefined);
+});
+afterEach(() => vi.unstubAllEnvs());
 
 const fixture = (options: unknown, dev = false) => {
   const hooks = new Map<string, (value: unknown) => unknown>();
