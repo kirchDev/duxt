@@ -3,6 +3,7 @@ import {
   mkdtempSync,
   mkdirSync,
   readFileSync,
+  readdirSync,
   rmSync,
   symlinkSync,
   writeFileSync
@@ -31,6 +32,7 @@ function fixture() {
   mkdirSync(join(docs, '_assets'), { recursive: true });
   mkdirSync(join(docs, '1.guides'), { recursive: true });
   writeFileSync(join(docs, '_assets/demo.gif'), 'generated animation');
+  writeFileSync(join(docs, '_assets/demo-dark.png'), 'dark variant');
   return { docs, output };
 }
 
@@ -96,4 +98,44 @@ it('keeps remote media inside the checkout when an ancestor directory is a symli
   expect(existsSync(join(output, media.prefix, '_assets/demo.gif'))).toBe(
     false
   );
+});
+
+it('preserves public image URLs that are not published documentation artifacts', () => {
+  const { docs, output } = fixture();
+  const media = publishDocumentationMedia(docs, output, 'local docs');
+  const file = join(docs, '1.guides/1.demo.md');
+  expect(documentationImageUrl('/_assets/brand.svg', file, media)).toBe(
+    '/_assets/brand.svg'
+  );
+  expect(documentationImageUrl('../_assets/missing.gif', file, media)).toBe(
+    '../_assets/missing.gif'
+  );
+  expect(documentationImageUrl('/_assets/demo.gif', file, media)).toBe(
+    `${media.prefix}/_assets/demo.gif`
+  );
+});
+
+it('never republishes its nested output while retaining sibling authored assets', () => {
+  const { docs } = fixture();
+  const output = join(docs, '0.published');
+  mkdirSync(output);
+  mkdirSync(join(docs, '0.published-not-output/_assets'), { recursive: true });
+  writeFileSync(
+    join(docs, '0.published-not-output/_assets/demo.svg'),
+    'authored sibling'
+  );
+  const expected = [
+    '0.published-not-output/_assets/demo.svg',
+    '_assets/demo-dark.png',
+    '_assets/demo.gif'
+  ];
+  for (let pass = 0; pass < 3; pass++) {
+    const media = publishDocumentationMedia(docs, output, 'local docs');
+    expect(media.files.sort()).toEqual(expected);
+    expect(
+      readdirSync(join(output, media.prefix), { recursive: true })
+        .filter((file) => /\.(svg|png|gif)$/.test(file))
+        .sort()
+    ).toEqual(expected);
+  }
 });

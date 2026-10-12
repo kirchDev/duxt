@@ -9,6 +9,16 @@ import {
 import { dirname, extname, join, relative, resolve, sep } from 'node:path';
 import { resolvesInside } from '../sections/section-input';
 
+const PRIVATE_DIRECTORIES = new Set([
+  '.git',
+  'node_modules',
+  '.data',
+  '.nuxt',
+  '.output',
+  '.turbo',
+  '.cache'
+]);
+
 const IMAGES = new Set([
   '.png',
   '.jpg',
@@ -27,6 +37,7 @@ export const documentationMediaDirectory = (root = process.cwd()) =>
 export interface DocumentationMedia {
   root: string;
   prefix: string;
+  files: string[];
 }
 
 /** Publish only image outputs in _assets, leaving capture sources private. */
@@ -37,15 +48,19 @@ export function publishDocumentationMedia(
   checkout?: string
 ): DocumentationMedia {
   const prefix = `/_duxt/media/${createHash('sha256').update(identity).digest('hex')}`;
-  const media = { root, prefix };
+  const media: DocumentationMedia = { root, prefix, files: [] };
   if (!existsSync(root) || lstatSync(root).isSymbolicLink()) return media;
   if (checkout && !resolvesInside(root, checkout)) return media;
+  const outputRoot = resolve(output);
   const descend = (directory: string, asset = false) => {
     for (const entry of readdirSync(directory, { withFileTypes: true })) {
       if (entry.isSymbolicLink()) continue;
       const absolute = join(directory, entry.name);
       if (entry.isDirectory()) {
-        if (entry.name !== '.git' && entry.name !== 'node_modules')
+        if (
+          !PRIVATE_DIRECTORIES.has(entry.name) &&
+          resolve(absolute) !== outputRoot
+        )
           descend(absolute, asset || entry.name === '_assets');
       } else if (
         asset &&
@@ -55,6 +70,7 @@ export function publishDocumentationMedia(
         const target = join(output, prefix, relative(root, absolute));
         mkdirSync(dirname(target), { recursive: true });
         copyFileSync(absolute, target);
+        media.files.push(relative(root, absolute).split(sep).join('/'));
       }
     }
   };
@@ -69,6 +85,8 @@ export function documentationImageUrl(
   media: DocumentationMedia
 ): string {
   if (/^(?:[a-z][a-z\d+.-]*:|\/\/|#)/i.test(value)) return value;
+  const owner = relative(media.root, file);
+  if (owner === '..' || owner.startsWith(`..${sep}`)) return value;
   const match = /^([^?#]*)(.*)$/.exec(value)!;
   let path: string;
   try {
@@ -84,7 +102,7 @@ export function documentationImageUrl(
     rel.startsWith('../') ||
     rel === '..' ||
     !rel.split('/').includes('_assets') ||
-    !IMAGES.has(extname(rel).toLowerCase())
+    !media.files.includes(rel)
   )
     return value;
   return `${media.prefix}/${rel.split('/').map(encodeURIComponent).join('/')}${match[2]}`;

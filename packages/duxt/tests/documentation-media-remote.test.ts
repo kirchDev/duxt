@@ -10,6 +10,8 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, it, vi } from 'vitest';
+import duxtDocumentationMedia from '../modules/documentation-media';
+import type { Nuxt } from '@nuxt/schema';
 import { duxtSources } from '../build/sources/sources';
 import { documentationImageUrl } from '../build/sources/documentation-media';
 import type { DocumentationMedia } from '../build/sources/documentation-media';
@@ -79,8 +81,21 @@ it('loads remote tags and shared/localized images from their own checkout despit
     git('init', '-b', 'main');
     git('config', 'user.name', 'Media fixture');
     git('config', 'user.email', 'fixture@example.invalid');
-    for (const directory of ['docs/_assets', 'docs/de/_assets'])
+    for (const directory of [
+      'docs/_assets',
+      'docs/de/_assets',
+      'docs/_partials',
+      'docs/de/_partials'
+    ])
       mkdirSync(join(checkout, directory), { recursive: true });
+    writeFileSync(
+      join(checkout, 'docs/_partials/capture.md'),
+      '![Media](../_assets/demo.gif)'
+    );
+    writeFileSync(
+      join(checkout, 'docs/de/_partials/capture-de.md'),
+      '![Media](../_assets/demo.gif)'
+    );
     writeFileSync(join(checkout, 'docs/index.md'), '# Docs');
     writeFileSync(join(checkout, 'docs/de/index.md'), '# Dokumentation');
     writeFileSync(join(checkout, 'docs/_assets/demo.tape'), 'private source');
@@ -112,6 +127,11 @@ it('loads remote tags and shared/localized images from their own checkout despit
     );
     const address = server.address() as { port: number };
     process.chdir(checkout);
+    const hooks = new Map<string, (context: never) => void>();
+    duxtDocumentationMedia({}, {
+      options: { rootDir: checkout },
+      hook: (name, handler) => hooks.set(name, handler)
+    } as unknown as Nuxt);
     const collections = duxtSources([
       {
         repo: `http://127.0.0.1:${address.port}/acme/docs.git`,
@@ -129,7 +149,40 @@ it('loads remote tags and shared/localized images from their own checkout despit
     ]);
     const urls = new Set<string>();
     for (const [name, collection] of Object.entries(collections)) {
-      if (name.startsWith('duxt_partials')) continue;
+      if (name.startsWith('duxt_partials')) {
+        const localized = name.endsWith('_de');
+        for (const partialSource of collection.source!) {
+          await partialSource.prepare!({ rootDir: root });
+          expect(await partialSource.getKeys!()).toContain(
+            localized ? '_partials/capture-de.md' : '_partials/capture.md'
+          );
+        }
+        const partialUrls = new Set<string>();
+        for (const partialSource of collection.source!) {
+          const content = {
+            body: { value: [['img', { src: '../_assets/demo.gif' }]] }
+          };
+          const file = join(
+            partialSource.cwd,
+            localized
+              ? 'docs/de/_partials/capture-de.md'
+              : 'docs/_partials/capture.md'
+          );
+          hooks.get('content:file:afterParse')!({
+            file: { path: file },
+            collection,
+            content
+          } as never);
+          const url = (content.body.value[0]![1] as { src: string }).src;
+          expect(url).toMatch(/^\/_duxt\/media\/[^/]+\//);
+          expect(
+            readFileSync(join(checkout, '.data/duxt-media/public', url), 'utf8')
+          ).toBe(localized ? 'v2 German' : 'v2 shared');
+          partialUrls.add(url);
+        }
+        expect(partialUrls.size).toBe(collection.source!.length);
+        continue;
+      }
       const source = collection.source![0]!;
       await source.prepare!({ rootDir: root });
       const keys = await source.getKeys!();

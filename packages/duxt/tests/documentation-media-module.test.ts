@@ -35,7 +35,11 @@ it('mounts generated media for Nitro and the existing image provider and rewrite
       collection: {
         source: [
           {
-            duxtMedia: { root: join(root, 'docs'), prefix: '/_duxt/media/test' }
+            duxtMedia: {
+              root: join(root, 'docs'),
+              prefix: '/_duxt/media/test',
+              files: ['_assets/demo.gif']
+            }
           }
         ]
       },
