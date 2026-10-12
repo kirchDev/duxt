@@ -31,6 +31,7 @@ function fixture() {
   mkdirSync(join(docs, '_assets'), { recursive: true });
   mkdirSync(join(docs, '1.guides'), { recursive: true });
   writeFileSync(join(docs, '_assets/demo.gif'), 'generated animation');
+  writeFileSync(join(docs, '_assets/demo-dark.png'), 'dark variant');
   return { docs, output };
 }
 
@@ -95,5 +96,20 @@ it('keeps remote media inside the checkout when an ancestor directory is a symli
   );
   expect(existsSync(join(output, media.prefix, '_assets/demo.gif'))).toBe(
     false
+  );
+});
+
+it('preserves public image URLs that are not published documentation artifacts', () => {
+  const { docs, output } = fixture();
+  const media = publishDocumentationMedia(docs, output, 'local docs');
+  const file = join(docs, '1.guides/1.demo.md');
+  expect(documentationImageUrl('/_assets/brand.svg', file, media)).toBe(
+    '/_assets/brand.svg'
+  );
+  expect(documentationImageUrl('../_assets/missing.gif', file, media)).toBe(
+    '../_assets/missing.gif'
+  );
+  expect(documentationImageUrl('/_assets/demo.gif', file, media)).toBe(
+    `${media.prefix}/_assets/demo.gif`
   );
 });
