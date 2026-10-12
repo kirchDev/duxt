@@ -1,5 +1,40 @@
 # Changelog
 
+## [0.7.0](https://github.com/kirchDev/duxt/compare/duxt@v0.6.0...duxt@v0.7.0) (2026-10-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* **deps:** builds require Node >=24.15.0 on the Node 24 line. Update Node before installing or rebuilding the layer.
+
+### Features
+
+* **api-client:** bound and cancel browser requests ([7cee30a](https://github.com/kirchDev/duxt/commit/7cee30af3ce5cf910373bfe58aff98839e6fee9b))
+
+
+### Bug Fixes
+
+* **api-client:** write request sample strings with complete escaping ([bf60e54](https://github.com/kirchDev/duxt/commit/bf60e544b651ab4d51e02888119ea60cf92598ec))
+* **bruno:** redact credentials under percent-encoded query names ([70608c1](https://github.com/kirchDev/duxt/commit/70608c19f6a13e10f46c3ffdab5dd63ddf22ea4f))
+* **deps:** require Node 24.15 or newer ([1672d4b](https://github.com/kirchDev/duxt/commit/1672d4b1fa22dd75a08ea69edb22f8d496ef3e7a))
+* **deps:** update minor dependencies and deduplicate the lockfile ([2fc6949](https://github.com/kirchDev/duxt/commit/2fc69498ae3e9384c6a2cde05ce2ad6549f0f03d))
+* **deps:** upgrade constrained dependencies to patched releases ([ee5d5a6](https://github.com/kirchDev/duxt/commit/ee5d5a68c11532186a1e86c286a924b0e080d753))
+* **deps:** upgrade major dependencies and refresh transitive fixes ([b79b0c4](https://github.com/kirchDev/duxt/commit/b79b0c48bb7f735c4e39ab113040a23d68465468))
+* **devtools:** drop only cache directories the panel lists ([f976546](https://github.com/kirchDev/duxt/commit/f976546d2bff3b943271cccc4ffd5e77fa728f24))
+* **devtools:** refuse cross-origin cache deletions ([f0c0568](https://github.com/kirchDev/duxt/commit/f0c05681c892a33fbca94ede1af91b7404394b02))
+* **llms:** write export links against the configured site url ([5a755db](https://github.com/kirchDev/duxt/commit/5a755db6a955536df8865835906b209b544c26aa))
+* **mcp:** bound paginated documentation payload reads ([af2d48b](https://github.com/kirchDev/duxt/commit/af2d48b385dfe8662c4eb7340b8ee28f16c1e8f0))
+* **mcp:** share request-bound page lookup ([eb1a68d](https://github.com/kirchDev/duxt/commit/eb1a68d64d6d5476411e70e43cfff87780860568))
+* **mcp:** stop a search the client has cancelled ([9b22506](https://github.com/kirchDev/duxt/commit/9b225067d44858a607401aacceada23ec1c47f88))
+* **mermaid:** isolate reactive diagram rendering ([e89a846](https://github.com/kirchDev/duxt/commit/e89a846ed8fb762c2ab5e31a5190e8b918d8cba6))
+* **openapi:** drop unsafe url schemes from document links ([b0f766b](https://github.com/kirchDev/duxt/commit/b0f766bf404c21b4780cc80f673c42b4a25dc1ad))
+* **redirects:** accept only literal paths in redirectFrom ([98705ed](https://github.com/kirchDev/duxt/commit/98705ed4494be754894e89bfda4c7fd05077b23c))
+* **sections:** refuse remote artefacts that resolve outside the checkout ([65cfce6](https://github.com/kirchDev/duxt/commit/65cfce6d13b1f7011856ec1f510188adcfd8638a))
+* **sources:** check every downloaded repository before caching ([454777b](https://github.com/kirchDev/duxt/commit/454777b3685cacb1f664db463b6f137c8c358fbc))
+* **sources:** drop downloaded pages that resolve outside the checkout ([687dee5](https://github.com/kirchDev/duxt/commit/687dee5d673d9f9dc1d545efab7b4974e4f02de5))
+* **version:** fall back when an edition removes a page ([c4cc010](https://github.com/kirchDev/duxt/commit/c4cc01067b8632b79e93a00b0f81e6cbac7ab54e))
+* **www:** isolate checks and wait for UI readiness ([d85f27c](https://github.com/kirchDev/duxt/commit/d85f27ca8fa2338385ea12302f20dac775457afe))
+
 ## [0.6.0](https://github.com/kirchDev/duxt/compare/v0.5.0...duxt@v0.6.0) (2026-09-15)
 
 
