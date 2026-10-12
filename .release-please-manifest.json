@@ -1,3 +1,4 @@
 {
-  "packages/duxt": "0.6.0"
+  "packages/duxt": "0.6.0",
+  "packages/duxt-typesense": "0.0.0"
 }

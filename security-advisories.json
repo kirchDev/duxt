@@ -6,7 +6,7 @@
     "url": "https://github.com/advisories/GHSA-86w9-cpqp-85rv",
     "reviewed": "2026-10-11",
     "reviewBy": "2026-11-10",
-    "reachability": "Nitro/listhen TLS tooling; duxt performs no RSA signature verification with forge.",
+    "reachability": "Nitro/listhen TLS tooling; duxt performs no RSA signature verification with forge. The Typesense provider's Nuxt peer adds the same tooling path; its build sync uses fetch and randomUUID, and its browser search uses fetch, with no forge or RSA verification.",
     "remediation": "No patched release is published; follow the upstream advisory.",
     "findings": [
       {
@@ -40,7 +40,8 @@
           "packages__duxt>@nuxtjs/sitemap>nuxtseo-shared>nuxt>@nuxt/nitro-server>nitropack>listhen>node-forge",
           "packages__duxt>@nuxtjs/sitemap>nuxtseo-shared>nuxt-site-config>nuxtseo-shared>nuxt>@nuxt/nitro-server>nitropack>listhen>node-forge",
           "packages__duxt>vue-sonner>nuxt>@nuxt/nitro-server>nitropack>listhen>node-forge",
-          "packages__duxt>nuxt>@nuxt/nitro-server>nitropack>listhen>node-forge"
+          "packages__duxt>nuxt>@nuxt/nitro-server>nitropack>listhen>node-forge",
+          "packages__duxt-typesense>nuxt>@nuxt/nitro-server>nitropack>listhen>node-forge"
         ],
         "dev": false,
         "optional": false,
@@ -55,7 +56,7 @@
     "url": "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm",
     "reviewed": "2026-10-11",
     "reviewBy": "2026-11-10",
-    "reachability": "Build-time glob patterns; documentation visitors do not supply filesystem patterns.",
+    "reachability": "Build-time glob patterns; documentation visitors do not supply filesystem patterns. The Typesense provider's Nuxt peer adds the same Nitro build paths; its records and browser queries do not enter filesystem glob APIs.",
     "remediation": "No patched release is published; follow the upstream advisory.",
     "findings": [
       {
@@ -122,7 +123,9 @@
           "packages__duxt>vue-sonner>nuxt>@nuxt/nitro-server>nitropack>globby>fast-glob>micromatch>braces",
           "packages__duxt>vue-sonner>nuxt>@nuxt/nitro-server>nitropack>globby>micromatch>braces",
           "packages__duxt>nuxt>@nuxt/nitro-server>nitropack>globby>fast-glob>micromatch>braces",
-          "packages__duxt>nuxt>@nuxt/nitro-server>nitropack>globby>micromatch>braces"
+          "packages__duxt>nuxt>@nuxt/nitro-server>nitropack>globby>micromatch>braces",
+          "packages__duxt-typesense>nuxt>@nuxt/nitro-server>nitropack>globby>fast-glob>micromatch>braces",
+          "packages__duxt-typesense>nuxt>@nuxt/nitro-server>nitropack>globby>micromatch>braces"
         ],
         "dev": false,
         "optional": false,

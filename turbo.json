@@ -15,6 +15,14 @@
         "$TURBO_ROOT$/docs/**"
       ]
     },
+    "@kirchdev/duxt-typesense#test": {
+      "outputs": [],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/packages/duxt/app/**",
+        "$TURBO_ROOT$/packages/duxt/build/**"
+      ]
+    },
     "www#test": {
       "outputs": [],
       "inputs": [

@@ -11,6 +11,11 @@
     "packages/duxt": {
       "package-name": "@kirchdev/duxt",
       "changelog-path": "/CHANGELOG.md"
+    },
+    "packages/duxt-typesense": {
+      "package-name": "@kirchdev/duxt-typesense",
+      "changelog-path": "CHANGELOG.md",
+      "initial-version": "0.1.0"
     }
   }
 }

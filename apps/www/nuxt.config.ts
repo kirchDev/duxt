@@ -269,7 +269,22 @@ const movedDemoRoutes = Object.fromEntries(
 export default defineNuxtConfig({
   // By name, not by path: this is what a consumer writes, so the package's
   // exports map and files allowlist are exercised by the development site.
-  extends: ['@kirchdev/duxt'],
+  extends: [
+    '@kirchdev/duxt',
+    ...(process.env.DUXT_SEARCH_PROVIDER === 'typesense'
+      ? ['@kirchdev/duxt-typesense']
+      : [])
+  ],
+  ...(process.env.DUXT_SEARCH_PROVIDER === 'typesense'
+    ? {
+        duxtTypesense: {
+          endpoint: process.env.TYPESENSE_ENDPOINT,
+          collection: process.env.TYPESENSE_COLLECTION ?? 'duxt_docs',
+          searchKey: process.env.TYPESENSE_SEARCH_KEY,
+          adminKey: process.env.TYPESENSE_ADMIN_KEY
+        }
+      }
+    : {}),
   compatibilityDate: '2026-09-02',
 
   appConfig: { duxt: { version } },
