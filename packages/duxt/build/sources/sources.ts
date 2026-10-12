@@ -331,28 +331,8 @@ export function duxtSources(
       mediaPath,
       usedRef ? [refIsTag(usedRef) ? 'tag' : 'branch', refName(usedRef)] : null
     ]);
-    const output = documentationMediaDirectory();
     for (const contentSource of collection.source ?? []) {
-      const keys = contentSource.getKeys!;
-      const prepared = contentSource as typeof contentSource & {
-        duxtMediaIdentity?: string;
-        duxtMedia?: import('./documentation-media').DocumentationMedia;
-      };
-      // Include the closed-over identity in Content's collection checksum.
-      // Identical Markdown moved to a different docs root needs new URLs too.
-      prepared.duxtMediaIdentity = identity;
-      contentSource.getKeys = async () => {
-        const root = effective.repo
-          ? join(contentSource.cwd, mediaPath)
-          : join(repositoryRoot(), mediaPath);
-        prepared.duxtMedia = publishDocumentationMedia(
-          root,
-          output,
-          identity,
-          effective.repo ? contentSource.cwd : undefined
-        );
-        return keys();
-      };
+      prepareMedia(contentSource, effective.repo, mediaPath, identity);
     }
 
     collections[entry.collection] = collection;
@@ -365,6 +345,37 @@ export function duxtSources(
   }
 
   return collections;
+}
+
+/** Prepare media for a source, including partial sources sharing a collection. */
+function prepareMedia(
+  contentSource: NonNullable<
+    ReturnType<typeof defineCollection>['source']
+  >[number],
+  repo: string | undefined,
+  mediaPath: string,
+  identity: string
+) {
+  const output = documentationMediaDirectory();
+  const keys = contentSource.getKeys!;
+  const prepared = contentSource as typeof contentSource & {
+    duxtMediaIdentity?: string;
+    duxtMedia?: import('./documentation-media').DocumentationMedia;
+  };
+  // Include source ownership in Content's checksum, even when Markdown is unchanged.
+  prepared.duxtMediaIdentity = identity;
+  contentSource.getKeys = async () => {
+    const root = repo
+      ? join(contentSource.cwd, mediaPath)
+      : join(repositoryRoot(), mediaPath);
+    prepared.duxtMedia = publishDocumentationMedia(
+      root,
+      output,
+      identity,
+      repo ? contentSource.cwd : undefined
+    );
+    return keys();
+  };
 }
 
 /**
@@ -407,11 +418,11 @@ function partialFolders(
   expanded: ReturnType<typeof expandSources>
 ): Map<
   string | undefined,
-  { repo?: string; path: string; partials: string }[]
+  { repo?: string; path: string; partials: string; mediaPath: string }[]
 > {
   const byLocale = new Map<
     string | undefined,
-    { repo?: string; path: string; partials: string }[]
+    { repo?: string; path: string; partials: string; mediaPath: string }[]
   >();
   const seen = new Set<string>();
 
@@ -429,7 +440,17 @@ function partialFolders(
     seen.add(claim);
 
     const list = byLocale.get(key) ?? [];
-    list.push({ repo: effective.repo, path: effective.path, partials });
+    const base = source.path ?? 'docs';
+    const mediaPath =
+      effective.path === base || effective.path.startsWith(`${base}/`)
+        ? base
+        : effective.path;
+    list.push({
+      repo: effective.repo,
+      path: effective.path,
+      partials,
+      mediaPath
+    });
     byLocale.set(key, list);
   });
 
@@ -451,7 +472,12 @@ function partialFolders(
  * than resolves; see `modules/validate.ts`.
  */
 function definePartials(
-  folders: { repo?: string; path: string; partials: string }[]
+  folders: {
+    repo?: string;
+    path: string;
+    partials: string;
+    mediaPath: string;
+  }[]
 ) {
   const entries = folders.map((folder) =>
     folder.repo
@@ -478,6 +504,16 @@ function definePartials(
   });
 
   containedKeys(collection);
+  for (const [index, contentSource] of (collection.source ?? []).entries()) {
+    const folder = folders[index]!;
+    // Partials stay shared across versions and read the repository's default ref.
+    const identity = JSON.stringify([
+      folder.repo ?? repositoryRoot(),
+      folder.mediaPath,
+      null
+    ]);
+    prepareMedia(contentSource, folder.repo, folder.mediaPath, identity);
+  }
 
   return collection;
 }

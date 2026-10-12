@@ -9,6 +9,8 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { duxtSources, repositoryRoot } from '../build/sources/sources';
+import duxtDocumentationMedia from '../modules/documentation-media';
+import type { Nuxt } from '@nuxt/schema';
 
 vi.mock('node:child_process', async (importOriginal) => ({
   ...(await importOriginal<typeof import('node:child_process')>()),
@@ -311,5 +313,62 @@ it('drops a downloaded page that links out of its checkout', async () => {
     expect((await source.getKeys!()).sort()).toEqual(['alias.md', 'index.md']);
   } finally {
     rmSync(base, { recursive: true, force: true });
+  }
+});
+
+it('resolves parsed partial images from their own local source in a shared collection', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'duxt-partial-media-'));
+  const cwd = process.cwd();
+  try {
+    writeFileSync(join(root, '.git'), 'isolated fixture');
+    for (const folder of ['docs', 'other']) {
+      mkdirSync(join(root, folder, '_assets'), { recursive: true });
+      mkdirSync(join(root, folder, '_partials'), { recursive: true });
+      writeFileSync(join(root, folder, '_assets/demo.svg'), `${folder} image`);
+      writeFileSync(
+        join(root, folder, '_partials', `${folder}.md`),
+        '![Media](../_assets/demo.svg)'
+      );
+    }
+    process.chdir(root);
+    const hooks = new Map<string, (context: never) => void>();
+    duxtDocumentationMedia({}, {
+      options: { rootDir: root },
+      hook: (name, handler) => hooks.set(name, handler)
+    } as unknown as Nuxt);
+    const collection = duxtSources([
+      { path: 'docs' },
+      { path: 'other', slug: 'other' }
+    ]).duxt_partials;
+    for (const source of collection.source!) {
+      await source.prepare!({ rootDir: root });
+      await source.getKeys!();
+    }
+    const urls = new Set<string>();
+    for (const folder of ['docs', 'other']) {
+      const content = {
+        body: {
+          value: [
+            ['img', { src: '../_assets/demo.svg', dark: '/_assets/demo.svg' }]
+          ]
+        }
+      };
+      hooks.get('content:file:afterParse')!({
+        file: { path: join(root, folder, '_partials', `${folder}.md`) },
+        collection,
+        content
+      } as never);
+      const url = (content.body.value[0]![1] as { src: string }).src;
+      expect(url).toMatch(/^\/_duxt\/media\/[^/]+\/_assets\/demo\.svg$/);
+      expect(
+        readFileSync(join(root, '.data/duxt-media/public', url), 'utf8')
+      ).toBe(`${folder} image`);
+      expect((content.body.value[0]![1] as { dark: string }).dark).toBe(url);
+      urls.add(url);
+    }
+    expect(urls.size).toBe(2);
+  } finally {
+    process.chdir(cwd);
+    rmSync(root, { recursive: true, force: true });
   }
 });
