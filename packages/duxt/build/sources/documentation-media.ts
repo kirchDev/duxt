@@ -9,6 +9,16 @@ import {
 import { dirname, extname, join, relative, resolve, sep } from 'node:path';
 import { resolvesInside } from '../sections/section-input';
 
+const PRIVATE_DIRECTORIES = new Set([
+  '.git',
+  'node_modules',
+  '.data',
+  '.nuxt',
+  '.output',
+  '.turbo',
+  '.cache'
+]);
+
 const IMAGES = new Set([
   '.png',
   '.jpg',
@@ -41,12 +51,16 @@ export function publishDocumentationMedia(
   const media: DocumentationMedia = { root, prefix, files: [] };
   if (!existsSync(root) || lstatSync(root).isSymbolicLink()) return media;
   if (checkout && !resolvesInside(root, checkout)) return media;
+  const outputRoot = resolve(output);
   const descend = (directory: string, asset = false) => {
     for (const entry of readdirSync(directory, { withFileTypes: true })) {
       if (entry.isSymbolicLink()) continue;
       const absolute = join(directory, entry.name);
       if (entry.isDirectory()) {
-        if (entry.name !== '.git' && entry.name !== 'node_modules')
+        if (
+          !PRIVATE_DIRECTORIES.has(entry.name) &&
+          resolve(absolute) !== outputRoot
+        )
           descend(absolute, asset || entry.name === '_assets');
       } else if (
         asset &&

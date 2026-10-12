@@ -3,6 +3,7 @@ import {
   mkdtempSync,
   mkdirSync,
   readFileSync,
+  readdirSync,
   rmSync,
   symlinkSync,
   writeFileSync
@@ -112,4 +113,29 @@ it('preserves public image URLs that are not published documentation artifacts',
   expect(documentationImageUrl('/_assets/demo.gif', file, media)).toBe(
     `${media.prefix}/_assets/demo.gif`
   );
+});
+
+it('never republishes its nested output while retaining sibling authored assets', () => {
+  const { docs } = fixture();
+  const output = join(docs, '0.published');
+  mkdirSync(output);
+  mkdirSync(join(docs, '0.published-not-output/_assets'), { recursive: true });
+  writeFileSync(
+    join(docs, '0.published-not-output/_assets/demo.svg'),
+    'authored sibling'
+  );
+  const expected = [
+    '0.published-not-output/_assets/demo.svg',
+    '_assets/demo-dark.png',
+    '_assets/demo.gif'
+  ];
+  for (let pass = 0; pass < 3; pass++) {
+    const media = publishDocumentationMedia(docs, output, 'local docs');
+    expect(media.files.sort()).toEqual(expected);
+    expect(
+      readdirSync(join(output, media.prefix), { recursive: true })
+        .filter((file) => /\.(svg|png|gif)$/.test(file))
+        .sort()
+    ).toEqual(expected);
+  }
 });

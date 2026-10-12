@@ -3,6 +3,7 @@ import {
   mkdtempSync,
   mkdirSync,
   readFileSync,
+  readdirSync,
   rmSync,
   writeFileSync
 } from 'node:fs';
@@ -11,6 +12,7 @@ import { join } from 'node:path';
 import { duxtSources, repositoryRoot } from '../build/sources/sources';
 import duxtDocumentationMedia from '../modules/documentation-media';
 import type { Nuxt } from '@nuxt/schema';
+import type { DocumentationMedia } from '../build/sources/documentation-media';
 
 vi.mock('node:child_process', async (importOriginal) => ({
   ...(await importOriginal<typeof import('node:child_process')>()),
@@ -58,6 +60,61 @@ it('publishes docs media through the prepared source without creating asset page
         'utf8'
       )
     ).toBe('generated GIF');
+  } finally {
+    process.chdir(cwd);
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+it('publishes only authored root-source media on repeated page and partial preparation', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'duxt-root-media-'));
+  const cwd = process.cwd();
+  const authored = [
+    '_assets/demo.svg',
+    '1.guides/_assets/nested.svg',
+    'de-DE/_assets/localized.svg'
+  ];
+  try {
+    writeFileSync(join(root, '.git'), 'isolated fixture');
+    writeFileSync(join(root, 'index.md'), '# Root docs');
+    mkdirSync(join(root, '_partials'));
+    writeFileSync(
+      join(root, '_partials/demo.md'),
+      '![Demo](../_assets/demo.svg)'
+    );
+    for (const file of [
+      ...authored,
+      '.data/content/old-checkout/docs/_assets/old.svg',
+      '.nuxt/_assets/build.svg',
+      '.output/public/_assets/built.svg',
+      '.turbo/_assets/cached.svg',
+      '.cache/_assets/downloaded.svg'
+    ]) {
+      mkdirSync(join(root, file, '..'), { recursive: true });
+      writeFileSync(join(root, file), file);
+    }
+    mkdirSync(join(root, '.data/duxt-media/public'), { recursive: true });
+    process.chdir(root);
+    const collections = duxtSources([{ path: '.' }]);
+    for (let pass = 0; pass < 3; pass++) {
+      for (const collection of Object.values(collections)) {
+        for (const source of collection.source!) {
+          if (pass === 0) await source.prepare!({ rootDir: root });
+          await source.getKeys!();
+          const media = (source as unknown as { duxtMedia: DocumentationMedia })
+            .duxtMedia;
+          expect(media.files.sort()).toEqual([...authored].sort());
+          const output = join(root, '.data/duxt-media/public', media.prefix);
+          expect(
+            readdirSync(output, { recursive: true })
+              .filter((file) => file.endsWith('.svg'))
+              .sort()
+          ).toEqual([...authored].sort());
+          for (const file of authored)
+            expect(readFileSync(join(output, file), 'utf8')).toBe(file);
+        }
+      }
+    }
   } finally {
     process.chdir(cwd);
     rmSync(root, { recursive: true, force: true });
