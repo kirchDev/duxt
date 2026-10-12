@@ -24,6 +24,13 @@ declare module '@nuxt/schema' {
 }
 
 export default function duxtMeilisearchModule(_options: unknown, nuxt: Nuxt) {
+  // A layer loads this plain module by path; its option declarations must also
+  // reach the consuming app's TypeScript program without a manual type import.
+  nuxt.hook('prepare:types', ({ references }) => {
+    references.push({
+      path: fileURLToPath(new URL('./module.ts', import.meta.url))
+    });
+  });
   const options = nuxt.options.duxtMeilisearch ?? {};
   const host = options.host ?? '';
   const index = options.index ?? 'docs';
