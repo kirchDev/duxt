@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.1](https://github.com/kirchDev/duxt/compare/duxt@v0.8.0...duxt@v0.8.1) (2026-10-13)
+
+
+### Bug Fixes
+
+* **navigation:** hide sections an edition does not have ([#116](https://github.com/kirchDev/duxt/issues/116)) ([657c1b7](https://github.com/kirchDev/duxt/commit/657c1b76e112e06362dfdce0ae4439b799405553))
+
 ## [0.8.0](https://github.com/kirchDev/duxt/compare/duxt@v0.7.0...duxt@v0.8.0) (2026-10-12)
 
 
