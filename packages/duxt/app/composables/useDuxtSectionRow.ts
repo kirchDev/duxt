@@ -12,18 +12,36 @@
 export function useDuxtSectionRow() {
   const duxt = useDuxtConfig();
   const path = useDuxtPath();
+  const { data: navigation } = useDuxtNavigation();
 
   /**
    * THIS AREA'S ENTRIES, not every entry the site declared — see
    * `sectionsForPath`. A second source has top-level parts of its own, and the
    * row is "the parts of what you are reading" rather than a site index.
    */
-  const sections = computed(() =>
+  const scoped = computed(() =>
     sectionsForPath(duxt.sections ?? [], duxt.resolvedSources ?? [], path.value)
   );
 
+  /**
+   * AND ONLY THOSE THIS EDITION HAS — see `sectionsInEdition`. Read from the
+   * same navigation the sidebar and the header already load, so it costs no
+   * query of its own.
+   */
+  const sections = computed(() =>
+    sectionsInEdition(
+      scoped.value,
+      duxt.resolvedSources ?? [],
+      path.value,
+      navigation.value
+    )
+  );
+
+  // From the unfiltered list: the page being read exists, so its own entry is
+  // never one the edition lacks, and the header must not move while the tree
+  // is still loading.
   const visible = computed(() =>
-    sections.value.some(
+    scoped.value.some(
       (section) => section.to && path.value.startsWith(section.to)
     )
   );
