@@ -551,6 +551,20 @@ export default defineAppConfig({
         icon: 'lucide:list'
       },
       {
+        // After the reference rather than among the guides: each page here
+        // installs a package of its own, and a reader who never adds one has
+        // finished the documentation of duxt itself one row earlier.
+        label: {
+          'en-GB': 'Add-ons',
+          'de-DE': 'Add-ons',
+          'es-ES': 'Complementos',
+          'fr-FR': 'Extensions',
+          'pt-PT': 'Extensões'
+        },
+        to: '/add-ons',
+        icon: 'lucide:puzzle'
+      },
+      {
         label: {
           'en-GB': 'Conventions',
           'de-DE': 'Konventionen',
