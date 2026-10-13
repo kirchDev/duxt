@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   areaForPath,
   currentSection,
-  sectionsForPath
+  sectionsForPath,
+  sectionsInEdition
 } from '../app/utils/section-scope';
 
 /**
@@ -193,6 +194,105 @@ describe('sectionsForPath', () => {
     ];
 
     expect(areaForPath('/api/v2/widgets', sources)).toBe('/api/v2');
+  });
+});
+
+describe('sectionsInEdition', () => {
+  // This site's own shape: the release at the root, an older one and `main`
+  // under prefixes, the demo beside them, a release log generated into it.
+  const sources = [
+    { prefix: '', version: 'v0.8.0' },
+    { prefix: '/v0.7.0', version: 'v0.7.0' },
+    { prefix: '/main', version: 'main' },
+    { prefix: '/demo', repo: 'demo', version: 'v3.x' },
+    { prefix: '/releases', generated: { type: 'changelog' } }
+  ];
+  const row = [
+    { label: 'Guides', to: '/guides' },
+    { label: 'Add-ons', to: '/add-ons' },
+    { label: 'Releases', to: '/releases' },
+    { label: 'Docs', to: '/demo' },
+    { label: 'Elsewhere' }
+  ];
+  const tree = (prefix: string, sections: string[]) =>
+    sections.map((section) => ({
+      path: `${prefix}/${section}`,
+      children: [{ path: `${prefix}/${section}/first-page` }]
+    }));
+
+  it('drops an entry whose page the edition being read does not have', () => {
+    // `/add-ons` arrived after v0.8.0, so on the release it was a link to a 404
+    // on every page — and in the sheet, which offers the same list.
+    const labels = (path: string, navigation: { path: string }[]) =>
+      sectionsInEdition(row, sources, path, navigation).map((s) => s.label);
+
+    expect(labels('/guides/move-a-page', tree('', ['guides']))).toEqual([
+      'Guides',
+      'Releases',
+      'Docs',
+      'Elsewhere'
+    ]);
+    expect(
+      labels('/main/guides', tree('/main', ['guides', 'add-ons']))
+    ).toContain('Add-ons');
+  });
+
+  it('judges the row at the reader’s edition, as the row draws it', () => {
+    const atReader = sectionsForPath(row, sources, '/v0.7.0/guides');
+
+    expect(
+      sectionsInEdition(
+        atReader,
+        sources,
+        '/v0.7.0/guides',
+        tree('/v0.7.0', ['guides'])
+      ).map((s) => s.to)
+    ).not.toContain('/v0.7.0/add-ons');
+  });
+
+  it('leaves an entry at another edition to that edition', () => {
+    // The sheet links the release's sections from every edition. Whether the
+    // release has `/add-ons` is not something `/main`'s tree can answer.
+    expect(
+      sectionsInEdition(row, sources, '/main/guides', tree('/main', ['guides']))
+    ).toEqual(row);
+  });
+
+  it('counts a section whose overview is missing but whose pages are not', () => {
+    const navigation = [{ path: '/add-ons/typesense' }, { path: '/guides' }];
+
+    expect(
+      sectionsInEdition(row, sources, '/guides', navigation).map((s) => s.label)
+    ).toContain('Add-ons');
+  });
+
+  it('changes nothing it cannot judge', () => {
+    // Before the tree answers, on a generated section's page (whose tree is
+    // its own), and for an entry at the root — every one kept.
+    expect(sectionsInEdition(row, sources, '/guides', undefined)).toEqual(row);
+    expect(sectionsInEdition(row, sources, '/guides', null)).toEqual(row);
+    expect(
+      sectionsInEdition(row, sources, '/releases/v0-8-0', [
+        { path: '/releases/v0-8-0' }
+      ])
+    ).toEqual(row);
+    expect(
+      sectionsInEdition([{ to: '/' }], [{ prefix: '' }], '/guides', [])
+    ).toEqual([{ to: '/' }]);
+  });
+
+  it('leaves a single-source site with every page in place untouched', () => {
+    const flat = [{ prefix: '' }];
+    const sections = [{ to: '/guides' }, { to: '/reference' }];
+
+    expect(
+      sectionsInEdition(
+        sections,
+        flat,
+        '/guides',
+        tree('', ['guides', 'reference'])
+      )
+    ).toEqual(sections);
   });
 });
 
