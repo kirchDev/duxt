@@ -98,9 +98,19 @@ watch(
 );
 
 // One tree instead of two lists: the sections become children of the entry
-// that stands for the documentation. See `buildSheetNavigation`.
+// that stands for the documentation. See `buildSheetNavigation`. Without the
+// sections the edition being read does not have — see `sectionsInEdition`.
 const sheet = computed(() =>
-  buildSheetNavigation(duxt.navigation, duxt.sections, duxt.resolvedSources)
+  buildSheetNavigation(
+    duxt.navigation,
+    sectionsInEdition(
+      duxt.sections ?? [],
+      duxt.resolvedSources ?? [],
+      path.value,
+      navigation.value
+    ),
+    duxt.resolvedSources
+  )
 );
 
 /** A group owns the page when any of its children does. */

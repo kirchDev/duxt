@@ -208,6 +208,67 @@ export function sectionsForPath<T extends { to?: string }>(
   });
 }
 
+/** The least of a navigation node this file reads: where it is, and below. */
+interface NavigationNode {
+  path: string;
+  children?: NavigationNode[];
+}
+
+/**
+ * The entries whose page EXISTS in the edition being read.
+ *
+ * The row is declared once, for the site as it is today, and every edition
+ * shares it. A section added after a release — `/add-ons` beside the guides —
+ * is therefore offered on that release and on every older one, where its page
+ * was never written, and the entry is a link to a 404 on every page of them.
+ *
+ * So an entry pointing into the reader's own edition is kept only when that
+ * edition's navigation has its page, or a page under it. Everything this cannot
+ * judge stays: an entry without `to`, one at the site root, one into another
+ * source or a generated section (which has no place in this tree), one at a
+ * different edition than the reader's, and every entry while the tree is still
+ * unknown — an entry hidden by a lookup that has not answered yet is a part of
+ * the site that disappears for no reason.
+ */
+export function sectionsInEdition<T extends { to?: string }>(
+  sections: T[],
+  sources: Area[],
+  path: string,
+  navigation: readonly NavigationNode[] | null | undefined
+): T[] {
+  // The tree is the one the reader's page is in. On a generated section's page
+  // — a release, an endpoint — that is the section's own, and judging the
+  // documentation's entries against it would empty the row.
+  const reader = sourceForPath(path, sources);
+  if (!navigation || !reader || reader.generated) return sections;
+
+  const pages: string[] = [];
+  const walk = (nodes: readonly NavigationNode[]) => {
+    for (const node of nodes) {
+      pages.push(node.path);
+      if (node.children) walk(node.children);
+    }
+  };
+  walk(navigation);
+
+  return sections.filter((section) => {
+    const to = section.to;
+    if (!to || to === '/') return true;
+
+    const target = sourceForPath(to, sources);
+    if (
+      !target ||
+      target.generated ||
+      !sameTree(target, reader, sources) ||
+      target.version !== reader.version
+    ) {
+      return true;
+    }
+
+    return pages.some((page) => isInside(page, to));
+  });
+}
+
 /**
  * WHICH ONE of an area's entries is the one being read.
  *
