@@ -12,6 +12,14 @@ let browser: Browser | undefined;
 let mode: 'large' | 'stall' = 'large';
 let disconnected = 0;
 let requests = 0;
+// The test server observes a request or a closed stream asynchronously, after
+// the page has already redrawn, so a counter is polled rather than read once.
+async function eventually(condition: () => boolean) {
+  const deadline = Date.now() + 5000;
+  while (!condition() && Date.now() < deadline)
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  return condition();
+}
 const api = createServer((request, response) => {
   response.setHeader('access-control-allow-origin', '*');
   response.setHeader(
@@ -109,10 +117,18 @@ try {
     .filter({ hasText: 'Response preview limited' })
     .waitFor();
   mode = 'stall';
+  const stalled = requests;
   await form.getByRole('button', { name: 'Send', exact: true }).click();
+  assert.ok(
+    await eventually(() => requests > stalled),
+    'Cancel test starts a real request'
+  );
   await form.getByRole('button', { name: 'Cancel', exact: true }).click();
   await page.getByText('Request cancelled.', { exact: true }).waitFor();
-  assert.ok(disconnected > 0, 'Cancel closes the stalled response stream');
+  assert.ok(
+    await eventually(() => disconnected > 0),
+    'Cancel closes the stalled response stream'
+  );
   await page.clock.install();
   await form.getByRole('button', { name: 'Send', exact: true }).click();
   await page.clock.fastForward(31_000);
@@ -124,15 +140,18 @@ try {
   const beforeRequests = requests;
   await form.getByRole('button', { name: 'Send', exact: true }).click();
   await form.getByRole('button', { name: 'Cancel', exact: true }).waitFor();
-  const deadline = Date.now() + 5000;
-  while (requests === beforeRequests && Date.now() < deadline)
-    await new Promise((resolve) => setTimeout(resolve, 20));
-  assert.ok(requests > beforeRequests, 'Navigation test starts a real request');
+  assert.ok(
+    await eventually(() => requests > beforeRequests),
+    'Navigation test starts a real request'
+  );
   await page.goto(`${origin}/getting-started`);
   await page.waitForFunction(() =>
     document.querySelector('h1')?.textContent?.includes('Introduction')
   );
-  assert.ok(disconnected > before, 'Navigation closes the request');
+  assert.ok(
+    await eventually(() => disconnected > before),
+    'Navigation closes the request'
+  );
   console.log(
     'OpenAPI: bounded response, cancellation, timeout and navigation cleanup passed.'
   );
