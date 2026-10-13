@@ -1,7 +1,7 @@
 {
   "$schema": "https://www.schemastore.org/package.json",
   "name": "@kirchdev/duxt-typesense",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Opt-in Typesense search and build-time synchronization for duxt.",
   "license": "MIT",
   "repository": {
