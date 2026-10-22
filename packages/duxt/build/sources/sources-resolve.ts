@@ -141,8 +141,14 @@ export interface DuxtSource {
    * Writing `repo` instead would be the obvious move and the wrong one: `repo`
    * is what makes Content DOWNLOAD a source, so naming this repository there
    * would have the build clone the checkout it is already standing in.
+   *
+   * `path` is the folder in THAT repository which this source's own `path`
+   * stands for. Only needed where the two differ — content copied into a
+   * build context, or a sibling checkout read through `../` — because the
+   * folder on disk is then not the folder on the forge, and "Edit this page"
+   * would open a file that does not exist there.
    */
-  origin?: { repo: string; ref?: string };
+  origin?: { repo: string; ref?: string; path?: string };
   /**
    * Read this source's git history for "Last updated" and the contributors.
    *
@@ -348,6 +354,11 @@ export interface DuxtResolvedSource {
   repositoryUrl?: string;
   /** The ref the pages were read at, by name. */
   ref?: string;
+  /**
+   * Folder inside `repository` holding this collection's Markdown, where it is
+   * not `path` — see `origin.path`. Links back read this first.
+   */
+  originPath?: string;
   /** Which namespace that ref lives in. */
   refKind?: 'branch' | 'tag';
   /** Folder inside the repository holding the Markdown. */
@@ -603,6 +614,39 @@ export function expandSources(
   );
 }
 
+/**
+ * Where a folder read off disk sits in the repository `origin` names.
+ *
+ * A locale's folder is mapped through the source's own: `wiki-content/docs/en`
+ * under `wiki-content/docs`, with `origin.path` `docs`, is `docs/en`. A folder
+ * outside the source's cannot be mapped, and is rejected rather than guessed —
+ * a link to the wrong file is worse than no link.
+ */
+export function originFolder(
+  originPath: string | undefined,
+  sourcePath: string | undefined,
+  folder: string
+): string | undefined {
+  if (originPath === undefined) return undefined;
+
+  const trim = (value: string) =>
+    value.replace(/^\.\//, '').replace(/\/+$/, '');
+  const base = trim(sourcePath ?? '');
+  const target = trim(originPath);
+  const own = trim(folder);
+
+  if (own === base) return target;
+  if (base === '' || own.startsWith(`${base}/`)) {
+    const rest = base === '' ? own : own.slice(base.length + 1);
+    return [target, rest].filter(Boolean).join('/');
+  }
+
+  throw new Error(
+    `duxt: origin.path cannot map "${folder}", which is outside the source ` +
+      `path "${sourcePath ?? ''}". Keep its locale folders under the source.`
+  );
+}
+
 export function resolveSources(
   sources: DuxtSource[],
   options: DuxtSourcesOptions = {}
@@ -732,6 +776,9 @@ export function resolveSources(
           ? repoUrl(source.origin.repo)
           : undefined,
       ref: name ?? source.origin?.ref,
+      originPath: entry.repo
+        ? undefined
+        : originFolder(source.origin?.path, source.path, entry.path),
       refKind: effectiveRef
         ? refIsTag(effectiveRef)
           ? 'tag'

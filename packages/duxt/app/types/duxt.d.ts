@@ -292,7 +292,7 @@ declare global {
      * The repository a source read off disk lives in, for links back to it.
      * Not `repo`, which is what makes Content download a source.
      */
-    origin?: { repo: string; ref?: string };
+    origin?: { repo: string; ref?: string; path?: string };
     /**
      * Read this source's git history for "Last updated" and the contributors.
      * Off by default for a remote source: Content clones with `--depth 1`, and
@@ -480,6 +480,8 @@ declare global {
     repositoryUrl?: string;
     ref?: string;
     refKind?: 'branch' | 'tag';
+    /** Folder inside `repository`, where it is not `path` — see `origin.path`. */
+    originPath?: string;
     path: string;
     /** The locale this collection serves; absent on a site with no translations. */
     locale?: string;

@@ -56,7 +56,8 @@ const file = computed(() => {
     ? sourceFilePath(
         page.value.stem,
         source.value?.prefix ?? '',
-        source.value?.path ?? 'docs'
+        // The folder on the forge, where the one on disk is a copy of it.
+        source.value?.originPath ?? source.value?.path ?? 'docs'
       )
     : undefined;
 });
