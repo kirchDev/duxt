@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.9.0](https://github.com/kirchDev/duxt/compare/duxt@v0.8.1...duxt@v0.9.0) (2026-10-22)
+
+
+### Features
+
+* **sources:** map origin links onto the forge folder with origin.path ([95b60c2](https://github.com/kirchDev/duxt/commit/95b60c2e7a0d065ea30398580bde7406103eca0d))
+
+
+### Bug Fixes
+
+* **sources:** trim origin folders without a backtracking regex ([b9bc069](https://github.com/kirchDev/duxt/commit/b9bc069d7bec4a3ea489a9bce8ba71736a857d75))
+
 ## [0.8.1](https://github.com/kirchDev/duxt/compare/duxt@v0.8.0...duxt@v0.8.1) (2026-10-13)
 
 
