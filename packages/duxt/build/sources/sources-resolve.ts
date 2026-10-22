@@ -629,8 +629,14 @@ export function originFolder(
 ): string | undefined {
   if (originPath === undefined) return undefined;
 
-  const trim = (value: string) =>
-    value.replace(/^\.\//, '').replace(/\/+$/, '');
+  // A loop rather than `/\/+$/`: the paths are consumer input, and an anchored
+  // repetition is a polynomial backtrack on a long run of slashes.
+  const trim = (value: string) => {
+    let end = value.length;
+    while (end > 0 && value[end - 1] === '/') end--;
+    const kept = value.slice(0, end);
+    return kept.startsWith('./') ? kept.slice(2) : kept;
+  };
   const base = trim(sourcePath ?? '');
   const target = trim(originPath);
   const own = trim(folder);
