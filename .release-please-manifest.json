@@ -1,5 +1,5 @@
 {
-  "packages/duxt": "0.8.1",
+  "packages/duxt": "0.9.0",
   "packages/duxt-typesense": "0.1.0",
   "packages/duxt-meilisearch": "0.1.0"
 }
