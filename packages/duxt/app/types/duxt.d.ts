@@ -287,7 +287,7 @@ declare global {
      * `duxt-typesense@v0.1.0`. Applies to `latest` and `releases`; plain
      * `vX.Y.Z` tags still count.
      */
-    tagComponent?: string;
+    tagComponent?: string | readonly string[];
     /**
      * The repository a source read off disk lives in, for links back to it.
      * Not `repo`, which is what makes Content download a source.

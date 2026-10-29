@@ -60,8 +60,13 @@ export interface DuxtSource {
    * component tags, and dropping them would unpublish every earlier release.
    *
    * Unset, every tag that reads as a version is a candidate, prefixed or not.
+   *
+   * A LIST names a family released on one version line — the layer and its
+   * companion layers under `versioning: linked` — so `latest` and `releases`
+   * follow whichever of them released last. One version carried by several
+   * of them is one release, published from the tag of the name listed first.
    */
-  tagComponent?: string;
+  tagComponent?: string | readonly string[];
   /**
    * Languages this source is available in, beyond the one written in `path`.
    *
@@ -964,9 +969,12 @@ export const versionTagName = (tag: string): string =>
  */
 export function tagBelongsTo(
   tag: DuxtVersionTag,
-  component: string | undefined
+  component: string | readonly string[] | undefined
 ): boolean {
-  return !component || !tag.component || tag.component === component;
+  if (!component || !tag.component) return true;
+  return typeof component === 'string'
+    ? tag.component === component
+    : component.includes(tag.component);
 }
 
 /**
