@@ -276,23 +276,30 @@ export default defineNuxtConfig({
      * @nuxtjs/sitemap wires itself into Content's collections, and it says so
      * out loud when it is loaded second — "this may cause issues with the
      * integration". It does: the sitemap then lists the site's routes and not
-     * one documentation page. The bundle loads its modules in its own order,
-     * so the whole bundle goes here rather than three named modules.
+     * one documentation page.
      *
-     * `@nuxtjs/seo` is an ALIAS, not a wrapper — its own documentation says it
-     * "contains no logic of its own". What it buys is the four modules this
-     * layer used to do by hand: schema.org from `nuxt-schema-org`, the
-     * automatic canonical and og/twitter tags from `nuxt-seo-utils`, the link
-     * check, and `nuxt-site-config` as the one place `site.url` is read from.
-     * It also completes the shared devtools panel, which every one of these
-     * modules feeds and which lists the ones that are missing.
+     * THE SEVEN MODULES BY NAME, not the `@nuxtjs/seo` bundle — ADR-0012. The
+     * bundle is an alias for them, and from v6 on it also installs
+     * `nuxt-ai-ready`, which serves its own llms.txt, Markdown and MCP tools
+     * beside the layer's, and `nuxt-skew-protection`. A site that extends the
+     * layer inherits every module the layer loads, so the layer loads only the
+     * ones it uses, in the order the bundle installs them: schema.org from
+     * `nuxt-schema-org`, the automatic canonical and og/twitter tags from
+     * `nuxt-seo-utils`, the link check, and `nuxt-site-config` as the one place
+     * `site.url` is read from.
      *
      * They all read `site.url`, which the duxt module fills in from
      * `i18n.baseUrl` so a consumer states its origin once rather than five
      * times; without one they degrade to relative output rather than inventing
      * a domain.
      */
-    '@nuxtjs/seo',
+    '@nuxtjs/robots',
+    '@nuxtjs/sitemap',
+    'nuxt-link-checker',
+    'nuxt-og-image',
+    'nuxt-schema-org',
+    'nuxt-seo-utils',
+    'nuxt-site-config',
     '@nuxt/image',
 
     '@nuxt/content',

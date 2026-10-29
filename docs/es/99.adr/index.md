@@ -24,3 +24,4 @@ anterior, nunca como una edición de este.
 | [ADR-0009](/adr/0009-take-the-seo-stack-from-the-nuxt-seo-bundle) | Tomar la base de SEO del paquete Nuxt SEO | accepted | 2026-09-08 |
 | [ADR-0010](/adr/0010-keep-contents-per-collection-search-as-the-default) | Mantener la búsqueda por colección de Content como predeterminada | accepted | 2026-09-12 |
 | [ADR-0011](/adr/0011-host-the-provider-layers-in-a-turborepo-monorepo) | Alojar las capas proveedoras en un monorepo de Turborepo | accepted | 2026-09-15 |
+| [ADR-0012](/adr/0012-load-the-nuxt-seo-modules-by-name) | Cargar los módulos de Nuxt SEO por nombre | accepted | 2026-10-29 |

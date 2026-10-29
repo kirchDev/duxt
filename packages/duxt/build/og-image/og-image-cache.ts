@@ -504,10 +504,10 @@ const RENDERER_PACKAGES = [
 /**
  * The installed versions of the renderers, read out of the pnpm lockfile.
  *
- * NOT `require.resolve`, which cannot see them. `nuxt-og-image` arrives as a
- * dependency of `@nuxtjs/seo` and `satori` as a dependency of that, so under
- * pnpm's isolated linker neither sits anywhere a resolver starting at the site
- * — or at this file — would look. The lockfile is the one place that names
+ * NOT `require.resolve`, which cannot see them. `nuxt-og-image` is the
+ * layer's dependency and `satori` one of its own, so under pnpm's isolated
+ * linker neither sits anywhere a resolver starting at the site — or at this
+ * file — reliably looks. The lockfile is the one place that names
  * every version regardless of who depends on it.
  *
  * A site installed with something other than pnpm gets an empty record and

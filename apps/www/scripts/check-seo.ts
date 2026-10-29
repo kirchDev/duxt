@@ -77,7 +77,7 @@ async function main() {
     env: {
       // The two names the modules read for the same fact: i18n's for the
       // alternate links and duxt's own `absolute()`, site config's for
-      // everything under @nuxtjs/seo.
+      // every Nuxt SEO module.
       NUXT_PUBLIC_I18N_BASE_URL: ORIGIN,
       NUXT_SITE_URL: ORIGIN
     }

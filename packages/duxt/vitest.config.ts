@@ -19,7 +19,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@nuxtjs/sitemap/content': createRequire(
-        import.meta.resolve('@nuxtjs/seo')
+        import.meta.resolve('@nuxtjs/sitemap')
       ).resolve('@nuxtjs/sitemap/content')
     }
   },

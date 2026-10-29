@@ -69,7 +69,8 @@ publicHoistPattern:
   - '@nuxt/icon'
   - '@nuxt/image'
   - '@nuxtjs/i18n'
-  - '@nuxtjs/seo'
+  - '@nuxtjs/robots'
+  - '@nuxtjs/sitemap'
   - '@resvg/resvg-js'
   - '@shikijs/transformers'
   - '@tailwindcss/vite'
@@ -80,6 +81,11 @@ publicHoistPattern:
   - fuse.js
   - jiti
   - mermaid
+  - nuxt-link-checker
+  - nuxt-og-image
+  - nuxt-schema-org
+  - nuxt-seo-utils
+  - nuxt-site-config
   - reka-ui
   - satori
   - shiki
@@ -102,8 +108,10 @@ overrides:
   'fontless>esbuild': 0.28.2
   'satori>fflate': 0.8.3
   '@shuding/opentype.js>fflate': 0.8.3
-  '@nuxt/devtools>simple-git': 4.0.2
   'mermaid>katex': 0.19.0
+  # miniflare pins undici exactly; 7.30.1 carries the fixes for its eight
+  # advisories within the same 7.x line.
+  'miniflare>undici': 7.30.1
   'miniflare>sharp': 0.35.5
   # agents uses both MCP generations; keep the v2 client/server/core aligned
   # and share the toolkit's v1 SDK so its legacy instanceof checks still work.
@@ -133,8 +141,3 @@ allowBuilds:
   # nobody uses, and refusing the build only moves the failure to the first
   # person who tries.
   workerd: true
-
-# DevTools still imports the default factory removed by the patched simple-git
-# major. Drop this import-only patch when DevTools adopts its named export.
-patchedDependencies:
-  '@nuxt/devtools@3.4.2': patches/@nuxt__devtools@3.4.2.patch

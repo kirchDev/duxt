@@ -181,6 +181,24 @@ test('the sitemap wildcard root is exempt without hiding new sitemap handlers', 
   ).toContain('/__sitemap__/new-endpoint');
 });
 
+test('the MCP toolkit’s discovery documents under the MCP route are exempt', () => {
+  // @nuxtjs/mcp-toolkit 0.24.2 registers them under the server's own path as
+  // well as at the root; only the `.well-known` subtree is exempt, not `/mcp/`.
+  expect(
+    verifyHandlerCoverage([
+      ...registeredHandlers(),
+      '/mcp/.well-known/oauth-protected-resource',
+      '/mcp/.well-known/openid-configuration',
+      '/mcp/:handler/.well-known/oauth-authorization-server'
+    ])
+  ).toEqual([]);
+  expect(
+    verifyHandlerCoverage([...registeredHandlers(), '/mcp/new-endpoint']).join(
+      '\n'
+    )
+  ).toContain('/mcp/new-endpoint');
+});
+
 test('every exemption says why the route is not the site’s to classify', () => {
   for (const entry of EXEMPT_HANDLERS) {
     // `''` is the middleware group and the one pattern that is not a path.
