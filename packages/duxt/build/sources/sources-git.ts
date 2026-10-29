@@ -159,28 +159,54 @@ function tagsFor(source: DuxtSource, what: string): string[] {
 /**
  * The version tags a source may publish from: every tag that reads as a
  * version and belongs to the source's `tagComponent`, when it names one.
+ *
+ * A family of components shares one version line, so one release is often
+ * tagged once per member — `duxt@v0.10.0` beside `duxt-typesense@v0.10.0`.
+ * Those are one version, kept once, from the member listed first.
  */
 function versionTags(
   tags: string[],
-  component: string | undefined
+  component: string | readonly string[] | undefined
 ): { tag: string; version: DuxtVersionTag }[] {
-  return tags
+  const matching = tags
     .map((tag) => ({ tag, version: parseVersionTag(tag) }))
     .filter(
       (entry): entry is { tag: string; version: DuxtVersionTag } =>
         Boolean(entry.version) && tagBelongsTo(entry.version!, component)
     );
+  if (typeof component === 'string' || !component) return matching;
+
+  const rank = (entry: { version: DuxtVersionTag }) =>
+    entry.version.component
+      ? component.indexOf(entry.version.component)
+      : component.length;
+  const byVersion = new Map<string, { tag: string; version: DuxtVersionTag }>();
+  for (const entry of matching) {
+    const key = versionKey(entry.version);
+    const kept = byVersion.get(key);
+    if (!kept || rank(entry) < rank(kept)) byVersion.set(key, entry);
+  }
+  return [...byVersion.values()];
 }
 
+/** One version regardless of who tagged it or whether it carries a `v`. */
+const versionKey = (version: DuxtVersionTag) =>
+  version.numbers.join('.') + (version.pre ? `-${version.pre}` : '');
+
 /** How a source's tag restriction reads in an error, or nothing without one. */
-const componentClause = (source: DuxtSource) =>
-  source.tagComponent ? ` for the component "${source.tagComponent}"` : '';
+const componentClause = (source: DuxtSource) => {
+  const names = source.tagComponent;
+  if (!names || names.length === 0) return '';
+  return typeof names === 'string'
+    ? ` for the component "${names}"`
+    : ` for the components ${names.map((name) => `"${name}"`).join(', ')}`;
+};
 
 /** Tags selected by a source's explicit release policy, newest first. */
 function releaseTags(
   tags: string[],
   releases: DuxtSourceReleases,
-  component: string | undefined
+  component: string | readonly string[] | undefined
 ): string[] {
   const parsed = versionTags(tags, component)
     .filter((entry) => releases.prereleases || !entry.version.pre)

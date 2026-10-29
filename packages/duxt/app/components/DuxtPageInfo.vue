@@ -42,7 +42,8 @@ const props = defineProps<{
 
 const page = computed(() => props.page);
 
-const { source } = useDuxtCollection();
+const { source, sources } = useDuxtCollection();
+const path = useDuxtPath();
 const { locale, t } = useI18n();
 const duxt = useDuxtConfig();
 
@@ -71,6 +72,52 @@ const link = computed(() =>
         file.value
       )
     : undefined
+);
+
+/**
+ * Where a reader of a TAG edits this page: the same page on the branch the
+ * source also publishes — see `editableEdition` — and only where that edition
+ * still has it, so a page renamed since the tag gets no form on a 404.
+ *
+ * The stem is read off the branch's own row rather than reused from this one:
+ * a numbered folder can move between the two, and the stem is the only thing
+ * that names the file.
+ *
+ * Nothing is read after the `await` but values captured before it — the rule
+ * `tests/async-data-context.test.ts` holds.
+ */
+const { data: editLink } = useAsyncData(
+  () => `duxt-edit-link-${path.value}`,
+  async () => {
+    const own = source.value;
+    const branch = editableEdition(sources.value, own);
+    if (!own || !branch) return null;
+
+    const counterpart = versionPath(
+      path.value,
+      own.prefix,
+      branch.prefix || '/'
+    );
+    const hit = await queryCollection(branch.collection as DuxtCollectionArg)
+      .path(counterpart)
+      .select('stem')
+      .first();
+    if (!hit) return null;
+
+    const target = branch.generated
+      ? branch.path
+      : sourceFilePath(
+          hit.stem,
+          branch.prefix,
+          branch.originPath ?? branch.path
+        );
+
+    return (
+      sourceLink(branch.repositoryUrl, branch.ref, branch.refKind, target) ??
+      null
+    );
+  },
+  { default: () => null, watch: [path] }
 );
 
 /**
@@ -126,6 +173,18 @@ const actions = computed(() => {
       icon: 'lucide:git-compare',
       label: t('duxt.page.compare'),
       to: page.value.compare,
+      external: true
+    });
+  }
+
+  // A tag has no edit form of its own, but its branch may — see `editLink`.
+  // Drawn first, beside the tag's own source rather than instead of it: the
+  // reader may want either the text as released or the place to fix it.
+  if (editLink.value) {
+    entries.push({
+      icon: 'lucide:pencil',
+      label: t('duxt.page.edit'),
+      to: editLink.value.url,
       external: true
     });
   }

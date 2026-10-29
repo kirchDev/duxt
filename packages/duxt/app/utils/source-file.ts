@@ -1,3 +1,5 @@
+import { sameArtefact } from './version-choices';
+
 /**
  * From a page back to the file it was written in.
  *
@@ -81,4 +83,35 @@ export function sourceLink(
   }
 
   return undefined;
+}
+
+/**
+ * The edition a reader of a TAG can edit instead: the branch the same source
+ * also publishes.
+ *
+ * `sourceLink` refuses an edit form on a tag, and rightly — but a reader of the
+ * default version is on a tag nearly always, so the refusal alone left the
+ * whole default edition without an edit link. The branch is where a fix to the
+ * page actually lands. Whether the page still EXISTS there is the caller's
+ * question, answered against that edition's collection before the link is
+ * drawn: a file renamed since the tag would otherwise be an edit form on a 404.
+ *
+ * Same repository, same artefact and same language, so a German page of
+ * v0.9.0 is edited as the German page on `main` and an API reference as the
+ * API reference. The first such branch in manifest order wins.
+ */
+export function editableEdition(
+  sources: DuxtResolvedSource[],
+  current: DuxtResolvedSource | undefined
+): DuxtResolvedSource | undefined {
+  if (current?.refKind !== 'tag' || !current.repositoryUrl) return undefined;
+
+  return sources.find(
+    (source) =>
+      source.refKind === 'branch' &&
+      Boolean(source.ref) &&
+      source.repositoryUrl === current.repositoryUrl &&
+      source.locale === current.locale &&
+      sameArtefact(source, current)
+  );
 }

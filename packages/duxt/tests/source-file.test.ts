@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { sourceFilePath, sourceLink } from '../app/utils/source-file';
+import {
+  editableEdition,
+  sourceFilePath,
+  sourceLink
+} from '../app/utils/source-file';
 
 describe('sourceFilePath', () => {
   it('strips the URL prefix and puts the folder back', () => {
@@ -102,5 +106,59 @@ describe('sourceLink', () => {
     expect(
       sourceLink('https://git.example.com/app', 'main', 'branch', 'docs/a.md')
     ).toBeUndefined();
+  });
+});
+
+describe('editableEdition', () => {
+  const edition = (
+    overrides: Partial<DuxtResolvedSource>
+  ): DuxtResolvedSource => ({
+    collection: 'docs',
+    prefix: '',
+    path: 'docs',
+    isDefault: false,
+    isDefaultLocale: true,
+    status: 'current',
+    history: true,
+    repositoryUrl: 'https://github.com/kirchDev/duxt',
+    ...overrides
+  });
+
+  const tag = edition({ ref: 'duxt@v0.10.0', refKind: 'tag', isDefault: true });
+  const main = edition({
+    collection: 'docs_main',
+    prefix: '/main',
+    ref: 'main',
+    refKind: 'branch'
+  });
+
+  it('offers the branch the same source publishes beside a tag', () => {
+    expect(editableEdition([tag, main], tag)).toBe(main);
+  });
+
+  it('offers nothing on a branch, which edits itself', () => {
+    expect(editableEdition([tag, main], main)).toBeUndefined();
+  });
+
+  it('keeps to the same language', () => {
+    const german = { ...tag, locale: 'de', collection: 'docs_de' };
+    const germanMain = { ...main, locale: 'de', collection: 'docs_de_main' };
+
+    expect(editableEdition([tag, main, german, germanMain], german)).toBe(
+      germanMain
+    );
+  });
+
+  it('keeps to the same repository and artefact', () => {
+    const elsewhere = {
+      ...main,
+      repositoryUrl: 'https://github.com/kirchDev/other'
+    };
+    const reference = {
+      ...main,
+      generated: { declaration: 'openapi' } as DuxtResolvedSource['generated']
+    };
+
+    expect(editableEdition([tag, elsewhere, reference], tag)).toBeUndefined();
   });
 });

@@ -28,6 +28,19 @@ vi.mock('node:child_process', () => ({
       ].join('\n');
     }
 
+    // A family released on one linked version line: every member tagged at
+    // v0.10.0, then a typesense-only v0.10.1, beside an unrelated package.
+    if (url.endsWith('/family')) {
+      return [
+        'deadbeef\trefs/tags/v0.4.0',
+        'deadbeef\trefs/tags/duxt-typesense@v0.10.0',
+        'deadbeef\trefs/tags/duxt@v0.10.0',
+        'deadbeef\trefs/tags/duxt-meilisearch@v0.10.0',
+        'deadbeef\trefs/tags/duxt-typesense@v0.10.1',
+        'deadbeef\trefs/tags/other@v9.0.0'
+      ].join('\n');
+    }
+
     return url.endsWith('/legacy')
       ? 'deadbeef\trefs/tags/v0.2.0\n'
       : url.endsWith('/empty')
@@ -279,6 +292,52 @@ describe('resolveLatestRefs', () => {
         }
       ])
     ).toThrow(/acme\/empty.*"duxt"/is);
+  });
+
+  it('resolves latest across a family of components', () => {
+    // A companion-only release moves the family forward, so its docs reach the
+    // canonical edition without waiting for the layer's next release.
+    const [source] = resolveLatestRefs([
+      {
+        repo: 'acme/family',
+        tagComponent: ['duxt', 'duxt-typesense', 'duxt-meilisearch'],
+        refs: [{ tag: 'latest', default: true }]
+      }
+    ]);
+
+    expect(source!.refs).toEqual([
+      expect.objectContaining({ tag: 'duxt-typesense@v0.10.1', default: true })
+    ]);
+  });
+
+  it('publishes a version the family shares once, from the first name', () => {
+    const [source] = resolveLatestRefs([
+      {
+        repo: 'acme/family',
+        tagComponent: ['duxt', 'duxt-typesense', 'duxt-meilisearch'],
+        releases: { select: 'all' }
+      }
+    ]);
+
+    // v0.10.0 carries three tags and is one release; an unrelated package's
+    // tags never join the family.
+    expect(source!.refs).toEqual([
+      { tag: 'duxt-typesense@v0.10.1' },
+      { tag: 'duxt@v0.10.0' },
+      { tag: 'v0.4.0' }
+    ]);
+  });
+
+  it('names every component of a family that has no tags', () => {
+    expect(() =>
+      resolveLatestRefs([
+        {
+          repo: 'acme/empty',
+          tagComponent: ['duxt', 'duxt-typesense'],
+          refs: [{ tag: 'latest', default: true }]
+        }
+      ])
+    ).toThrow(/"duxt", "duxt-typesense"/);
   });
 
   it('reports a refused repository URL as the refusal it is', () => {
