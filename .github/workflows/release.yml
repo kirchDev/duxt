@@ -1,55 +1,99 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 
-# release-please lives in kirchDev/workflows and is called as a stub. The npm
-# publish does NOT, and this header is the written argument CLAUDE.md asks of a
-# workflow that carries its own jobs.
+# release-me cuts the releases, configured in `release-me.yaml`: one shared
+# release pull request for every changed package, versioned as one linked
+# family. This file carries its own jobs, and this header is the written
+# argument CLAUDE.md asks of a workflow that does.
+#
+# WHY RELEASE-ME IS AN OWN JOB. kirchDev/workflows has no body for it yet; the
+# release-please body it replaces lived there. A central `_release-me.yml`
+# taking the token and the action pin would let this job become a call again.
 #
 # WHY THE PUBLISH JOBS ARE OWN BODIES. The central `_publish-npm.yml` publishes
 # the repository ROOT: it runs `pnpm publish` where it checks out, and derives a
 # prerelease from the newest release tag with a leading `v` stripped. Since the
 # monorepo move the root is a private workspace, the layer lives in
 # `packages/duxt`, and its tags read `duxt@vX.Y.Z` — so that body would publish
-# the wrong thing or nothing. And `_release-please.yml` forwards only
-# release-please's ROOT `release_created`, which a path package never sets
-# (release-please writes `packages/duxt--release_created` instead), so the old
-# gate would never have opened again. What belongs centrally is a working
-# directory input and the per-path outputs, which is a change to
-# kirchDev/workflows; until that exists, the jobs below are what publishes.
+# the wrong thing or nothing. What belongs centrally is a working directory
+# input, which is a change to kirchDev/workflows; until that exists, the jobs
+# below are what publishes.
 #
 # THE REGISTRY DECIDES A STABLE PUBLISH, NOT AN OUTPUT. Every workspace package
 # under `packages/` that is not private is a candidate, and one is published
 # when its `package.json` version has a `<component>@v<version>` tag and npm
-# does not have that version yet. A package release-please did not bump has
-# neither a new tag nor a new version, so nothing unchanged is ever released —
-# the rule the monorepo decision rests on — and a publish that failed halfway is
-# picked up again by the next push to main.
-name: Release Please
+# does not have that version yet. A package release-me did not release has
+# neither a new tag nor a new version, so nothing unchanged is ever published,
+# and a publish that failed halfway is picked up again by the next push to main.
+# release-me's own `components` output could gate it, but it would not retry.
+name: Release
 
+# npm's trusted publisher for all three packages names THIS FILE: renaming it
+# breaks every publish until each package's trusted publisher on npmjs.com is
+# moved to the new name. It was `release-please.yml` until the switch to
+# release-me, and npm has to be pointed at `release.yml` when that lands.
 on:
   push:
     branches:
       - main
+  # A release label added to or removed from a release pull request reruns
+  # release-me at once instead of on the next push.
+  pull_request:
+    types: [labeled, unlabeled]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  release-please:
-    name: Release Please
-    # Release-please only ever runs on the release branch.
-    if: github.ref_name == 'main'
+  release-me:
+    name: Release Me
+    # A push to main, or a label change on release-me's own release pull
+    # request. The label list is release-me.yaml's, spelled out: a workflow
+    # condition cannot read the configuration.
+    if: >-
+      (github.event_name == 'push' && github.ref_name == 'main') ||
+      (github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      startsWith(github.event.pull_request.head.ref, 'release-me/') &&
+      contains(fromJSON('["autorelease: pending", "autorelease: tagged"]'), github.event.label.name))
+    runs-on: ubuntu-latest
     permissions:
       contents: write
       pull-requests: write
-    uses: kirchDev/workflows/.github/workflows/_release-please.yml@4767c07534dcf886d6a387f29dc70a097b44c591 # v0.14.0
-    secrets:
-      BWS_ACCESS_TOKEN: ${{ secrets.BWS_ACCESS_TOKEN }}
+    steps:
+      # The Release App, the same identity release-please used: its release
+      # pull requests trigger CI, which a GITHUB_TOKEN-opened one would not.
+      - name: Fetch Release App PEM from Bitwarden
+        uses: bitwarden/sm-action@1238aae8fc64b212641190a9227c8a734ab1a793 # v3.0.1
+        with:
+          access_token: ${{ secrets.BWS_ACCESS_TOKEN }}
+          cloud_region: eu
+          secrets: |
+            3a3459f0-c986-4ff3-a36b-b4550012d41e > KIRCHDEV_RELEASE_APP_PEM
+
+      - name: Mint Release App token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: 'Iv23li3hNqtsZ8fDlwqH'
+          private-key: ${{ env.KIRCHDEV_RELEASE_APP_PEM }}
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          # A label event checks out the base branch, never the merge ref.
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref || github.sha }}
+          fetch-depth: 0
+
+      - uses: ostendorf-cloud/release-me/action@663cd8eefb3b1979d22371ebffe9ed9f99ed73d5 # v0.3.0
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          app-slug: ${{ steps.app-token.outputs.app-slug }}
 
   plan:
     name: Plan the publishes
-    needs: release-please
-    if: github.ref_name == 'main'
+    needs: release-me
+    if: github.event_name == 'push' && github.ref_name == 'main'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -105,9 +149,9 @@ jobs:
             );
 
             // A prerelease for every package this push changed, and none on the
-            // version-bump commit release-please merges onto main.
+            // merge of the shared release-me release pull request (branch release-me/main).
             const message = process.env.HEAD_COMMIT_MESSAGE ?? "";
-            const releaseCommit = /^chore(\(main\))?: release/.test(message);
+            const releaseCommit = /^Merge pull request #\d+ from [^/\s]+\/release-me\//.test(message);
             const before = process.env.BEFORE ?? "";
             const known = /^[0-9a-f]{40}$/.test(before) && !/^0+$/.test(before) &&
               succeeds("git", ["cat-file", "-e", `${before}^{commit}`]);
