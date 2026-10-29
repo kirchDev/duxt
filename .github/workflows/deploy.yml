@@ -346,22 +346,11 @@ jobs:
         id: publish
         run: pnpm publish:www
 
-      # A collection whose restore was cancelled halfway keeps its
-      # `_content_info` row at `ready = 0`, and Content then has every read of
-      # it wait 90 seconds and fail — on every isolate, for good. Nothing at
-      # runtime clears it, so every deploy does: the row is dropped and the next
-      # read restores the collection from scratch. See
-      # `packages/duxt/server/plugins/content-import-lifetime.ts`.
-      - name: Clear unfinished Content restores
-        working-directory: apps/www
-        run: >-
-          pnpm exec wrangler d1 execute duxt-www-content --remote
-          --command "DELETE FROM _content_info WHERE ready = 0"
-
       # Restores every collection now, one at a time, instead of leaving a
-      # dozen at once to the first reader of a docs page. Reported, not gated —
-      # and run even when the cleanup above failed: the Worker is live either
-      # way, and every collection that is not stuck still restores here.
+      # dozen at once to the first reader of a docs page. Reported, not gated:
+      # the Worker is live either way. A restore stranded anyway is cleared by
+      # the Worker itself — see
+      # `packages/duxt/server/plugins/content-restore-recovery.ts`.
       - name: Warm Content collections
         if: ${{ !cancelled() && steps.publish.outcome == 'success' }}
         run: node apps/www/scripts/warm-content.ts https://duxt.app
