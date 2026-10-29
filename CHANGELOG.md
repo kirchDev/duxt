@@ -1,5 +1,17 @@
 # Changelog
 
+## [v0.11.0](https://github.com/kirchDev/duxt/compare/duxt@v0.10.0...duxt@v0.11.0) (2026-10-29)
+
+### Features
+
+- **page:** offer the branch's edit form beside a tag's source
+- **sources:** accept a family of components in tagComponent
+
+### Bug Fixes
+
+- **content:** clear restores a cancelled worker left unready
+- **content:** keep a request alive until its D1 restore finishes
+
 ## [v0.10.0](https://github.com/kirchDev/duxt/compare/duxt@v0.9.0...duxt@v0.10.0) (2026-10-29)
 
 ### Breaking Changes
