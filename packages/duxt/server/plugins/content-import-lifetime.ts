@@ -10,10 +10,10 @@
  * reader who gives up, a crawler with a timeout, a prefetch the router drops:
  * any of them stops that replay halfway, and the row is never flipped. Every
  * later read of that collection then waits on `ready` for 90 seconds and
- * fails, on every isolate, until the row is removed by hand — and a docs page
- * reads every version's collection to draw its version switcher, so one stuck
- * collection hangs every page of every version. duxt.app ran into exactly
- * that after the v0.10.0 deploy.
+ * fails, on every isolate, until `content-restore-recovery.ts` clears the row —
+ * and a docs page reads every version's collection to draw its version
+ * switcher, so one stuck collection hangs every page of every version.
+ * duxt.app ran into exactly that after the v0.10.0 deploy.
  *
  * `waitUntil` is the one thing a Worker lets outlive a disconnect, so every
  * request hands it a promise that settles when the request is done. Anything
