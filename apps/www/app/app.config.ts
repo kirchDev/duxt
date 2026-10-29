@@ -43,11 +43,14 @@ const DUXT_DOCS = {
     branch: 'upcoming',
     tag: 'deprecated'
   },
-  // This repository tags each published package on its own — `duxt@v0.6.0`
-  // beside a provider's `duxt-typesense@v0.1.0` — so `latest` and the release
-  // selection have to say whose tags they mean. The plain `v0.1.0`…`v0.5.0`
-  // tags cut before the monorepo still count as the layer's releases.
-  tagComponent: 'duxt',
+  // This repository tags each published package on its own — `duxt@v0.10.0`
+  // beside `duxt-typesense@v0.10.0` — so `latest` and the release selection
+  // have to say whose tags they mean. The three are one family on a linked
+  // version line, and a companion-only release changes the documentation too
+  // (its add-on page), so the canonical edition follows whichever of them
+  // released last. A version they share is one release, read from the layer's
+  // tag. The plain `v0.1.0`…`v0.5.0` tags cut before the monorepo still count.
+  tagComponent: ['duxt', 'duxt-typesense', 'duxt-meilisearch'],
   releases: { select: 'minor' },
   refs: [{ branch: 'main' }, { tag: 'latest', default: true }],
 
