@@ -14,7 +14,7 @@ on:
     branches:
       - main
   # This follows the normal main deploy. The release tag exists by then, so a
-  # build-time `latest` source cannot race release-please and read the prior tag.
+  # build-time `latest` source cannot race release-me and read the prior tag.
   release:
     types:
       - published
@@ -25,13 +25,13 @@ on:
 # ON EVERY ORDINARY PUSH TO MAIN, AND FOR A PUBLISHED RELEASE. `apps/www/` reads
 # `docs/` off the CHECKOUT — `origin.ref` in its `app.config.ts` names the
 # repository for the edit links and downloads nothing — so a documentation fix
-# does not wait for a release. A release-please merge is the exception: its push
-# arrives before the tag and stands down for the release event that follows.
+# does not wait for a release. A release merge is the exception: its push
+# arrives before the tags and stands down for the release events that follow.
 # Otherwise both builds may publish in either order, and the tag-blind push can
 # overwrite the release build that resolved `latest` correctly.
 #
 # The consequence, stated rather than hidden: the version badge comes from
-# `package.json`, which release-please bumps, so between a promotion and its
+# `package.json`, which release-me bumps, so between a promotion and its
 # release the site shows the last released number while documenting what is
 # already on main. main only moves when the promotion PR merges, so that window
 # is short — but it is real, and it is the price of this trigger.
@@ -54,10 +54,10 @@ jobs:
   build:
     name: Build www
     runs-on: ubuntu-latest
-    # A release-please merge fires this workflow before its tag exists. The
-    # published-release event fires it again once the tag is available, so only
-    # that second run may build and publish the release commit. Both subject
-    # forms are already recognised by the prerelease workflow beside this one.
+    # A release merge fires this workflow before its tags exist. The
+    # published-release events fire it again once they are available, so only
+    # those runs may build and publish the release commit. `chore: release` is
+    # release-me's title; `chore(main): release` stays for release-please's.
     if: >-
       ${{
         github.event_name != 'push'
@@ -69,13 +69,18 @@ jobs:
     # drops it rather than finishing it and queueing an upload nobody wants —
     # every push to main therefore shares one group.
     #
+    # ONE BUILD PER RELEASED COMMIT. release-me publishes one GitHub release
+    # per component, and a linked family released together publishes up to
+    # three for the same commit, each firing this workflow. They would build
+    # the same `main` three times over, so they share a group keyed by the
+    # released commit and only the last one runs to the end.
+    #
     # Anything else is somebody asking for production to be refreshed on
     # purpose: a first run, a rotated token, a hostname `infrastructure` has
-    # just applied, or the release build that makes `latest` resolve from the
-    # new tag. Those get `github.run_id`, which no other run can collide with,
-    # so `cancel-in-progress` has nothing to match and they always publish.
+    # just applied. Those get `github.run_id`, which no other run can collide
+    # with, so `cancel-in-progress` has nothing to match and they always publish.
     concurrency:
-      group: deploy-www-build-${{ github.event_name == 'push' && 'main' || github.run_id }}
+      group: deploy-www-build-${{ github.event_name == 'push' && 'main' || github.event_name == 'release' && github.sha || github.run_id }}
       cancel-in-progress: true
     outputs:
       # The publish job checks out `main` and unpacks an artefact; neither tells

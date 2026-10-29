@@ -74,18 +74,19 @@ function operand(token: string, github: RunContext): string {
 }
 
 /**
- * `a == b && x || y` — GitHub's ternary idiom, and the only shape allowed here.
- * Both branches are non-empty strings, so the `||` never picks up a falsy `x`.
+ * `a == b && x || y` — GitHub's ternary idiom, and the only shape allowed here,
+ * chained as `a == b && x || c == d && y || z`. Every branch is a non-empty
+ * string, so an `||` never picks up a falsy `x`.
  */
 function evaluate(expression: string, github: RunContext): string {
   const body = expression.trim();
-  const ternary = /^(\S+) == (\S+) && (\S+) \|\| (\S+)$/.exec(body);
+  const ternary = /^(\S+) == (\S+) && (\S+) \|\| (.+)$/.exec(body);
   if (!ternary) return operand(body, github);
 
-  const [, left, right, whenTrue, whenFalse] = ternary;
+  const [, left, right, whenTrue, rest] = ternary;
   return operand(left!, github) === operand(right!, github)
     ? operand(whenTrue!, github)
-    : operand(whenFalse!, github);
+    : evaluate(rest!, github);
 }
 
 /** A YAML scalar with `${{ … }}` holes in it, resolved for one run. */
@@ -113,11 +114,11 @@ function dispatch(runId: string): RunContext {
   };
 }
 
-function release(runId: string): RunContext {
+function release(runId: string, sha = 'ddd'): RunContext {
   return {
     event_name: 'release',
     head_commit_message: '',
-    sha: 'ddd',
+    sha,
     run_id: runId
   };
 }
@@ -199,17 +200,24 @@ describe('deploy build supersession', () => {
     );
   });
 
-  it('leaves a published release in a group of its own too', () => {
-    // The release build is what makes `latest` resolve from the new tag. A
-    // push cancelling it would leave the site on the previous `latest` until
-    // the next commit happened to come along.
+  it('builds the releases of one commit once, apart from any push', () => {
+    // The release build is what makes `latest` resolve from the new tag, so a
+    // push must not cancel it. A linked family released together publishes one
+    // release per component for the same commit; those would build the same
+    // `main` three times, so they share one group and only the last finishes.
     const { group } = build().concurrency!;
 
-    expect(interpolate(group, release('9'))).not.toBe(
+    expect(interpolate(group, release('9', 'eee'))).not.toBe(
       interpolate(group, push('aaa', '1'))
     );
-    expect(interpolate(group, release('9'))).not.toBe(
-      interpolate(group, release('10'))
+    expect(interpolate(group, release('9', 'eee'))).toBe(
+      interpolate(group, release('10', 'eee'))
+    );
+    expect(interpolate(group, release('9', 'eee'))).not.toBe(
+      interpolate(group, release('11', 'fff'))
+    );
+    expect(interpolate(group, release('9', 'eee'))).not.toBe(
+      interpolate(group, dispatch('9'))
     );
   });
 });
