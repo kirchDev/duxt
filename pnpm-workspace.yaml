@@ -69,7 +69,8 @@ publicHoistPattern:
   - '@nuxt/icon'
   - '@nuxt/image'
   - '@nuxtjs/i18n'
-  - '@nuxtjs/seo'
+  - '@nuxtjs/robots'
+  - '@nuxtjs/sitemap'
   - '@resvg/resvg-js'
   - '@shikijs/transformers'
   - '@tailwindcss/vite'
@@ -80,6 +81,11 @@ publicHoistPattern:
   - fuse.js
   - jiti
   - mermaid
+  - nuxt-link-checker
+  - nuxt-og-image
+  - nuxt-schema-org
+  - nuxt-seo-utils
+  - nuxt-site-config
   - reka-ui
   - satori
   - shiki
