@@ -1,5 +1,11 @@
 # Changelog
 
+## [v0.10.0](https://github.com/kirchDev/duxt/compare/duxt-meilisearch@v0.1.0...duxt-meilisearch@v0.10.0) (2026-10-29)
+
+### Bug Fixes
+
+- **deps:** update workspace dependencies within their minor ranges
+
 ## 0.1.0 (2026-10-12)
 
 

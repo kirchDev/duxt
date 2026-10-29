@@ -1,5 +1,15 @@
 # Changelog
 
+## [v0.10.0](https://github.com/kirchDev/duxt/compare/duxt@v0.9.0...duxt@v0.10.0) (2026-10-29)
+
+### Breaking Changes
+
+- **seo:** load the nuxt seo modules by name
+
+### Bug Fixes
+
+- **deps:** update workspace dependencies within their minor ranges
+
 ## [0.9.0](https://github.com/kirchDev/duxt/compare/duxt@v0.8.1...duxt@v0.9.0) (2026-10-22)
 
 
