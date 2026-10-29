@@ -144,5 +144,86 @@
         "bundled": false
       }
     ]
+  },
+  {
+    "id": "GHSA-gcqx-w48m-w2h4",
+    "package": "deepmerge",
+    "severity": "low",
+    "url": "https://github.com/advisories/GHSA-gcqx-w48m-w2h4",
+    "reviewed": "2026-10-29",
+    "reviewBy": "2026-11-28",
+    "reachability": "Build time only. The one package that calls deepmerge is @rollup/plugin-node-resolve, which merges the bundler's own resolve options while Nitro and Vite build the site; no request, page or Content record reaches it, and the deployed server bundle contains no deepmerge code. The provider layers inherit the same build tooling through their Nuxt peer.",
+    "remediation": "No patched release is published; follow the upstream advisory and drop this review once @rollup/plugin-node-resolve or deepmerge ships a fix.",
+    "findings": [
+      {
+        "version": "4.3.1",
+        "paths": [
+          "apps__www>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
+          "apps__www>nuxtseo-layer-devtools>@nuxt/devtools-kit>nitropack>@rollup/plugin-node-resolve>deepmerge",
+          "apps__www>nuxtseo-layer-devtools>@vueuse/nuxt>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
+          "apps__www>nuxtseo-layer-devtools>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
+          "apps__www>nuxtseo-layer-devtools>nuxtseo-shared>nuxt-site-config>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
+          "apps__www>nuxtseo-layer-devtools>nuxtseo-shared>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
+          "packages__duxt-meilisearch>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
+          "packages__duxt-typesense>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
+          "packages__duxt>@nuxtjs/robots>nuxt-site-config>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
+          "packages__duxt>@nuxtjs/robots>nuxt-site-config>nuxtseo-shared>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
+          "packages__duxt>@nuxtjs/robots>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
+          "packages__duxt>@nuxtjs/robots>nuxtseo-shared>nuxt-site-config>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
+          "packages__duxt>@nuxtjs/robots>nuxtseo-shared>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
+          "packages__duxt>@nuxtjs/sitemap>nuxt-site-config>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
+          "packages__duxt>@nuxtjs/sitemap>nuxt-site-config>nuxtseo-shared>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
+          "packages__duxt>@nuxtjs/sitemap>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
+          "packages__duxt>@nuxtjs/sitemap>nuxtseo-shared>nuxt-site-config>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
+          "packages__duxt>@nuxtjs/sitemap>nuxtseo-shared>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
+          "packages__duxt>nuxt-link-checker>nuxt-site-config>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
+          "packages__duxt>nuxt-link-checker>nuxt-site-config>nuxtseo-shared>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
+          "packages__duxt>nuxt-link-checker>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
+          "packages__duxt>nuxt-link-checker>nuxtseo-shared>nuxt-site-config>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
+          "packages__duxt>nuxt-link-checker>nuxtseo-shared>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
+          "packages__duxt>nuxt-og-image>nitropack>@rollup/plugin-node-resolve>deepmerge",
+          "packages__duxt>nuxt-og-image>nuxt-site-config>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
+          "packages__duxt>nuxt-og-image>nuxt-site-config>nuxtseo-shared>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
+          "packages__duxt>nuxt-og-image>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
+          "packages__duxt>nuxt-og-image>nuxtseo-shared>nuxt-site-config>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
+          "packages__duxt>nuxt-og-image>nuxtseo-shared>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
+          "packages__duxt>nuxt-schema-org>nuxt-site-config>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
+          "packages__duxt>nuxt-schema-org>nuxt-site-config>nuxtseo-shared>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
+          "packages__duxt>nuxt-schema-org>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
+          "packages__duxt>nuxt-schema-org>nuxtseo-shared>nuxt-site-config>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
+          "packages__duxt>nuxt-schema-org>nuxtseo-shared>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
+          "packages__duxt>nuxt-seo-utils>nuxt-site-config>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
+          "packages__duxt>nuxt-seo-utils>nuxt-site-config>nuxtseo-shared>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
+          "packages__duxt>nuxt-seo-utils>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
+          "packages__duxt>nuxt-seo-utils>nuxtseo-shared>nuxt-site-config>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
+          "packages__duxt>nuxt-seo-utils>nuxtseo-shared>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
+          "packages__duxt>nuxt-site-config>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
+          "packages__duxt>nuxt-site-config>nuxtseo-shared>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
+          "packages__duxt>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
+          "packages__duxt>vue-sonner>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "GHSA-mrhx-c7xc-m3w5",
+    "package": "zod",
+    "severity": "high",
+    "url": "https://github.com/advisories/GHSA-mrhx-c7xc-m3w5",
+    "reviewed": "2026-10-29",
+    "reviewBy": "2026-11-28",
+    "reachability": "Build and development only. @nuxt/content uses Zod 3 in its build module to describe collection schemas, over this repository's own documentation, not over request input; its runtime imports no Zod, and the server bundle carries Zod 4 alone. The site's nuxtseo-layer-devtools reaches it through @nuxt/ui for the devtools panel, which never ships.",
+    "remediation": "Zod 3 has no patched release; the fix is Zod 4.6.6, outside the ranges @nuxt/content and @nuxt/ui declare. Drop this review once they move to Zod 4.",
+    "findings": [
+      {
+        "version": "3.25.76",
+        "paths": [
+          "apps__www>nuxtseo-layer-devtools>@nuxt/ui>@nuxt/content>zod",
+          "apps__www>nuxtseo-layer-devtools>@nuxt/ui>@nuxt/content>zod-to-json-schema>zod",
+          "packages__duxt>@nuxt/content>zod",
+          "packages__duxt>@nuxt/content>zod-to-json-schema>zod"
+        ]
+      }
+    ]
   }
 ]
