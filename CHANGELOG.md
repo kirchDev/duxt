@@ -1,5 +1,39 @@
 # Changelog
 
+## [0.9.0](https://github.com/kirchDev/duxt/compare/duxt@v0.8.1...duxt@v0.9.0) (2026-10-22)
+
+
+### Features
+
+* **sources:** map origin links onto the forge folder with origin.path ([95b60c2](https://github.com/kirchDev/duxt/commit/95b60c2e7a0d065ea30398580bde7406103eca0d))
+
+
+### Bug Fixes
+
+* **sources:** trim origin folders without a backtracking regex ([b9bc069](https://github.com/kirchDev/duxt/commit/b9bc069d7bec4a3ea489a9bce8ba71736a857d75))
+
+## [0.8.1](https://github.com/kirchDev/duxt/compare/duxt@v0.8.0...duxt@v0.8.1) (2026-10-13)
+
+
+### Bug Fixes
+
+* **navigation:** hide sections an edition does not have ([#116](https://github.com/kirchDev/duxt/issues/116)) ([657c1b7](https://github.com/kirchDev/duxt/commit/657c1b76e112e06362dfdce0ae4439b799405553))
+
+## [0.8.0](https://github.com/kirchDev/duxt/compare/duxt@v0.7.0...duxt@v0.8.0) (2026-10-12)
+
+
+### Features
+
+* **media:** publish documentation image artifacts ([00e1826](https://github.com/kirchDev/duxt/commit/00e182665869f126409e3602f3eb3f83bd118bf5))
+
+
+### Bug Fixes
+
+* **deps:** update gated workspace dependencies ([c9ca655](https://github.com/kirchDev/duxt/commit/c9ca65535fedebcf3ff1d6cf0c57eb53360e0f1d))
+* **media:** exclude generated and cached source artifacts ([4007678](https://github.com/kirchDev/duxt/commit/40076785684a7916b8f6dd0005e484570de97876))
+* **media:** preserve unpublished public image urls ([7fc87de](https://github.com/kirchDev/duxt/commit/7fc87de87a965a3e74b9a3d1939497971373745c))
+* **media:** resolve partial images from their source ([9e51310](https://github.com/kirchDev/duxt/commit/9e513107aac948a671b3e89b595c28774c129c63))
+
 ## [0.7.0](https://github.com/kirchDev/duxt/compare/duxt@v0.6.0...duxt@v0.7.0) (2026-10-11)
 
 
