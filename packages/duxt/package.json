@@ -110,7 +110,7 @@
     "nuxt-seo-utils": "^9.0.1",
     "nuxt-site-config": "^5.0.3",
     "reka-ui": "^2.11.0",
-    "satori": "^0.47.1",
+    "satori": "^0.63.2",
     "shadcn-nuxt": "^2.8.2",
     "shiki": "^4.5.0",
     "tailwind-merge": "^3.7.0",
