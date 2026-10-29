@@ -343,6 +343,7 @@ jobs:
       # wrangler reads CLOUDFLARE_API_TOKEN from the env and uploads the Worker
       # together with `.output/public`.
       - name: Publish to Cloudflare
+        id: publish
         run: pnpm publish:www
 
       # A collection whose restore was cancelled halfway keeps its
@@ -358,15 +359,18 @@ jobs:
           --command "DELETE FROM _content_info WHERE ready = 0"
 
       # Restores every collection now, one at a time, instead of leaving a
-      # dozen at once to the first reader of a docs page. Reported, not gated.
+      # dozen at once to the first reader of a docs page. Reported, not gated —
+      # and run even when the cleanup above failed: the Worker is live either
+      # way, and every collection that is not stuck still restores here.
       - name: Warm Content collections
+        if: ${{ !cancelled() && steps.publish.outcome == 'success' }}
         run: node apps/www/scripts/warm-content.ts https://duxt.app
 
       # Freshness is REPORTED, NOT GATED — see the header of the script. The
       # upload has already happened when this runs, so nothing it prints can
       # fail the deploy, and there is no threshold for it to fail against.
       - name: Deployment summary
-        if: success()
+        if: ${{ !cancelled() && steps.publish.outcome == 'success' }}
         env:
           DEPLOY_SHA: ${{ needs.build.outputs.sha }}
           DEPLOY_COMMITTED_AT: ${{ needs.build.outputs.committed-at }}
