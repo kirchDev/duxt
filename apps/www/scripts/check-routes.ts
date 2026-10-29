@@ -296,16 +296,18 @@ export const DEPLOYMENT_ROUTES: readonly DeploymentRoute[] = [
   {
     route: '/sitemap.xml',
     method: 'GET',
-    delivery: 'asset',
+    delivery: 'worker',
     d1: false,
     why:
       'Shipped by the module the moment a site has more than one sitemap, so a ' +
       'reader who guesses the conventional name is sent to the index rather than ' +
-      'to a 404. It is a REDIRECT route rule (307 to `/sitemap_index.xml`) and ' +
-      'the prerender writes redirects as a page, so what lands in the artifact is ' +
-      '`sitemap.xml/index.html` holding a meta refresh — a directory, not the ' +
-      'file its name suggests, which is why the probe spells it out.',
-    fallback: 'The module’s handler, exactly as for the index.',
+      'to a 404. It is a REDIRECT route rule (307 to `/sitemap_index.xml`), and ' +
+      'from `@nuxtjs/sitemap` 9 on the module marks it `prerender: false`, so the ' +
+      'Worker answers it from the route rule instead of a meta-refresh page in ' +
+      'the artifact. The probe is the page an earlier version wrote, which must ' +
+      'not come back unnoticed.',
+    fallback:
+      'None: every request runs, as a redirect only. Nothing is read from D1.',
     probes: ['sitemap.xml/index.html'],
     handlers: ['/sitemap.xml']
   },
