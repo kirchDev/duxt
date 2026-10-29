@@ -431,6 +431,19 @@ export const EXEMPT_HANDLERS: readonly ExemptHandler[] = [
       'OAuth and OpenID discovery documents `@nuxtjs/mcp-toolkit` registers so an ' +
       'MCP client can probe for authorization. This deployment configures none, so ' +
       'they exist to answer that — the module’s protocol surface, not the site’s.'
+  },
+  {
+    handler: '/mcp/.well-known/',
+    why:
+      'The same OAuth and OpenID discovery documents, which `@nuxtjs/mcp-toolkit` ' +
+      '0.24.2 also registers under the MCP route itself, where a client probes ' +
+      'relative to the server URL it was given. Same surface, same reason.'
+  },
+  {
+    handler: '/mcp/:handler/.well-known/',
+    why:
+      'The discovery documents again, under a named MCP handler. This site serves ' +
+      'one unnamed handler at `/mcp`, so nothing ever routes here.'
   }
 ];
 
