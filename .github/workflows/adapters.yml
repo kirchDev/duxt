@@ -1,9 +1,9 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 
-# NOT A STUB, AND THE SECOND EXCEPTION IN THIS DIRECTORY (`deploy.yml` is the
-# other). Every other workflow here calls a body in kirchDev/workflows; there is
-# no body for "build the site against another database adapter", so this one
-# carries its own jobs. If a second repo ever needs it, this is what moves out.
+# NOT A STUB. CLAUDE.md inventories the five workflows carrying their own jobs.
+# Workflows normally call a body in kirchDev/workflows; there is no body for
+# "build the site against another database adapter", so this one carries its
+# own jobs. If a second repo ever needs it, this is what moves out.
 #
 # WHY IT IS NOT IN `pnpm check`. The gate already builds the site once, and each
 # leg below is a second full Nuxt build — plus, for the PostgreSQL one, a server

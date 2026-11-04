@@ -1,4 +1,15 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+
+# NOT A STUB. There is no body in kirchDev/workflows for this repository's
+# two-target Docker fixture: build the app and packer from one checkout, extract
+# the compatibility artefact, then publish changed Markdown as a different UID.
+# If another repository needs this contract, move the shared body there.
+#
+# OUTSIDE `pnpm check`: this verifies Docker image layout, dependency links and
+# cross-user bind-mount publication. It needs Docker and two additional image
+# builds; the ordinary Node build and tests cannot prove those properties.
+# The five workflows carrying jobs are inventoried in CLAUDE.md; each header
+# states why it is an exception to calling a central body.
 name: Content packer
 
 on:
