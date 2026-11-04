@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { Nuxt } from '@nuxt/schema';
+import type { DuxtResolvedSource } from '../sources/sources-resolve';
 import {
   canonicalJson,
   contentHash,
@@ -33,6 +34,43 @@ export function readContentManifest(source: string) {
   };
 }
 
+/** Only declarations affect compatibility; parser reports describe this bundle's content. */
+function sourceStructure(source: DuxtResolvedSource) {
+  const generated = source.generated;
+  return {
+    collection: source.collection,
+    prefix: source.prefix,
+    repo: source.repo,
+    version: source.version,
+    name: source.name,
+    isDefault: source.isDefault,
+    repository: source.repository,
+    repositoryUrl: source.repositoryUrl,
+    ref: source.ref,
+    originPath: source.originPath,
+    refKind: source.refKind,
+    path: source.path,
+    locale: source.locale,
+    isDefaultLocale: source.isDefaultLocale,
+    status: source.status,
+    history: source.history,
+    flavor: source.flavor,
+    generated: generated && {
+      type: generated.type,
+      label: generated.label,
+      slug: generated.slug,
+      declaration: generated.declaration,
+      navigation: generated.navigation,
+      icon: generated.icon,
+      layout: generated.layout,
+      options: generated.options,
+      versioning: generated.versioning,
+      localisation: generated.localisation,
+      remote: generated.remote
+    }
+  };
+}
+
 export async function contentCompatibility(nuxt: Nuxt): Promise<{
   compat: ContentBundleCompat;
   artifact: ContentCompatibilityArtifact;
@@ -48,14 +86,16 @@ export async function contentCompatibility(nuxt: Nuxt): Promise<{
   if (!runtime?.databaseVersion || !Object.keys(manifest.checksums).length)
     throw new Error('Content has not produced collection checksums.');
   const duxt = nuxt.options.appConfig.duxt as
-    | { resolvedSources?: unknown[] }
+    | { resolvedSources?: DuxtResolvedSource[] }
     | undefined;
   const compat: ContentBundleCompat = {
     databaseVersion: runtime.databaseVersion,
     checksumsStructure: manifest.checksumsStructure,
     tables: manifest.tables,
     collectionMetaHash: contentHash(canonicalJson(manifest.collectionMeta)),
-    resolvedSourcesHash: contentHash(canonicalJson(duxt?.resolvedSources ?? []))
+    resolvedSourcesHash: contentHash(
+      canonicalJson((duxt?.resolvedSources ?? []).map(sourceStructure))
+    )
   };
   const template = nuxt.options.build.templates.find(
     (entry) =>
