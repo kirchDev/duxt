@@ -25,3 +25,4 @@ ablöst, nie als Änderung daran.
 | [ADR-0010](/adr/0010-keep-contents-per-collection-search-as-the-default) | Die Suche pro Collection von Content als Standard behalten | accepted | 2026-09-12 |
 | [ADR-0011](/adr/0011-host-the-provider-layers-in-a-turborepo-monorepo) | Die Provider-Ebenen in einem Turborepo-Monorepo führen | accepted | 2026-09-15 |
 | [ADR-0012](/adr/0012-load-the-nuxt-seo-modules-by-name) | Die Nuxt-SEO-Module einzeln laden | accepted | 2026-10-29 |
+| [ADR-0013](/adr/0013-load-content-bundles-at-runtime) | Content-Bundles zur Laufzeit laden | accepted | 2026-11-04 |
