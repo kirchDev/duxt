@@ -4,6 +4,8 @@ RUN npm install --global pnpm@12.16.1
 COPY . .
 # Keep source paths rooted at /app without shipping checkout metadata.
 RUN mkdir -p .git && pnpm install --frozen-lockfile
+# This outside-workspace example shares www's installed consumer dependencies.
+RUN ln -s ../../../apps/www/node_modules examples/content-bundles/site/node_modules
 
 FROM source AS build
 WORKDIR /app/examples/content-bundles/site
