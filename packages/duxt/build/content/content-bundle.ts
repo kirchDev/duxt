@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import {
   mkdir,
+  chmod,
   mkdtemp,
   readFile,
   rename,
@@ -137,6 +138,9 @@ export async function writeContentBundle(
       await mkdir(join(target, '..'), { recursive: true });
       await writeFile(target, bytes);
     }
+    // mkdtemp keeps incomplete payloads private. Publication uses ordinary
+    // directory permissions so another uid can read the completed artefact.
+    await chmod(temporary, 0o777 & ~process.umask());
     const target = join(directory, bundleId);
     try {
       await rename(temporary, target);

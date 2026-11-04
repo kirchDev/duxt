@@ -1,5 +1,12 @@
 import { createHash } from 'node:crypto';
-import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  statSync
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, expect, it } from 'vitest';
@@ -35,6 +42,12 @@ it('publishes a complete immutable content-hash directory before replacing curre
     result.bundleId
   );
   const directory = join(root, result.bundleId);
+  const readerDefault = join(root, 'reader-default');
+  mkdirSync(readerDefault);
+  expect(statSync(directory).mode & 0o777).toBe(
+    statSync(readerDefault).mode & 0o777
+  );
+  rmSync(readerDefault, { recursive: true });
   expect(
     JSON.parse(readFileSync(join(directory, 'bundle.json'), 'utf8'))
   ).toMatchObject({
