@@ -1,5 +1,6 @@
 import { defineCommand, renderUsage } from 'citty';
 import type { ArgsDef, CommandDef } from 'citty';
+import type { ContentPackOptions, ContentPackResult } from './content-pack';
 import { duxtReportOutput } from './report';
 import type { DuxtReport, DuxtReportFormat, DuxtReportOptions } from './report';
 
@@ -63,13 +64,40 @@ const reportCommand = defineCommand({
   }
 });
 
+const packCommand = defineCommand({
+  meta: {
+    name: 'content pack',
+    description: 'Pack content without bundling the app.'
+  },
+  args: {
+    publish: {
+      type: 'string',
+      description:
+        'Publish hash-named bundles and atomically replace current (default .output/duxt-content).'
+    },
+    expect: {
+      type: 'string',
+      description: 'Require compatibility with the app artefact at this path.'
+    },
+    help
+  }
+});
+const contentCommand = defineCommand({
+  meta: {
+    name: 'content',
+    description: 'Build immutable documentation bundles.'
+  },
+  args: { help },
+  subCommands: { pack: packCommand }
+});
+
 const rootCommand = defineCommand({
   meta: {
     name: 'duxt',
     description: 'The duxt documentation layer, from the command line.'
   },
   args: { help },
-  subCommands: { report: reportCommand }
+  subCommands: { report: reportCommand, content: contentCommand }
 });
 
 /**
@@ -180,7 +208,14 @@ const refuse = async (
   diagnostic: string,
   command: CommandDef
 ): Promise<DuxtCliResult> => {
-  const name = command === rootCommand ? 'duxt' : 'duxt report';
+  const name =
+    command === rootCommand
+      ? 'duxt'
+      : command === packCommand
+        ? 'duxt content pack'
+        : command === contentCommand
+          ? 'duxt content'
+          : 'duxt report';
 
   return {
     stdout: '',
@@ -198,9 +233,11 @@ const refuse = async (
 
 export async function runDuxtCli(
   argv: string[],
-  load: DuxtReportLoader
+  load: DuxtReportLoader,
+  pack?: (options: ContentPackOptions) => Promise<ContentPackResult>
 ): Promise<DuxtCliResult> {
   const [name] = argv;
+  if (name === 'content') return runContentCli(argv.slice(1), pack);
 
   if (name !== undefined && !name.startsWith('-') && name !== 'report') {
     return refuse(`Unknown command '${name}'.`, rootCommand);
@@ -237,4 +274,67 @@ export async function runDuxtCli(
   const { output, exitCode } = duxtReportOutput(load(), format);
 
   return { stdout: output, stderr: '', exitCode };
+}
+
+async function runContentCli(
+  argv: string[],
+  pack?: (options: ContentPackOptions) => Promise<ContentPackResult>
+): Promise<DuxtCliResult> {
+  if (
+    !argv.length ||
+    (argv.length === 1 && ['--help', '-h'].includes(argv[0]!))
+  )
+    return { stdout: await usage(contentCommand), stderr: '', exitCode: 0 };
+  if (argv[0] !== 'pack')
+    return refuse(`Unknown command '${argv[0]}'.`, contentCommand);
+  const options: ContentPackOptions = {};
+  const seen = new Set<string>();
+  for (let index = 1; index < argv.length; index++) {
+    const token = argv[index]!;
+    const [spelling, ...inline] = token.split('=');
+    const name = spellings(packCommand).get(spelling!);
+    if (!name) return refuse(`Unknown option '${spelling}'.`, packCommand);
+    if (seen.has(name))
+      return refuse(`Duplicate option '${spelling}'.`, packCommand);
+    seen.add(name);
+    if (name === 'help') {
+      if (inline.length)
+        return refuse(`Option '${spelling}' takes no value.`, packCommand);
+      continue;
+    }
+    const value = inline.length ? inline.join('=') : argv[++index];
+    if (!value || value.startsWith('-'))
+      return refuse(`Option '${spelling}' requires a path.`, packCommand);
+    options[name as 'publish' | 'expect'] = value;
+  }
+  if (seen.has('help')) {
+    if (seen.size > 1)
+      return refuse(
+        `'--help' cannot be combined with another option.`,
+        packCommand
+      );
+    return {
+      stdout: await usage(
+        packCommand,
+        'EXIT CODES\n\n  0  bundle published\n  1  content or compatibility failure\n  2  command line could not be understood'
+      ),
+      stderr: '',
+      exitCode: 0
+    };
+  }
+  try {
+    if (!pack) throw new Error('Content packer is unavailable.');
+    const result = await pack(options);
+    return {
+      stdout: `Bundle: ${result.directory}\nCompatibility: ${result.compatHash}`,
+      stderr: '',
+      exitCode: 0
+    };
+  } catch (error) {
+    return {
+      stdout: '',
+      stderr: error instanceof Error ? error.message : String(error),
+      exitCode: 1
+    };
+  }
 }

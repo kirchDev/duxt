@@ -91,7 +91,7 @@ export default function duxtRedirects(_options: unknown, nuxt: Nuxt) {
 }
 
 /** Every locale that appears as a URL segment; the default one does not. */
-function localeSegments(nuxt: Nuxt): string[] {
+export function localeSegments(nuxt: Nuxt): string[] {
   const i18n = (
     nuxt.options as {
       i18n?: {
