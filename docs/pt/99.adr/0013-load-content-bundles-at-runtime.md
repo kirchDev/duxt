@@ -5,8 +5,6 @@ status: accepted
 date: 2026-11-04
 ---
 
-# ADR-0013 — Carregar pacotes de conteúdo em tempo de execução
-
 ## Contexto
 
 Uma wiki pode alterar o Markdown mais frequentemente do que o código. Reconstruir

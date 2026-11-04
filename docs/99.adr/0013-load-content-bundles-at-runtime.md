@@ -5,8 +5,6 @@ status: accepted
 date: 2026-11-04
 ---
 
-# ADR-0013 — Load content bundles at runtime
-
 ## Context
 
 A wiki can change its Markdown more often than its application code. Rebuilding

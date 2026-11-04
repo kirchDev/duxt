@@ -5,8 +5,6 @@ status: accepted
 date: 2026-11-04
 ---
 
-# ADR-0013 — Charger les bundles de contenu à l’exécution
-
 ## Contexte
 
 Une wiki peut modifier son Markdown plus souvent que son code. Reconstruire une
