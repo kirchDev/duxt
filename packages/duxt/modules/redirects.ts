@@ -83,10 +83,9 @@ export default function duxtRedirects(_options: unknown, nuxt: Nuxt) {
     );
 
     nitro.routeRules = { ...rules, ...nitro.routeRules };
-    nitro.runtimeConfig = {
-      ...nitro.runtimeConfig,
-      duxt: { ...(nitro.runtimeConfig?.duxt as object), redirects: owned }
-    };
+    nitro.runtimeConfig = Object.assign({}, nitro.runtimeConfig, {
+      duxt: { ...nitro.runtimeConfig?.duxt, redirects: owned }
+    });
   });
 }
 

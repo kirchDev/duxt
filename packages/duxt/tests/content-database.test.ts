@@ -16,9 +16,9 @@ import { describe, expect, it } from 'vitest';
  *
  * `content-cache.ts` already reads that file with `node:sqlite`, and it is
  * allowed to: it runs inside the BUILD, where the file exists by construction.
- * The distinction this file defends is therefore not "no SQLite anywhere" but
+ * The default this file defends is therefore not "no SQLite anywhere" but
  * "no SQLite on a request path" — so the allowlist below is the whole point,
- * not an escape hatch. Adding a file to it is a deliberate statement that the
+ * not an escape hatch. The explicit Node/SQLite content-bundle importer is the single runtime exception and is never registered for another adapter or platform. Adding a file to it is a deliberate statement that the
  * file never runs on a deployed server.
  *
  * Written up for consumers in `docs/2.concepts/11.databases.md`.
@@ -46,7 +46,7 @@ const DRIVERS = [
  * The files that may open a database directly, and why each one is allowed.
  *
  * Every entry has to be code that runs during a build or from the command
- * line. Nothing under `server/` or `app/` can ever belong here — those are
+ * line. The Node/SQLite bundle importer has a separate, narrowly tested exception. Nothing under `server/` or `app/` can belong here — those are
  * request paths, and the test below refuses them outright rather than
  * consulting this list.
  */
@@ -54,6 +54,9 @@ const DRIVERS = [
 // The process guard that locks `.data/nuxt-process/ownership.sqlite` is not in
 // this list because it is not in this package: it is the development site's own
 // tooling, in `apps/www/scripts`, and never part of what a consumer installs.
+const NODE_SQLITE_BUNDLE_IMPORTER =
+  'modules/runtime/content-bundles/runtime.ts';
+
 const BUILD_TIME_ONLY: Record<string, string> = {
   'build/content/content-cache.ts':
     "Reads Content's parse cache during the build, and sets WAL on it. Never imported by a server route."
@@ -192,7 +195,20 @@ describe('the content database at runtime', () => {
     // A new name here is not automatically wrong — it is unreviewed. Add it to
     // BUILD_TIME_ONLY with the sentence that says when it runs, or move the
     // read behind `queryCollection()`.
-    expect(opening).toEqual(Object.keys(BUILD_TIME_ONLY).sort());
+    expect(opening).toEqual(
+      [...Object.keys(BUILD_TIME_ONLY), NODE_SQLITE_BUNDLE_IMPORTER].sort()
+    );
+  });
+
+  it('permits only node:sqlite in the explicit opt-in bundle importer', () => {
+    const importer = files.find(
+      (file) => file.path === NODE_SQLITE_BUNDLE_IMPORTER
+    )!;
+    expect(
+      importsOf(importer.source).filter((specifier) =>
+        DRIVERS.includes(specifier)
+      )
+    ).toEqual(['node:sqlite']);
   });
 
   it('states, for every such file, why it never runs on a server', () => {
