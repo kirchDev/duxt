@@ -28,9 +28,13 @@ export default function duxtContentBundles(_options: unknown, nuxt: Nuxt) {
         | { database?: { type?: string } }
         | undefined
     )?.database;
+    // Bun and deno-server inherit node-server, including its node: true flag.
     if (
       nuxt.options.dev ||
       !nitro.options.node ||
+      nitro.options.exportConditions?.some(
+        (condition) => condition === 'bun' || condition === 'deno'
+      ) ||
       nitro.options.static ||
       database?.type !== 'sqlite'
     )

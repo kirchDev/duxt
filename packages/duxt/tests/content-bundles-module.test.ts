@@ -36,3 +36,37 @@ it('registers its Node importer only for production Node SQLite servers', () => 
     });
   }
 });
+
+it.each([
+  ['Bun', ['bun', 'worker', 'node', 'import', 'default']],
+  ['Deno', ['deno']]
+])(
+  'excludes %s presets even when Nitro advertises Node compatibility',
+  (_name, exportConditions) => {
+    const hooks: Record<string, (value: unknown) => void> = {};
+    const nuxt = {
+      options: {
+        dev: false,
+        buildDir: '/fixture/.nuxt',
+        build: { templates: [] },
+        runtimeConfig: { content: { database: { type: 'sqlite' } } }
+      },
+      hook: (name: string, callback: (value: unknown) => void) => {
+        hooks[name] = callback;
+      }
+    };
+    module(undefined, nuxt as never);
+    const nitro = {
+      options: {
+        node: true,
+        static: false,
+        exportConditions,
+        plugins: [],
+        virtual: {}
+      }
+    };
+    hooks['nitro:init']!(nitro);
+    expect(nitro.options.plugins).toEqual([]);
+    expect(nitro.options.virtual).toEqual({});
+  }
+);
