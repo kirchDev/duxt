@@ -1,6 +1,7 @@
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import type { Nuxt } from '@nuxt/schema';
+import { isContentComponent } from '../build/content/content-components';
 import { contentCompatibility } from '../build/content/content-compatibility';
 
 export default function duxtContentBundles(_options: unknown, nuxt: Nuxt) {
@@ -48,6 +49,56 @@ export default function duxtContentBundles(_options: unknown, nuxt: Nuxt) {
       database?.type !== 'sqlite'
     )
       return;
+    // Content keeps build-used local loaders unchanged. Extra content globals
+    // resolve only after the request opts in; ordinary renders keep their surface.
+    const wrapped = new WeakSet<object>();
+    nuxt.hook('app:templates', (app) => {
+      const template = app.templates.find(
+        (entry) => entry.filename === 'content/components.ts'
+      );
+      if (!template?.getContents || wrapped.has(template)) return;
+      wrapped.add(template);
+      const original = template.getContents;
+      template.getContents = (data) => {
+        const used = (
+          template.options as { manifest: { components: string[] } }
+        ).manifest.components;
+        return original({
+          ...data,
+          app: {
+            ...data.app,
+            components: data.app.components.map((component) =>
+              isContentComponent(nuxt, component) &&
+              !used.includes(component.pascalName)
+                ? { ...component, global: true }
+                : component
+            )
+          }
+        });
+      };
+    });
+    nuxt.options.build.templates.push({
+      filename: 'duxt-content-bundle-components.ts',
+      write: true,
+      getContents: ({ app }) => {
+        const names = [
+          ...new Set(
+            app.components
+              .filter((component) => isContentComponent(nuxt, component))
+              .map((component) => component.pascalName)
+          )
+        ];
+        return names.length
+          ? `import { ${names.map((name) => 'Lazy' + name).join(', ')} } from '#components';\nexport default [${names.map((name) => `[${JSON.stringify(name)}, Lazy${name}]`).join(', ')}] as const;`
+          : 'export default [] as const;';
+      }
+    });
+    (nuxt.options.plugins ??= []).push({
+      src: fileURLToPath(
+        new URL('./runtime/content-bundles/app-plugin.ts', import.meta.url)
+      ),
+      order: -25
+    });
     const redirects = nitro.options.runtimeConfig?.duxt as
       | { redirects?: string[]; redirectOverrides?: string[] }
       | undefined;

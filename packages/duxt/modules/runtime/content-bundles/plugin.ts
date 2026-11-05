@@ -192,6 +192,8 @@ export default defineNitroPlugin((nitro) => {
     // its nested lookups while new HTTP requests wait outside the activation.
     if (!event.node.req.socket.remoteAddress) return;
     await runtime.settled();
+    // This request holds one activation until its response and background work finish.
+    event.context.duxtContentBundleChecksums = { ...checksums };
     if (
       event.method !== 'GET' ||
       event.headers.get('accept')?.includes('text/event-stream')

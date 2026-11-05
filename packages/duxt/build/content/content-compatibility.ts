@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { Nuxt } from '@nuxt/schema';
+import { isContentComponent } from './content-components';
 import type { DuxtResolvedSource } from '../sources/sources-resolve';
 import {
   canonicalJson,
@@ -118,7 +119,9 @@ export async function contentCompatibility(nuxt: Nuxt): Promise<{
       (nuxt.apps.default?.components ?? [])
         .filter(
           (component) =>
-            !component.island && !component.filePath.endsWith('.css')
+            !component.island &&
+            !component.filePath.endsWith('.css') &&
+            (component.global || isContentComponent(nuxt, component))
         )
         .map((component) => component.pascalName)
     )
