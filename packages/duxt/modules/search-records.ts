@@ -33,6 +33,15 @@ const HOOK = 'duxt:search:records';
 export default function duxtSearchRecordsModule(_options: unknown, nuxt: Nuxt) {
   nuxt.hook('build:done', async () => {
     if (!listening(nuxt)) return;
+    const bundleDir = (
+      nuxt.options.runtimeConfig.duxt as
+        | { contentBundles?: { dir?: string } }
+        | undefined
+    )?.contentBundles?.dir;
+    if (bundleDir || process.env.DUXT_CONTENT_BUNDLE_DIR)
+      console.warn(
+        '[duxt] content bundle: duxt:search:records only indexes build-time content; runtime bundle switches do not refresh this index.'
+      );
 
     // The manifest `modules/config.ts` already resolved, rather than a second
     // pass of its own: resolving it means `git ls-remote` for every source that

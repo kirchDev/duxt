@@ -1,7 +1,16 @@
 import { DatabaseSync } from 'node:sqlite';
 import { lstat, readFile, readdir } from 'node:fs/promises';
-import { mkdirSync } from 'node:fs';
-import { dirname, join, posix } from 'node:path';
+import {
+  mkdirSync,
+  lstatSync,
+  symlinkSync,
+  renameSync,
+  readlinkSync,
+  unlinkSync,
+  existsSync
+} from 'node:fs';
+import { randomUUID } from 'node:crypto';
+import { dirname, join, posix, resolve, extname } from 'node:path';
 import { gunzipSync } from 'node:zlib';
 import {
   assertContentCompatibility,
@@ -13,14 +22,35 @@ import type {
   ContentCompatibilityArtifact
 } from '../../../build/content/content-bundle';
 
+interface Media {
+  bytes: Buffer;
+  type: string;
+  etag: string;
+}
+const imageTypes: Record<string, string> = {
+  '.svg': 'image/svg+xml',
+  '.gif': 'image/gif',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.avif': 'image/avif',
+  '.apng': 'image/apng',
+  '.ico': 'image/x-icon'
+};
 interface Bundle {
   id: string;
   commit: string;
+  media: Map<string, Media>;
   checksums: Record<string, string>;
   dumps: Record<string, string>;
   statements: Record<string, string[]>;
+  redirects: Record<string, { redirect: { to: string; statusCode: 301 } }>;
 }
 interface Options {
+  pollSeconds?: number;
+  beforeActivate?: () => Promise<void>;
+  onActivate?: () => Promise<void>;
   directory: string;
   filename: string;
   compat: Pick<
@@ -171,8 +201,27 @@ export function createContentBundleRuntime(options: Options) {
       canonicalJson(collections)
     )
       throw new Error('Bundle collections differ.');
-    // These payloads share the format even though serving media/redirects is outside this importer.
-    JSON.parse(text('redirects.json'));
+    const localPath = (path: unknown): path is string =>
+      typeof path === 'string' &&
+      path.startsWith('/') &&
+      !path.startsWith('//') &&
+      !/[\\\r\n]/.test(path);
+    const redirects = JSON.parse(text('redirects.json'));
+    if (
+      !redirects ||
+      Array.isArray(redirects) ||
+      typeof redirects !== 'object' ||
+      Object.entries(redirects).some(
+        ([path, rule]) =>
+          !localPath(path) ||
+          !(rule as { redirect?: { to?: unknown; statusCode?: unknown } })
+            ?.redirect ||
+          !localPath((rule as { redirect: { to: unknown } }).redirect.to) ||
+          (rule as { redirect: { statusCode: unknown } }).redirect
+            .statusCode !== 301
+      )
+    )
+      throw new Error('Invalid bundle redirects.');
     const dumps: Record<string, string> = {};
     const statements: Record<string, string[]> = {};
     for (const collection of collections) {
@@ -217,15 +266,34 @@ export function createContentBundleRuntime(options: Options) {
           : 'unknown',
       checksums,
       dumps,
-      statements
+      statements,
+      redirects,
+      media: new Map(
+        [...payload]
+          .filter(([path]) => path.startsWith('media/'))
+          .map(([path, bytes]) => [
+            path.slice(6),
+            {
+              bytes,
+              type:
+                imageTypes[extname(path).toLowerCase()] ??
+                'application/octet-stream',
+              etag: '"' + contentHash(bytes) + '"'
+            }
+          ])
+      )
     };
   }
 
-  async function activateCurrent() {
+  async function activate() {
     let id: string | null = null;
     let candidate: Bundle | undefined;
     let commit: string | null = null;
     let db: DatabaseSync | undefined;
+    const activePath = join(options.directory, 'active');
+    const stagingPath = join(options.directory, '.active-' + randomUUID());
+    let oldTarget: string | undefined;
+    let switched = false;
     try {
       const pointer = join(options.directory, 'current');
       if (!(await lstat(pointer)).isFile())
@@ -238,6 +306,16 @@ export function createContentBundleRuntime(options: Options) {
       candidate = await readBundle(id, (value) => {
         commit = value;
       });
+      // Fail before touching SQLite if an operator-owned directory occupies the managed link.
+      try {
+        if (!lstatSync(activePath).isSymbolicLink())
+          throw new Error('Managed active path must be a symlink.');
+        oldTarget = readlinkSync(activePath);
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+      }
+      symlinkSync(resolve(options.directory, id), stagingPath, 'dir');
+      await options.beforeActivate?.();
       mkdirSync(dirname(options.filename), { recursive: true });
       db = new DatabaseSync(options.filename);
       db.exec('PRAGMA busy_timeout = 5000; PRAGMA journal_mode = WAL;');
@@ -302,6 +380,9 @@ export function createContentBundleRuntime(options: Options) {
             'INSERT OR REPLACE INTO _duxt_content_bundle VALUES (1, ?)'
           ).run(id);
         }
+        renameSync(stagingPath, activePath);
+        switched = true;
+        await options.onActivate?.();
         db.exec('COMMIT');
         Object.assign(options.checksums, candidate.checksums);
         active = candidate;
@@ -312,6 +393,12 @@ export function createContentBundleRuntime(options: Options) {
         );
       } catch (error) {
         db.exec('ROLLBACK');
+        if (switched) {
+          if (oldTarget) {
+            symlinkSync(oldTarget, stagingPath, 'dir');
+            renameSync(stagingPath, activePath);
+          } else unlinkSync(activePath);
+        }
         throw error;
       }
     } catch (error) {
@@ -324,15 +411,41 @@ export function createContentBundleRuntime(options: Options) {
       record(id, lastRejection.commit, lastRejection.reason);
     } finally {
       db?.close();
+      if (existsSync(stagingPath)) unlinkSync(stagingPath);
     }
+  }
+  let inFlight: Promise<void> | undefined;
+  function activateCurrent(): Promise<void> {
+    return (inFlight ??= activate().finally(() => {
+      inFlight = undefined;
+    }));
   }
   return {
     activateCurrent,
+    settled: () => inFlight ?? Promise.resolve(),
+    startPolling: () => {
+      const seconds = options.pollSeconds ?? 30;
+      if (!Number.isFinite(seconds) || seconds <= 0)
+        throw new Error('contentBundles.pollSeconds must be positive.');
+      const timer = setInterval(() => {
+        void activateCurrent();
+      }, seconds * 1000);
+      timer.unref();
+      return () => clearInterval(timer);
+    },
     status: () => ({
       active: active ? { id: active.id, commit: active.commit } : null,
       compatHash: options.artifact.compatHash,
       lastRejection
     }),
+    media: (path: string) => {
+      try {
+        return active?.media.get(decodeURIComponent(path).replace(/^\//, ''));
+      } catch {
+        return undefined;
+      }
+    },
+    redirect: (path: string) => active?.redirects[path]?.redirect,
     dump: (collection: string) => active?.dumps[collection]
   };
 }

@@ -84,7 +84,13 @@ export default function duxtRedirects(_options: unknown, nuxt: Nuxt) {
 
     nitro.routeRules = { ...rules, ...nitro.routeRules };
     nitro.runtimeConfig = Object.assign({}, nitro.runtimeConfig, {
-      duxt: { ...nitro.runtimeConfig?.duxt, redirects: owned }
+      duxt: {
+        ...nitro.runtimeConfig?.duxt,
+        redirects: owned,
+        imageRedirects: Object.fromEntries(
+          owned.map((path) => [path, rules[path]])
+        )
+      }
     });
   });
 }

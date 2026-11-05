@@ -1,5 +1,7 @@
 import {
   existsSync,
+  readFileSync,
+  mkdirSync,
   mkdtempSync,
   rmSync,
   unlinkSync,
@@ -21,7 +23,7 @@ afterEach(() => {
   for (const root of roots.splice(0))
     rmSync(root, { recursive: true, force: true });
 });
-async function fixture() {
+async function fixture(pollSeconds?: number) {
   const root = mkdtempSync(join(tmpdir(), 'duxt-import-'));
   roots.push(root);
   const filename = join(root, 'runtime.sqlite');
@@ -64,6 +66,7 @@ async function fixture() {
   const published = await writeContentBundle(input, root);
   const logs: string[] = [];
   const runtime = createContentBundleRuntime({
+    pollSeconds,
     directory: root,
     filename,
     artifact: {
@@ -223,4 +226,86 @@ it('settles an empty publication directory with a rejection and no database side
   expect(runtime.status().lastRejection?.reason).toContain('ENOENT');
   expect(existsSync(filename)).toBe(false);
   expect(logs).toHaveLength(1);
+});
+
+it('polls a changed current pointer and coalesces simultaneous activation requests', async () => {
+  const { runtime, root, input, dump, logs } = await fixture(0.02);
+  await Promise.all(Array.from({ length: 8 }, () => runtime.activateCurrent()));
+  expect(logs).toHaveLength(1);
+  const stop = runtime.startPolling();
+  try {
+    const second = await writeContentBundle(
+      {
+        ...input,
+        provenance: { commit: 'two' },
+        checksums: { docs: 'v3--two', notes: 'v3--two' },
+        dumps: { docs: dump('docs', 'two'), notes: dump('notes', 'two') }
+      },
+      root
+    );
+    await expect.poll(() => runtime.status().active?.id).toBe(second.bundleId);
+    expect(runtime.dump('docs')).toBe(dump('docs', 'two'));
+    expect(logs).toHaveLength(2);
+  } finally {
+    stop();
+  }
+});
+
+it('switches active media and redirects together and retains them after a failed activation', async () => {
+  const { runtime, root, input, dump } = await fixture();
+  await runtime.activateCurrent();
+  const second = await writeContentBundle(
+    {
+      ...input,
+      provenance: { commit: 'two' },
+      checksums: { docs: 'v3--two', notes: 'v3--two' },
+      dumps: { docs: dump('docs', 'two'), notes: dump('notes', 'two') },
+      redirects: { '/old': { redirect: { to: '/new', statusCode: 301 } } },
+      media: { 'picture.svg': Buffer.from('blue') }
+    },
+    root
+  );
+  await runtime.activateCurrent();
+  expect(runtime.redirect('/old')).toEqual({ to: '/new', statusCode: 301 });
+  expect(readFileSync(join(root, 'active/media/picture.svg'), 'utf8')).toBe(
+    'blue'
+  );
+  await writeContentBundle(
+    { ...input, dumps: { ...input.dumps, notes: 'broken' } },
+    root
+  );
+  await runtime.activateCurrent();
+  expect(runtime.status().active?.id).toBe(second.bundleId);
+  expect(runtime.redirect('/old')?.to).toBe('/new');
+  expect(readFileSync(join(root, 'active/media/picture.svg'), 'utf8')).toBe(
+    'blue'
+  );
+});
+
+it('rejects an unwritable active media switch before changing the database or dump', async () => {
+  const { runtime, root, view } = await fixture();
+  mkdirSync(join(root, 'active'));
+  await runtime.activateCurrent();
+  expect(runtime.status().active).toBeNull();
+  expect(runtime.status().lastRejection).not.toBeNull();
+  expect(runtime.dump('docs')).toBeUndefined();
+  expect(() => view()).toThrow();
+});
+
+it('rejects redirects to another origin before activating their bundle', async () => {
+  const { runtime, root, input } = await fixture();
+  await writeContentBundle(
+    {
+      ...input,
+      redirects: {
+        '/old': {
+          redirect: { to: '//elsewhere.example/page', statusCode: 301 }
+        }
+      }
+    },
+    root
+  );
+  await runtime.activateCurrent();
+  expect(runtime.status().active).toBeNull();
+  expect(runtime.status().lastRejection?.reason).toContain('redirects');
 });

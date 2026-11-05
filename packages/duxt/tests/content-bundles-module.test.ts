@@ -30,7 +30,7 @@ it('registers its Node importer only for production Node SQLite servers', () => 
     };
     hooks['nitro:init']!(nitro);
     expect(nitro.options.plugins).toHaveLength(expected);
-    expect(Object.keys(nitro.options.virtual)).toHaveLength(expected);
+    expect(Object.keys(nitro.options.virtual)).toHaveLength(expected * 2);
     expect(nuxt.options.runtimeConfig).toMatchObject({
       duxt: { contentBundles: { dir: '', statusRoute: false } }
     });

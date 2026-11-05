@@ -8,14 +8,23 @@ export default function duxtContentBundles(_options: unknown, nuxt: Nuxt) {
     duxt?: Record<string, unknown>;
   };
   const duxt = (config.duxt ??= {}) as {
-    contentBundles?: { dir?: string; statusRoute?: boolean };
+    contentBundles?: {
+      dir?: string;
+      statusRoute?: boolean;
+      pollSeconds?: number;
+    };
   };
-  duxt.contentBundles = { dir: '', statusRoute: false, ...duxt.contentBundles };
+  duxt.contentBundles = {
+    dir: '',
+    statusRoute: false,
+    pollSeconds: 30,
+    ...duxt.contentBundles
+  };
   nuxt.options.build.templates.push({
     filename: 'types/duxt-content-bundle.d.ts',
     write: true,
     getContents: () =>
-      `declare module '#duxt/content-bundle-compat' { const artifact: { compatHash: string; availableComponents: string[] }; export default artifact; }\ndeclare module '#content/dump';\n`
+      `declare module '#duxt/content-bundle-compat' { const artifact: { compatHash: string; availableComponents: string[] }; export default artifact; }\ndeclare module '#duxt/content-bundle-caches' { export function clearOgPayloads(): Promise<void>; }\ndeclare module '#content/dump';\n`
   });
   nuxt.hook('prepare:types', ({ references }) => {
     references.push({
@@ -39,6 +48,17 @@ export default function duxtContentBundles(_options: unknown, nuxt: Nuxt) {
       database?.type !== 'sqlite'
     )
       return;
+    const redirects = nitro.options.runtimeConfig?.duxt as
+      | { redirects?: string[]; redirectOverrides?: string[] }
+      | undefined;
+    for (const path of redirects?.redirects ?? [])
+      delete nitro.options.routeRules[path];
+    if (redirects)
+      redirects.redirectOverrides = Object.keys(nitro.options.routeRules ?? {});
+    nitro.options.virtual['#duxt/content-bundle-caches'] = nitro.options
+      .alias?.['#og-image-cache']
+      ? "import { htmlPayloadCache } from '#og-image-cache'; export const clearOgPayloads = () => htmlPayloadCache.clear();"
+      : 'export const clearOgPayloads = async () => {};';
     nitro.options.virtual['#duxt/content-bundle-compat'] = async () => {
       const { artifact } = await contentCompatibility(nuxt);
       return 'export default ' + JSON.stringify(artifact) + ';';

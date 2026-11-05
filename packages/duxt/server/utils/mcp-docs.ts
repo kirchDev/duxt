@@ -379,10 +379,11 @@ export interface DuxtScopedPage {
   source: DuxtResolvedSource;
 }
 
-// Production collections are immutable for the lifetime of a deployment.
+// Production paths stay cached until a content bundle activates.
 // Cache paths alone: retaining raw bodies here would turn every Worker into a
 // second database. Dev bypasses the cache so authored changes appear at once.
 const collectionPaths = new Map<string, Promise<string[]>>();
+export const clearDuxtMcpPaths = () => collectionPaths.clear();
 async function paths(event: H3Event, collection: string): Promise<string[]> {
   const load = async () => {
     const rows = await queryCollection(
