@@ -1,0 +1,10 @@
+.git
+**/node_modules
+**/.nuxt
+**/.nuxt-pack-*
+**/.output
+**/.data
+.turbo
+.env
+.env.*
+!.env.example

@@ -5,8 +5,6 @@ status: accepted
 date: 2026-11-04
 ---
 
-# ADR-0013 — Content-Bundles zur Laufzeit laden
-
 ## Kontext
 
 Ein Wiki kann sein Markdown häufiger ändern als seinen Anwendungscode. Ein neues

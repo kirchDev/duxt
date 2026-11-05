@@ -1,9 +1,8 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 
-# NOT A STUB, AND THE SECOND OF THE TWO IN THIS DIRECTORY — `deploy.yml` is the
-# other. Every other workflow here calls a body in kirchDev/workflows; there is
-# no body for "build one repository's site eighteen times and compare the
-# prerender phase", and there is unlikely ever to be a second caller for one.
+# NOT A STUB. CLAUDE.md inventories the five workflows carrying their own jobs.
+# Workflows normally call a body in kirchDev/workflows; there is no body for
+# "build one repository's site eighteen times and compare the prerender phase", and there is unlikely ever to be a second caller for one.
 #
 # WHAT IT IS FOR. `prerender.concurrency: 8` in `apps/www/nuxt.config.ts` is the
 # answer to a build that produced 335 `createImage timeout` lines — 335 pages
