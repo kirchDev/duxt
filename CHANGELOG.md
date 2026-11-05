@@ -1,5 +1,25 @@
 # Changelog
 
+## [v0.12.0](https://github.com/kirchDev/duxt/compare/duxt@v0.11.0...duxt@v0.12.0) (2026-11-05)
+
+### Features
+
+- **content:** deliver runtime bundles to MDC and browsers
+- **content:** refresh content bundles in running Node servers
+- **content:** import content bundles at startup
+- **content:** pack immutable content bundles
+
+### Bug Fixes
+
+- **deps:** bump the npm-minor-patch group across 1 directory with 3 updates (#143)
+- **content:** retain finite GET readers advertising SSE
+- **content:** retain finite POST readers during bundle swaps
+- **content:** bind bundle validation and reads to file handles
+- **content:** exclude generated reports from compatibility
+- **content:** exclude non-Node runtime presets
+- **content:** publish bundles with normal reader permissions
+- **deps:** update dependencies and patch vulnerable transitive ones (#141)
+
 ## [v0.11.0](https://github.com/kirchDev/duxt/compare/duxt@v0.10.0...duxt@v0.11.0) (2026-10-29)
 
 ### Features
