@@ -1,6 +1,7 @@
 import { DatabaseSync } from 'node:sqlite';
-import { lstat, readFile, readdir } from 'node:fs/promises';
+import { lstat, open, readdir } from 'node:fs/promises';
 import {
+  constants,
   mkdirSync,
   lstatSync,
   symlinkSync,
@@ -84,6 +85,36 @@ const statement = (row: string) => {
   return row.slice(0, match.index);
 };
 
+// Open once, validate that handle, then read that same handle. O_NONBLOCK keeps
+// a substituted FIFO from holding startup or the poller while waiting for a writer.
+async function readRegularFile(path: string): Promise<Buffer> {
+  const file = await open(
+    path,
+    constants.O_RDONLY |
+      (constants.O_NOFOLLOW ?? 0) |
+      (constants.O_NONBLOCK ?? 0)
+  );
+  try {
+    const opened = await file.stat();
+    if (!opened.isFile())
+      throw new Error('Bundle file must be a regular file.');
+    // Windows has no O_NOFOLLOW: admit the opened inode only while its path is
+    // a regular file with the same identity, before reading any bytes.
+    if (constants.O_NOFOLLOW === undefined) {
+      const named = await lstat(path);
+      if (
+        !named.isFile() ||
+        named.dev !== opened.dev ||
+        named.ino !== opened.ino
+      )
+        throw new Error('Bundle file changed while opening.');
+    }
+    return await file.readFile();
+  } finally {
+    await file.close();
+  }
+}
+
 /** Node/SQLite only. The module never registers this code for another adapter or platform. */
 export function createContentBundleRuntime(options: Options) {
   let active: Bundle | undefined;
@@ -107,7 +138,9 @@ export function createContentBundleRuntime(options: Options) {
     const root = join(options.directory, id);
     if (!(await lstat(root)).isDirectory())
       throw new Error('Bundle is not a directory.');
-    const sums = await readFile(join(root, 'SHA256SUMS'), 'utf8');
+    const sums = (await readRegularFile(join(root, 'SHA256SUMS'))).toString(
+      'utf8'
+    );
     if (contentHash(sums) !== id)
       throw new Error('Bundle id does not match SHA256SUMS.');
     const payload = new Map<string, Buffer>();
@@ -128,16 +161,14 @@ export function createContentBundleRuntime(options: Options) {
         payload.has(path)
       )
         throw new Error('Invalid bundle file path.');
-      // Every component is checked: a symlink in a parent directory escapes a file-only check.
+      // Published bundle directories are immutable; still reject symlinked parents.
       let at = root;
-      for (const part of path.split('/')) {
+      for (const part of path.split('/').slice(0, -1)) {
         at = join(at, part);
         if ((await lstat(at)).isSymbolicLink())
           throw new Error('Bundle symlinks are not supported.');
       }
-      if (!(await lstat(at)).isFile())
-        throw new Error('Bundle payload is not a regular file.');
-      const bytes = await readFile(at);
+      const bytes = await readRegularFile(join(root, path));
       if (contentHash(bytes) !== hash)
         throw new Error('Bundle file hash differs: ' + path);
       payload.set(path, bytes);
@@ -296,9 +327,7 @@ export function createContentBundleRuntime(options: Options) {
     let switched = false;
     try {
       const pointer = join(options.directory, 'current');
-      if (!(await lstat(pointer)).isFile())
-        throw new Error('Bundle current pointer must be a regular file.');
-      const current = await readFile(pointer, 'utf8');
+      const current = (await readRegularFile(pointer)).toString('utf8');
       id = current.trim();
       if (!/^[a-f0-9]{64}\n$/.test(current))
         throw new Error('Invalid bundle current pointer.');

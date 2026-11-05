@@ -1,25 +1,40 @@
 import {
+  constants,
   existsSync,
   readFileSync,
   mkdirSync,
   mkdtempSync,
   rmSync,
+  renameSync,
+  symlinkSync,
   unlinkSync,
   writeFileSync
 } from 'node:fs';
 import { tmpdir } from 'node:os';
+import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 import { gunzipSync, gzipSync } from 'node:zlib';
 import { DatabaseSync } from 'node:sqlite';
-import { afterEach, expect, it } from 'vitest';
+import { afterEach, expect, it, vi } from 'vitest';
+import * as filesystem from 'node:fs/promises';
 import {
   writeContentBundle,
   contentCompatHash
 } from '../build/content/content-bundle';
 import { createContentBundleRuntime } from '../modules/runtime/content-bundles/runtime';
 
+vi.mock('node:fs', async (original) => {
+  const filesystem = await original<typeof import('node:fs')>();
+  return { ...filesystem, constants: { ...filesystem.constants } };
+});
+
+vi.mock('node:fs/promises', async (original) => ({
+  ...(await original<typeof import('node:fs/promises')>())
+}));
+
 const roots: string[] = [];
 afterEach(() => {
+  vi.restoreAllMocks();
   for (const root of roots.splice(0))
     rmSync(root, { recursive: true, force: true });
 });
@@ -309,3 +324,159 @@ it('rejects redirects to another origin before activating their bundle', async (
   expect(runtime.status().active).toBeNull();
   expect(runtime.status().lastRejection?.reason).toContain('redirects');
 });
+
+// A publication rename can land after a path was inspected. Schedule that real
+// filesystem change at the I/O boundary rather than relying on wall-clock races.
+function replaceAfterFirstAccess(path: string, replace: () => void) {
+  let replaced = false;
+  for (const method of ['lstat', 'open'] as const) {
+    const original = filesystem[method] as (
+      ...args: never[]
+    ) => Promise<unknown>;
+    vi.spyOn(filesystem, method).mockImplementation((async (
+      ...args: unknown[]
+    ) => {
+      const result = await original(...(args as never[]));
+      if (String(args[0]) === path && !replaced) {
+        replaced = true;
+        replace();
+      }
+      return result;
+    }) as never);
+  }
+  return () => expect(replaced).toBe(true);
+}
+
+it('reads the same current file it admitted when publication replaces its pathname', async () => {
+  const { runtime, root, published, input, dump } = await fixture();
+  const second = await writeContentBundle(
+    {
+      ...input,
+      provenance: { commit: 'two' },
+      checksums: { docs: 'v3--two', notes: 'v3--two' },
+      dumps: { docs: dump('docs', 'two'), notes: dump('notes', 'two') }
+    },
+    root
+  );
+  const pointer = join(root, 'current');
+  writeFileSync(pointer, published.bundleId + '\n');
+  const outside = join(root, 'outside-current');
+  writeFileSync(outside, second.bundleId + '\n');
+  const raced = replaceAfterFirstAccess(pointer, () => {
+    unlinkSync(pointer);
+    symlinkSync(outside, pointer);
+  });
+  await runtime.activateCurrent();
+  raced();
+  expect(runtime.status().active?.id).toBe(published.bundleId);
+});
+
+it('reads admitted payload bytes from the same file when publication replaces its pathname', async () => {
+  const { runtime, root, published } = await fixture();
+  const path = join(root, published.bundleId, 'bundle.json');
+  const replacement = join(root, 'next-manifest');
+  writeFileSync(
+    replacement,
+    'replacement bytes must not replace the opened file'
+  );
+  const raced = replaceAfterFirstAccess(path, () =>
+    renameSync(replacement, path)
+  );
+  await runtime.activateCurrent();
+  raced();
+  expect(runtime.status().active?.id).toBe(published.bundleId);
+});
+
+it.each(['current', 'SHA256SUMS', 'bundle.json'])(
+  'rejects a symlinked %s even when its target contains valid bytes',
+  async (name) => {
+    const { runtime, root, published, filename } = await fixture();
+    const path =
+      name === 'current'
+        ? join(root, name)
+        : join(root, published.bundleId, name);
+    const outside = join(root, 'outside-file');
+    renameSync(path, outside);
+    symlinkSync(outside, path);
+    await runtime.activateCurrent();
+    expect(runtime.status().active).toBeNull();
+    expect(runtime.status().lastRejection).not.toBeNull();
+    expect(existsSync(filename)).toBe(false);
+  }
+);
+
+it('rejects a symlinked payload parent even when all file hashes match', async () => {
+  const { runtime, root, published, filename } = await fixture();
+  const path = join(root, published.bundleId, 'dumps');
+  const outside = join(root, 'outside-dumps');
+  renameSync(path, outside);
+  symlinkSync(outside, path, 'dir');
+  await runtime.activateCurrent();
+  expect(runtime.status().active).toBeNull();
+  expect(runtime.status().lastRejection?.reason).toContain('symlinks');
+  expect(existsSync(filename)).toBe(false);
+});
+
+it.skipIf(process.platform === 'win32').each(['current', 'dumps/docs.txt'])(
+  'rejects a FIFO at %s without waiting for a writer',
+  async (name) => {
+    const { runtime, root, published, filename } = await fixture();
+    const path =
+      name === 'current'
+        ? join(root, name)
+        : join(root, published.bundleId, name);
+    unlinkSync(path);
+    execFileSync('mkfifo', [path]);
+    let neededWriter = false;
+    // Release a regressed blocking open so a failure cannot strand the test worker.
+    const writer = setTimeout(() => {
+      neededWriter = true;
+      writeFileSync(path, '');
+    }, 500);
+    try {
+      await runtime.activateCurrent();
+      expect(neededWriter).toBe(false);
+      expect(runtime.status().active).toBeNull();
+      expect(runtime.status().lastRejection?.reason).toContain('regular file');
+      expect(existsSync(filename)).toBe(false);
+    } finally {
+      clearTimeout(writer);
+    }
+  }
+);
+
+it.each(['unchanged', 'symlink', 'regular'])(
+  'validates opened-file identity without O_NOFOLLOW when the path is %s',
+  async (replacement) => {
+    const { runtime, root, published, filename } = await fixture();
+    const flags = constants as { O_NOFOLLOW?: number };
+    const nofollow = flags.O_NOFOLLOW;
+    delete flags.O_NOFOLLOW;
+    try {
+      if (replacement !== 'unchanged') {
+        const pointer = join(root, 'current');
+        const next = join(root, 'next-pointer');
+        writeFileSync(next, published.bundleId + '\n');
+        replaceAfterFirstAccess(pointer, () => {
+          if (replacement === 'regular') renameSync(next, pointer);
+          else {
+            unlinkSync(pointer);
+            symlinkSync(next, pointer);
+          }
+        });
+      }
+      await runtime.activateCurrent();
+      if (replacement === 'unchanged')
+        expect(runtime.status().active?.id).toBe(published.bundleId);
+      else {
+        expect(runtime.status().active).toBeNull();
+        expect(runtime.status().lastRejection?.reason).toContain(
+          'changed while opening'
+        );
+        expect(existsSync(filename)).toBe(false);
+      }
+    } finally {
+      flags.O_NOFOLLOW = nofollow;
+    }
+  }
+);
