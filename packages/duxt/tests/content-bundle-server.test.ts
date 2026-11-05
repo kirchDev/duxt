@@ -67,8 +67,12 @@ it('refreshes real Content, media, redirects, MCP and caches without restarting'
       `import { writeFile, access } from 'node:fs/promises'; export default defineMcpTool({ name: 'held_view', annotations: { readOnlyHint: true }, async handler() { const event = useEvent(); const docs = (await queryCollection(event, 'docs').first()).title; await writeFile(${JSON.stringify(join(root, 'tool-started'))}, 'started'); while (true) { try { await access(${JSON.stringify(join(root, 'tool-release'))}); break; } catch { await new Promise(resolve => setTimeout(resolve, 10)); } } await globalThis.$fetch('/api/view'); return { content: [{ type: 'text', text: JSON.stringify({ docs, notes: (await queryCollection(event, 'notes').first()).title }) }] }; } });`
     );
     writeFileSync(
+      join(root, 'server/fixture-paths.json'),
+      JSON.stringify({ adminStarted: join(root, 'admin-started') })
+    );
+    writeFileSync(
       join(root, 'server/api/await-activation.post.ts'),
-      `import { writeFile } from 'node:fs/promises'; export default defineEventHandler(async () => { await writeFile(${JSON.stringify(join(root, 'admin-started'))}, 'started'); while (true) { const status = await globalThis.$fetch('/__duxt/content-bundle'); if (status.active?.commit === 'bundle-two') return status.active; await new Promise(resolve => setTimeout(resolve, 10)); } });`
+      `import { writeFile } from 'node:fs/promises'; import fixturePaths from '../fixture-paths.json'; export default defineEventHandler(async () => { await writeFile(fixturePaths.adminStarted, 'started'); while (true) { const status = await globalThis.$fetch('/__duxt/content-bundle'); if (status.active?.commit === 'bundle-two') return status.active; await new Promise(resolve => setTimeout(resolve, 10)); } });`
     );
     const ogRoot = fileURLToPath(import.meta.resolve('nuxt-og-image')).replace(
       /module\.mjs$/,
