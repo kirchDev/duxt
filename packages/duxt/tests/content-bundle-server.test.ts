@@ -91,6 +91,10 @@ it('refreshes real Content, media, redirects, MCP and caches without restarting'
       `import { writeFile, access } from 'node:fs/promises'; export default defineEventHandler(async event => { const docs = (await queryCollection(event, 'docs').first()).title; await writeFile(${JSON.stringify(join(root, 'post-started'))}, 'started'); while (true) { try { await access(${JSON.stringify(join(root, 'post-release'))}); break; } catch { await new Promise(resolve => setTimeout(resolve, 10)); } } await globalThis.$fetch('/api/view'); return { docs, notes: (await queryCollection(event, 'notes').first()).title }; });`
     );
     writeFileSync(
+      join(root, 'server/api/late-get.get.ts'),
+      `import { writeFile, access } from 'node:fs/promises'; export default defineEventHandler(async event => { const docs = (await queryCollection(event, 'docs').first()).title; await writeFile(${JSON.stringify(join(root, 'get-started'))}, 'started'); while (true) { try { await access(${JSON.stringify(join(root, 'get-release'))}); break; } catch { await new Promise(resolve => setTimeout(resolve, 10)); } } await globalThis.$fetch('/api/view'); return { docs, notes: (await queryCollection(event, 'notes').first()).title }; });`
+    );
+    writeFileSync(
       join(root, 'server/api/sitemap.get.ts'),
       `export default defineEventHandler(async event => (await queryCollection(event, 'docs').select('path').all()).map(row => ({ loc: row.path })));`
     );
@@ -532,6 +536,10 @@ it('refreshes real Content, media, redirects, MCP and caches without restarting'
       await expect
         .poll(() => existsSync(join(root, 'tool-started')))
         .toBe(true);
+      const lateGet = fetch(url + '/api/late-get', {
+        headers: { accept: 'application/json, text/event-stream' }
+      });
+      await expect.poll(() => existsSync(join(root, 'get-started'))).toBe(true);
       const second = await writeContentBundle(
         {
           compat,
@@ -573,6 +581,13 @@ it('refreshes real Content, media, redirects, MCP and caches without restarting'
       await new Promise((resolve) => setTimeout(resolve, 150));
       writeFileSync(join(root, 'tool-release'), 'release');
       expect(JSON.parse(await lateTool)).toEqual({
+        docs: 'BundleOne',
+        notes: 'BundleOne'
+      });
+      // This finite GET is the last reader; the open MCP stream reads no content.
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      writeFileSync(join(root, 'get-release'), 'release');
+      expect(await (await lateGet).json()).toEqual({
         docs: 'BundleOne',
         notes: 'BundleOne'
       });

@@ -207,12 +207,14 @@ export default defineNitroPlugin((nitro) => {
     if (!event.node.req.socket.remoteAddress) return;
     await runtime.settled();
     event.context.duxtContentBundleChecksums = { ...checksums };
-    if (event.method === 'GET') {
-      if (!event.headers.get('accept')?.includes('text/event-stream'))
-        await retain(event);
+    if (
+      event.method === 'GET' &&
+      !event.headers.get('accept')?.includes('text/event-stream')
+    ) {
+      await retain(event);
       return;
     }
-    // A publishing POST may await activation; retain it only after a Content query.
+    // Idle streams and publishing requests must not delay activation without a query.
     event.$fetch = new Proxy(event.$fetch, {
       apply(fetch, receiver, args) {
         if (
