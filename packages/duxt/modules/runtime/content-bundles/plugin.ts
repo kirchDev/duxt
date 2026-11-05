@@ -186,19 +186,11 @@ export default defineNitroPlugin((nitro) => {
       nitro.hooks.hook('close', stop);
     }
   );
-  nitro.hooks.hook('request', async (event) => {
-    await settled;
-    // Nitro's local fetches have no remote socket. Let a running render finish
-    // its nested lookups while new HTTP requests wait outside the activation.
-    if (!event.node.req.socket.remoteAddress) return;
+  async function retain(event: H3Event) {
+    if (release.has(event)) return;
     await runtime.settled();
-    // This request holds one activation until its response and background work finish.
+    if (release.has(event)) return;
     event.context.duxtContentBundleChecksums = { ...checksums };
-    if (
-      event.method !== 'GET' ||
-      event.headers.get('accept')?.includes('text/event-stream')
-    )
-      return;
     let done!: () => void;
     const reading = new Promise<void>((resolve) => {
       done = resolve;
@@ -207,6 +199,29 @@ export default defineNitroPlugin((nitro) => {
     release.set(event, () => {
       readers.delete(reading);
       done();
+    });
+  }
+  nitro.hooks.hook('request', async (event) => {
+    await settled;
+    // A running reader's socketless nested fetches must finish while activation drains.
+    if (!event.node.req.socket.remoteAddress) return;
+    await runtime.settled();
+    event.context.duxtContentBundleChecksums = { ...checksums };
+    if (event.method === 'GET') {
+      if (!event.headers.get('accept')?.includes('text/event-stream'))
+        await retain(event);
+      return;
+    }
+    // A publishing POST may await activation; retain it only after a Content query.
+    event.$fetch = new Proxy(event.$fetch, {
+      apply(fetch, receiver, args) {
+        if (
+          typeof args[0] === 'string' &&
+          /^\/__nuxt_content\/[A-Za-z0-9_-]+\/query(?:\?|$)/.test(args[0])
+        )
+          return retain(event).then(() => Reflect.apply(fetch, receiver, args));
+        return Reflect.apply(fetch, receiver, args);
+      }
     });
   });
   nitro.hooks.hook('afterResponse', async (event) => {

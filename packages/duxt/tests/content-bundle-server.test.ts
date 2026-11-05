@@ -48,7 +48,7 @@ it('refreshes real Content, media, redirects, MCP and caches without restarting'
     writeFileSync(join(root, 'package.json'), '{"type":"module"}');
     writeFileSync(
       join(root, 'nuxt.config.ts'),
-      `export default defineNuxtConfig({ modules: ['@nuxt/content', '@nuxt/image', '@nuxtjs/mcp-toolkit', 'nuxt-og-image', '@nuxtjs/sitemap', ${JSON.stringify(join(layer, 'modules/content-compatibility.ts'))}, ${JSON.stringify(join(layer, 'modules/content-bundles.ts'))}, ${JSON.stringify(join(layer, 'modules/redirects.ts'))}], routeRules: { '/**': { headers: { 'x-consumer': 'keep' } }, '/operator-owned': { redirect: '/operator-choice' }, '/operator-page': { headers: { 'x-owned': 'yes' } } }, content: { experimental: { sqliteConnector: 'native' } }, runtimeConfig: { duxt: { contentBundles: { statusRoute: true, pollSeconds: 0.05 } } }, site: { url: 'https://fixture.example' }, ogImage: { fonts: [], security: { secret: false }, publish: { storage: 'published-og', baseURL: 'https://images.example' } }, sitemap: { sources: ['/api/sitemap'] }, nitro: { storage: { 'published-og': { driver: 'memory' } }, experimental: { asyncContext: true }, prerender: { routes: [], crawlLinks: false } }, devtools: { enabled: false } })`
+      `export default defineNuxtConfig({ modules: ['@nuxt/content', '@nuxt/image', '@nuxtjs/mcp-toolkit', 'nuxt-og-image', '@nuxtjs/sitemap', ${JSON.stringify(join(layer, 'modules/content-compatibility.ts'))}, ${JSON.stringify(join(layer, 'modules/content-bundles.ts'))}, ${JSON.stringify(join(layer, 'modules/redirects.ts'))}], routeRules: { '/**': { headers: { 'x-consumer': 'keep' } }, '/operator-owned': { redirect: '/operator-choice' }, '/operator-page': { headers: { 'x-owned': 'yes' } } }, content: { experimental: { sqliteConnector: 'native' } }, mcp: { sessions: true }, runtimeConfig: { duxt: { contentBundles: { statusRoute: true, pollSeconds: 0.05 } } }, site: { url: 'https://fixture.example' }, ogImage: { fonts: [], security: { secret: false }, publish: { storage: 'published-og', baseURL: 'https://images.example' } }, sitemap: { sources: ['/api/sitemap'] }, nitro: { storage: { 'published-og': { driver: 'memory' } }, experimental: { asyncContext: true }, prerender: { routes: [], crawlLinks: false } }, devtools: { enabled: false } })`
     );
     writeFileSync(
       join(root, 'app/app.vue'),
@@ -62,6 +62,14 @@ it('refreshes real Content, media, redirects, MCP and caches without restarting'
           'utf8'
         ).replaceAll('../../utils/', layer + '/server/utils/')
       );
+    writeFileSync(
+      join(root, 'server/mcp/tools/held-view.ts'),
+      `import { writeFile, access } from 'node:fs/promises'; export default defineMcpTool({ name: 'held_view', annotations: { readOnlyHint: true }, async handler() { const event = useEvent(); const docs = (await queryCollection(event, 'docs').first()).title; await writeFile(${JSON.stringify(join(root, 'tool-started'))}, 'started'); while (true) { try { await access(${JSON.stringify(join(root, 'tool-release'))}); break; } catch { await new Promise(resolve => setTimeout(resolve, 10)); } } await globalThis.$fetch('/api/view'); return { content: [{ type: 'text', text: JSON.stringify({ docs, notes: (await queryCollection(event, 'notes').first()).title }) }] }; } });`
+    );
+    writeFileSync(
+      join(root, 'server/api/await-activation.post.ts'),
+      `import { writeFile } from 'node:fs/promises'; export default defineEventHandler(async () => { await writeFile(${JSON.stringify(join(root, 'admin-started'))}, 'started'); while (true) { const status = await globalThis.$fetch('/__duxt/content-bundle'); if (status.active?.commit === 'bundle-two') return status.active; await new Promise(resolve => setTimeout(resolve, 10)); } });`
+    );
     const ogRoot = fileURLToPath(import.meta.resolve('nuxt-og-image')).replace(
       /module\.mjs$/,
       ''
@@ -77,6 +85,10 @@ it('refreshes real Content, media, redirects, MCP and caches without restarting'
     writeFileSync(
       join(root, 'server/api/late-cache.get.ts'),
       `import { writeFile, access } from 'node:fs/promises'; export default defineEventHandler(async event => { const value = (await queryCollection(event, 'docs').first()).title; await writeFile(${JSON.stringify(join(root, 'cache-started'))}, 'started'); while (true) { try { await access(${JSON.stringify(join(root, 'cache-release'))}); break; } catch { await new Promise(resolve => setTimeout(resolve, 10)); } } await globalThis.$fetch('/api/view'); await useStorage('sitemap').setItem('late', value); return value; });`
+    );
+    writeFileSync(
+      join(root, 'server/api/late-read.post.ts'),
+      `import { writeFile, access } from 'node:fs/promises'; export default defineEventHandler(async event => { const docs = (await queryCollection(event, 'docs').first()).title; await writeFile(${JSON.stringify(join(root, 'post-started'))}, 'started'); while (true) { try { await access(${JSON.stringify(join(root, 'post-release'))}); break; } catch { await new Promise(resolve => setTimeout(resolve, 10)); } } await globalThis.$fetch('/api/view'); return { docs, notes: (await queryCollection(event, 'notes').first()).title }; });`
     );
     writeFileSync(
       join(root, 'server/api/sitemap.get.ts'),
@@ -427,6 +439,24 @@ it('refreshes real Content, media, redirects, MCP and caches without restarting'
         })
       })
     ).text();
+    expect(session).toBeTruthy();
+    const streamController = new AbortController();
+    const sessionStream = await fetch(url + '/mcp', {
+      headers: { ...mcpHeaders, accept: 'text/event-stream' },
+      signal: streamController.signal
+    });
+    expect(sessionStream.status).toBe(200);
+    let sessionClosed = false;
+    const streamReader = sessionStream.body!.getReader();
+    const streamDone = (async () => {
+      try {
+        while (!(await streamReader.read()).done) {}
+      } catch {
+        // Aborting the test's long-lived stream is its normal cleanup.
+      } finally {
+        sessionClosed = true;
+      }
+    })();
     let callId = 2;
     const tool = async (name: string, args: Record<string, unknown>) => {
       const response = await fetch(url + '/mcp', {
@@ -479,9 +509,28 @@ it('refreshes real Content, media, redirects, MCP and caches without restarting'
     await once(reader, 'message');
     try {
       const secondPayload = await parseBundle('BundleTwo');
+      const admin = fetch(url + '/api/await-activation', {
+        method: 'POST',
+        signal: AbortSignal.timeout(30000)
+      });
+      await expect
+        .poll(() => existsSync(join(root, 'admin-started')))
+        .toBe(true);
+
       const late = fetch(url + '/api/late-cache');
       await expect
         .poll(() => existsSync(join(root, 'cache-started')))
+        .toBe(true);
+      const latePost = fetch(url + '/api/late-read', {
+        method: 'POST',
+        headers: { accept: 'application/json, text/event-stream' }
+      });
+      await expect
+        .poll(() => existsSync(join(root, 'post-started')))
+        .toBe(true);
+      const lateTool = tool('held_view', {});
+      await expect
+        .poll(() => existsSync(join(root, 'tool-started')))
         .toBe(true);
       const second = await writeContentBundle(
         {
@@ -513,6 +562,25 @@ it('refreshes real Content, media, redirects, MCP and caches without restarting'
       await new Promise((resolve) => setTimeout(resolve, 150));
       writeFileSync(join(root, 'cache-release'), 'release');
       expect(await (await late).text()).toBe('BundleOne');
+      // A finite POST holds the same view after the GET render has finished.
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      writeFileSync(join(root, 'post-release'), 'release');
+      expect(await (await latePost).json()).toEqual({
+        docs: 'BundleOne',
+        notes: 'BundleOne'
+      });
+      // The finite tool call retains its view while its session stream stays open.
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      writeFileSync(join(root, 'tool-release'), 'release');
+      expect(JSON.parse(await lateTool)).toEqual({
+        docs: 'BundleOne',
+        notes: 'BundleOne'
+      });
+      expect(await (await admin).json()).toMatchObject({
+        id: second.bundleId,
+        commit: 'bundle-two'
+      });
+      expect(sessionClosed).toBe(false);
       await expect
         .poll(
           async () => {
@@ -562,8 +630,15 @@ it('refreshes real Content, media, redirects, MCP and caches without restarting'
       expect(result.mixed).toBe(false);
       expect(result.seen.sort()).toEqual(['BundleOne', 'BundleTwo']);
       await once(reader, 'exit');
+      expect(
+        (await fetch(url + '/mcp', { method: 'DELETE', headers: mcpHeaders }))
+          .status
+      ).toBe(200);
+      await streamDone;
       await stop();
     } finally {
+      streamController.abort();
+      await streamDone;
       await reader.terminate();
     }
     const invalid = await writeContentBundle(
