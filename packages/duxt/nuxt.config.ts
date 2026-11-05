@@ -258,6 +258,8 @@ export default defineNuxtConfig({
     // `redirectFrom:` in a page's frontmatter, under every prefix the site
     // serves that page at.
     layer('./modules/redirects.ts'),
+    layer('./modules/content-compatibility.ts'),
+    layer('./modules/content-bundles.ts'),
 
     // The downloadable archive of every local Bruno collection, written during
     // the build and served as a static asset. A no-op for a site that declares

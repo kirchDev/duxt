@@ -1,0 +1,65 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+
+# NOT A STUB. There is no body in kirchDev/workflows for this repository's
+# two-target Docker fixture: build the app and packer from one checkout, extract
+# the compatibility artefact, then publish changed Markdown as a different UID.
+# If another repository needs this contract, move the shared body there.
+#
+# OUTSIDE `pnpm check`: this verifies Docker image layout, dependency links and
+# cross-user bind-mount publication. It needs Docker and two additional image
+# builds; the ordinary Node build and tests cannot prove those properties.
+# The five workflows carrying jobs are inventoried in CLAUDE.md; each header
+# states why it is an exception to calling a central body.
+name: Content packer
+
+on:
+  pull_request:
+    branches: [main, dev]
+    paths:
+      - packages/duxt/**
+      - examples/content-bundles/**
+      - .dockerignore
+      - pnpm-lock.yaml
+      - .github/workflows/content-packer.yml
+  push:
+    branches: [main, dev]
+    paths:
+      - packages/duxt/**
+      - examples/content-bundles/**
+      - .dockerignore
+      - pnpm-lock.yaml
+      - .github/workflows/content-packer.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: content-packer-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  images:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build both targets from this checkout
+        run: |
+          docker build -f examples/content-bundles/Dockerfile --target app -t duxt-bundle-app .
+          docker build -f examples/content-bundles/Dockerfile --target packer -t duxt-bundle-packer .
+      - name: Read the app artefact without starting a server and pack changed content
+        run: |
+          mkdir -p expected publish
+          container=$(docker create duxt-bundle-app)
+          docker cp "$container:/app/duxt-content-compat.json" expected/compat.json
+          docker rm "$container"
+          echo 'Updated after the app image was built.' >> examples/content-bundles/site/docs/index.md
+          docker run --rm \
+            -v "$PWD/expected:/expected:ro" \
+            -v "$PWD/publish:/publish" \
+            -v "$PWD/examples/content-bundles/site/docs:/app/examples/content-bundles/site/docs:ro" \
+            duxt-bundle-packer --expect /expected/compat.json --publish /publish
+          bundle=$(cat publish/current)
+          test -f "publish/$bundle/bundle.json"
+          (cd "publish/$bundle" && sha256sum --check SHA256SUMS)

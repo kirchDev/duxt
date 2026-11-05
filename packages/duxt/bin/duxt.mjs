@@ -35,7 +35,13 @@ try {
   // until the arguments have been read and found to ask for a report.
   const { stdout, stderr, exitCode } = await runDuxtCli(
     process.argv.slice(2),
-    duxtReport
+    duxtReport,
+    async (options) => {
+      const { duxtContentPack } = await jiti.import(
+        '../build/cli/content-pack'
+      );
+      return duxtContentPack(options);
+    }
   );
 
   if (stdout) console.log(stdout);
