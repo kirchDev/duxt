@@ -85,10 +85,11 @@ jobs:
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref || github.sha }}
           fetch-depth: 0
 
-      - uses: ostendorf-cloud/release-me/action@663cd8eefb3b1979d22371ebffe9ed9f99ed73d5 # v0.3.0
+      # A floating ref by decision, the one exception action-pins.test.ts names:
+      # next carries what no release-me release has yet, and builds from source.
+      - uses: TitusKirch/release-me/action@next
         with:
           token: ${{ steps.app-token.outputs.token }}
-          app-slug: ${{ steps.app-token.outputs.app-slug }}
 
   plan:
     name: Plan the publishes
