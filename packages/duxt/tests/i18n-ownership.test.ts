@@ -256,6 +256,12 @@ describe('the layer draws exactly this much text', () => {
         'breadcrumb',
         'contributors',
         'copy',
+        // Page-control booleans carry no site text into the INVENTORY.
+        'copyPage',
+        'feedback',
+        'fullWidth',
+        'pageInfo',
+        'prevNext',
         'landing',
         'links',
         'navigation',
