@@ -157,7 +157,7 @@ Workflows normally use **stubs**: a trigger and a `uses:` pointing at a body in 
 What follows:
 
 - **Do not paste a workflow body back in.** If a stub almost fits, the answer is an input on the body or an own job beside the call — see that repository's `docs/1.guides/2.add-a-body.md`.
-- **The pins are commit SHAs with the version as a trailing comment.** Dependabot raises the bumps; the `github-actions` ecosystem is already configured in `.github/dependabot.yml`.
+- **The pins are commit SHAs with the version as a trailing comment.** Dependabot raises the bumps; the `github-actions` ecosystem is already configured in `.github/dependabot.yml`. **One exception, by decision:** `release.yml` runs `TitusKirch/release-me/action@next`, a floating branch built from source, because that channel carries what no release-me release has yet. `action-pins.test.ts` names exactly that reference; move it back to a SHA once a release carries what duxt needs.
 - **Publishing** is own jobs in `release.yml` — not a forked workflow — and **the registry decides, not an output**: a workspace package under `packages/` is published when its version has a `<component>@v<version>` tag and npm does not have that version yet, and a `dev-main` prerelease goes out only for the packages the push to `main` changed. A package release-me did not release therefore never publishes again, and a publish that failed halfway is picked up by the next push.
 - **Checks come from `package.json`.** `ci.yml` runs whatever the `check` script chains, so adding a check needs no workflow change at all.
 
