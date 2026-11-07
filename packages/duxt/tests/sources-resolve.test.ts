@@ -6,6 +6,16 @@ import {
 } from '../build/sources/sources-resolve';
 
 describe('resolveSources', () => {
+  it('honours an explicit local history opt-out without changing either default', () => {
+    expect(resolveSources([{ path: 'docs', history: false }])[0]!.history).toBe(
+      false
+    );
+    expect(resolveSources([{ path: 'docs' }])[0]!.history).toBe(true);
+    expect(
+      resolveSources([{ repo: 'acme/docs', path: 'docs' }])[0]!.history
+    ).toBe(false);
+  });
+
   it('serves a single unversioned source from the root', () => {
     const [only] = resolveSources([{ path: 'docs' }]);
 

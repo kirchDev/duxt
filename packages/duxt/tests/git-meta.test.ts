@@ -1,6 +1,71 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { spawnSync } from 'node:child_process';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { join, relative } from 'node:path';
+import { tmpdir } from 'node:os';
 import { contributorsOf, githubUsername } from '../build/git/git-contributors';
-import { parseGitLog } from '../modules/git-meta';
+import gitMeta, { parseGitLog } from '../modules/git-meta';
+import { repositoryRoot } from '../build/sources/repository-root';
+
+it.each(['missing', 'shallow'])(
+  'warns rather than failing a build with %s history',
+  async (kind) => {
+    const root = mkdtempSync(join(tmpdir(), 'duxt-history-test-'));
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      mkdirSync(join(root, 'docs'));
+      writeFileSync(join(root, 'docs/index.md'), '# History\n');
+      writeFileSync(
+        join(root, 'app.config.ts'),
+        `export default defineAppConfig({ duxt: { sources: [{ path: ${JSON.stringify(relative(repositoryRoot(), join(root, 'docs')))} }] } })`
+      );
+      if (kind === 'missing') mkdirSync(join(root, '.git'));
+      else {
+        const git = (...args: string[]) => {
+          const result = spawnSync(
+            'git',
+            [
+              '-c',
+              'core.hooksPath=/dev/null',
+              '-c',
+              'commit.gpgsign=false',
+              '-c',
+              'user.name=Fixture',
+              '-c',
+              'user.email=fixture@example.com',
+              ...args
+            ],
+            { cwd: root, encoding: 'utf8' }
+          );
+          expect(result.status, result.stderr).toBe(0);
+          return result.stdout.trim();
+        };
+        git('init', '--quiet');
+        git('add', '.');
+        git('commit', '--quiet', '-m', 'docs: history fixture');
+        writeFileSync(
+          join(root, '.git/shallow'),
+          `${git('rev-parse', 'HEAD')}\n`
+        );
+      }
+      const hooks = new Map<string, () => unknown>();
+      gitMeta(undefined, {
+        options: { rootDir: root, _layers: [{ config: { rootDir: root } }] },
+        hook: (name: string, handler: () => unknown) => hooks.set(name, handler)
+      } as never);
+      await expect(
+        Promise.resolve().then(() => hooks.get('build:before')!())
+      ).resolves.not.toThrow();
+      expect(warn.mock.calls.flat().join(' ')).toMatch(
+        kind === 'shallow' ? /history.*shallow/ : /history.*checkout/
+      );
+      expect(warn.mock.calls.flat().join(' ')).toContain('history: false');
+    } finally {
+      warn.mockRestore();
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
+);
 
 describe('githubUsername', () => {
   it('reads a username out of a numbered noreply address', () => {

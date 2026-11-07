@@ -807,9 +807,8 @@ export function resolveSources(
             : source.statusDefaults?.branch
           : undefined) ??
         'current',
-      // A local source is a full checkout already; a remote one has to be
-      // unshallowed, which is why it has to be asked for.
-      history: entry.repo ? (source.history ?? false) : true,
+      // Local history is on unless explicitly disabled; remote history is opt-in.
+      history: source.history ?? !entry.repo,
       flavor: source.flavor
     });
   }

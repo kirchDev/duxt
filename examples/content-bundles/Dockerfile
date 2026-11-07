@@ -2,7 +2,8 @@ FROM node:26.13.0-bookworm-slim AS source
 WORKDIR /app
 RUN npm install --global pnpm@12.16.1
 COPY . .
-# Keep source paths rooted at /app without shipping checkout metadata.
+# The fixture opts out with history: false: Git and checkout history are absent.
+# This .git marker only keeps source paths rooted at /app.
 RUN mkdir -p .git && pnpm install --frozen-lockfile
 # This outside-workspace example shares www's installed consumer dependencies.
 RUN ln -s ../../../apps/www/node_modules examples/content-bundles/site/node_modules

@@ -365,9 +365,11 @@ declare module '@nuxt/schema' {
      * Every page of the site, as flat search records — duxt's one build-time
      * extension point.
      *
-     * Fires once per build, after Content has parsed every source, version,
-     * locale and generated section, and before Nitro prerenders or bundles
-     * anything — so a listener may still write into `public/`.
+     * Fires once per build or content pack, after Content parsed every source,
+     * version, locale and generated section. A build emits before Nitro
+     * prerenders or bundles, so a listener may still write into `public/`.
+     * A pack emits only after successful bundle publication; listener failures
+     * fail the command while leaving that complete bundle published.
      *
      * READ-ONLY: the payload is frozen. Build or upload your own index from it;
      * do not rewrite a record, reorder the array, or otherwise change what the

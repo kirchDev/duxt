@@ -4,6 +4,8 @@ import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { loadNuxt, buildNuxt } from 'nuxt/kit';
 import { duxtReport } from './report';
+import { emitDuxtSearchRecords } from '../../modules/search-records';
+import { assertDuxtHistory } from '../../modules/git-meta';
 import {
   assertContentCompatibility,
   writeContentBundle
@@ -53,6 +55,7 @@ export async function duxtContentPack(
     nuxt = await loadNuxt({ cwd: root, dev: false, overrides: { buildDir } });
     nuxt.options._prepare = true;
     await buildNuxt(nuxt);
+    assertDuxtHistory(nuxt);
     const { findings } = duxtReport({ rootDir: root });
     if (findings.errors.length)
       throw new Error(
@@ -115,7 +118,7 @@ export async function duxtContentPack(
     const layerPackage = JSON.parse(
       await readFile(new URL('../../package.json', import.meta.url), 'utf8')
     ) as { version: string };
-    return await writeContentBundle(
+    const bundle = await writeContentBundle(
       {
         compat,
         usedComponents,
@@ -131,6 +134,15 @@ export async function duxtContentPack(
       },
       resolve(options.publish ?? '.output/duxt-content')
     );
+    try {
+      await emitDuxtSearchRecords(nuxt);
+    } catch (error) {
+      throw new Error(
+        `duxt: duxt:search:records sync failed after publishing bundle ${bundle.bundleId}: ${error instanceof Error ? error.message : String(error)}`,
+        { cause: error }
+      );
+    }
+    return bundle;
   } finally {
     try {
       await nuxt?.close();
