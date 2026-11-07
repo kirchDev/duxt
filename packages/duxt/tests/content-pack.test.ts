@@ -325,7 +325,13 @@ it('refuses an empty documentation collection before publishing a bundle', () =>
     writeFileSync(
       join(root, 'nuxt.config.ts'),
       `import { writeFileSync } from 'node:fs';
-export default defineNuxtConfig({ extends: [${JSON.stringify(layer)}], hooks: { 'duxt:search:records': () => writeFileSync(${JSON.stringify(join(root, 'unexpected-sync'))}, 'called') } })`
+import { fileURLToPath } from 'node:url';
+export default defineNuxtConfig({
+  extends: [fileURLToPath(new URL('../', import.meta.url))],
+  hooks: {
+    'duxt:search:records': () => writeFileSync(new URL('./unexpected-sync', import.meta.url), 'called')
+  }
+})`
     );
     writeFileSync(
       join(root, 'app.config.ts'),
@@ -354,7 +360,13 @@ it('requires complete source history even when every parsed page was cached', ()
     writeFileSync(
       join(root, 'nuxt.config.ts'),
       `import { appendFileSync } from 'node:fs';
-export default defineNuxtConfig({ extends: [${JSON.stringify(layer)}], hooks: { 'content:file:afterParse': () => appendFileSync(${JSON.stringify(join(root, 'parsed-events'))}, 'parsed\\n') } })`
+import { fileURLToPath } from 'node:url';
+export default defineNuxtConfig({
+  extends: [fileURLToPath(new URL('../', import.meta.url))],
+  hooks: {
+    'content:file:afterParse': () => appendFileSync(new URL('./parsed-events', import.meta.url), 'parsed\\n')
+  }
+})`
     );
     writeFileSync(
       join(root, 'app.config.ts'),
