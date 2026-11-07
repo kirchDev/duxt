@@ -166,6 +166,13 @@ export default defineAppConfig({
     sources: [
       ...DUXT_DOCS_EDITIONS,
       {
+        path: 'apps/www/layers/build-extension/page-types',
+        slug: 'page-types',
+        pageType: 'fixture-article',
+        history: false,
+        locales: ['en-GB']
+      },
+      {
         path: 'apps/www/layers/build-extension/docs',
         slug: 'extension-fixture',
         history: false,

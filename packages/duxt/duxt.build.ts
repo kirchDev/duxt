@@ -5,6 +5,11 @@ import { brunoSectionType } from './build/bruno/section';
 import { normaliseTfplugindocsPage } from './build/tfplugindocs/flavor';
 
 export default {
+  pageTypes: {
+    docs: { layout: 'docs', template: 'DuxtDocsPage' },
+    reference: { layout: 'reference', template: 'DuxtGeneratedPage' },
+    changelog: { layout: 'changelog', template: 'DuxtGeneratedPage' }
+  },
   sectionTypes: {
     changelog: changelogSectionType,
     openapi: openapiSectionType,

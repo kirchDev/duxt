@@ -179,7 +179,7 @@ function mergeConfig<T extends object>(base: T, override: Partial<T>): T {
           ? previous
           : {};
       result[key] =
-        key === 'sectionTypes' || key === 'sourceFlavors'
+        key === 'sectionTypes' || key === 'sourceFlavors' || key === 'pageTypes'
           ? { ...object, ...value }
           : mergeConfig(object, value);
     } else result[key] = value;

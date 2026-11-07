@@ -74,6 +74,7 @@ export const openapiSectionType: DuxtSectionType = {
    */
   localisation: 'per-locale',
   layout: DUXT_OPENAPI_LAYOUT,
+  pageType: 'reference',
   icon: 'lucide:plug'
 };
 

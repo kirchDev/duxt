@@ -343,6 +343,8 @@ export interface DuxtSectionReport {
  * `1.0.0`, which is when it stops being cheap.
  */
 export interface DuxtSectionType {
+  /** Default renderer for this section's pages. Explicit page `type` wins. */
+  pageType?: string | ((options: DuxtSectionOptions) => string | undefined);
   /** The artefact, split into pages carrying their own frontmatter. */
   parse: (
     input: DuxtSectionInput,
@@ -670,6 +672,10 @@ export function resolveGeneratedSections(
             // disk, so `git log` would answer about nothing; a type that has
             // dates puts them in the frontmatter it writes.
             history: false,
+            pageType:
+              typeof type.pageType === 'function'
+                ? type.pageType(options)
+                : (type.pageType ?? base.entry.pageType),
             generated: {
               type: declared.type,
               label: declared.label,

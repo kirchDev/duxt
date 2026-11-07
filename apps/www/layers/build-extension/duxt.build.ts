@@ -1,6 +1,16 @@
 import type { DuxtBuildContribution } from '@kirchdev/duxt/unstable';
 
 export default {
+  pageTypes: {
+    'fixture-article': {
+      layout: 'fixture-page',
+      template: 'FixtureArticlePage'
+    },
+    'fixture-category': {
+      layout: 'fixture-category',
+      template: 'FixtureCategoryPage'
+    }
+  },
   sectionTypes: {
     'fixture-section': {
       versioning: 'per-version',

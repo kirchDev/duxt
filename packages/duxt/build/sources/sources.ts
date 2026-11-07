@@ -39,6 +39,7 @@ export { PARTIALS_COLLECTION, partialsCollection };
  * page's frontmatter was silently dropped before the sidebar ever saw it.
  */
 export const pageSchema = z.object({
+  type: z.string().optional(),
   /** Shown beside the entry in the sidebar, the section row and page cards. */
   icon: z.string().optional(),
   /** Optional order and non-route grouping, written by authors or source dialects. */

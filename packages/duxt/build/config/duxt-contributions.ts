@@ -13,6 +13,8 @@ export interface DuxtSourceFlavorDefinition {
 
 /** Build-only declarations in a layer's `duxt.build.ts`; never app.config. */
 export interface DuxtBuildContribution {
+  /** Page renderers shipped by this layer, resolved at image build time. */
+  pageTypes?: Record<string, { layout: string; template: string }>;
   sectionTypes?: DuxtSectionTypes;
   sourceFlavors?: Record<string, DuxtSourceFlavorDefinition>;
   /** Content's own Zod instance is handed in so its schema converter recognises fields. */
@@ -36,6 +38,7 @@ export function readDuxtContributions(dirs: string[]): DuxtBuildContribution {
     if (!existsSync(file)) continue;
     // A missing/invalid parser must fail the build, never silently drop a collection.
     const loaded = jiti(file) as DuxtBuildContribution;
+    result.pageTypes = { ...result.pageTypes, ...loaded.pageTypes };
     result.sectionTypes = { ...result.sectionTypes, ...loaded.sectionTypes };
     result.sourceFlavors = { ...result.sourceFlavors, ...loaded.sourceFlavors };
     if (loaded.pageSchema) {

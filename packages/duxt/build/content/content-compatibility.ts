@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { Nuxt } from '@nuxt/schema';
 import { isContentComponent } from './content-components';
+import { readContentCache } from './content-cache';
 import type { DuxtResolvedSource } from '../sources/sources-resolve';
 import {
   canonicalJson,
@@ -56,6 +57,7 @@ function sourceStructure(source: DuxtResolvedSource) {
     status: source.status,
     history: source.history,
     flavor: source.flavor,
+    pageType: source.pageType,
     generated: generated && {
       type: generated.type,
       label: generated.label,
@@ -70,6 +72,40 @@ function sourceStructure(source: DuxtResolvedSource) {
       remote: generated.remote
     }
   };
+}
+
+/** Content's parser maps native span to ProseSpan; its renderer leaves span native. */
+function requiresProseSpan(node: unknown): boolean {
+  const named = (tag: unknown) =>
+    typeof tag === 'string' &&
+    tag.toLowerCase().replace(/[-_]/g, '') === 'prosespan';
+  if (Array.isArray(node))
+    return (
+      (Boolean(node[1]) &&
+        typeof node[1] === 'object' &&
+        !Array.isArray(node[1]) &&
+        named(node[0])) ||
+      node.some(requiresProseSpan)
+    );
+  if (!node || typeof node !== 'object') return false;
+  const value = node as Record<string, unknown>;
+  if (named(value.tag)) return true;
+  // An explicit runtime/document mapping also replaces the native fallback.
+  const components = value.components as
+    | {
+        span?: unknown;
+        Span?: unknown;
+        map?: { span?: unknown; Span?: unknown };
+      }
+    | undefined;
+  if (
+    components?.span ||
+    components?.Span ||
+    components?.map?.span ||
+    components?.map?.Span
+  )
+    return true;
+  return Object.values(value).some(requiresProseSpan);
 }
 
 export async function contentCompatibility(nuxt: Nuxt): Promise<{
@@ -87,13 +123,22 @@ export async function contentCompatibility(nuxt: Nuxt): Promise<{
   if (!runtime?.databaseVersion || !Object.keys(manifest.checksums).length)
     throw new Error('Content has not produced collection checksums.');
   const duxt = nuxt.options.appConfig.duxt as
-    | { resolvedSources?: DuxtResolvedSource[] }
+    | {
+        resolvedSources?: DuxtResolvedSource[];
+        resolvedPageTypes?: Record<
+          string,
+          { layout: string; template: string }
+        >;
+      }
     | undefined;
   const compat: ContentBundleCompat = {
     databaseVersion: runtime.databaseVersion,
     checksumsStructure: manifest.checksumsStructure,
     tables: manifest.tables,
     collectionMetaHash: contentHash(canonicalJson(manifest.collectionMeta)),
+    ...(duxt?.resolvedPageTypes
+      ? { pageTypesHash: contentHash(canonicalJson(duxt.resolvedPageTypes)) }
+      : {}),
     resolvedSourcesHash: contentHash(
       canonicalJson((duxt?.resolvedSources ?? []).map(sourceStructure))
     )
@@ -114,6 +159,29 @@ export async function contentCompatibility(nuxt: Nuxt): Promise<{
     throw new Error(
       'Content no longer exposes the parsed MDC component manifest.'
     );
+  const used = new Set(components);
+  if (used.has('ProseSpan')) {
+    const pages = nuxt.options.rootDir
+      ? readContentCache(nuxt, Object.keys(manifest.checksums))
+      : undefined;
+    const mdc = (
+      nuxt.options.runtimeConfig.public as { mdc?: unknown } | undefined
+    )?.mdc;
+    // A missing cache is not evidence of native-only usage: keep the requirement.
+    if (
+      pages &&
+      !requiresProseSpan(mdc) &&
+      !pages.some(
+        (page) =>
+          requiresProseSpan(page.content.body) ||
+          requiresProseSpan(page.content.mdc) ||
+          requiresProseSpan(
+            (page.content.meta as { mdc?: unknown } | undefined)?.mdc
+          )
+      )
+    )
+      used.delete('ProseSpan');
+  }
   const availableComponents = [
     ...new Set(
       (nuxt.apps.default?.components ?? [])
@@ -121,7 +189,9 @@ export async function contentCompatibility(nuxt: Nuxt): Promise<{
           (component) =>
             !component.island &&
             !component.filePath.endsWith('.css') &&
-            (component.global || isContentComponent(nuxt, component))
+            (component.global ||
+              isContentComponent(nuxt, component) ||
+              components.includes(component.pascalName))
         )
         .map((component) => component.pascalName)
     )
@@ -129,7 +199,7 @@ export async function contentCompatibility(nuxt: Nuxt): Promise<{
   return {
     compat,
     artifact: { compatHash: contentCompatHash(compat), availableComponents },
-    usedComponents: [...new Set(components)].sort(),
+    usedComponents: [...used].sort(),
     checksums: manifest.checksums
   };
 }

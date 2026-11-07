@@ -88,6 +88,7 @@ export const brunoSectionType: DuxtSectionType = {
    */
   localisation: 'per-locale',
   layout: DUXT_BRUNO_LAYOUT,
+  pageType: 'reference',
   /**
    * `lucide`, not `simple-icons`, and the repository's icon rule says why: this
    * entry names a SECTION OF THE DOCUMENTATION, not the Bruno platform. The one

@@ -10,6 +10,8 @@ import type {
  * current checkout or at named refs.
  */
 export interface DuxtSource {
+  /** Default page renderer; a page's `type` frontmatter wins. */
+  pageType?: string;
   /** Folder holding the Markdown, relative to the repository root. */
   path?: string;
   /**
@@ -324,6 +326,7 @@ export interface DuxtSourcesOptions {
 
 /** One resolved source: which collection serves which URL prefix. */
 export interface DuxtResolvedSource {
+  pageType?: string;
   /** Collection name Content will register. */
   collection: string;
   /** URL prefix it serves; '' for the root. */
@@ -809,7 +812,8 @@ export function resolveSources(
         'current',
       // Local history is on unless explicitly disabled; remote history is opt-in.
       history: source.history ?? !entry.repo,
-      flavor: source.flavor
+      flavor: source.flavor,
+      pageType: source.pageType
     });
   }
 

@@ -197,6 +197,8 @@ declare global {
    * a change here needs a rebuild, unlike the rest of this config.
    */
   interface DuxtSourceInput {
+    /** Default registered page type; frontmatter `type` takes precedence. */
+    pageType?: string;
     /** Folder holding the Markdown, relative to the repository root. */
     path?: string;
     /**
@@ -422,6 +424,9 @@ declare global {
    * the navigation, because what it produces is an ordinary collection.
    */
   interface DuxtSectionTypeInput {
+    pageType?:
+      | string
+      | ((options: Record<string, unknown>) => string | undefined);
     parse: (
       artefact: string,
       context: {
@@ -468,6 +473,7 @@ declare global {
 
   /** One entry of the resolved source manifest — see `duxtSourceManifest()`. */
   interface DuxtResolvedSource {
+    pageType?: string;
     collection: string;
     prefix: string;
     repo?: string;
@@ -1273,6 +1279,8 @@ declare global {
      * what the theme and the version switcher actually read.
      */
     resolvedSources?: DuxtResolvedSource[];
+    /** Build-resolved page renderers from duxt.build.ts, serializable only. */
+    resolvedPageTypes?: Record<string, { layout: string; template: string }>;
     /**
      * GENERATED, not written. The layer's own version and repository, read out
      * of its `package.json` by the duxt module — what the footer's "Powered by"

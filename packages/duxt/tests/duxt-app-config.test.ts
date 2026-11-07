@@ -42,6 +42,27 @@ function write(dir: string, baseUrl: string) {
 }
 
 describe('readDuxtBuildConfig', () => {
+  it('merges page types from layers by name, replacing the whole descriptor', () => {
+    const extension = site('/');
+    const consumer = site('/');
+    writeFileSync(
+      join(extension, 'duxt.build.ts'),
+      `export default { pageTypes: { article: { layout: 'wiki', template: 'WikiArticle', obsolete: true }, category: { layout: 'wiki', template: 'WikiCategory' } } };`
+    );
+    writeFileSync(
+      join(consumer, 'duxt.build.ts'),
+      `export default { pageTypes: { article: { layout: 'custom', template: 'CustomArticle' } } };`
+    );
+    expect(readDuxtBuildConfig([consumer, extension])?.pageTypes).toMatchObject(
+      {
+        article: { layout: 'custom', template: 'CustomArticle' },
+        category: { layout: 'wiki', template: 'WikiCategory' }
+      }
+    );
+    expect(
+      readDuxtBuildConfig([consumer, extension])?.pageTypes?.article
+    ).toEqual({ layout: 'custom', template: 'CustomArticle' });
+  });
   it('reports alongside an actual live Nuxt owner without changing its identity', async () => {
     const consumer = site('/');
     const guard = fileURLToPath(
@@ -127,6 +148,10 @@ describe('readDuxtBuildConfig', () => {
     expect(Object.keys(config?.pageSchema?.(z) ?? {})).toContain(
       'extensionFixture'
     );
+    expect(config?.pageTypes?.['fixture-article']).toEqual({
+      layout: 'fixture-page',
+      template: 'FixtureArticlePage'
+    });
   });
   it('discovers extends for standalone CLIs invoked from another working directory', async () => {
     const extension = site('https://extension.test');
