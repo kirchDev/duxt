@@ -34,9 +34,9 @@ import {
  * inserted value by the rule Content's `generateCollectionInsert` applies. The
  * only thing this file decides is what a page says in its frontmatter.
  *
- * The fix is at the schema — a default, so the column is never NULL — because
- * the predicate cannot be fixed: once the cast has run, "absent" and
- * "explicitly false" are the same value.
+ * Search therefore keeps a schema default. Site controls instead use JSON
+ * columns that preserve SQL NULL: runtime defaults can then distinguish an
+ * unanswered page from an explicit false. Both contracts are checked below.
  */
 
 const require = createRequire(import.meta.url);
@@ -209,6 +209,54 @@ function storedPage(frontmatter: Record<string, unknown>) {
 }
 
 describe('a page read back out of the database', () => {
+  it('follows a disabled site breadcrumb when the page says nothing', () => {
+    expect(
+      duxtPageControls(storedPage({}), { breadcrumb: false }).breadcrumb
+    ).toBe(false);
+  });
+
+  it.each([
+    'toc',
+    'breadcrumb',
+    'prevNext',
+    'feedback',
+    'pageInfo',
+    'copyPage',
+    'fullWidth'
+  ] as const)(
+    'keeps an absent %s unanswered and applies the site default at runtime',
+    (control) => {
+      const page = storedPage({});
+      expect(page[control]).toBeNull();
+      expect(duxtPageControls(page, { [control]: false })[control]).toBe(false);
+      expect(duxtPageControls(page, { [control]: true })[control]).toBe(true);
+    }
+  );
+
+  it.each([
+    'toc',
+    'breadcrumb',
+    'prevNext',
+    'feedback',
+    'pageInfo',
+    'copyPage',
+    'fullWidth'
+  ] as const)(
+    'lets an explicit %s beat either site default on its own database row',
+    (control) => {
+      expect(
+        duxtPageControls(storedPage({ [control]: true }), { [control]: false })[
+          control
+        ]
+      ).toBe(true);
+      expect(
+        duxtPageControls(storedPage({ [control]: false }), { [control]: true })[
+          control
+        ]
+      ).toBe(false);
+    }
+  );
+
   it('is searchable when its frontmatter says nothing', () => {
     expect(duxtPageSearchable(storedPage({}))).toBe(true);
   });

@@ -61,19 +61,19 @@ export interface DuxtTocControl {
 /** The frontmatter an author writes. Every field is optional, by definition. */
 export interface DuxtPageControlFields {
   /** `false` drops the contents column; an object sets how deep it goes. */
-  toc?: boolean | DuxtTocControl;
+  toc?: boolean | DuxtTocControl | null;
   /** `false` hides the trail above the title. Overrides `duxt.breadcrumb`. */
-  breadcrumb?: boolean;
+  breadcrumb?: boolean | null;
   /** `false` hides the previous/next pair under the article. */
-  prevNext?: boolean;
+  prevNext?: boolean | null;
   /** `false` hides the "was this helpful?" row. */
-  feedback?: boolean;
+  feedback?: boolean | null;
   /** `false` hides the edit link, the last-updated line and the contributors. */
-  pageInfo?: boolean;
+  pageInfo?: boolean | null;
   /** `false` hides the copy-page and hand-to-a-model control. */
-  copyPage?: boolean;
+  copyPage?: boolean | null;
   /** `true` removes the reading-width cap. Nothing else. */
-  fullWidth?: boolean;
+  fullWidth?: boolean | null;
   /** `false` removes the page from every duxt-owned discovery surface. */
   search?: boolean;
 }
@@ -92,8 +92,14 @@ export interface DuxtPageControls {
   search: boolean;
 }
 
-/** What the SITE decided, for the two controls that have a site-wide switch. */
+/** Site defaults apply only while the page leaves a control unanswered. */
 export interface DuxtPageControlDefaults {
+  toc?: boolean;
+  prevNext?: boolean;
+  feedback?: boolean;
+  pageInfo?: boolean;
+  copyPage?: boolean;
+  fullWidth?: boolean;
   /** `duxt.breadcrumb` — the switch that existed before the per-page one. */
   breadcrumb?: boolean;
   /** `duxt.toc.depth` — the site's own maximum heading level. */
@@ -133,17 +139,17 @@ export function duxtPageControls(
   const object = toc && typeof toc === 'object' ? toc : undefined;
 
   return {
-    toc: flag(toc, true),
+    toc: flag(toc, site.toc !== false),
     tocMaxDepth:
       depth(object?.maxDepth) ?? depth(site.tocMaxDepth) ?? DUXT_TOC_MAX_DEPTH,
     breadcrumb: flag(fields.breadcrumb, site.breadcrumb !== false),
-    prevNext: flag(fields.prevNext, true),
-    feedback: flag(fields.feedback, true),
-    pageInfo: flag(fields.pageInfo, true),
-    copyPage: flag(fields.copyPage, true),
+    prevNext: flag(fields.prevNext, site.prevNext !== false),
+    feedback: flag(fields.feedback, site.feedback !== false),
+    pageInfo: flag(fields.pageInfo, site.pageInfo !== false),
+    copyPage: flag(fields.copyPage, site.copyPage !== false),
     // The one control that is OFF until asked for: every other field removes
     // something the shell draws, this one removes a constraint.
-    fullWidth: flag(fields.fullWidth, false),
+    fullWidth: flag(fields.fullWidth, site.fullWidth === true),
     search: flag(fields.search, true)
   };
 }
@@ -168,48 +174,30 @@ export function duxtPageControls(
 export const duxtPageSearchable = (page: unknown): boolean =>
   (page as DuxtPageControlFields | undefined | null)?.search !== false;
 
-/**
- * Content's outline, cut to the depth this page asked for.
- *
- * Content nests headings by RELATIVE depth and as deep as the document goes,
- * while `DuxtToc` draws exactly two levels. So this does what `generatedToc`
- * already does for a generated page: read the tree back out in document order,
- * drop what is deeper than the maximum, and collapse everything that is left
- * below the first level into it. The written page and the generated one then
- * cannot draw the same outline two different ways.
- *
- * Dropping a heading drops its children with it — they are deeper by
- * construction, so keeping them would reparent a sub-section under a heading
- * the reader was not shown.
- */
+/** Keep the real heading hierarchy, filtered to the page's maximum depth. */
 export function duxtTocLinks(
   links: DuxtTocLink[] | undefined,
   maxDepth: number = DUXT_TOC_MAX_DEPTH
 ): DuxtTocLink[] {
   const limit = depth(maxDepth) ?? DUXT_TOC_MAX_DEPTH;
-  const flat: DuxtTocLink[] = [];
+  const result: DuxtTocLink[] = [];
+  const parents: { depth: number; link: DuxtTocLink }[] = [];
 
   const walk = (nodes: DuxtTocLink[]) => {
     for (const node of nodes) {
       if (node.depth > limit) continue;
-
-      const { children, ...link } = node;
-      flat.push(link);
+      while (parents.length && parents.at(-1)!.depth >= node.depth)
+        parents.pop();
+      const { children, ...fields } = node;
+      const parent = parents.at(-1)?.link;
+      const link = { ...fields, depth: parent ? node.depth : 2 };
+      if (parent) (parent.children ??= []).push(link);
+      else result.push(link);
+      parents.push({ depth: node.depth, link });
       if (children?.length) walk(children);
     }
   };
 
   walk(links ?? []);
-
-  const nested: DuxtTocLink[] = [];
-
-  for (const link of flat) {
-    const parent = nested.at(-1);
-
-    // A page whose first heading is an `h3` still needs a row to hang under.
-    if (link.depth > 2 && parent) (parent.children ??= []).push(link);
-    else nested.push({ ...link, depth: 2 });
-  }
-
-  return nested;
+  return result;
 }

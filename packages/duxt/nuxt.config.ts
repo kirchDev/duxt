@@ -409,6 +409,9 @@ export default defineNuxtConfig({
          * back to `duxt.toc.depth` — still `h3` — before `DuxtToc` draws it, so
          * a page that asks for nothing gets exactly the column it always had.
          *
+         * MDC can replace these options with a page's `toc` object; authoredToc
+         * recovers any discarded levels from the stored AST in that case.
+         *
          * `searchDepth` is deliberately left alone. It bounds how deep into the
          * node tree headings are looked for, not which levels count, so raising
          * it would change which pages have an outline at all.

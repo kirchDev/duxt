@@ -67,7 +67,11 @@ describe('consumer-owned layer controls', () => {
   it('ships the issue defaults', () => {
     expect(duxtDefaults.copy?.models).toHaveLength(2);
     expect(duxtDefaults.contributors?.avatarUrl).toContain('{username}');
-    expect(duxtDefaults.toc).toEqual({ depth: 3, scrollOffset: 96 });
+    expect(duxtDefaults.toc).toEqual({
+      enabled: true,
+      depth: 3,
+      scrollOffset: 96
+    });
     expect(duxtDefaults.search).toEqual({
       fuzzy: { threshold: 0.35, minMatchCharLength: 3, limit: 20 },
       recentPages: 5
@@ -105,6 +109,6 @@ describe('consumer-owned layer controls', () => {
 
     expect(config.analytics?.track).toBe(track);
     // And has not flattened the rest of the config on the way past it.
-    expect(config.toc).toEqual({ depth: 3, scrollOffset: 96 });
+    expect(config.toc).toEqual({ enabled: true, depth: 3, scrollOffset: 96 });
   });
 });

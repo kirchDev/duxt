@@ -1114,7 +1114,7 @@ declare global {
     /** URL template for contributor avatars; `{username}` is replaced. */
     contributors?: { avatarUrl?: string };
     /** Generated-outline and active-heading controls. */
-    toc?: { depth?: number; scrollOffset?: number };
+    toc?: { enabled?: boolean; depth?: number; scrollOffset?: number };
     /** Search behaviour that depends on a site's corpus. */
     search?: {
       fuzzy?: {
@@ -1237,6 +1237,12 @@ declare global {
     sampleLanguages?: string[];
     /** Layout a consumer can switch off. */
     breadcrumb?: boolean;
+    /** Defaults for page controls; explicit frontmatter wins. */
+    prevNext?: boolean;
+    feedback?: boolean;
+    pageInfo?: boolean;
+    copyPage?: boolean;
+    fullWidth?: boolean;
     /**
      * The section `/rss.xml` publishes — a changelog, a release log, a blog.
      *

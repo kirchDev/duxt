@@ -73,7 +73,13 @@ const page = computed(() => found.value?.page);
  */
 const controls = computed(() =>
   duxtPageControls(page.value, {
-    breadcrumb: duxt?.breadcrumb,
+    breadcrumb: duxt.breadcrumb,
+    prevNext: duxt.prevNext,
+    feedback: duxt.feedback,
+    pageInfo: duxt.pageInfo,
+    copyPage: duxt.copyPage,
+    fullWidth: duxt.fullWidth,
+    toc: duxt.toc?.enabled,
     tocMaxDepth: duxt.toc?.depth
   })
 );
@@ -161,13 +167,13 @@ const generated = computed(() =>
 /**
  * The written page's outline, cut to the depth the page asked for.
  *
- * Content parses every level down to `h6` — see `content.build.markdown.toc` in
- * `nuxt.config.ts` — so this is where the column is decided rather than at
- * parse time, and `toc: { maxDepth: 5 }` has something to show.
+ * Content usually parses down to h6. MDC's frontmatter override can discard
+ * deeper levels, so authoredToc recovers those from the row's AST while keeping
+ * Content's search-depth boundary. No source mutation or additional query.
  */
 const outline = computed(() =>
   controls.value.toc
-    ? duxtTocLinks(page.value?.body?.toc?.links, controls.value.tocMaxDepth)
+    ? authoredToc(page.value?.body, controls.value.tocMaxDepth)
     : []
 );
 

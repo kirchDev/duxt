@@ -11,13 +11,9 @@ const props = defineProps<{ links: TocLink[] }>();
 const duxt = useDuxtConfig();
 const localeLink = useDuxtLink();
 
-// Flat list of every id, in document order, for the observer to watch.
-const ids = computed(() =>
-  props.links.flatMap((link) => [
-    link.id,
-    ...(link.children ?? []).map((child) => child.id)
-  ])
-);
+const headingIds = (links: TocLink[]): string[] =>
+  links.flatMap((link) => [link.id, ...headingIds(link.children ?? [])]);
+const ids = computed(() => headingIds(props.links));
 
 const active = useActiveHeading(ids, duxt.toc?.scrollOffset);
 </script>
@@ -26,36 +22,7 @@ const active = useActiveHeading(ids, duxt.toc?.scrollOffset);
   <div class="space-y-8 text-sm">
     <nav v-if="links?.length" :aria-label="$t('duxt.toc.title')">
       <p class="mb-3 font-medium">{{ $t('duxt.toc.title') }}</p>
-      <ul class="space-y-1 border-s">
-        <li v-for="link in links" :key="link.id">
-          <a
-            :href="`#${link.id}`"
-            class="-ms-px block border-s py-1 ps-4 transition-colors"
-            :class="
-              active === link.id
-                ? 'border-primary text-foreground'
-                : 'border-transparent text-muted-foreground hover:border-primary/60 hover:text-foreground'
-            "
-          >
-            {{ link.text }}
-          </a>
-          <ul v-if="link.children?.length">
-            <li v-for="child in link.children" :key="child.id">
-              <a
-                :href="`#${child.id}`"
-                class="-ms-px block border-s py-1 ps-7 transition-colors"
-                :class="
-                  active === child.id
-                    ? 'border-primary text-foreground'
-                    : 'border-transparent text-muted-foreground hover:border-primary/60 hover:text-foreground'
-                "
-              >
-                {{ child.text }}
-              </a>
-            </li>
-          </ul>
-        </li>
-      </ul>
+      <DuxtTocList :links="links" :active="active" />
     </nav>
 
     <!-- The fixed link block that belongs on every page, configured once. -->

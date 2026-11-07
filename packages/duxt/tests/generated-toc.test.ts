@@ -1,5 +1,9 @@
+import { createRequire } from 'node:module';
+import { dirname, join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
+  authoredToc,
   generatedLead,
   generatedLeadsWith,
   generatedTitle,
@@ -31,6 +35,67 @@ const releasePage = {
 };
 
 describe('generatedToc', () => {
+  it('preserves an authored three-level outline on a generated page', () => {
+    expect(
+      generatedToc(
+        {
+          value: [
+            ['h2', { id: 'a' }, 'A'],
+            ['h3', { id: 'b' }, 'B'],
+            ['h4', { id: 'c' }, 'C']
+          ]
+        },
+        4
+      )
+    ).toEqual([
+      {
+        id: 'a',
+        text: 'A',
+        depth: 2,
+        children: [
+          {
+            id: 'b',
+            text: 'B',
+            depth: 3,
+            children: [{ id: 'c', text: 'C', depth: 4 }]
+          }
+        ]
+      }
+    ]);
+  });
+
+  it('keeps deeper headings beneath the heading inside a generated group', () => {
+    expect(
+      generatedToc(
+        {
+          value: [
+            [
+              'changelog-group',
+              { name: 'Features' },
+              ['h2', { id: 'migrate' }, 'Migrate'],
+              ['h3', { id: 'detail' }, 'Detail']
+            ]
+          ]
+        },
+        4
+      )
+    ).toEqual([
+      {
+        id: 'features',
+        text: 'Features',
+        depth: 2,
+        children: [
+          {
+            id: 'migrate',
+            text: 'Migrate',
+            depth: 3,
+            children: [{ id: 'detail', text: 'Detail', depth: 4 }]
+          }
+        ]
+      }
+    ]);
+  });
+
   it('lists the groups a release page draws from a prop', () => {
     expect(generatedToc(releasePage)).toEqual([
       { id: 'features', text: 'Features', depth: 2 },
@@ -176,5 +241,55 @@ describe('generatedLeadsWith', () => {
 
   it('is false where there is no prose to compare against', () => {
     expect(generatedLeadsWith('Anything', body([]))).toBe(false);
+  });
+});
+
+describe('authoredToc with real Content parsing', () => {
+  it('retains Content searchDepth when recovering deeper heading levels', () => {
+    expect(
+      authoredToc(
+        {
+          toc: { depth: 2, searchDepth: 1, links: [] },
+          value: [
+            ['h2', { id: 'visible' }, 'Visible'],
+            ['div', {}, ['h4', { id: 'nested' }, 'Nested']]
+          ]
+        },
+        4
+      )
+    ).toEqual([{ id: 'visible', text: 'Visible', depth: 2 }]);
+  });
+
+  it('keeps h4 after a toc.maxDepth object replaces MDC inline parse options', async () => {
+    const require = createRequire(import.meta.url);
+    const contentRequire = createRequire(require.resolve('@nuxt/content'));
+    const { parseMarkdown } = await import(
+      pathToFileURL(
+        join(dirname(contentRequire.resolve('@nuxtjs/mdc')), 'runtime/index.js')
+      ).href
+    );
+    const { fromHast } = await import(
+      pathToFileURL(contentRequire.resolve('minimark/hast')).href
+    );
+    const parsed = await parseMarkdown(
+      '---\ntoc:\n  maxDepth: 4\n---\n\n## Sources\n\n### Primary sources\n\n#### Source detail\n',
+      { toc: { depth: 5 } }
+    );
+    const body = { ...fromHast(parsed.body), toc: parsed.toc };
+    expect(authoredToc(body, 4)).toEqual([
+      {
+        id: 'sources',
+        text: 'Sources',
+        depth: 2,
+        children: [
+          {
+            id: 'primary-sources',
+            text: 'Primary sources',
+            depth: 3,
+            children: [{ id: 'source-detail', text: 'Source detail', depth: 4 }]
+          }
+        ]
+      }
+    ]);
   });
 });
