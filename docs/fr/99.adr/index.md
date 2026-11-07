@@ -26,3 +26,4 @@ remplace l’ancien, jamais comme une modification de celui-ci.
 | [ADR-0011](/adr/0011-host-the-provider-layers-in-a-turborepo-monorepo) | Héberger les couches fournisseurs dans un monorepo Turborepo | accepted | 2026-09-15 |
 | [ADR-0012](/adr/0012-load-the-nuxt-seo-modules-by-name) | Charger les modules Nuxt SEO par leur nom | accepted | 2026-10-29 |
 | [ADR-0013](/adr/0013-load-content-bundles-at-runtime) | Charger les bundles de contenu à l’exécution | accepted | 2026-11-04 |
+| [ADR-0014](/adr/0014-load-integration-contributions-only-at-build-time) | Charger les contributions des intégrations uniquement à la compilation | accepted | 2026-11-07 |

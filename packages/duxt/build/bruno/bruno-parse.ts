@@ -39,7 +39,7 @@ import type {
   DuxtBrunoParam,
   DuxtBrunoRequest
 } from './bruno-model';
-import type { DuxtSectionInput } from '../sections/sections-resolve';
+import type { DuxtSectionInput } from '../unstable';
 
 /** The manifest at the root of every Bruno collection. */
 const MANIFEST = 'bruno.json';

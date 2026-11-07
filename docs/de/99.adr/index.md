@@ -26,3 +26,4 @@ ablöst, nie als Änderung daran.
 | [ADR-0011](/adr/0011-host-the-provider-layers-in-a-turborepo-monorepo) | Die Provider-Ebenen in einem Turborepo-Monorepo führen | accepted | 2026-09-15 |
 | [ADR-0012](/adr/0012-load-the-nuxt-seo-modules-by-name) | Die Nuxt-SEO-Module einzeln laden | accepted | 2026-10-29 |
 | [ADR-0013](/adr/0013-load-content-bundles-at-runtime) | Content-Bundles zur Laufzeit laden | accepted | 2026-11-04 |
+| [ADR-0014](/adr/0014-load-integration-contributions-only-at-build-time) | Integrationsbeiträge nur beim Build laden | accepted | 2026-11-07 |

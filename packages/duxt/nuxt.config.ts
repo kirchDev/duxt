@@ -234,6 +234,10 @@ const locales = [
 // The layer itself. A consumer gets all of this by extending '@kirchdev/duxt',
 // which resolves through package.json's `main` to this file.
 export default defineNuxtConfig({
+  components: [
+    { path: layer('./app/components') },
+    { path: layer('./app/components/integrations'), pathPrefix: false }
+  ],
   modules: [
     // First: it narrows the locale list before @nuxtjs/i18n reads it, and
     // resolves the source manifest before anything queries a collection.
@@ -264,7 +268,7 @@ export default defineNuxtConfig({
     // The downloadable archive of every local Bruno collection, written during
     // the build and served as a static asset. A no-op for a site that declares
     // no `bruno` section.
-    layer('./modules/bruno.ts'),
+    layer('./build/bruno/module.ts'),
 
     // The layer's one build-time extension point: every parsed page of every
     // source, version and language, handed to `duxt:search:records` so an

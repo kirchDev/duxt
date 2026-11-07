@@ -88,7 +88,7 @@ export async function duxtContentPack(
       throw new Error(
         `duxt: source history metadata could not be refreshed: ${unresolvedHistory.join(', ')}. No bundle was published.`
       );
-    const { findings } = duxtReport({ rootDir: root });
+    const { findings } = await duxtReport({ rootDir: root });
     if (findings.errors.length)
       throw new Error(
         `duxt: the documentation did not validate.\n  - ${findings.errors.join('\n  - ')}`

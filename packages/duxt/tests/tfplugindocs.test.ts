@@ -9,21 +9,25 @@ import {
   trailBelowPrefix
 } from '../app/utils/navigation-tree';
 import { nearestPages } from '../app/utils/nearest-page';
-import {
-  normaliseTfplugindocsPage,
-  tfplugindocsNavigation
-} from '../build/sources/tfplugindocs';
+import { normaliseTfplugindocsPage } from '../build/tfplugindocs/flavor';
+import { orderedNavigation } from '../app/utils/navigation-order';
 
 describe('normaliseTfplugindocsPage', () => {
   it('takes a resource name from its H1 rather than the Registry title', () => {
     const page = {
       title: 'linear_team (Resource)',
-      page_title: 'linear_team Resource - terraform-provider-linear'
+      page_title: 'linear_team Resource - terraform-provider-linear',
+      subcategory: 'People'
     };
 
     normaliseTfplugindocsPage(page, 'docs/resources/team.md');
 
-    expect(page).toMatchObject({ title: 'linear_team', category: 'resources' });
+    expect(page).toMatchObject({
+      title: 'linear_team',
+      category: 'resources',
+      navigationRank: 3,
+      navigationGroup: 'People'
+    });
   });
 
   it('falls back through page_title to the file name', () => {
@@ -75,39 +79,59 @@ describe('normaliseTfplugindocsPage', () => {
   });
 });
 
-describe('tfplugindocsNavigation', () => {
+describe('provider page navigation metadata', () => {
   it('orders categories and synthesises alphabetical subcategory groups after direct pages', () => {
     const tree = [
-      { title: 'Data Sources', path: '/demo/terraform/data-sources' },
+      {
+        title: 'Data Sources',
+        navigationRank: 4,
+        path: '/demo/terraform/data-sources'
+      },
       {
         title: 'Resources',
+        navigationRank: 3,
         path: '/demo/terraform/resources',
         children: [
-          { title: 'Team', path: '/demo/terraform/resources/team' },
-          { title: 'Alpha', path: '/demo/terraform/resources/alpha' },
+          {
+            title: 'Team',
+            navigationRank: 3,
+            path: '/demo/terraform/resources/team'
+          },
+          {
+            title: 'Alpha',
+            navigationRank: 3,
+            path: '/demo/terraform/resources/alpha'
+          },
           {
             title: 'User',
+            navigationRank: 3,
             path: '/demo/terraform/resources/user',
-            subcategory: 'People'
+            navigationGroup: 'People'
           },
           {
             title: 'Project',
+            navigationRank: 3,
             path: '/demo/terraform/resources/project',
-            subcategory: 'Work'
+            navigationGroup: 'Work'
           },
           {
             title: 'Account',
+            navigationRank: 3,
             path: '/demo/terraform/resources/account',
-            subcategory: 'People'
+            navigationGroup: 'People'
           }
         ]
       },
-      { title: 'Overview', path: '/demo/terraform' },
-      { title: 'Experimental', path: '/demo/terraform/experimental' },
-      { title: 'Guides', path: '/demo/terraform/guides' }
+      { title: 'Overview', navigationRank: 1, path: '/demo/terraform' },
+      {
+        title: 'Experimental',
+        navigationRank: 10,
+        path: '/demo/terraform/experimental'
+      },
+      { title: 'Guides', navigationRank: 2, path: '/demo/terraform/guides' }
     ] as ContentNavigationItem[];
 
-    const result = tfplugindocsNavigation(tree, '/demo/terraform');
+    const result = orderedNavigation(tree);
 
     expect(result.map((item) => item.title)).toEqual([
       'Overview',
@@ -128,7 +152,7 @@ describe('tfplugindocsNavigation', () => {
     expect(result[2]?.children?.[2]).toMatchObject({ page: false });
     expect(
       flattenedNavigationPages(result).map((item) => item.path)
-    ).not.toContain('/demo/terraform/resources/__duxt-subcategory-0');
+    ).not.toContain('/demo/terraform/resources/__duxt-group-0');
   });
 
   // The synthetic groups are Vue keys, never routes, so EVERY traversal has to
@@ -136,23 +160,26 @@ describe('tfplugindocsNavigation', () => {
   // links to a path that 404s, and the breadcrumb also ships its trail as
   // JSON-LD. One generated tree, read by each of them.
   describe('the synthetic groups reach no consumer as a link', () => {
-    const nav = tfplugindocsNavigation(
-      [
-        {
-          title: 'Resources',
-          path: '/demo/terraform/resources',
-          children: [
-            { title: 'Team', path: '/demo/terraform/resources/team' },
-            {
-              title: 'User',
-              path: '/demo/terraform/resources/user',
-              subcategory: 'People'
-            }
-          ]
-        }
-      ] as ContentNavigationItem[],
-      '/demo/terraform'
-    );
+    const nav = orderedNavigation([
+      {
+        title: 'Resources',
+        navigationRank: 3,
+        path: '/demo/terraform/resources',
+        children: [
+          {
+            title: 'Team',
+            navigationRank: 3,
+            path: '/demo/terraform/resources/team'
+          },
+          {
+            title: 'User',
+            navigationRank: 3,
+            path: '/demo/terraform/resources/user',
+            navigationGroup: 'People'
+          }
+        ]
+      }
+    ] as ContentNavigationItem[]);
 
     it('leaves the group out of the breadcrumb trail to a member page', () => {
       const trail = trailBelowPrefix(
@@ -177,7 +204,7 @@ describe('tfplugindocsNavigation', () => {
         nearestPages('/demo/terraform/resources/users', candidates).map(
           (page) => page.path
         )
-      ).not.toContain('/demo/terraform/resources/__duxt-subcategory-0');
+      ).not.toContain('/demo/terraform/resources/__duxt-group-0');
     });
 
     it('shows the member pages as cards rather than the group', () => {

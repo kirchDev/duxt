@@ -12,6 +12,7 @@
       "inputs": [
         "$TURBO_DEFAULT$",
         "$TURBO_ROOT$/apps/www/app/app.config.ts",
+        "$TURBO_ROOT$/apps/www/layers/build-extension/**",
         "$TURBO_ROOT$/docs/**"
       ]
     },
@@ -51,6 +52,9 @@
       "cache": false
     },
     "check:adapters": {
+      "cache": false
+    },
+    "check:extensions": {
       "cache": false
     },
     "check:images": {

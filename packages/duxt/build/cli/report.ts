@@ -1,6 +1,5 @@
-import { join } from 'node:path';
 import { contentCacheFile, readContentCacheAt } from '../content/content-cache';
-import { readDuxtBuildConfig } from '../config/duxt-app-config';
+import { readDuxtSiteBuildConfig } from '../config/duxt-app-config';
 import { duxtManifest, duxtSectionTypes } from '../sections/sections-resolve';
 import { readSectionReports } from '../sections/section-reports';
 import { resolveLatestRefs } from '../sources/sources-git';
@@ -46,10 +45,12 @@ export interface DuxtReport {
 }
 
 /** Everything the report says, before anything decides how to say it. */
-export function duxtReport(options: DuxtReportOptions = {}): DuxtReport {
+export async function duxtReport(
+  options: DuxtReportOptions = {}
+): Promise<DuxtReport> {
   const rootDir = options.rootDir ?? process.cwd();
 
-  const config = readDuxtBuildConfig([rootDir, join(rootDir, 'app')]);
+  const config = await readDuxtSiteBuildConfig(rootDir, { prepared: true });
   const types = duxtSectionTypes(config?.sectionTypes);
 
   const sources = readSectionReports(

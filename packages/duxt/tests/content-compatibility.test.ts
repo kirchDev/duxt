@@ -9,7 +9,7 @@ import {
   resolveGeneratedSections,
   sectionPages
 } from '../build/sections/sections-resolve';
-import { openapiSectionType } from '../build/sections/sections-openapi';
+import { openapiSectionType } from '../build/openapi/section';
 import {
   assertContentCompatibility,
   contentCompatHash

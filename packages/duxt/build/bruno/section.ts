@@ -29,8 +29,8 @@
  * in Bruno" clone of today's HEAD can offer.
  */
 import { stringify as stringifyYaml } from 'yaml';
-import { frontmatterBlock } from '../content/frontmatter';
-import { firstLine, pageOrder, urlSegment } from './section-markdown';
+import { frontmatterBlock } from '../unstable';
+import { firstLine, pageOrder, urlSegment } from '../unstable';
 import type {
   DuxtBrunoCollection,
   DuxtBrunoEntry,
@@ -45,7 +45,7 @@ import type {
   DuxtSectionOptions,
   DuxtSectionPage,
   DuxtSectionType
-} from './sections-resolve';
+} from '../unstable';
 
 /**
  * The layout this type binds — the SAME one `openapi` binds.

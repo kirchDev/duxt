@@ -5,7 +5,10 @@ import type { Nuxt } from '@nuxt/schema';
 import { bundledLanguagesInfo } from 'shiki/langs';
 import { enableWriteAheadLog } from '../build/content/content-cache';
 import type { DuxtBuildConfig } from '../build/config/duxt-app-config';
-import { readDuxtBuildConfig } from '../build/config/duxt-app-config';
+import {
+  readDuxtBuildConfig,
+  rememberDuxtBuildDirectories
+} from '../build/config/duxt-app-config';
 import {
   duxtDefaultRequestSamples,
   duxtRequestSamples
@@ -53,6 +56,7 @@ export default function duxtConfig(_options: unknown, nuxt: Nuxt) {
     layerDir
   ].filter(Boolean) as string[];
 
+  rememberDuxtBuildDirectories(nuxt.options.rootDir, dirs);
   const config = readDuxtBuildConfig(dirs);
 
   const sectionTypes = duxtSectionTypes(config?.sectionTypes);

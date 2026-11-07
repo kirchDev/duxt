@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { join, relative, resolve } from 'node:path';
 import { readDuxtBuildConfig } from '../config/duxt-app-config';
+import type { DuxtBuildConfig } from '../config/duxt-app-config';
 import { resolveLatestRefs } from './sources-git';
 import type { DuxtSource, DuxtSourcesOptions } from './sources-resolve';
 import {
@@ -284,21 +285,24 @@ export interface DuxtSourcesCacheOptions {
 }
 
 /**
- * The key for a site on disk: read its config, resolve `latest`, hash the rest.
+ * The synchronous key helper retains its original direct-config behavior.
+ * The CLI supplies the full Nuxt-resolved build config after async discovery.
  *
  * The one impure function here, and the only one that needs git — `latest` is a
  * tag the remote has to be asked about, and asking is exactly what makes the
  * key describe what will be downloaded rather than what was written down.
  */
 export function duxtSourcesCache(
-  options: DuxtSourcesCacheOptions = {}
+  options: DuxtSourcesCacheOptions = {},
+  buildConfig?: DuxtBuildConfig
 ): DuxtSourcesCacheKey {
   // ABSOLUTE, always. `readDuxtBuildConfig` hands the path to a module loader,
   // which resolves a bare `apps/www/app/app.config.ts` as a PACKAGE specifier and
   // reports a missing module — a site whose config was found reads identically
   // to one whose sources are all local, and the cache silently never fires.
   const rootDir = resolve(options.rootDir ?? process.cwd());
-  const config = readDuxtBuildConfig([rootDir, join(rootDir, 'app')]);
+  const config =
+    buildConfig ?? readDuxtBuildConfig([rootDir, join(rootDir, 'app')]);
 
   const result = duxtSourcesCacheKey(
     resolveLatestRefs(config?.sources ?? [{ path: 'docs' }]),

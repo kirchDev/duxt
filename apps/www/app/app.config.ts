@@ -165,6 +165,20 @@ export default defineAppConfig({
      */
     sources: [
       ...DUXT_DOCS_EDITIONS,
+      {
+        path: 'apps/www/layers/build-extension/docs',
+        slug: 'extension-fixture',
+        history: false,
+        flavor: 'fixture-flavor',
+        locales: ['en-GB'],
+        generated: [
+          {
+            type: 'fixture-section',
+            path: 'apps/www/layers/build-extension/fixture.txt',
+            label: 'Fixture section'
+          }
+        ]
+      },
 
       // The Demo overview is one document tree at four editions. The current
       // `v3.x` tree stays at `/demo`; the other editions keep the same overview

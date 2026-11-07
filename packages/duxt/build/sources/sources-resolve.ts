@@ -179,7 +179,7 @@ export interface DuxtSource {
 }
 
 /** Source dialects the layer understands. */
-export type DuxtSourceFlavor = 'tfplugindocs';
+export type DuxtSourceFlavor = string;
 
 /**
  * Where a version sits in its life.

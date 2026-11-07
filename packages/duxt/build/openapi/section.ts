@@ -24,8 +24,8 @@
  * responses, the try-it client — travels as props.
  */
 import { stringify as stringifyYaml } from 'yaml';
-import { frontmatterBlock } from '../content/frontmatter';
-import { firstLine, pageOrder, urlSegment } from './section-markdown';
+import { frontmatterBlock } from '../unstable';
+import { firstLine, pageOrder, urlSegment } from '../unstable';
 import type {
   DuxtOpenApiOperation,
   DuxtOpenApiSecurity,
@@ -39,7 +39,7 @@ import type {
   DuxtSectionInput,
   DuxtSectionPage,
   DuxtSectionType
-} from './sections-resolve';
+} from '../unstable';
 
 /**
  * The layout name this type binds — PUBLIC SURFACE, so renaming it is a

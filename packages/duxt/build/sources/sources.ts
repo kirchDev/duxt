@@ -41,12 +41,9 @@ export { PARTIALS_COLLECTION, partialsCollection };
 export const pageSchema = z.object({
   /** Shown beside the entry in the sidebar, the section row and page cards. */
   icon: z.string().optional(),
-  /** Preserved long enough for the tfplugindocs dialect to normalise it. */
-  page_title: z.string().optional(),
-  /** A tfplugindocs navigation group within its directory category. */
-  subcategory: z.string().optional(),
-  /** Set by a source dialect; useful to navigation consumers, not authors. */
-  category: z.string().optional(),
+  /** Optional order and non-route grouping, written by authors or source dialects. */
+  navigationRank: z.number().optional(),
+  navigationGroup: z.string().optional(),
   /** `landing` renders the page without the docs shell. */
   layout: z.string().optional(),
   /** The latest release of a generated changelog overview. */
@@ -245,7 +242,8 @@ const excluded = (source: DuxtSource) => {
  */
 export function duxtSources(
   input: DuxtSource[],
-  options: DuxtSourcesOptions = {}
+  options: DuxtSourcesOptions = {},
+  schema: typeof pageSchema = pageSchema
 ) {
   // `latest` is a shorthand for a tag git has to be asked about, and both the
   // collections here and the manifest the module resolves must land on the
@@ -289,7 +287,7 @@ export function duxtSources(
 
     const collection = defineCollection({
       type: 'page',
-      schema: pageSchema,
+      schema,
       source: effective.repo
         ? {
             exclude: [
@@ -336,7 +334,7 @@ export function duxtSources(
   // One partials collection per LANGUAGE, named the way the page collections
   // are — see `partialsCollection`.
   for (const [locale, entries] of partialFolders(resolved, expanded)) {
-    collections[partialsCollection(locale)] = definePartials(entries);
+    collections[partialsCollection(locale)] = definePartials(entries, schema);
   }
 
   return collections;
@@ -472,7 +470,8 @@ function definePartials(
     path: string;
     partials: string;
     mediaPath: string;
-  }[]
+  }[],
+  schema: typeof pageSchema
 ) {
   const entries = folders.map((folder) =>
     folder.repo
@@ -495,7 +494,7 @@ function definePartials(
   const collection = defineCollection({
     type: 'page',
     source: entries,
-    schema: pageSchema
+    schema
   });
 
   containedKeys(collection);

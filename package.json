@@ -16,7 +16,7 @@
     "format": "oxfmt --check .",
     "format:fix": "oxfmt .",
     "typecheck": "tsc --noEmit",
-    "check": "pnpm lint && pnpm format && pnpm typecheck && pnpm typecheck:app && pnpm test && pnpm check:policy && pnpm check:security && pnpm check:previews && pnpm build:app && pnpm check:a11y && pnpm check:seo && pnpm check:images && pnpm check:keyboard && pnpm check:overflow && pnpm check:interactive",
+    "check": "pnpm lint && pnpm format && pnpm typecheck && pnpm typecheck:app && pnpm test && pnpm check:policy && pnpm check:security && pnpm check:previews && pnpm build:app && pnpm check:a11y && pnpm check:seo && pnpm check:images && pnpm check:keyboard && pnpm check:overflow && pnpm check:interactive && pnpm check:extensions",
     "check:fix": "pnpm lint:fix && pnpm format:fix",
     "previews": "turbo run previews --filter=@kirchdev/duxt",
     "check:previews": "turbo run check:previews --filter=@kirchdev/duxt",
@@ -42,7 +42,8 @@
     "check:adapters": "turbo run check:adapters --filter=www",
     "check:routes": "turbo run check:routes --filter=www",
     "check:security": "node scripts/check-security.ts",
-    "check:interactive": "turbo run check:interactive --filter=www"
+    "check:interactive": "turbo run check:interactive --filter=www",
+    "check:extensions": "turbo run check:extensions --filter=www"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.4",

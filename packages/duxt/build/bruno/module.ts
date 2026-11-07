@@ -29,18 +29,12 @@ import {
   brunoZipEntries,
   brunoZipName,
   zipStore
-} from '../build/bruno/bruno-zip';
-import { readDuxtBuildConfig } from '../build/config/duxt-app-config';
-import {
-  duxtManifest,
-  duxtSectionTypes
-} from '../build/sections/sections-resolve';
-import {
-  diskSectionInput,
-  sectionArtefactExists
-} from '../build/sections/section-input';
-import { repositoryRoot } from '../build/sources/repository-root';
-import { resolveLatestRefs } from '../build/sources/sources-git';
+} from './bruno-zip';
+import { readDuxtBuildConfig } from '../unstable';
+import { duxtManifest, duxtSectionTypes } from '../unstable';
+import { diskSectionInput, sectionArtefactExists } from '../unstable';
+import { repositoryRoot } from '../unstable';
+import { resolveLatestRefs } from '../unstable';
 
 export default function duxtBruno(_options: unknown, nuxt: Nuxt) {
   const dirs = nuxt.options._layers

@@ -27,7 +27,9 @@ export interface DuxtCliResult {
 }
 
 /** How the command gets its data — a seam, so help never needs a built site. */
-export type DuxtReportLoader = (options?: DuxtReportOptions) => DuxtReport;
+export type DuxtReportLoader = (
+  options?: DuxtReportOptions
+) => DuxtReport | Promise<DuxtReport>;
 
 /**
  * `2` is the command line, `1` is the documentation.
@@ -271,7 +273,7 @@ export async function runDuxtCli(
   }
 
   const format: DuxtReportFormat = read.flags.has('json') ? 'json' : 'markdown';
-  const { output, exitCode } = duxtReportOutput(load(), format);
+  const { output, exitCode } = duxtReportOutput(await load(), format);
 
   return { stdout: output, stderr: '', exitCode };
 }

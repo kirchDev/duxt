@@ -28,7 +28,7 @@ declare global {
    * not parsed — a generator that wants it as data parses it itself, and gets to
    * decide what to do when it is not JSON.
    */
-  interface DuxtOpenApiRequest {
+  interface DuxtRequest {
     method: string;
     url: string;
     headers: Record<string, string>;
@@ -80,7 +80,7 @@ declare global {
      * JavaScript its mark.
      */
     icon?: string;
-    generate: (request: DuxtOpenApiRequest) => string;
+    generate: (request: DuxtRequest) => string;
   }
 
   /**
@@ -209,7 +209,7 @@ declare global {
     /** Per-source conventions for files that are not documentation pages. */
     exclude?: { drafts?: string; partials?: string };
     /** A layer-owned Markdown dialect, such as tfplugindocs. */
-    flavor?: 'tfplugindocs';
+    flavor?: string;
     /** `owner/name` or a full git URL. Omitted means this repository. */
     repo?: string;
     /** Refs to publish as versions. Omitted means the current checkout. */
@@ -490,7 +490,7 @@ declare global {
     status: DuxtSourceStatusInput;
     history: boolean;
     /** The layer-owned Markdown dialect this collection is normalised from. */
-    flavor?: 'tfplugindocs';
+    flavor?: string;
     /**
      * Present when this collection is a generated section rather than a docs
      * tree. `path` is then the artefact itself rather than a folder.
@@ -1125,8 +1125,6 @@ declare global {
       /** `0` disables the visible recent-pages list. */
       recentPages?: number;
     };
-    /** Separate limits for derived examples and schema-tree rendering. */
-    openapi?: { exampleDepth?: number; schemaDepth?: number };
     /**
      * What the site allows duxt to bind globally.
      *

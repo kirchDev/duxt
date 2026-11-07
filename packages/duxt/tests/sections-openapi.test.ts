@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   DUXT_OPENAPI_LAYOUT,
   openapiSectionType
-} from '../build/sections/sections-openapi';
+} from '../build/openapi/section';
 import { duxtSectionInput } from '../build/sections/sections-resolve';
 
 const context = { label: 'API', prefix: '/api' };

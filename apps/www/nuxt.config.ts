@@ -271,6 +271,7 @@ export default defineNuxtConfig({
   // exports map and files allowlist are exercised by the development site.
   extends: [
     '@kirchdev/duxt',
+    './layers/build-extension',
     ...(process.env.DUXT_SEARCH_PROVIDER === 'typesense'
       ? ['@kirchdev/duxt-typesense']
       : process.env.DUXT_SEARCH_PROVIDER === 'meilisearch'

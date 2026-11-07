@@ -24,7 +24,6 @@ import {
 import type { HistorySource } from '../build/git/source-history';
 import { historySourceDirectories } from '../build/git/source-history';
 import { readContentCache } from '../build/content/content-cache';
-import { normaliseTfplugindocsPage } from '../build/sources/tfplugindocs';
 
 /**
  * "Last updated" and the contributor list, from the git history the file
@@ -89,8 +88,13 @@ export default function duxtGitMeta(_options: unknown, nuxt: Nuxt) {
 
       // Source flavours alter metadata only. Their Markdown remains portable to
       // the generator's own publisher, so the body is never rewritten here.
-      if (source.flavor === 'tfplugindocs') {
-        normaliseTfplugindocsPage(content, ctx.file?.id ?? file);
+      if (source.flavor) {
+        const flavor = config?.sourceFlavors?.[source.flavor];
+        if (!flavor)
+          throw new Error(
+            `duxt: unknown source flavor "${source.flavor}". Register it in duxt.build.ts.`
+          );
+        flavor.normalise(content, ctx.file?.id ?? file);
       }
 
       // A source that has not asked for its history is left alone — for a

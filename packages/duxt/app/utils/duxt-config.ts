@@ -1,3 +1,5 @@
+import { integrationDefaults } from '../integrations/defaults';
+
 /**
  * The layer's defaults, and how a consumer's config is merged over them.
  *
@@ -39,7 +41,7 @@ export const duxtDefaults: DuxtConfig = {
     fuzzy: { threshold: 0.35, minMatchCharLength: 3, limit: 20 },
     recentPages: 5
   },
-  openapi: { exampleDepth: 6, schemaDepth: 8 },
+  ...integrationDefaults,
   // A policy, not a binding table. WHICH keys duxt listens to is the layer's
   // and lives in `duxtShortcuts`; whether the unmodified ones are live at all
   // is the site's, because only a site knows what else its pages put under a

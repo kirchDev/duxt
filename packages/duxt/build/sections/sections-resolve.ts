@@ -28,9 +28,10 @@ import {
   resolveSources,
   slugify
 } from '../sources/sources-resolve';
-import { brunoSectionType } from './sections-bruno';
-import { changelogSectionType } from './sections-changelog';
-import { openapiSectionType } from './sections-openapi';
+import {
+  duxtLayerDirectory,
+  readDuxtContributions
+} from '../config/duxt-contributions';
 
 /**
  * One artefact beside a source's Markdown, published as pages of the site.
@@ -414,13 +415,6 @@ export interface DuxtSectionType {
 /** The registry: type name to type. */
 export type DuxtSectionTypes = Record<string, DuxtSectionType>;
 
-/** The types the layer ships. */
-export const duxtBuiltinSectionTypes: DuxtSectionTypes = {
-  bruno: brunoSectionType,
-  changelog: changelogSectionType,
-  openapi: openapiSectionType
-};
-
 /**
  * The registry, open for a consumer to add to.
  *
@@ -431,7 +425,10 @@ export const duxtBuiltinSectionTypes: DuxtSectionTypes = {
  * hook. A consumer's entry wins, so a type can also be replaced.
  */
 export function duxtSectionTypes(custom?: DuxtSectionTypes): DuxtSectionTypes {
-  return { ...duxtBuiltinSectionTypes, ...custom };
+  return {
+    ...readDuxtContributions([duxtLayerDirectory]).sectionTypes,
+    ...custom
+  };
 }
 
 /**
