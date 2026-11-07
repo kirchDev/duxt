@@ -381,6 +381,14 @@ export default defineNuxtConfig({ extends: [${JSON.stringify(layer)}], hooks: { 
         [join(layer, 'bin/duxt.mjs'), 'content', 'pack', '--publish', publish],
         { cwd: root, env, encoding: 'utf8', timeout: 30000 }
       );
+    writeFileSync(
+      join(root, '.git/shallow'),
+      `${git(root, 'rev-parse', 'HEAD')}\n`
+    );
+    const unavailable = pack();
+    expect(unavailable.status, unavailable.stdout + unavailable.stderr).toBe(1);
+    expect(existsSync(join(publish, 'current'))).toBe(false);
+    rmSync(join(root, '.git/shallow'));
     const first = pack();
     expect(first.status, first.stdout + first.stderr).toBe(0);
     const id = readFileSync(join(publish, 'current'), 'utf8');
@@ -411,6 +419,12 @@ export default defineNuxtConfig({ extends: [${JSON.stringify(layer)}], hooks: { 
     } finally {
       database.close();
     }
+    const warm = pack();
+    expect(warm.status, warm.stdout + warm.stderr).toBe(0);
+    expect(readFileSync(join(root, 'parsed-events'), 'utf8')).toBe(
+      parsedBefore
+    );
+    expect(readFileSync(join(publish, 'current'), 'utf8')).toBe(id);
     writeFileSync(
       join(root, '.git/shallow'),
       `${git(root, 'rev-parse', 'HEAD')}\n`

@@ -1,5 +1,7 @@
 import { execFileSync } from 'node:child_process';
-import { dirname, relative, sep } from 'node:path';
+import { dirname, join, relative, sep } from 'node:path';
+import { existsSync } from 'node:fs';
+import { isDeepStrictEqual } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import type { Nuxt } from '@nuxt/schema';
 import type { DuxtContributor } from '../build/git/git-contributors';
@@ -20,6 +22,8 @@ import {
   sourceHistoryProblems
 } from '../build/git/source-history';
 import type { HistorySource } from '../build/git/source-history';
+import { historySourceDirectories } from '../build/git/source-history';
+import { readContentCache } from '../build/content/content-cache';
 import { normaliseTfplugindocsPage } from '../build/sources/tfplugindocs';
 
 /**
@@ -37,9 +41,9 @@ import { normaliseTfplugindocsPage } from '../build/sources/tfplugindocs';
  * Local sources read history by default, unless they set `history: false`.
  * Builds warn when that history is missing or shallow; packs refuse to publish.
  *
- * Hooked on the parse, not on the build, so the answer is cached exactly as
- * long as it is true: Content re-parses a file when its content changes, which
- * is the same moment its last-modified date does.
+ * Content caches these fields alongside each parsed page. A pack also checks
+ * their provenance and refreshes only stale rows, so a previous build without
+ * history cannot leave a later successful pack with incomplete metadata.
  */
 interface AfterParseContext {
   collection?: { name?: string };
@@ -106,8 +110,14 @@ export default function duxtGitMeta(_options: unknown, nuxt: Nuxt) {
       if (!checked.get(root)) return;
 
       const log = gitLog(file);
+      const metadata = (content.__metadata ??= {}) as Record<string, unknown>;
+      // Cache-only provenance: authored fields keep winning on future packs.
+      metadata.duxtHistory = {
+        tracked: Boolean(log.length),
+        lastUpdated: content.lastUpdated == null,
+        contributors: content.contributors == null
+      };
       if (!log.length) return;
-
       content.lastUpdated ??= log[0]!.date;
       content.contributors ??= contributorsOf(log);
     }) as never
@@ -140,20 +150,90 @@ function historyConfig(nuxt: Nuxt) {
   return { config, declared, histories };
 }
 
-function historyProblems(nuxt: Nuxt, histories: HistorySource[]) {
-  const remoteRoot =
-    (nuxt.options.content as { _remoteSourceRootDir?: string } | undefined)
-      ?._remoteSourceRootDir ?? nuxt.options.rootDir;
-  return sourceHistoryProblems(histories, repositoryRoot(), remoteRoot);
+function historyProblems(
+  nuxt: Nuxt,
+  histories: HistorySource[],
+  fetchHistory = false
+) {
+  return sourceHistoryProblems(
+    histories,
+    historySourceDirectories(nuxt, histories, repositoryRoot()),
+    fetchHistory
+  );
 }
 
 /** Packs fail before publication even if Content reused every parsed row. */
-export function assertDuxtHistory(nuxt: Nuxt) {
-  const problems = historyProblems(nuxt, historyConfig(nuxt).histories);
+export function assertDuxtHistory(nuxt: Nuxt, fetchHistory = false) {
+  const problems = historyProblems(
+    nuxt,
+    historyConfig(nuxt).histories,
+    fetchHistory
+  );
   if (problems.length)
     throw new Error(
       `duxt: content pack requires complete source history:\n  - ${problems.join('\n  - ')}\nSupply full Git history or set history: false on those sources.`
     );
+}
+
+/** A failed parse or an old build must not lend missing/stale metadata to a retry. */
+export function staleDuxtHistory(nuxt: Nuxt): string[] {
+  const { histories } = historyConfig(nuxt);
+  const sources = new Map(
+    histories.map((source) => [source.collection, source])
+  );
+  const directories = historySourceDirectories(
+    nuxt,
+    histories,
+    repositoryRoot()
+  );
+  const pages = readContentCache(nuxt, sources.keys()) ?? [];
+  return pages.flatMap((page) => {
+    const id = page.cacheId ?? page.file;
+    const cached = (
+      page.content.__metadata as
+        | {
+            duxtHistory?: {
+              tracked?: boolean;
+              lastUpdated?: boolean;
+              contributors?: boolean;
+            };
+          }
+        | undefined
+    )?.duxtHistory;
+    if (
+      !cached ||
+      typeof cached.tracked !== 'boolean' ||
+      typeof cached.lastUpdated !== 'boolean' ||
+      typeof cached.contributors !== 'boolean'
+    )
+      return [id];
+    const relativeFile = page.file.slice(page.collection.length + 1);
+    const candidates = (directories.get(page.collection) ?? []).map(
+      ({ directory, prefix }) => {
+        const segment = prefix.replace(/^\/|\/$/g, '');
+        const file =
+          segment && relativeFile.startsWith(`${segment}/`)
+            ? relativeFile.slice(segment.length + 1)
+            : relativeFile;
+        return join(directory, file);
+      }
+    );
+    const file = candidates.find((candidate) => existsSync(candidate));
+    if (!file) return [id];
+    const log = gitLog(file);
+    if (!log.length) return cached.tracked ? [id] : [];
+    const stale =
+      !cached.tracked ||
+      page.content.lastUpdated == null ||
+      page.content.contributors == null ||
+      (cached.lastUpdated && page.content.lastUpdated !== log[0]!.date) ||
+      (cached.contributors &&
+        !isDeepStrictEqual(
+          page.content.contributors,
+          JSON.parse(JSON.stringify(contributorsOf(log)))
+        ));
+    return stale ? [id] : [];
+  });
 }
 
 interface Commit {

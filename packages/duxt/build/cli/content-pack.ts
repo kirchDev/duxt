@@ -5,13 +5,16 @@ import { join, resolve } from 'node:path';
 import { loadNuxt, buildNuxt } from 'nuxt/kit';
 import { duxtReport } from './report';
 import { emitDuxtSearchRecords } from '../../modules/search-records';
-import { assertDuxtHistory } from '../../modules/git-meta';
+import { assertDuxtHistory, staleDuxtHistory } from '../../modules/git-meta';
 import {
   assertContentCompatibility,
   writeContentBundle
 } from '../content/content-bundle';
 import { contentCompatibility } from '../content/content-compatibility';
-import { readContentCache } from '../content/content-cache';
+import {
+  readContentCache,
+  invalidateContentCache
+} from '../content/content-cache';
 import { documentationMediaDirectory } from '../sources/documentation-media';
 import { redirectRules, localeSegments } from '../../modules/redirects';
 import type { DuxtResolvedSource } from '../sources/sources-resolve';
@@ -55,7 +58,36 @@ export async function duxtContentPack(
     nuxt = await loadNuxt({ cwd: root, dev: false, overrides: { buildDir } });
     nuxt.options._prepare = true;
     await buildNuxt(nuxt);
+    assertDuxtHistory(nuxt, true);
+    const staleHistory = staleDuxtHistory(nuxt);
+    if (staleHistory.length) {
+      const remoteRoot = (
+        nuxt.options.content as { _remoteSourceRootDir?: string } | undefined
+      )?._remoteSourceRootDir;
+      invalidateContentCache(nuxt, staleHistory);
+      await nuxt.close();
+      nuxt = undefined;
+      await rm(join(buildDir, 'content'), { recursive: true, force: true });
+      nuxt = await loadNuxt({
+        cwd: root,
+        dev: false,
+        overrides: {
+          buildDir,
+          _prepare: false,
+          ...(remoteRoot
+            ? { content: { _remoteSourceRootDir: remoteRoot } }
+            : {})
+        }
+      });
+      nuxt.options._prepare = true;
+      await buildNuxt(nuxt);
+    }
     assertDuxtHistory(nuxt);
+    const unresolvedHistory = staleDuxtHistory(nuxt);
+    if (unresolvedHistory.length)
+      throw new Error(
+        `duxt: source history metadata could not be refreshed: ${unresolvedHistory.join(', ')}. No bundle was published.`
+      );
     const { findings } = duxtReport({ rootDir: root });
     if (findings.errors.length)
       throw new Error(
