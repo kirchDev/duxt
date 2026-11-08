@@ -29,13 +29,13 @@
     "check:infobox": "node scripts/check-infobox.ts"
   },
   "dependencies": {
-    "@iconify-json/vscode-icons": "^1.2.95",
+    "@iconify-json/vscode-icons": "^1.2.96",
     "@kirchdev/duxt": "workspace:*",
     "@kirchdev/duxt-meilisearch": "workspace:*",
     "@kirchdev/duxt-typesense": "workspace:*",
     "@kirchdev/duxt-wiki": "workspace:*",
-    "agents": "^0.32.0",
-    "nuxt": "^4.6.3"
+    "agents": "^0.33.0",
+    "nuxt": "^4.6.4"
   },
   "devDependencies": {
     "@libsql/client": "^0.18.0",
@@ -47,9 +47,9 @@
     "pg": "^8.23.1",
     "playwright-core": "^1.64.1",
     "typescript": "^6.0.3",
-    "vitest": "^5.0.5",
+    "vitest": "^5.1.0",
     "vue-tsc": "^3.3.14",
-    "wrangler": "^4.156.0",
+    "wrangler": "^4.158.0",
     "yaml": "^2.9.1"
   }
 }
