@@ -82,6 +82,13 @@
         "$TURBO_ROOT$/packages/duxt/app/**",
         "$TURBO_ROOT$/packages/duxt/build/**"
       ]
+    },
+    "check:wiki": {
+      "cache": false
+    },
+    "@kirchdev/duxt-wiki#test": {
+      "outputs": [],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/packages/duxt/**"]
     }
   }
 }

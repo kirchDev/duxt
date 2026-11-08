@@ -422,6 +422,13 @@ export const EXEMPT_HANDLERS: readonly ExemptHandler[] = [
       'are written by the prerender pass and served as files.'
   },
   {
+    handler: '/api/wiki-fixture',
+    why:
+      'The development site’s metadata probe for database, adapter and bundle ' +
+      'checks. It returns authored fixture rows for check:wiki/check:adapters, ' +
+      'rather than a documentation surface or an endpoint shipped by the layer.'
+  },
+  {
     handler: '/api/_nuxt_icon/',
     why:
       'The icon collections `@nuxt/icon` serves to the client for any icon not ' +

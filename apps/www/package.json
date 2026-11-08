@@ -23,13 +23,15 @@
     "typecheck": "nuxt typecheck",
     "check:seo:static": "node scripts/check-static-seo.ts",
     "check:interactive": "node scripts/check-interactive.ts",
-    "check:extensions": "node scripts/check-extensions.ts"
+    "check:extensions": "node scripts/check-extensions.ts",
+    "check:wiki": "node scripts/check-wiki.ts"
   },
   "dependencies": {
     "@iconify-json/vscode-icons": "^1.2.95",
     "@kirchdev/duxt": "workspace:*",
     "@kirchdev/duxt-meilisearch": "workspace:*",
     "@kirchdev/duxt-typesense": "workspace:*",
+    "@kirchdev/duxt-wiki": "workspace:*",
     "agents": "^0.32.0",
     "nuxt": "^4.6.3"
   },

@@ -40,3 +40,11 @@ components:
       - path: packages/duxt-meilisearch/package.json
         updater: json
         key: version
+  duxt-wiki:
+    path: packages/duxt-wiki
+    tag-prefix: duxt-wiki@v
+    initial-version: 0.1.0
+    files:
+      - path: packages/duxt-wiki/package.json
+        updater: json
+        key: version

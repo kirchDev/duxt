@@ -249,3 +249,9 @@ test('the classification carries the handler each row accounts for', () => {
     else expect(entry.handlers.length).toBeGreaterThan(0);
   }
 });
+
+test('accounts for the wiki metadata fixture endpoint by name', () => {
+  expect(
+    verifyHandlerCoverage([...registeredHandlers(), '/api/wiki-fixture'])
+  ).toEqual([]);
+});

@@ -26,3 +26,4 @@ export {
 } from './sections/section-input';
 export { repositoryRoot } from './sources/repository-root';
 export { resolveLatestRefs } from './sources/sources-git';
+export { readContentCache } from './content/content-cache';
