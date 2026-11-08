@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { defineNuxtConfig } from 'nuxt/config';
 import tailwindcss from '@tailwindcss/vite';
 import { highlightLangs } from './build/content/highlight-langs';
+import { linkCheckerSkipInspections } from './build/config/link-checker';
 
 /** Resolve against this layer, not the project extending it. */
 const layer = (path: string) => fileURLToPath(new URL(path, import.meta.url));
@@ -511,6 +512,7 @@ export default defineNuxtConfig({
    */
   linkChecker: {
     failOnError: false,
+    skipInspections: linkCheckerSkipInspections,
     excludeLinks: ['/devtools/**']
   },
 
