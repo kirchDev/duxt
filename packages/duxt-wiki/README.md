@@ -63,4 +63,54 @@ action serve ordinary links; unresolved names become plain text. Core's one
 request-bound `event.context.duxtMarkdown` output formatter has Wiki as its
 consumer and retains plain strip-frontmatter behavior without the layer.
 
+## Infoboxes and text queries
+
+Put one infobox at the start of the article body, before the lead. It floats
+on the logical end of a wide article and stacks above the prose on a phone.
+Its image uses `ProseImg`, including the image viewer. Groups start open;
+`collapsed` closes one initially and keeps it keyboard-operable.
+
+```mdc
+::infobox{title="Sprint" image="/sprint.png" type="mode"}
+:::infobox-row{label="Status" key="status"}
+**Available**
+:::
+:::infobox-group{title="Details" collapsed}
+::::infobox-row{label="Version" key="version"}
+01
+::::
+::::infobox-row{label="Release" key="release"}
+[Release notes](/release) and [[Sprint|related mode]]
+::::
+:::
+::
+
+::query{type="mode" where="status=Available" columns="title,version"}
+::
+```
+
+The build-only schema contribution adds one `infobox` JSON column containing
+`{ type, values }`. Parsing extracts each row's plain text and preserves the
+authored body, so Markdown, links and wikilinks still render in the box. A row
+uses its `key`, falling back to its label when the key is absent or blank. Use
+an explicit stable key when translating labels; groups do not change keys.
+The infobox's `type` is body data. The page's frontmatter `type` still chooses
+its page template.
+
+The public query attributes are `type`, `where` and `columns`. `where` is an
+optional `key=value` text comparison; `columns` is a comma-separated list and
+defaults to `title`. The `title` column links to the page; other columns read
+row keys, showing a blank cell for a missing key. Equality is case-sensitive
+text equality: `01` and `1` remain different values. No per-type schema or
+numeric conversion is applied.
+
+Queries use `queryCollection` in the current source and version, overlaying
+the requested locale and its fallbacks before filtering. They do not retain
+metadata between requests or bundles. Tables scroll inside their own
+container and an unmatched query shows an empty state.
+
+Installing the components and JSON column requires a new application image.
+After that, new row keys and infobox types are content-only changes and can
+be delivered with `duxt content pack` without rebuilding that image.
+
 [MIT](LICENSE) © [Titus Kirch](https://github.com/TitusKirch/) / [IT-Dienstleistungen Titus Kirch](https://kirch.dev)

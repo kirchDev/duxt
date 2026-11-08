@@ -25,7 +25,8 @@
     "check:interactive": "node scripts/check-interactive.ts",
     "check:extensions": "node scripts/check-extensions.ts",
     "check:wiki": "node scripts/check-wiki.ts",
-    "check:wikilinks": "node scripts/check-wikilinks.ts"
+    "check:wikilinks": "node scripts/check-wikilinks.ts",
+    "check:infobox": "node scripts/check-infobox.ts"
   },
   "dependencies": {
     "@iconify-json/vscode-icons": "^1.2.95",

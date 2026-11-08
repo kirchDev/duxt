@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { checkWikiFixtures, WIKI_ROUTES } from './wiki-fixture.ts';
+import { checkInfoboxFixtures, checkInfoboxImage } from './infobox-fixture.ts';
 
 /**
  * Reads the images off a BUILT page and fails the build over what `ProseImg`
@@ -168,6 +169,8 @@ async function main() {
   try {
     await server.ready();
     await checkWikiFixtures(`http://localhost:${PORT}`);
+    await checkInfoboxFixtures(`http://localhost:${PORT}`);
+    await checkInfoboxImage(browser, `http://localhost:${PORT}`);
 
     for (const route of WIKI_ROUTES) {
       const page = await browser.newPage({

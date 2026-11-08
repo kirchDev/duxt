@@ -1,4 +1,5 @@
 import type { DuxtBuildContribution } from '@kirchdev/duxt/unstable';
+import { infoboxSchema } from './infobox-build';
 
 export default {
   pageTypes: {
@@ -7,6 +8,7 @@ export default {
     disambiguation: { layout: 'wiki', template: 'WikiDisambiguation' }
   },
   pageSchema: (z) => ({
+    ...infoboxSchema(z),
     links: z
       .array(
         z.object({ target: z.string(), kind: z.enum(['markdown', 'wiki']) })

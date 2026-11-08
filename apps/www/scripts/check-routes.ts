@@ -437,6 +437,13 @@ export const EXEMPT_HANDLERS: readonly ExemptHandler[] = [
       'rather than a documentation surface or an endpoint shipped by the layer.'
   },
   {
+    handler: '/api/infobox-fixture',
+    why:
+      'The development site’s internal infobox probe for real Content rows, ' +
+      'text filters and live content-bundle activation in check:infobox. It is ' +
+      'not an endpoint shipped by the layer or a documentation surface.'
+  },
+  {
     handler: '/api/_nuxt_icon/',
     why:
       'The icon collections `@nuxt/icon` serves to the client for any icon not ' +

@@ -63,5 +63,5 @@ export default defineNuxtConfig({
     }
   ],
   imports: { dirs: [layer('./app/composables')] },
-  modules: [layer('./module.ts')]
+  modules: [layer('./module.ts'), layer('./infobox-module.ts')]
 });
