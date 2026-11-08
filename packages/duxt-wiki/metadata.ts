@@ -39,8 +39,26 @@ export function collectWikiMetadata(page: Record<string, unknown>): void {
   };
   const walk = (node: unknown): void => {
     if (typeof node === 'string') {
-      for (const match of node.matchAll(/\[\[([^\]\n]+)\]\]/g)) {
-        add(match[1]!.split('|')[0]!.trim(), 'wiki');
+      let cursor = 0;
+      while (cursor < node.length) {
+        const start = node.indexOf('[[', cursor);
+        if (start === -1) break;
+        let end = start + 2;
+        while (end < node.length && node[end] !== ']' && node[end] !== '\n')
+          end++;
+        if (end > start + 2 && node[end] === ']' && node[end + 1] === ']') {
+          add(
+            node
+              .slice(start + 2, end)
+              .split('|')[0]!
+              .trim(),
+            'wiki'
+          );
+          cursor = end + 2;
+        } else {
+          // Every nested opener hits this same invalid delimiter; skip it once.
+          cursor = end + 1;
+        }
       }
     } else if (Array.isArray(node)) {
       const [tag, props, ...children] = node;
