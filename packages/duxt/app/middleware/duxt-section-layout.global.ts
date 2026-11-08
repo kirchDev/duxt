@@ -2,7 +2,7 @@ import { sourcesForRoute } from '../../build/sources/sources-resolve';
 
 /** Choose the shell before rendering so navigating within it keeps its state. */
 export default defineNuxtRouteMiddleware(async (to) => {
-  if (!('slug' in to.params)) return;
+  if (!('slug' in to.params) && !('category' in to.params)) return;
   const app = useNuxtApp();
   // Nuxt restores the SSR layout from payload.state._layout. Re-querying on
   // hydration would download SQLite and collection dumps just to repeat it.

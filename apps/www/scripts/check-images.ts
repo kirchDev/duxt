@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { checkWikiFixtures, WIKI_ROUTES } from './wiki-fixture.ts';
 
 /**
  * Reads the images off a BUILT page and fails the build over what `ProseImg`
@@ -166,7 +167,28 @@ async function main() {
 
   try {
     await server.ready();
+    await checkWikiFixtures(`http://localhost:${PORT}`);
 
+    for (const route of WIKI_ROUTES) {
+      const page = await browser.newPage({
+        viewport: { width: 320, height: 900 }
+      });
+      await page.goto(`http://localhost:${PORT}${route}`);
+      await hydrated(page);
+      if (route === '/wiki') {
+        const image = page.getByRole('img', {
+          name: 'Wiki image',
+          exact: true
+        });
+        await image.waitFor();
+        if (!(await image.getAttribute('srcset')))
+          throw new Error('Wiki article image has no responsive variants');
+        await image.click();
+        await page.getByRole('dialog').waitFor();
+        await page.keyboard.press('Escape');
+      }
+      await page.close();
+    }
     const response = await fetch(`http://localhost:${PORT}${ROUTE}`, {
       headers: { accept: 'text/html' }
     });

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { checkWikiFixtures, WIKI_ROUTES } from './wiki-fixture.ts';
 
 /**
  * Drives the search dialog from the keyboard, in a real browser.
@@ -130,6 +131,7 @@ async function main() {
 
   try {
     await server.ready();
+    await checkWikiFixtures(`http://localhost:${PORT}`);
 
     const { failures, notes } = await drive(browser);
 
@@ -213,6 +215,16 @@ async function drive(browser: Browser) {
   };
 
   try {
+    for (const route of WIKI_ROUTES) {
+      await page.goto(url(route));
+      await hydrated(page);
+      const opened = await open(page);
+      if (!opened.open || opened.focused !== 'INPUT')
+        failures.push(`${route}: search must open with keyboard focus`);
+      await page.keyboard.press('Escape');
+      if (!(await closed(page)))
+        failures.push(`${route}: Escape must close search`);
+    }
     // Visited first so the dialog has a "Recently viewed" group as well as the
     // sections — two groups, which is what puts a heading BETWEEN two options
     // rather than only above the first one. Skipping onto a heading is then a

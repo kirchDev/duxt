@@ -1,6 +1,11 @@
 import type { DuxtBuildContribution } from '@kirchdev/duxt/unstable';
 
 export default {
+  pageTypes: {
+    article: { layout: 'wiki', template: 'WikiArticle' },
+    category: { layout: 'wiki', template: 'WikiCategory' },
+    disambiguation: { layout: 'wiki', template: 'WikiDisambiguation' }
+  },
   pageSchema: (z) => ({
     links: z
       .array(

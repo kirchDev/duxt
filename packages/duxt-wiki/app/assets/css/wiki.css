@@ -1,0 +1,4 @@
+/* Reuse duxt's theme without emitting a second reset or theme. */
+@reference '@duxt/assets/css/duxt.css';
+@tailwind utilities;
+@source '../../';

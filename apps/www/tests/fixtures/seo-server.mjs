@@ -12,6 +12,13 @@ const pages = new Map(
     '/getting-started',
     '/de-DE/getting-started',
     '/does-not-exist',
+    '/wiki',
+    '/wiki/category/modes',
+    '/wiki/category/unpaged',
+    '/wiki/disambiguation',
+    '/de-DE/wiki',
+    '/de-DE/wiki/category/unpaged',
+    '/de-DE/wiki/category/modes',
     '/demo',
     '/en-US/demo',
     '/de-DE/demo',
@@ -25,13 +32,21 @@ const pages = new Map(
 );
 
 function renderPage(route) {
-  const fallback = route === '/de-DE/demo' || route === '/de-DE/demo/openapi';
+  const fallback =
+    route === '/de-DE/demo' ||
+    route === '/de-DE/demo/openapi' ||
+    (route.startsWith('/de-DE/wiki') && !route.endsWith('/modes'));
   const noindex =
     route === '/does-not-exist' || route === '/demo/v1.x/openapi' || fallback;
-  const title = route.endsWith('/openapi') ? 'Harbour' : 'Overview';
+  const title =
+    route === '/de-DE/wiki/category/modes'
+      ? 'Spielmodi'
+      : route.endsWith('/openapi')
+        ? 'Harbour'
+        : 'Overview';
   return `<html><head>
     <link rel="canonical" href="${origin}${route.startsWith('/demo/v1.x/openapi/shipments') ? '/demo/openapi' : route}">
-    ${mode === 'missing-machine-links' ? '' : `<link rel="alternate" type="text/markdown" href="${route}.md"><link rel="describedby" href="/llms.txt">`}
+    ${mode === 'missing-machine-links' ? '' : `${route.endsWith('/unpaged') ? '' : `<link rel="alternate" type="text/markdown" href="${route}.md">`}<link rel="describedby" href="/llms.txt">`}
     ${[...locales, 'x-default'].map((locale) => `<link rel="alternate" hreflang="${locale}" href="${origin}${route}">`).join('')}
     <meta name="robots" content="${noindex ? 'noindex' : 'index'}">
     <meta property="og:title" content="Title">

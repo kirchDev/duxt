@@ -26,3 +26,11 @@ export function duxtPageType(
     );
   return { name, ...definition };
 }
+
+/** A delivered page, including its locale and whether it has authored Markdown. */
+export interface DuxtLoadedPage {
+  page: PageCollectionItemBase & { type?: string };
+  from?: string;
+  asked: string;
+  markdown?: boolean;
+}

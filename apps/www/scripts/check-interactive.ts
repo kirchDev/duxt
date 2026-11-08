@@ -1,3 +1,4 @@
+import { checkWikiFixtures, WIKI_ROUTES } from './wiki-fixture.ts';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { chromium, type Browser } from 'playwright-core';
@@ -50,6 +51,30 @@ try {
   assert.ok(address && typeof address !== 'string');
   const apiOrigin = `http://127.0.0.1:${address.port}`;
   await server.ready();
+  await checkWikiFixtures(origin);
+  for (const route of WIKI_ROUTES) {
+    await page.goto(`${origin}${route}`);
+    await hydrated(page);
+    if (route === '/wiki') {
+      await page
+        .getByRole('button', { name: 'Show wiki sidebar', exact: true })
+        .click();
+      await page.locator('[data-wiki-sidebar]').waitFor();
+      await page
+        .getByRole('button', { name: 'Hide wiki sidebar', exact: true })
+        .click();
+      assert.equal(await page.locator('[data-wiki-sidebar]').count(), 0);
+      const contents = page.locator('[data-wiki-toc]');
+      const summary = contents.locator('summary');
+      await summary.focus();
+      await page.keyboard.press('Enter');
+      assert.equal(await contents.getAttribute('open'), null);
+      await page.keyboard.press('Enter');
+      assert.notEqual(await contents.getAttribute('open'), null);
+      await contents.locator('a[href="#history"]').click();
+      assert.equal(new URL(page.url()).hash, '#history');
+    }
+  }
   await page.goto(`${origin}/demo/diagrams`);
   await hydrated(page);
   await page.waitForFunction(

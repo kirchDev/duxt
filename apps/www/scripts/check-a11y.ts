@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { checkWikiFixtures, WIKI_ROUTES } from './wiki-fixture.ts';
 
 /**
  * Runs axe-core over a handful of rendered pages.
@@ -94,6 +95,7 @@ const ROUTES = [
   '/demo/images',
   // The actual three-level outline and footnote/backlink, rather than fenced examples.
   '/demo/wiki-foundations',
+  ...WIKI_ROUTES,
   '/does-not-exist'
 ];
 
@@ -107,6 +109,7 @@ async function main() {
 
   try {
     await server.ready();
+    await checkWikiFixtures(`http://localhost:${PORT}`);
 
     const failures: string[] = [];
 

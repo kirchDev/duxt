@@ -168,8 +168,12 @@ export default defineAppConfig({
       {
         path: 'apps/www/layers/wiki-fixture/docs',
         slug: 'wiki',
+        pageType: 'article',
         history: false,
-        locales: ['en-GB']
+        locales: [
+          'en-GB',
+          { locale: 'de', path: 'apps/www/layers/wiki-fixture/de' }
+        ]
       },
       {
         path: 'apps/www/layers/build-extension/page-types',

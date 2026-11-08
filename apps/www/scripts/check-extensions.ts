@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { checkWikiFixtures, WIKI_ROUTES } from './wiki-fixture.ts';
 import {
   readFileSync,
   readdirSync,
@@ -20,6 +21,12 @@ const origin = 'http://127.0.0.1:3125';
 const bundleDirectory = mkdtempSync(join(tmpdir(), 'duxt-page-type-bundle-'));
 const fixtureFile = join(site, 'layers/build-extension/page-types/index.md');
 const fixtureSource = readFileSync(fixtureFile, 'utf8');
+const wikiDir = join(site, 'layers/wiki-fixture/docs');
+const wikiTarget = join(wikiDir, 'target.md');
+const wikiTargetSource = readFileSync(wikiTarget, 'utf8');
+const wikiModes = join(wikiDir, 'category/modes.md');
+const wikiModesSource = readFileSync(wikiModes, 'utf8');
+const wikiAdded = join(wikiDir, 'bundled.md');
 let browser: Browser | undefined;
 const server = startBuiltServer({
   port: 3125,
@@ -33,6 +40,7 @@ const server = startBuiltServer({
 });
 try {
   await server.ready();
+  await checkWikiFixtures(origin);
   const response = await fetch(`${origin}/api/extension-fixture`);
   assert.equal(
     response.status,
@@ -115,6 +123,11 @@ try {
     if (request.url().includes('/sql_dump.txt'))
       initialDumps.push(request.url());
   });
+  for (const route of WIKI_ROUTES) {
+    await page.goto(`${origin}${route}`);
+    await hydrated(page);
+    assert.equal(await page.locator('[data-wiki-layout]').count(), 1);
+  }
   await page.goto(`${origin}/page-types`);
   await hydrated(page);
   await page.locator('[data-page-type-template="article"]').waitFor();
@@ -143,6 +156,24 @@ try {
   writeFileSync(
     fixtureFile,
     fixtureSource.replace('---\n', '---\ntype: fixture-category\n')
+  );
+  writeFileSync(
+    wikiTarget,
+    wikiTargetSource.replace(
+      'categories: [Modes]',
+      'categories: [Modes, Fresh group]'
+    )
+  );
+  writeFileSync(
+    wikiModes,
+    wikiModesSource.replace(
+      'categories: [Catalog]',
+      'categories: [Catalog, Fresh group]'
+    )
+  );
+  writeFileSync(
+    wikiAdded,
+    '---\ntitle: Bundled article\ncategories: [Modes, Fresh group]\n---\nNew content without an image rebuild.\n'
   );
   const packed = spawnSync(
     process.execPath,
@@ -176,6 +207,41 @@ try {
   assert.match(switchedHtml, /data-page-type-layout="category"/);
   assert.doesNotMatch(switchedHtml, /data-page-type-template="article"/);
   assert.match(switchedHtml, /Page type fixture/);
+  const fresh = await fetch(
+    `${origin}/wiki/category/fresh-group?bundle=changed`
+  );
+  assert.equal(
+    fresh.status,
+    200,
+    'a category introduced by a bundle has a runtime route'
+  );
+  const freshHtml = await fresh.text();
+  assert.match(freshHtml, /data-wiki-category/);
+  assert.match(freshHtml, /Bundled article/);
+  assert.match(freshHtml, /href="\/wiki\/target"/);
+  assert.match(
+    freshHtml,
+    /href="\/wiki\/category\/modes"/,
+    'category parent changes come from bundle columns'
+  );
+  const wiki = await fetch(`${origin}/wiki?bundle=changed`);
+  assert.equal(wiki.status, 200);
+  const wikiHtml = await wiki.text();
+  assert.match(wikiHtml, /data-wiki-navbox/);
+  assert.match(
+    wikiHtml,
+    /Bundled article/,
+    'explicit/partial navboxes use current members'
+  );
+  assert.match(
+    await (await fetch(`${origin}/de-DE/wiki/category/fresh-group`)).text(),
+    /Bundled article/
+  );
+  assert.equal(
+    (await fetch(`${origin}/wiki/category/not-a-category`)).status,
+    404
+  );
+
   const js = (dir: string): string[] =>
     readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>
       entry.isDirectory()
@@ -197,6 +263,9 @@ try {
   throw error;
 } finally {
   writeFileSync(fixtureFile, fixtureSource);
+  writeFileSync(wikiTarget, wikiTargetSource);
+  writeFileSync(wikiModes, wikiModesSource);
+  rmSync(wikiAdded, { force: true });
   await browser?.close();
   await server.stop();
   rmSync(bundleDirectory, { recursive: true, force: true });
