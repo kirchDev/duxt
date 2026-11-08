@@ -4,14 +4,14 @@ import {
   verifyHandlerCoverage
 } from '../scripts/check-routes';
 
-it('exempts only the internal infobox probe and still rejects an unclassified child', () => {
+it('rejects the internal infobox probe, children and similarly named handlers', () => {
   const baseline = [
     '',
     ...DEPLOYMENT_ROUTES.flatMap((entry) => entry.handlers)
   ];
-  expect(verifyHandlerCoverage([...baseline, '/api/infobox-fixture'])).toEqual(
-    []
-  );
+  expect(
+    verifyHandlerCoverage([...baseline, '/api/infobox-fixture']).join('\n')
+  ).toContain('/api/infobox-fixture');
   expect(
     verifyHandlerCoverage([
       ...baseline,

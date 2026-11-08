@@ -132,8 +132,14 @@ export async function checkInfoboxFixtures(origin: string) {
     assert.equal(response.status, 200, `${path}: source/version scope fixture`);
     const document = new JSDOM(await response.text()).window.document;
     assert.ok(
-      document.querySelector('a[href="/wiki/infobox-sprint"]'),
-      'the demo navigation exposes the rendered wiki infobox fixture'
+      document.querySelector('a[href="/demo/wiki/crown-light"]'),
+      'the root-escaped demo link opens the public wiki infobox example'
+    );
+    const prefix = path.slice(0, path.lastIndexOf('/'));
+    assert.equal(
+      document.querySelector(`a[href="${prefix}/demo/wiki/crown-light"]`),
+      null,
+      `${path}: the root escape never adds the current source or edition prefix`
     );
     const links = [
       ...document.querySelectorAll('[data-infobox-query] tbody a')

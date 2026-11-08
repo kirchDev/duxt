@@ -1,4 +1,5 @@
 import { checkWikiFixtures, WIKI_ROUTES } from './wiki-fixture.ts';
+import { WIKI_DEMO_ROUTES } from './wiki-demo.ts';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { chromium, type Browser } from 'playwright-core';
@@ -75,6 +76,56 @@ try {
       assert.equal(new URL(page.url()).hash, '#history');
     }
   }
+  for (const route of WIKI_DEMO_ROUTES) {
+    const response = await page.goto(`${origin}${route}`);
+    assert.equal(response?.status(), 200, `${route}: demo page renders`);
+    await hydrated(page);
+    await page.locator('[data-wiki-article]').waitFor();
+    if (route === '/demo/wiki/lumen-harbour') {
+      const contents = page.locator('[data-wiki-toc]');
+      await contents.locator('summary').focus();
+      await page.keyboard.press('Enter');
+      assert.equal(await contents.getAttribute('open'), null);
+      await page.keyboard.press('Enter');
+      assert.notEqual(await contents.getAttribute('open'), null);
+      await contents.locator('a[href="#arrival"]').click();
+      assert.equal(new URL(page.url()).hash, '#arrival');
+    } else {
+      await page
+        .locator('[data-wiki-category] a[href="/demo/wiki/crown-light"]')
+        .click();
+      await hydrated(page);
+      await page.locator('[data-infobox]').waitFor();
+      assert.equal(new URL(page.url()).pathname, '/demo/wiki/crown-light');
+    }
+  }
+  await page.goto(`${origin}/de-DE/demo/wiki`);
+  await hydrated(page);
+  const harbour = page
+    .locator('main .typeset p a[href="/de-DE/demo/wiki/lumen-harbour"]')
+    .first();
+  assert.equal(
+    await harbour.getAttribute('href'),
+    '/de-DE/demo/wiki/lumen-harbour'
+  );
+  await harbour.click();
+  await page.waitForURL(
+    (url) => url.pathname === '/de-DE/demo/wiki/lumen-harbour'
+  );
+  await hydrated(page);
+  assert.equal(new URL(page.url()).pathname, '/de-DE/demo/wiki/lumen-harbour');
+  await page
+    .getByRole('heading', { level: 1, name: 'Lumen Harbour', exact: true })
+    .waitFor();
+  await page
+    .getByRole('status')
+    .filter({
+      hasText: 'Diese Seite ist noch nicht in deiner Sprache verfügbar'
+    })
+    .waitFor();
+  console.log(
+    'Wiki demo: inline contents keyboard controls, category navigation and authored German link to visible English fallback passed.'
+  );
   await page.goto(`${origin}/demo/diagrams`);
   await hydrated(page);
   await page.waitForFunction(

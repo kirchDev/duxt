@@ -135,7 +135,13 @@ export const DEPLOYMENT_ROUTES: readonly DeploymentRoute[] = [
       'the `/demo/openapi/shipments` links the versioned demo section generates and ' +
       'nothing serves. Those are a defect wanting a fix where they are generated, ' +
       'not a classified fallback.',
-    probes: ['index.html', 'getting-started/index.html'],
+    probes: [
+      'index.html',
+      'getting-started/index.html',
+      'demo/wiki/index.html',
+      'demo/wiki/lumen-harbour/index.html',
+      'demo/wiki/category/beacons/index.html'
+    ],
     handlers: ['/**']
   },
   {
@@ -422,35 +428,6 @@ export const EXEMPT_HANDLERS: readonly ExemptHandler[] = [
       'are written by the prerender pass and served as files.'
   },
   {
-    handler: '/api/extension-fixture',
-    why:
-      'The development site’s internal build-extension verification endpoint ' +
-      'used by check:extensions to inspect stored inherited parser, source-flavor ' +
-      'and schema contributions, rather than a documentation surface or an ' +
-      'endpoint shipped by the layer.'
-  },
-  {
-    handler: '/api/wiki-fixture',
-    why:
-      'The development site’s metadata probe for database, adapter and bundle ' +
-      'checks. It returns authored fixture rows for check:wiki/check:adapters, ' +
-      'rather than a documentation surface or an endpoint shipped by the layer.'
-  },
-  {
-    handler: '/api/wikilinks-fixture',
-    why:
-      'The development site’s internal authored-row probe for check:wikilinks. ' +
-      'It verifies stored wikilink literals across rendering and content-bundle ' +
-      'activation, rather than publishing a documentation or layer endpoint.'
-  },
-  {
-    handler: '/api/infobox-fixture',
-    why:
-      'The development site’s internal infobox probe for real Content rows, ' +
-      'text filters and live content-bundle activation in check:infobox. It is ' +
-      'not an endpoint shipped by the layer or a documentation surface.'
-  },
-  {
     handler: '/api/_nuxt_icon/',
     why:
       'The icon collections `@nuxt/icon` serves to the client for any icon not ' +
@@ -505,6 +482,16 @@ export function verifyDeploymentRoutes(
   const listing = [...files];
   const present = new Set(listing);
   const findings: string[] = [];
+
+  // A fixture cannot be published as either HTML or a prerendered endpoint,
+  // including its locale-prefixed variants. Nested /demo/wiki stays public.
+  const fixture =
+    /^(?:[a-z]{2}(?:-[A-Z]{2})?\/)?(?:wiki|page-types|extension-fixture|api\/(?:wiki-fixture|wikilinks-fixture|infobox-fixture|extension-fixture))(?:\/|\.|$)/;
+  for (const file of listing)
+    if (fixture.test(file))
+      findings.push(
+        `The Workers build publishes internal fixture asset \`${file}\`.`
+      );
 
   for (const entry of routes) {
     for (const probe of entry.probes) {
@@ -703,7 +690,8 @@ function main(): void {
 
   console.log(
     `\n${DEPLOYMENT_ROUTES.length} routes verified against the ${preset} build artifact, ` +
-      `and all ${new Set(handlers).size} handlers it registers are classified or exempt.`
+      `and all ${new Set(handlers).size} handlers it registers are classified or exempt. ` +
+      'The public wiki demo is present and internal fixtures are absent.'
   );
 }
 

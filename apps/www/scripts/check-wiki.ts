@@ -14,7 +14,7 @@ import { startBuiltServer } from './built-server.ts';
 import { assertWikiFixture } from './wiki-assertions.ts';
 
 const site = fileURLToPath(new URL('..', import.meta.url));
-const fixture = join(site, 'layers/wiki-fixture');
+const fixture = join(site, 'fixtures/wiki-fixture');
 const original = join(fixture, 'docs/target.md');
 const renamed = join(fixture, 'docs/renamed.md');
 const source = readFileSync(original, 'utf8');

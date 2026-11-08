@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { checkWikiFixtures, WIKI_ROUTES } from './wiki-fixture.ts';
 import { checkInfoboxFixtures, INFOBOX_ROUTES } from './infobox-fixture.ts';
+import { assertWikiDemo, WIKI_DEMO_SHOWCASE_ROUTES } from './wiki-demo.ts';
 
 /**
  * Runs axe-core over a handful of rendered pages.
@@ -98,6 +99,7 @@ const ROUTES = [
   '/demo/wiki-foundations',
   ...WIKI_ROUTES,
   ...INFOBOX_ROUTES,
+  ...WIKI_DEMO_SHOWCASE_ROUTES,
   '/does-not-exist'
 ];
 
@@ -156,6 +158,7 @@ async function check(route: string): Promise<string[]> {
   });
 
   const { window } = dom;
+  assertWikiDemo(window.document, route);
 
   if (route === '/demo/wiki-foundations') {
     const document = window.document;

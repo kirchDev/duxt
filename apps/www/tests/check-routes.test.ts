@@ -250,52 +250,39 @@ test('the classification carries the handler each row accounts for', () => {
   }
 });
 
-test('accounts for the wiki metadata fixture endpoint by name', () => {
+test.each([
+  '/api/wiki-fixture',
+  '/api/wikilinks-fixture',
+  '/api/infobox-fixture',
+  '/api/extension-fixture'
+])('a published internal fixture handler is rejected: %s', (handler) => {
   expect(
-    verifyHandlerCoverage([...registeredHandlers(), '/api/wiki-fixture'])
-  ).toEqual([]);
+    verifyHandlerCoverage([...registeredHandlers(), handler]).join('\n')
+  ).toContain(handler);
 });
 
-test('the wikilinks fixture is exempt by name without hiding child or sibling handlers', () => {
+test.each([
+  'wiki/index.html',
+  'wiki/target/index.html',
+  'de-DE/wiki/category/modes/index.html',
+  'page-types/index.html',
+  'extension-fixture/fixture-section/index.html',
+  'api/wiki-fixture/index.json',
+  'api/wikilinks-fixture/index.json',
+  'api/infobox-fixture/index.json',
+  'api/extension-fixture/index.json'
+])('a published internal fixture asset is rejected: %s', (file) => {
   expect(
-    verifyHandlerCoverage([...registeredHandlers(), '/api/wikilinks-fixture'])
-  ).toEqual([]);
-  const findings = verifyHandlerCoverage([
-    ...registeredHandlers(),
-    '/api/wikilinks-fixture',
-    '/api/wikilinks-fixture/new-endpoint',
-    '/api/wikilinks-fixture-extra'
-  ]);
-  expect(findings).toHaveLength(2);
-  expect(findings.join('\n')).toContain(
-    '`/api/wikilinks-fixture/new-endpoint`'
-  );
-  expect(findings.join('\n')).toContain('`/api/wikilinks-fixture-extra`');
+    verifyDeploymentRoutes([...matchingArtifact(), file]).join('\n')
+  ).toContain(file);
 });
 
-test('the internal build-extension fixture is exempt by name without hiding child handlers', () => {
-  const exemption = EXEMPT_HANDLERS.find(
-    (entry) => entry.handler === '/api/extension-fixture'
+test('published demo articles and categories are required assets', () => {
+  const files = matchingArtifact().filter(
+    (file) => !file.startsWith('demo/wiki/')
   );
-
-  expect
-    .soft(exemption?.why)
-    .toContain('internal build-extension verification endpoint');
-  expect.soft(exemption?.why).toContain('check:extensions');
-  expect
-    .soft(
-      verifyHandlerCoverage([...registeredHandlers(), '/api/extension-fixture'])
-    )
-    .toEqual([]);
-
-  const findings = verifyHandlerCoverage([
-    ...registeredHandlers(),
-    '/api/extension-fixture',
-    '/api/extension-fixture/new-endpoint'
-  ]);
-
-  expect.soft(findings).toHaveLength(1);
-  expect
-    .soft(findings.join('\n'))
-    .toContain('/api/extension-fixture/new-endpoint');
+  const findings = verifyDeploymentRoutes(files).join('\n');
+  expect(findings).toContain('demo/wiki/index.html');
+  expect(findings).toContain('demo/wiki/lumen-harbour/index.html');
+  expect(findings).toContain('demo/wiki/category/beacons/index.html');
 });

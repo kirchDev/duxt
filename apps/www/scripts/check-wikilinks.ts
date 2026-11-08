@@ -19,7 +19,7 @@ import { startBuiltServer } from './built-server.ts';
 import { browserPath, hydrated, missingBrowser } from './browser.ts';
 
 const site = fileURLToPath(new URL('..', import.meta.url));
-const fixture = join(site, 'layers/wiki-fixture');
+const fixture = join(site, 'fixtures/wiki-fixture');
 const original = join(fixture, 'docs/wikilink-target.md');
 const renamed = join(fixture, 'docs/wikilink-target-moved.md');
 const source = readFileSync(original, 'utf8');

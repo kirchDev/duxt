@@ -66,8 +66,11 @@ async function main() {
   const executablePath = browserPath();
   assert.ok(executablePath, missingBrowser('Infobox check'));
   const directory = await mkdtemp(join(tmpdir(), 'duxt-infobox-bundles-'));
-  const sprintFile = join(site, 'layers/wiki-fixture/docs/infobox-sprint.md');
-  const catalogFile = join(site, 'layers/wiki-fixture/docs/infobox-catalog.md');
+  const sprintFile = join(site, 'fixtures/wiki-fixture/docs/infobox-sprint.md');
+  const catalogFile = join(
+    site,
+    'fixtures/wiki-fixture/docs/infobox-catalog.md'
+  );
   const [sprint, catalog] = await Promise.all([
     readFile(sprintFile, 'utf8'),
     readFile(catalogFile, 'utf8')
