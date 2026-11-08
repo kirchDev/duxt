@@ -21,7 +21,12 @@ export async function assertWikiFixture(origin: string, changed = false) {
   assert.ok(row, 'the actual wiki database row is present');
   assert.deepEqual(row.links, [
     { target: '/target', kind: 'markdown' },
-    { target: 'FAST#Part', kind: 'wiki' }
+    { target: 'FAST#Part', kind: 'wiki' },
+    { target: '#user-content-fn-wiki', kind: 'markdown' },
+    { target: '/wiki/category/unpaged', kind: 'markdown' },
+    { target: '/wiki/disambiguation', kind: 'markdown' },
+    { target: '/wiki/category/modes', kind: 'markdown' },
+    { target: '#user-content-fnref-wiki', kind: 'markdown' }
   ]);
   assert.deepEqual(row.categories, ['Modes', 'Unpaged']);
   assert.deepEqual(row.aliases, ['Entry']);
@@ -33,7 +38,7 @@ export async function assertWikiFixture(origin: string, changed = false) {
   );
   assert.deepEqual(
     data.incoming.map((page) => page.path),
-    ['/wiki']
+    changed ? ['/wiki'] : ['/wiki', '/wiki/disambiguation']
   );
   assert.deepEqual(data.category.parents, ['Catalog']);
   assert.ok(data.category.members.some((page) => page.path === '/wiki'));
