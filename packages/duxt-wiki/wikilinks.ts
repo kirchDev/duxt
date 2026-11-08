@@ -7,8 +7,12 @@ export interface WikiToken {
 }
 
 /** Authored offsets; code stays literal and malformed openers are scanned once. */
-export function wikiTokens(text: string, markdown = true): WikiToken[] {
-  const tokens: WikiToken[] = [];
+function scanWikiTokens(
+  text: string,
+  markdown = true,
+  includeEscaped = false
+): (WikiToken & { escaped?: boolean })[] {
+  const tokens: (WikiToken & { escaped?: boolean })[] = [];
   let fence = '';
   let inline = 0;
   for (let at = 0; at < text.length;) {
@@ -49,7 +53,8 @@ export function wikiTokens(text: string, markdown = true): WikiToken[] {
     }
     let slashes = 0;
     for (let before = at - 1; text[before] === '\\'; before--) slashes++;
-    if (markdown && slashes % 2) {
+    const escaped = markdown && slashes % 2 === 1;
+    if (escaped && !includeEscaped) {
       at += 2;
       continue;
     }
@@ -72,11 +77,39 @@ export function wikiTokens(text: string, markdown = true): WikiToken[] {
         end: end + 2,
         target,
         label: separator < 0 ? destination : inside.slice(separator + 1).trim(),
-        section: hash < 0 ? '' : destination.slice(hash + 1).trim()
+        section: hash < 0 ? '' : destination.slice(hash + 1).trim(),
+        ...(escaped ? { escaped: true } : {})
       });
     at = end + 2;
   }
   return tokens;
+}
+
+export function wikiTokens(text: string, markdown = true): WikiToken[] {
+  return scanWikiTokens(text, markdown);
+}
+
+const bodyMarkdown = (rawbody: string) =>
+  rawbody.replace(/^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/, '');
+
+/** Match visible AST tokens to authored occurrences, retaining escaped twins as text. */
+export function wikiTokenOccurrences(
+  rawbody?: string
+): (spelling: string) => boolean {
+  if (rawbody === undefined) return () => true;
+  const markdown = bodyMarkdown(rawbody);
+  const occurrences = new Map<string, { escaped: boolean[]; at: number }>();
+  for (const token of scanWikiTokens(markdown, true, true)) {
+    const spelling = markdown.slice(token.start, token.end);
+    const queue = occurrences.get(spelling) ?? { escaped: [], at: 0 };
+    queue.escaped.push(Boolean(token.escaped));
+    occurrences.set(spelling, queue);
+  }
+  return (spelling) => {
+    const queue = occurrences.get(spelling);
+    if (!queue || queue.at >= queue.escaped.length) return false;
+    return !queue.escaped[queue.at++];
+  };
 }
 
 export function formatWikiMarkdown(
@@ -97,16 +130,105 @@ export function formatWikiMarkdown(
   return parts.join('') + text.slice(at);
 }
 
+/** Restore only GFM strike boundaries proven to belong to authored Wiki escapes. */
+export function wikiBodyView(body: unknown, rawbody?: string): unknown {
+  if (!rawbody?.includes('~/')) return body;
+  const markdown = bodyMarkdown(rawbody);
+  const authored = new Set(
+    wikiTokens(markdown).map((token) => markdown.slice(token.start, token.end))
+  );
+  const repair = (children: unknown[]): unknown[] => {
+    let text = '';
+    const strikes: { node: unknown[]; start: number; end: number }[] = [];
+    for (const child of children) {
+      if (typeof child === 'string') text += child;
+      else if (Array.isArray(child) && child[0] === 'del') {
+        const start = text.length;
+        text += '~';
+        for (const nested of child.slice(2))
+          text += typeof nested === 'string' ? nested : '\n';
+        const end = text.length;
+        text += '~';
+        strikes.push({ node: child, start, end });
+      } else text += '\n';
+    }
+    const boundaries = new Map(
+      wikiTokens(text, false)
+        .filter(
+          (token) =>
+            token.target.startsWith('~/') &&
+            authored.has(text.slice(token.start, token.end))
+        )
+        .map((token) => [
+          token.start + 2 + /^\s*/.exec(text.slice(token.start + 2))![0].length,
+          token
+        ])
+    );
+    const unwrap = new Set(
+      strikes
+        .filter(({ start, end }) => {
+          const first = boundaries.get(start);
+          const second = boundaries.get(end);
+          return first || second;
+        })
+        .map(({ node }) => node)
+    );
+    const result: unknown[] = [];
+    for (const child of children.flatMap((child) =>
+      unwrap.has(child as unknown[])
+        ? ['~', ...(child as unknown[]).slice(2), '~']
+        : [child]
+    )) {
+      if (typeof child === 'string' && typeof result.at(-1) === 'string')
+        result[result.length - 1] = String(result.at(-1)) + child;
+      else result.push(child);
+    }
+    return result;
+  };
+  const walk = (node: unknown): unknown => {
+    if (Array.isArray(node)) {
+      const [tag, props, ...children] = node;
+      if (
+        typeof tag === 'string' &&
+        props &&
+        typeof props === 'object' &&
+        !Array.isArray(props)
+      ) {
+        if (['code', 'pre', 'a'].includes(tag)) return node;
+        return [tag, props, ...repair(children.map(walk))];
+      }
+      return node.map(walk);
+    }
+    if (node && typeof node === 'object') {
+      const document = node as Record<string, unknown>;
+      return {
+        ...document,
+        ...(document.value ? { value: walk(document.value) } : {}),
+        ...(document.children ? { children: walk(document.children) } : {})
+      };
+    }
+    return node;
+  };
+  return walk(body);
+}
+
 /** ProseA receives website-root paths; stored body nodes are never rewritten. */
 export function renderWikiBody(
   body: unknown,
-  resolve: (token: WikiToken) => { href: string; wanted: boolean }
+  resolve: (token: WikiToken) => { href: string; wanted: boolean },
+  rawbody?: string
 ): unknown {
+  const authored = wikiTokenOccurrences(rawbody);
   const textNodes = (text: string): unknown[] => {
     const parts: unknown[] = [];
     let at = 0;
     for (const token of wikiTokens(text, false)) {
       if (token.start > at) parts.push(text.slice(at, token.start));
+      if (!authored(text.slice(token.start, token.end))) {
+        parts.push(text.slice(token.start, token.end));
+        at = token.end;
+        continue;
+      }
       const link = resolve(token);
       parts.push([
         'a',
@@ -157,5 +279,5 @@ export function renderWikiBody(
     }
     return node;
   };
-  return walk(body);
+  return walk(wikiBodyView(body, rawbody));
 }

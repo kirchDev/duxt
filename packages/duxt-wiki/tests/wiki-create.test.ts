@@ -22,3 +22,32 @@ it('prefills a source forge with a safe filename and quoted title, and omits unk
   ).toBeUndefined();
   expect(wikiCreateLink(source, '../escape')).toBeUndefined();
 });
+
+it('does not propose a Markdown file under a generated artifact even with a writable GitHub branch', () => {
+  const source = resolveSources([
+    { path: 'docs', origin: { repo: 'acme/wiki', ref: 'main', path: 'docs' } }
+  ])[0]!;
+  expect(wikiCreateLink(source, 'New page')?.url).toContain(
+    '/acme/wiki/new/main?'
+  );
+  expect(
+    wikiCreateLink(
+      {
+        ...source,
+        path: 'api/openapi.yaml',
+        originPath: undefined,
+        generated: {
+          type: 'openapi',
+          label: 'API',
+          slug: 'api',
+          declaration: 0,
+          navigation: 'sections',
+          versioning: 'per-version',
+          localisation: 'per-locale',
+          remote: false
+        }
+      },
+      'Missing operation'
+    )
+  ).toBeUndefined();
+});

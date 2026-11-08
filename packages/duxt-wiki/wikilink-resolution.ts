@@ -23,10 +23,9 @@ export function wikiLinkScope(target: string, context: WikiLinkContext) {
     const path = target.slice(1);
     const candidates = context.sources.filter(
       (s) =>
-        !s.generated &&
-        (!s.prefix ||
-          wikiName(path) === wikiName(s.prefix) ||
-          wikiName(path).startsWith(`${wikiName(s.prefix)}/`))
+        !s.prefix ||
+        wikiName(path) === wikiName(s.prefix) ||
+        wikiName(path).startsWith(`${wikiName(s.prefix)}/`)
     );
     source =
       candidates.sort((a, b) => b.prefix.length - a.prefix.length)[0] ?? source;

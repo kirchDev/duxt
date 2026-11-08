@@ -40,7 +40,8 @@ Wikilinks resolve from current Content rows at render time: `[[Title]]`,
 `[[Alias|Label]]`, `[[path/to/page]]` and `[[Title#Section]]`. Names and paths
 ignore case after Unicode NFC normalization. Links stay in their source and
 version, then try locale fallbacks; `[[~/other-source/Title]]` explicitly leaves
-that scope. A disambiguation page with the shared title wins; otherwise an
+that scope, including a generated source's own version and locale fallbacks.
+A disambiguation page with the shared title wins; otherwise an
 ambiguous name stays a red link and produces a build warning. Missing pages
 are wanted notes, never build failures. Inline code and fences stay literal.
 
@@ -52,7 +53,9 @@ ordinary checks; resolved wikilinks still use duxt's existing link validator.
 Red links open the collection's `/wanted?title=…` page. The query is read in the
 browser, so one static, noindex page serves every title. Without a query it
 lists wanted titles and link counts. A recognized source forge gets a prefilled
-create-file proposal; a source without one only shows the explanation. Article
+create-file proposal when an editable Markdown target can be derived. Generated
+artifact files and tags offer no create-file proposal; the explanation and
+linking pages remain available. Article
 backlinks show ten pages and the remaining count. `duxt report` includes wanted,
 orphaned, dead-end and uncategorized pages through a validated data-only report
 receipt. Runtime resolvers never read that receipt.

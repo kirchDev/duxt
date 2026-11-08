@@ -68,3 +68,22 @@ it('renders ordinary anchors in a copy, retaining authored labels and literal co
   });
   expect(JSON.stringify(body)).toBe(before);
 });
+
+it('never authorizes a strike repair from escaped, code, frontmatter or double-tilde lookalikes', () => {
+  const body = {
+    type: 'minimal',
+    value: [
+      ['p', {}, '[[', ['del', {}, '/demo/First]] · [['], '/demo/Second]]']
+    ]
+  };
+  for (const rawbody of [
+    '\\[[~/demo/First]] · \\[[~/demo/Second]]',
+    '`[[~/demo/First]] · [[~/demo/Second]]`',
+    '```md\n[[~/demo/First]] · [[~/demo/Second]]\n```',
+    '---\ntitle: "[[~/demo/First]] · [[~/demo/Second]]"\n---\nPlain body.',
+    '[[~~/demo/First]] · [[~~/demo/Second]]'
+  ])
+    expect(
+      renderWikiBody(body, () => ({ href: '/wrong', wanted: false }), rawbody)
+    ).toEqual(body);
+});

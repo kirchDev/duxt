@@ -1,5 +1,24 @@
 import { expect, it } from 'vitest';
-import { wantedTitleQueryPattern } from '../wanted-routes';
+import {
+  collectionWantedPrefixes,
+  wantedTitleQueryPattern
+} from '../wanted-routes';
+
+it('provides exact wanted utilities for generated collections too', () => {
+  const sources = [
+    { prefix: '/wiki' },
+    { prefix: '/demo/api', generated: { type: 'openapi' } },
+    { prefix: '/demo/v1/api', generated: { type: 'openapi' } },
+    { prefix: '/demo/api', generated: { type: 'openapi' } }
+  ];
+  const prefixes = collectionWantedPrefixes(sources);
+  expect(prefixes).toEqual(['/wiki', '/demo/api', '/demo/v1/api']);
+  const pattern = wantedTitleQueryPattern(prefixes, ['de-DE'])!;
+  expect(pattern.test('/demo/api/wanted?title=Missing')).toBe(true);
+  expect(pattern.test('/de-DE/demo/v1/api/wanted?title=Missing')).toBe(true);
+  expect(pattern.test('/demo/api/wanted/new?title=Missing')).toBe(false);
+  expect(pattern.test('/demo/api-extra/wanted?title=Missing')).toBe(false);
+});
 
 it('exempts only exact configured utility routes and title queries, never external or ordinary links', () => {
   const pattern = wantedTitleQueryPattern(['/wiki', '/wiki/v1'], ['de-DE'])!;

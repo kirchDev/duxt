@@ -2,11 +2,7 @@ export const collectionWantedRoute = (prefix: string) => `${prefix}/wanted`;
 
 export const collectionWantedPrefixes = (
   sources: { prefix: string; generated?: unknown }[]
-) => [
-  ...new Set(
-    sources.filter((source) => !source.generated).map((source) => source.prefix)
-  )
-];
+) => [...new Set(sources.map((source) => source.prefix))];
 
 /** Only actual internal utility URLs; title values never name distinct pages. */
 export function collectionWantedPaths(

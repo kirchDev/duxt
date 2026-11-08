@@ -1,4 +1,4 @@
-import { wikiTokens } from './wikilinks.ts';
+import { wikiBodyView, wikiTokenOccurrences, wikiTokens } from './wikilinks.ts';
 
 export interface WikiLink {
   target: string;
@@ -31,6 +31,8 @@ function names(value: unknown): string[] {
 
 /** Mutates the parsed document before Content persists its cache and SQL row. */
 export function collectWikiMetadata(page: Record<string, unknown>): void {
+  const rawbody = typeof page.rawbody === 'string' ? page.rawbody : undefined;
+  const authored = wikiTokenOccurrences(rawbody);
   const links: WikiLink[] = [];
   const seen = new Set<string>();
   const add = (target: string, kind: WikiLink['kind']) => {
@@ -41,7 +43,8 @@ export function collectWikiMetadata(page: Record<string, unknown>): void {
   };
   const walk = (node: unknown): void => {
     if (typeof node === 'string') {
-      for (const token of wikiTokens(node, false))
+      for (const token of wikiTokens(node, false)) {
+        if (!authored(node.slice(token.start, token.end))) continue;
         add(
           node
             .slice(token.start + 2, token.end - 2)
@@ -49,6 +52,7 @@ export function collectWikiMetadata(page: Record<string, unknown>): void {
             .trim(),
           'wiki'
         );
+      }
     } else if (Array.isArray(node)) {
       const [tag, props, ...children] = node;
       if (
@@ -69,7 +73,7 @@ export function collectWikiMetadata(page: Record<string, unknown>): void {
       else if (body.children) walk(body.children);
     }
   };
-  walk(page.body);
+  walk(wikiBodyView(page.body, rawbody));
   page.links = links;
   page.categories = names(page.categories);
   page.aliases = names(page.aliases);

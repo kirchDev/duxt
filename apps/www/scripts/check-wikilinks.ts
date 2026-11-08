@@ -26,6 +26,57 @@ const source = readFileSync(original, 'utf8');
 const parsed = join(fixture, 'parsed.log');
 const bundles = mkdtempSync(join(tmpdir(), 'duxt-wikilinks-'));
 const origin = 'http://127.0.0.1:3138';
+const generatedLinks = [
+  [
+    'Generated current',
+    '/demo/openapi/consignments/listconsignments',
+    'List consignments'
+  ],
+  [
+    'Generated current path',
+    '/demo/openapi/consignments/listconsignments',
+    'List consignments'
+  ],
+  [
+    'Generated old',
+    '/demo/v1.x/openapi/shipments/listshipments',
+    'List shipments'
+  ],
+  [
+    'Generated old path',
+    '/demo/v1.x/openapi/shipments/listshipments',
+    'List shipments'
+  ],
+  [
+    'Generated before escape',
+    '/demo/openapi/consignments/listconsignments',
+    'List consignments'
+  ],
+  [
+    'Generated after escape',
+    '/demo/openapi/consignments/listconsignments',
+    'List consignments'
+  ],
+  [
+    'Generated after tilde',
+    '/demo/openapi/consignments/listconsignments',
+    'List consignments'
+  ],
+  [
+    'Generated twin',
+    '/demo/openapi/consignments/listconsignments',
+    'List consignments'
+  ],
+  [
+    'Generated in strike',
+    '/demo/openapi/consignments/listconsignments',
+    'List consignments'
+  ]
+] as const;
+const generatedWanted = [
+  ['/demo/openapi', 'Generated missing', 'Generated wanted'],
+  ['/demo/v1.x/openapi', 'Generated old missing', 'Generated old wanted']
+] as const;
 const server = startBuiltServer({
   port: 3138,
   origin,
@@ -140,6 +191,80 @@ async function outputs(changed = false) {
   assert.ok(doc.querySelector(`a[href="${target}#details"]`));
   assert.ok(doc.querySelector('a[href="/wiki/wikilink-disambiguation"]'));
   assert.ok(doc.querySelector('a[href="/demo/images"]'));
+  for (const locale of ['', '/de-DE']) {
+    const localized = locale
+      ? new JSDOM(await get(`${locale}/wiki/wikilinks`)).window.document
+      : doc;
+    const checked = new Set<string>();
+    for (const [label, path, title] of generatedLinks) {
+      const anchor = [...localized.querySelectorAll('main a')].find(
+        (node) => node.textContent === label
+      );
+      assert.equal(anchor?.getAttribute('href'), `${locale}${path}`, label);
+      assert.ok(!anchor?.hasAttribute('data-wiki-red-link'), label);
+      if (label === 'Generated in strike')
+        assert.ok(anchor?.closest('del'), 'authored outer strike is preserved');
+      else
+        assert.equal(
+          anchor?.closest('del'),
+          null,
+          `${label}: no GFM strike wrapper`
+        );
+      if (!checked.has(path)) {
+        const target = new JSDOM(await get(`${locale}${path}`)).window.document;
+        assert.equal(
+          target.querySelector('main h1')?.textContent?.trim(),
+          title
+        );
+        target.defaultView?.close();
+        checked.add(path);
+      }
+    }
+    for (const [prefix, title, label] of generatedWanted)
+      assert.equal(
+        localized.querySelector(
+          `a[data-wiki-red-link][href="${locale}${prefix}/wanted?title=${encodeURIComponent(title)}"]`
+        )?.textContent,
+        label
+      );
+    const twinLinks = [...localized.querySelectorAll('main a')].filter(
+      (node) => node.textContent === 'Generated twin'
+    );
+    assert.equal(
+      twinLinks.length,
+      2,
+      'only the two unescaped twin occurrences are links'
+    );
+    const visible = localized.querySelector('main')?.textContent ?? '';
+    assert.equal(
+      visible.match(/\[\[~\/fake\]\]/g)?.length,
+      2,
+      'escaped fake tokens stay literal'
+    );
+    assert.equal(
+      visible.match(
+        /\[\[~\/demo\/openapi\/List consignments\|Generated twin\]\]/g
+      )?.length,
+      2,
+      'same-spelling escaped twins stay literal'
+    );
+    assert.ok(visible.includes('~ordinary and Generated after tilde'));
+    if (locale) localized.defaultView?.close();
+  }
+  assert.equal(
+    doc.querySelector('main strong')?.textContent,
+    'Generated prose'
+  );
+  assert.ok(
+    [...doc.querySelectorAll('main del')].some(
+      (node) => node.textContent === 'Wiki strike'
+    )
+  );
+  assert.ok(
+    [...doc.querySelectorAll('main a[href="/demo/images"]')].some(
+      (node) => node.textContent === 'ordinary generated prose'
+    )
+  );
   assert.equal(
     doc.querySelector(
       'a[data-wiki-red-link][href="/demo/wanted?title=Foreign%20missing"]'
@@ -175,11 +300,12 @@ async function outputs(changed = false) {
   );
   targetDoc.defaultView?.close();
   doc.defaultView?.close();
-  for (const text of [
+  const machineOutputs = [
     await get('/wiki/wikilinks.md'),
     await mcp('/wiki/wikilinks'),
     await get('/llms-full.txt')
-  ]) {
+  ];
+  for (const text of machineOutputs) {
     assert.ok(text.includes(`[WikiAlias](${target})`));
     assert.ok(text.includes(`[A label](${target})`));
     assert.ok(text.includes(`[WikiAlias#Details](${target}#details)`));
@@ -191,17 +317,46 @@ async function outputs(changed = false) {
     assert.ok(text.includes('[[Fenced literal]]'));
     assert.ok(text.includes('Foreign wanted'));
     assert.ok(!text.includes('[Foreign wanted]('));
+    assert.ok(text.includes('**Generated prose**'));
+    assert.ok(text.includes('~~Wiki strike~~'));
+    assert.equal(
+      text.split(
+        '[Generated twin](/demo/openapi/consignments/listconsignments)'
+      ).length - 1,
+      2,
+      'two valid twin occurrences per English page'
+    );
+    for (const [label, path] of generatedLinks)
+      assert.ok(text.includes(`[${label}](${path})`), `${label}: machine link`);
+    for (const [, , label] of generatedWanted) {
+      assert.ok(text.includes(label));
+      assert.ok(!text.includes(`[${label}](`), `${label}: plain text`);
+    }
   }
   const german = await get('/de-DE/wiki/wikilinks.md');
   assert.ok(
     german.includes(`[WikiAlias](/de-DE${target})`),
     'machine locale fallback matches HTML scope'
   );
+  for (const text of [
+    german,
+    await mcp('/de-DE/wiki/wikilinks'),
+    machineOutputs[2]!
+  ])
+    for (const [label, path] of generatedLinks)
+      assert.ok(
+        text.includes(`[${label}](/de-DE${path})`),
+        `${label}: reader-locale fallback`
+      );
   const stored = JSON.parse(await get('/api/wikilinks-fixture'));
   assert.ok(stored.rawbody.includes('[[WikiAlias]]'));
   assert.ok(
     JSON.stringify(stored.body).includes('[[WikiAlias]]'),
     'stored AST is authored'
+  );
+  assert.ok(
+    JSON.stringify(stored.body).includes('"del"'),
+    'stored GFM AST remains authored'
   );
 }
 const bin = join(site, '../../packages/duxt/bin/duxt.mjs');
@@ -277,6 +432,23 @@ try {
         line.includes('Wanted Wiki') || line.includes('ResolvedWiki')
     )
   );
+  const wantedNotes = notes.sections.find(
+    (section: { heading: string }) => section.heading === 'Wiki wanted pages'
+  ).lines as string[];
+  for (const [, title] of generatedWanted) {
+    assert.ok(wantedNotes.some((line) => line.startsWith(`${title} —`)));
+    assert.ok(!notes.warnings.some((line: string) => line.includes(title)));
+  }
+  for (const title of [
+    'List consignments',
+    'List shipments',
+    'consignments/listconsignments',
+    'shipments/listshipments'
+  ])
+    assert.ok(
+      !wantedNotes.some((line) => line.includes(title)),
+      `${title}: existing generated target is not wanted`
+    );
   const staticWanted = join(site, '.output/public/wiki/wanted/index.html');
   phase('static wanted');
   assert.ok(existsSync(staticWanted), 'one static wanted page exists');
@@ -305,6 +477,20 @@ try {
     readFileSync(join(foreignStatic, 'index.html'), 'utf8'),
     /noindex/
   );
+  for (const [prefix] of generatedWanted) {
+    const directory = join(site, '.output/public', prefix, 'wanted');
+    assert.deepEqual(
+      readdirSync(directory, { recursive: true, encoding: 'utf8' }).filter(
+        (name) => name.endsWith('.html')
+      ),
+      ['index.html'],
+      `${prefix}: one static utility for generated missing targets`
+    );
+    assert.match(
+      readFileSync(join(directory, 'index.html'), 'utf8'),
+      /noindex/
+    );
+  }
   const wanted = new JSDOM(await get('/wiki/wanted?title=Wanted%20Wiki')).window
     .document;
   assert.ok(
@@ -333,19 +519,43 @@ try {
   });
   const page = await context.newPage();
   phase('browser copy');
-  await page.goto(`${origin}/wiki/wikilinks`);
-  await hydrated(page);
-  await page.getByRole('button', { name: 'Copy page', exact: true }).click();
-  await page.waitForFunction(() =>
-    document
-      .querySelector('[data-duxt-copy-page] > button')
-      ?.textContent?.includes('Copied')
-  );
-  assert.ok(
-    (await page.evaluate(() => navigator.clipboard.readText())).includes(
-      '[WikiAlias](/wiki/wikilink-target)'
-    )
-  );
+  for (const locale of ['', '/de-DE']) {
+    await page.goto(`${origin}${locale}/wiki/wikilinks`);
+    await hydrated(page);
+    const button = page.locator(
+      '[data-duxt-copy-page] > button:not([aria-haspopup])'
+    );
+    const label = await button.textContent();
+    assert.ok(label);
+    const markdown = await get(`${locale}/wiki/wikilinks.md`);
+    await page.evaluate(
+      (text) => navigator.clipboard.writeText(text),
+      `pending wiki copy ${locale || 'default'}`
+    );
+    await button.click();
+    await page.waitForFunction((before) => {
+      const button = document.querySelector(
+        '[data-duxt-copy-page] > button:not([aria-haspopup])'
+      );
+      return Boolean(
+        button &&
+        !button.hasAttribute('disabled') &&
+        button.textContent !== before
+      );
+    }, label);
+    const copied = await page.evaluate(() => navigator.clipboard.readText());
+    assert.equal(
+      copied,
+      markdown,
+      `${locale || 'default'} clipboard must equal the direct same-locale .md response`
+    );
+    assert.ok(copied.includes(`[WikiAlias](${locale}/wiki/wikilink-target)`));
+    for (const [label, path] of generatedLinks)
+      assert.ok(
+        copied.includes(`[${label}](${locale}${path})`),
+        `${label}: clipboard`
+      );
+  }
   phase('browser wanted');
   await page.goto(`${origin}/wiki/wanted?title=Wanted%20Wiki`);
   await hydrated(page);
@@ -409,6 +619,47 @@ try {
     ),
     'unqualified missing Wiki names stay in their own collection'
   );
+  phase('browser generated wanted');
+  for (const locale of ['', '/de-DE']) {
+    for (const [prefix, title] of generatedWanted) {
+      const path = `${locale}${prefix}/wanted`;
+      await page.goto(`${origin}${path}?title=${encodeURIComponent(title)}`);
+      await hydrated(page);
+      assert.equal(
+        await page.locator('[data-wiki-wanted] h2').textContent(),
+        title
+      );
+      assert.equal(
+        await page
+          .locator(`[data-wiki-wanted] a[href="${locale}/wiki/wikilinks"]`)
+          .count(),
+        1
+      );
+      assert.equal(
+        await page.locator('[data-wiki-create]').count(),
+        0,
+        'a generated artifact is not a Markdown directory, even when its source names GitHub'
+      );
+      assert.ok(
+        (
+          await page.locator('meta[name="robots"]').getAttribute('content')
+        )?.includes('noindex')
+      );
+      const canonical = new URL(
+        (await page.locator('link[rel="canonical"]').getAttribute('href'))!
+      );
+      assert.equal(canonical.pathname, path);
+      assert.equal(canonical.search, '');
+      await page.goto(`${origin}${path}`);
+      await hydrated(page);
+      const listing = await page.locator('[data-wiki-wanted]').textContent();
+      assert.ok(listing?.includes(title));
+      assert.ok(
+        !listing?.includes('Wanted Wiki'),
+        'own Wiki misses stay out of generated scope'
+      );
+    }
+  }
   phase('sitemap');
   const sitemapIndex = await get('/sitemap.xml');
   assert.ok(!sitemapIndex.includes('/wiki/wanted'));
@@ -422,6 +673,11 @@ try {
       !xml.includes('/wiki/wanted') && !xml.includes('/demo/wanted'),
       'wanted excluded from sitemap'
     );
+    for (const [prefix] of generatedWanted)
+      assert.ok(
+        !xml.includes(`${prefix}/wanted`),
+        `${prefix}: generated wanted excluded`
+      );
   }
   phase('prime bundle');
   await pack();
@@ -449,7 +705,7 @@ try {
   phase('renamed outputs');
   await outputs(true);
   console.log(
-    'Wikilinks check passed: HTML, locale fallback, .md, MCP, llms-full, copy, static wanted, forge proposal, reports, capped backlinks and live target rename without linker reparse.'
+    'Wikilinks check passed: HTML, generated source/version and locale fallback, .md, MCP, llms-full, copy, static wanted, forge proposal, reports, capped backlinks and live target rename without linker reparse.'
   );
 } catch (error) {
   console.error(

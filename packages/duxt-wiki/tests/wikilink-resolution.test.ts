@@ -1,5 +1,7 @@
 import { expect, it } from 'vitest';
 import { resolveSources } from '@kirchdev/duxt/sources-resolve';
+import { resolveGeneratedSections } from '@kirchdev/duxt/sections-resolve';
+import { openapiSectionType } from '@kirchdev/duxt/sections-openapi';
 import type { WikiPage } from '../metadata';
 import { resolveWikiLink, wikiLinkCollections } from '../wikilink-resolution';
 import { wikiTokens } from '../wikilinks';
@@ -95,4 +97,120 @@ it('recognizes a case-insensitive virtual category without inventing a wanted pa
   expect(
     resolveWikiLink([member], token('/WIKI/category/UNPAGED'), context)
   ).toMatchObject({ wanted: false, href: '/wiki/category/unpaged' });
+});
+
+it('selects the longest explicit generated prefix in its edition and reader locale chain', () => {
+  const generated = resolveGeneratedSections(
+    [
+      {
+        path: 'other',
+        slug: 'other',
+        generated: [
+          {
+            type: 'openapi',
+            path: 'api.yaml',
+            label: 'API',
+            slug: 'api',
+            versions: [{ version: 'main', default: true }, { version: 'v1' }]
+          }
+        ]
+      }
+    ],
+    { defaultLocale: 'en' },
+    { openapi: openapiSectionType }
+  );
+  const allSources = [...sources, ...generated];
+  const allPages = [
+    ...pages,
+    ...generated.map((source) =>
+      row(source, `${source.prefix}/endpoints/listshipments`, 'List shipments')
+    )
+  ];
+  for (const source of generated) {
+    for (const locale of ['en', 'de']) {
+      const scoped = { ...context, sources: allSources, locale };
+      for (const target of [
+        `~${source.prefix}/List shipments`,
+        `~${source.prefix}/endpoints/listshipments`
+      ]) {
+        expect(resolveWikiLink(allPages, token(target), scoped)).toMatchObject({
+          wanted: false,
+          href: `${source.prefix}/endpoints/listshipments`,
+          source: { collection: source.collection, version: source.version }
+        });
+        expect(wikiLinkCollections([token(target)], scoped)).toContain(
+          source.collection
+        );
+      }
+    }
+  }
+  expect(
+    resolveWikiLink(allPages, token('List shipments'), {
+      ...context,
+      sources: allSources
+    }).href
+  ).toBe('/wiki/wanted?title=List%20shipments');
+  expect(
+    resolveWikiLink(allPages, token('~/other/Elsewhere'), {
+      ...context,
+      sources: allSources
+    }).href
+  ).toBe('/other/elsewhere');
+  const current = generated.find((source) => source.isDefault)!;
+  const german = {
+    ...current,
+    collection: `${current.collection}_de`,
+    locale: 'de',
+    isDefaultLocale: false
+  };
+  const localized = { ...context, sources: [...allSources, german] };
+  const localizedPages = [
+    ...allPages,
+    row(german, `${current.prefix}/endpoints/listshipments`, 'Sendungen'),
+    row(current, `${current.prefix}/fallback`, 'Fallback only')
+  ];
+  expect(
+    wikiLinkCollections([token(`~${current.prefix}/Sendungen`)], localized)
+  ).toEqual([
+    translated.collection,
+    own.collection,
+    german.collection,
+    current.collection
+  ]);
+  expect(
+    resolveWikiLink(
+      localizedPages,
+      token(`~${current.prefix}/Sendungen`),
+      localized
+    )
+  ).toMatchObject({ wanted: false, page: { collection: german.collection } });
+  expect(
+    resolveWikiLink(
+      localizedPages,
+      token(`~${current.prefix}/List shipments`),
+      localized
+    ).wanted
+  ).toBe(true);
+  expect(
+    resolveWikiLink(
+      localizedPages,
+      token(`~${current.prefix}/Fallback only`),
+      localized
+    )
+  ).toMatchObject({ wanted: false, page: { collection: current.collection } });
+  const historical = generated.find((source) => source.version === 'v1')!;
+  expect(
+    resolveWikiLink(
+      localizedPages,
+      token(`~${historical.prefix}/Fallback only`),
+      localized
+    ).href
+  ).toBe(`${historical.prefix}/wanted?title=Fallback%20only`);
+  expect(
+    resolveWikiLink(
+      localizedPages,
+      token('~/other/api-extra/List shipments'),
+      localized
+    ).href
+  ).toBe('/other/wanted?title=api-extra%2FList%20shipments');
 });

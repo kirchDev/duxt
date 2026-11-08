@@ -6,6 +6,7 @@ export function wikiCreateLink(
   title: string
 ): { url: string; forge: string } | undefined {
   if (
+    source.generated ||
     !source.repositoryUrl ||
     !source.ref ||
     source.refKind === 'tag' ||

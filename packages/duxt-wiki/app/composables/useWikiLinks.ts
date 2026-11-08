@@ -78,7 +78,9 @@ export function useWikiLinks(
     context.value
       ? resolveWikiLink(pages.value, token, context.value)
       : { href: '#', wanted: true };
-  const body = computed(() => renderWikiBody(toValue(page).body, resolve));
+  const body = computed(() =>
+    renderWikiBody(toValue(page).body, resolve, toValue(page).rawbody)
+  );
   const maintenance = computed(() =>
     context.value
       ? wikiViewerMaintenance(pages.value, context.value)

@@ -157,7 +157,7 @@ export default function duxtWiki(_options: unknown, nuxt: Nuxt) {
       const source = sources.find(
         (source) => source.collection === wanted.collection
       );
-      if (source && !source.generated) neededWantedPrefixes.add(source.prefix);
+      if (source) neededWantedPrefixes.add(source.prefix);
     }
     const projected = cached.map((entry) => {
       const collected = {
