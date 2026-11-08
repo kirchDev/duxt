@@ -107,9 +107,9 @@ const phase = (name: string) => {
   console.log('WIKILINK_PHASE', JSON.stringify({ phase: name }));
 };
 
-async function get(path: string) {
+async function get(path: string, timeout = 60_000) {
   const response = await fetch(`${origin}${path}`, {
-    signal: AbortSignal.timeout(60_000)
+    signal: AbortSignal.timeout(timeout)
   }).catch((cause) => {
     throw new Error(`${currentPhase}: GET ${path} failed`, { cause });
   });
@@ -751,7 +751,9 @@ try {
     ...sitemapIndex.matchAll(/<loc>([^<]+\.xml)<\/loc>/g)
   ].map((match) => new URL(match[1]!).pathname);
   for (const path of sitemapPaths) {
-    const xml = await get(path);
+    // The first sitemap restores every collection into the fresh database, a
+    // two-minute read on a busy machine; what is asserted is its content.
+    const xml = await get(path, 240_000);
     assert.ok(
       !xml.includes('/wiki/wanted') && !xml.includes('/demo/wanted'),
       'wanted excluded from sitemap'
