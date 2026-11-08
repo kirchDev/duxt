@@ -255,3 +255,30 @@ test('accounts for the wiki metadata fixture endpoint by name', () => {
     verifyHandlerCoverage([...registeredHandlers(), '/api/wiki-fixture'])
   ).toEqual([]);
 });
+
+test('the internal build-extension fixture is exempt by name without hiding child handlers', () => {
+  const exemption = EXEMPT_HANDLERS.find(
+    (entry) => entry.handler === '/api/extension-fixture'
+  );
+
+  expect
+    .soft(exemption?.why)
+    .toContain('internal build-extension verification endpoint');
+  expect.soft(exemption?.why).toContain('check:extensions');
+  expect
+    .soft(
+      verifyHandlerCoverage([...registeredHandlers(), '/api/extension-fixture'])
+    )
+    .toEqual([]);
+
+  const findings = verifyHandlerCoverage([
+    ...registeredHandlers(),
+    '/api/extension-fixture',
+    '/api/extension-fixture/new-endpoint'
+  ]);
+
+  expect.soft(findings).toHaveLength(1);
+  expect
+    .soft(findings.join('\n'))
+    .toContain('/api/extension-fixture/new-endpoint');
+});

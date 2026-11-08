@@ -422,6 +422,14 @@ export const EXEMPT_HANDLERS: readonly ExemptHandler[] = [
       'are written by the prerender pass and served as files.'
   },
   {
+    handler: '/api/extension-fixture',
+    why:
+      'The development site’s internal build-extension verification endpoint ' +
+      'used by check:extensions to inspect stored inherited parser, source-flavor ' +
+      'and schema contributions, rather than a documentation surface or an ' +
+      'endpoint shipped by the layer.'
+  },
+  {
     handler: '/api/wiki-fixture',
     why:
       'The development site’s metadata probe for database, adapter and bundle ' +
