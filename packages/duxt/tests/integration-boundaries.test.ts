@@ -116,7 +116,9 @@ function scriptSyntax(path: string, source: string) {
     if (children.length) children.forEach(visit);
     else
       tokens.push(
-        ts.isStringLiteralLike(node) ? node.text : node.getText(tree)
+        ts.isStringLiteralLike(node) || ts.isIdentifier(node)
+          ? node.text
+          : node.getText(tree)
       );
   }
   visit(tree);
@@ -180,6 +182,14 @@ function namesIntegration(path: string, source: string): boolean {
     integrationName.test(token)
   );
 }
+
+it.each([
+  String.raw`const op\u0065napi = 1;`,
+  String.raw`const tf\u0070lugindocs = 1;`,
+  String.raw`const br\u0075no = 1;`
+])('detects decoded integration identifiers: %s', (source) => {
+  expect(namesIntegration('core.ts', source)).toBe(true);
+});
 
 it.each([
   ['core.ts', 'const dispatch = "/* openapi */";'],

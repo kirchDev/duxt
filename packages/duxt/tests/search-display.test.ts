@@ -1,4 +1,9 @@
+import { fileURLToPath } from 'node:url';
 import { expect, it, vi } from 'vitest';
+import {
+  duxtLayerDirectory,
+  readDuxtContributions
+} from '../build/config/duxt-contributions';
 import { duxtManifest } from '../build/sections/sections-resolve';
 import {
   searchExcerpt,
@@ -240,9 +245,17 @@ it('gives every real www source a readable name, never a slash or an identifier'
   try {
     const { default: config } =
       await import('../../../apps/www/app/app.config');
+    const contributions = readDuxtContributions([
+      fileURLToPath(new URL('../../../apps/www', import.meta.url)),
+      fileURLToPath(
+        new URL('../../../apps/www/layers/build-extension', import.meta.url)
+      ),
+      duxtLayerDirectory
+    ]);
     const manifest = duxtManifest(
       config.duxt.sources,
-      config.duxt.sourceOptions
+      config.duxt.sourceOptions,
+      contributions.sectionTypes
     );
     const names = sourceDisplayNames(
       manifest.map((entry) => ({
@@ -267,6 +280,8 @@ it('gives every real www source a readable name, never a slash or an identifier'
     expect(names.get('docs')).toBe('duxt documentation');
     expect(names.get('docs_demo')).toBe('Demo documentation');
     expect(names.get('docs_demo_terraform')).toBe('Terraform Provider');
+    expect(names.get('docs_page_types')).toBe('Page Types');
+    expect(names.get('docs_extension_fixture')).toBe('Extension Fixture');
     // Every edition of the demo answers to one name, captions included. The
     // provider nested under `/demo` is a source of its own with its own name.
     const demo = (collection: string) =>

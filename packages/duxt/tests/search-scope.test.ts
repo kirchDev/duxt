@@ -1,4 +1,9 @@
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it, vi } from 'vitest';
+import {
+  duxtLayerDirectory,
+  readDuxtContributions
+} from '../build/config/duxt-contributions';
 import { duxtManifest } from '../build/sections/sections-resolve';
 import { searchSources } from '../app/utils/search-scope';
 
@@ -72,17 +77,29 @@ it('includes the real www Terraform, API and release sources from getting-starte
   try {
     const { default: config } =
       await import('../../../apps/www/app/app.config');
+    const contributions = readDuxtContributions([
+      fileURLToPath(new URL('../../../apps/www', import.meta.url)),
+      fileURLToPath(
+        new URL('../../../apps/www/layers/build-extension', import.meta.url)
+      ),
+      duxtLayerDirectory
+    ]);
     const sources = duxtManifest(
       config.duxt.sources,
-      config.duxt.sourceOptions
+      config.duxt.sourceOptions,
+      contributions.sectionTypes
     );
     const current = sources.find((entry) => entry.collection === 'docs');
     const active = searchSources(sources, current, 'en-GB');
     expect(active.map((entry) => entry.prefix)).toEqual([
       '',
+      '/page-types',
+      '/extension-fixture',
       '/demo',
       '/demo/terraform',
       '/releases',
+      '/extension-fixture/fixture-section',
+      '/extension-fixture/inherited-layer-section',
       '/demo/openapi',
       '/demo/bruno',
       '/demo/changelog',

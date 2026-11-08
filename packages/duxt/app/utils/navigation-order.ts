@@ -34,9 +34,9 @@ export function orderedNavigation(
     (item) => item.navigationRank !== undefined || item.navigationGroup
   );
   if (!explicit) return ranked;
-  const compare = (left: Item, right: Item) =>
-    (left.navigationRank ?? Infinity) - (right.navigationRank ?? Infinity) ||
-    left.title.localeCompare(right.title);
+  const compare = (first: Item, second: Item) =>
+    (first.navigationRank ?? Infinity) - (second.navigationRank ?? Infinity) ||
+    first.title.localeCompare(second.title);
   const groups = new Map<string, Item[]>();
   const direct: Item[] = [];
   for (const item of ranked) {
