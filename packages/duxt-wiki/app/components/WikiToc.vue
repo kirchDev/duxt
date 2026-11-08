@@ -7,7 +7,7 @@ defineProps<{ links: DuxtTocLink[] }>();
     open
     data-wiki-toc
     data-not-typeset
-    class="my-6 max-w-full rounded-md border bg-muted/30 p-4"
+    class="my-6 flow-root max-w-full rounded-md border bg-muted/30 p-4"
   >
     <summary class="cursor-pointer font-medium">
       {{ $t('duxt.toc.title') }}
