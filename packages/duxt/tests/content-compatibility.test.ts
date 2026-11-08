@@ -77,7 +77,11 @@ it('retains compiled local MDC components while distinguishing native spans from
     database.exec(
       'CREATE TABLE _development_cache (id TEXT PRIMARY KEY, value TEXT)'
     );
-    const page = (tag: string) => {
+    const page = (
+      tag: string,
+      text = 'Syntax highlighting',
+      settings: Record<string, unknown> = {}
+    ) => {
       database
         .prepare('INSERT OR REPLACE INTO _development_cache VALUES (?, ?)')
         .run(
@@ -86,12 +90,14 @@ it('retains compiled local MDC components while distinguishing native spans from
             path: '/page',
             body: {
               type: 'minimark',
-              value: [[tag, {}, 'Syntax highlighting']]
-            }
+              value: [[tag, {}, text]]
+            },
+            ...settings
           })
         );
     };
     const aliases: Record<string, string> = {};
+    const required = ['DemoDiagrams', 'ProseSpan'];
     const nuxt = {
       options: {
         rootDir: root,
@@ -109,7 +115,7 @@ it('retains compiled local MDC components while distinguishing native spans from
             {
               filename: 'content/components.ts',
               options: {
-                manifest: { components: ['DemoDiagrams', 'ProseSpan'] }
+                manifest: { components: required }
               }
             }
           ]
@@ -171,6 +177,97 @@ it('retains compiled local MDC components while distinguishing native spans from
       // even though its native span never needs to invoke it.
       const compiledSpan = await contentCompatibility(nuxt);
       expect(compiledSpan.artifact.availableComponents).toContain('ProseSpan');
+      const fragment = 'Text[Fragment';
+      required.push(fragment);
+      page('p', '[[');
+      const textual = await contentCompatibility(nuxt);
+      expect(textual.usedComponents).not.toContain(fragment);
+      expect(() =>
+        assertContentCompatibility(
+          textual.compat,
+          textual.usedComponents,
+          compiledSpan.artifact
+        )
+      ).not.toThrow();
+      required.push('UnshippedWidget');
+      const unknown = await contentCompatibility(nuxt);
+      expect(unknown.usedComponents).toContain('UnshippedWidget');
+      expect(() =>
+        assertContentCompatibility(
+          unknown.compat,
+          unknown.usedComponents,
+          compiledSpan.artifact
+        )
+      ).toThrow('UnshippedWidget');
+      required.pop();
+      page(fragment);
+      const unusualNode = await contentCompatibility(nuxt);
+      expect(unusualNode.usedComponents).toContain(fragment);
+      expect(() =>
+        assertContentCompatibility(
+          unusualNode.compat,
+          unusualNode.usedComponents,
+          compiledSpan.artifact
+        )
+      ).toThrow(fragment);
+      for (const settings of [
+        { mdc: { components: { map: { span: fragment } } } },
+        { meta: { mdc: { components: { map: { span: fragment } } } } }
+      ]) {
+        page('p', '[[', settings);
+        const mapped = await contentCompatibility(nuxt);
+        expect(mapped.usedComponents).toContain(fragment);
+        expect(() =>
+          assertContentCompatibility(
+            mapped.compat,
+            mapped.usedComponents,
+            compiledSpan.artifact
+          )
+        ).toThrow(fragment);
+      }
+      page('p', '[[');
+      aliases.span = fragment;
+      expect((await contentCompatibility(nuxt)).usedComponents).toContain(
+        fragment
+      );
+      delete aliases.span;
+      const options = nuxt.options as unknown as Record<string, unknown>;
+      for (const [key, value] of [
+        ['mdc', { components: { map: { span: fragment } } }],
+        ['content', { renderer: { alias: { span: fragment } } }]
+      ] as const) {
+        options[key] = value;
+        expect((await contentCompatibility(nuxt)).usedComponents).toContain(
+          fragment
+        );
+        delete options[key];
+      }
+      required.splice(required.indexOf('ProseSpan'), 1);
+      const runtime = nuxt.options.runtimeConfig.content as {
+        localDatabase: { filename: string };
+      };
+      runtime.localDatabase.filename = join(root, 'missing.sqlite');
+      const missingCache = await contentCompatibility(nuxt);
+      expect(missingCache.usedComponents).toContain(fragment);
+      expect(() =>
+        assertContentCompatibility(
+          missingCache.compat,
+          missingCache.usedComponents,
+          compiledSpan.artifact
+        )
+      ).toThrow(fragment);
+      const corrupt = join(root, 'corrupt.sqlite');
+      await writeFile(corrupt, 'not a SQLite database');
+      runtime.localDatabase.filename = corrupt;
+      const unreadableCache = await contentCompatibility(nuxt);
+      expect(unreadableCache.usedComponents).toContain(fragment);
+      expect(() =>
+        assertContentCompatibility(
+          unreadableCache.compat,
+          unreadableCache.usedComponents,
+          compiledSpan.artifact
+        )
+      ).toThrow(fragment);
     } finally {
       database.close();
     }
