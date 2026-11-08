@@ -1747,6 +1747,50 @@ Creates and manages an Acme widget.
             'pt-PT':
               'Nuxt Image serve o tamanho certo com zoom visível; SVG e GIF passam sem alterações.'
           }
+        },
+        {
+          icon: 'lucide:book-open',
+          title: {
+            'en-GB': 'A wiki when you need one',
+            'de-DE': 'Bei Bedarf ein Wiki',
+            'es-ES': 'Una wiki cuando la necesites',
+            'fr-FR': 'Un wiki quand il le faut',
+            'pt-PT': 'Uma wiki quando precisar'
+          },
+          description: {
+            'en-GB':
+              'One more layer adds wikilinks, categories, infoboxes and backlinks — still written in Markdown and edited through Git.',
+            'de-DE':
+              'Ein weiterer Layer bringt Wikilinks, Kategorien, Infoboxen und Rückverweise — weiter in Markdown geschrieben und über Git bearbeitet.',
+            'es-ES':
+              'Una capa más añade wikilinks, categorías, infoboxes y retroenlaces — escritos en Markdown y editados con Git.',
+            'fr-FR':
+              'Une couche de plus ajoute wikiliens, catégories, infobox et rétroliens — toujours en Markdown et modifiés via Git.',
+            'pt-PT':
+              'Mais uma camada acrescenta wikilinks, categorias, infoboxes e retroligações — sempre em Markdown e editados com Git.'
+          }
+        },
+        {
+          icon: 'lucide:refresh-cw',
+          title: {
+            'en-GB': 'New content without a rebuild',
+            'de-DE': 'Neue Inhalte ohne Rebuild',
+            'es-ES': 'Contenido nuevo sin recompilar',
+            'fr-FR': 'Du contenu neuf sans rebuild',
+            'pt-PT': 'Conteúdo novo sem recompilar'
+          },
+          description: {
+            'en-GB':
+              'On a Node server, content bundles publish changed pages while the application keeps running.',
+            'de-DE':
+              'Auf einem Node-Server veröffentlichen Content-Bundles geänderte Seiten, während die Anwendung weiterläuft.',
+            'es-ES':
+              'En un servidor Node, los paquetes de contenido publican las páginas modificadas mientras la aplicación sigue en marcha.',
+            'fr-FR':
+              'Sur un serveur Node, les bundles de contenu publient les pages modifiées pendant que l’application continue de tourner.',
+            'pt-PT':
+              'Num servidor Node, os pacotes de conteúdo publicam as páginas alteradas enquanto a aplicação continua a correr.'
+          }
         }
       ]
     },
