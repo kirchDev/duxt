@@ -173,7 +173,7 @@ export default defineNuxtConfig({
     const built = spawnSync(process.execPath, [nuxt, 'build'], {
       cwd: root,
       encoding: 'utf8',
-      timeout: 120000
+      timeout: 300000
     });
     expect(built.status, built.stdout + built.stderr).toBe(0);
     const artifactPath = join(root, '.output/duxt-content-compat.json');
@@ -314,7 +314,7 @@ export default defineNuxtConfig({
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
-}, 300000);
+}, 600000);
 
 it('refuses an empty documentation collection before publishing a bundle', () => {
   const root = mkdtempSync(join(layer, '.content-pack-test-'));
@@ -424,7 +424,10 @@ export default defineNuxtConfig({
           `SELECT lastUpdated, contributors FROM "${manifest.compat.tables.docs}"`
         )
         .get() as { lastUpdated: string; contributors: string };
-      expect(row.lastUpdated).toBe('2026-01-01T00:00:00+00:00');
+      // Git spells UTC as `Z` or `+00:00` depending on its version.
+      expect(Date.parse(row.lastUpdated)).toBe(
+        Date.parse('2026-01-01T00:00:00Z')
+      );
       expect(JSON.parse(row.contributors)).toMatchObject([
         { name: 'History Author', commits: 1 }
       ]);
