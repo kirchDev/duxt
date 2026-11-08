@@ -256,6 +256,23 @@ test('accounts for the wiki metadata fixture endpoint by name', () => {
   ).toEqual([]);
 });
 
+test('the wikilinks fixture is exempt by name without hiding child or sibling handlers', () => {
+  expect(
+    verifyHandlerCoverage([...registeredHandlers(), '/api/wikilinks-fixture'])
+  ).toEqual([]);
+  const findings = verifyHandlerCoverage([
+    ...registeredHandlers(),
+    '/api/wikilinks-fixture',
+    '/api/wikilinks-fixture/new-endpoint',
+    '/api/wikilinks-fixture-extra'
+  ]);
+  expect(findings).toHaveLength(2);
+  expect(findings.join('\n')).toContain(
+    '`/api/wikilinks-fixture/new-endpoint`'
+  );
+  expect(findings.join('\n')).toContain('`/api/wikilinks-fixture-extra`');
+});
+
 test('the internal build-extension fixture is exempt by name without hiding child handlers', () => {
   const exemption = EXEMPT_HANDLERS.find(
     (entry) => entry.handler === '/api/extension-fixture'

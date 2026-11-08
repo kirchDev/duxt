@@ -437,6 +437,13 @@ export const EXEMPT_HANDLERS: readonly ExemptHandler[] = [
       'rather than a documentation surface or an endpoint shipped by the layer.'
   },
   {
+    handler: '/api/wikilinks-fixture',
+    why:
+      'The development site’s internal authored-row probe for check:wikilinks. ' +
+      'It verifies stored wikilink literals across rendering and content-bundle ' +
+      'activation, rather than publishing a documentation or layer endpoint.'
+  },
+  {
     handler: '/api/infobox-fixture',
     why:
       'The development site’s internal infobox probe for real Content rows, ' +
