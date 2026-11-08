@@ -3,7 +3,6 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createJiti } from 'jiti';
 import type { z } from '@nuxt/content';
-import type { ZodType } from 'zod';
 import type { DuxtSectionTypes } from '../sections/sections-resolve';
 
 export interface DuxtSourceFlavorDefinition {
@@ -18,7 +17,7 @@ export interface DuxtBuildContribution {
   sectionTypes?: DuxtSectionTypes;
   sourceFlavors?: Record<string, DuxtSourceFlavorDefinition>;
   /** Content's own Zod instance is handed in so its schema converter recognises fields. */
-  pageSchema?: (schema: typeof z) => Record<string, ZodType>;
+  pageSchema?: (schema: typeof z) => Parameters<typeof z.object>[0];
 }
 
 export const duxtLayerDirectory = fileURLToPath(
