@@ -116,90 +116,12 @@ export function walk(node: unknown, into: Collected): void {
   }
 }
 
-export function report(
+/** Shared with Wiki after it projects resolved targets into ordinary hrefs. */
+export function linkWarnings(
   sources: SourceRecord[],
   pages: PageRecord[]
-): { errors: string[]; warnings: string[]; notes: string[] } {
-  const errors: string[] = [];
+): string[] {
   const warnings: string[] = [];
-
-  const byCollection = new Map<string, PageRecord[]>();
-  for (const page of pages) {
-    const list = byCollection.get(page.collection) ?? [];
-    list.push(page);
-    byCollection.set(page.collection, list);
-  }
-
-  // 1. A collection with nothing in it. The symptom is an empty sidebar and a
-  //    404 on every page of one version — never a message.
-  //
-  //    A GENERATED SECTION answers the same question from its own artefact, at
-  //    its own severity and in its own words — see `sectionFindings`. It used
-  //    to be skipped here and reported by a `console.warn` where the file is
-  //    read, which put half of this layer's findings in a channel that has
-  //    scrolled away by the time anyone looks at the other half.
-  for (const source of sources) {
-    if (source.generated) {
-      warnings.push(
-        ...sectionFindings(source, byCollection.get(source.collection)?.length)
-      );
-      continue;
-    }
-
-    if (!byCollection.get(source.collection)?.length) {
-      errors.push(
-        `collection "${source.collection}" (serving "${source.prefix || '/'}") ` +
-          "contains no pages. Check the source's `path` and `refs`."
-      );
-    }
-  }
-
-  // 2. A docs folder named like a repository or a version segment. The prefix
-  //    wins, so the folder is simply unreachable.
-  const reserved = reservedSegments(sources as never);
-
-  for (const source of sources) {
-    const claimed = reserved.get(source.collection);
-    if (!claimed?.size) continue;
-
-    for (const page of byCollection.get(source.collection) ?? []) {
-      const rest = source.prefix
-        ? page.path.slice(source.prefix.length)
-        : page.path;
-      const segment = rest.split('/')[1];
-
-      if (segment && claimed.has(segment)) {
-        errors.push(
-          `"${page.file}" sits in a folder called "${segment}", which is ` +
-            `already a repository or version segment under "${source.prefix || '/'}". ` +
-            'Rename the folder, or give the source a `slug`.'
-        );
-      }
-    }
-  }
-
-  // 3. Frontmatter. Neither field breaks a page; both quietly degrade the
-  //    table of contents, the OG image and llms.txt.
-  //
-  //    A generated page is asked for a title and not for a description: the
-  //    title is the type's to produce and a missing one is a bug in the parser,
-  //    where a description would have to be invented — a changelog entry has no
-  //    field that could carry one.
-  const isGenerated = new Set(
-    sources.filter((source) => source.generated).map((s) => s.collection)
-  );
-
-  for (const page of pages) {
-    const missing = [
-      !page.title && 'title',
-      !page.description && !isGenerated.has(page.collection) && 'description'
-    ].filter(Boolean);
-
-    if (missing.length) {
-      warnings.push(`"${page.file}" has no ${missing.join(' and no ')}.`);
-    }
-  }
-
   // 4. Links. Internal ones only — an external URL is not this build's to
   //    verify, and checking it would put the network in the build.
   //
@@ -296,6 +218,95 @@ export function report(
       }
     }
   }
+
+  return warnings;
+}
+
+export function report(
+  sources: SourceRecord[],
+  pages: PageRecord[]
+): { errors: string[]; warnings: string[]; notes: string[] } {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  const byCollection = new Map<string, PageRecord[]>();
+  for (const page of pages) {
+    const list = byCollection.get(page.collection) ?? [];
+    list.push(page);
+    byCollection.set(page.collection, list);
+  }
+
+  // 1. A collection with nothing in it. The symptom is an empty sidebar and a
+  //    404 on every page of one version — never a message.
+  //
+  //    A GENERATED SECTION answers the same question from its own artefact, at
+  //    its own severity and in its own words — see `sectionFindings`. It used
+  //    to be skipped here and reported by a `console.warn` where the file is
+  //    read, which put half of this layer's findings in a channel that has
+  //    scrolled away by the time anyone looks at the other half.
+  for (const source of sources) {
+    if (source.generated) {
+      warnings.push(
+        ...sectionFindings(source, byCollection.get(source.collection)?.length)
+      );
+      continue;
+    }
+
+    if (!byCollection.get(source.collection)?.length) {
+      errors.push(
+        `collection "${source.collection}" (serving "${source.prefix || '/'}") ` +
+          "contains no pages. Check the source's `path` and `refs`."
+      );
+    }
+  }
+
+  // 2. A docs folder named like a repository or a version segment. The prefix
+  //    wins, so the folder is simply unreachable.
+  const reserved = reservedSegments(sources as never);
+
+  for (const source of sources) {
+    const claimed = reserved.get(source.collection);
+    if (!claimed?.size) continue;
+
+    for (const page of byCollection.get(source.collection) ?? []) {
+      const rest = source.prefix
+        ? page.path.slice(source.prefix.length)
+        : page.path;
+      const segment = rest.split('/')[1];
+
+      if (segment && claimed.has(segment)) {
+        errors.push(
+          `"${page.file}" sits in a folder called "${segment}", which is ` +
+            `already a repository or version segment under "${source.prefix || '/'}". ` +
+            'Rename the folder, or give the source a `slug`.'
+        );
+      }
+    }
+  }
+
+  // 3. Frontmatter. Neither field breaks a page; both quietly degrade the
+  //    table of contents, the OG image and llms.txt.
+  //
+  //    A generated page is asked for a title and not for a description: the
+  //    title is the type's to produce and a missing one is a bug in the parser,
+  //    where a description would have to be invented — a changelog entry has no
+  //    field that could carry one.
+  const isGenerated = new Set(
+    sources.filter((source) => source.generated).map((s) => s.collection)
+  );
+
+  for (const page of pages) {
+    const missing = [
+      !page.title && 'title',
+      !page.description && !isGenerated.has(page.collection) && 'description'
+    ].filter(Boolean);
+
+    if (missing.length) {
+      warnings.push(`"${page.file}" has no ${missing.join(' and no ')}.`);
+    }
+  }
+
+  warnings.push(...linkWarnings(sources, pages));
 
   commandWarnings(pages, warnings);
 

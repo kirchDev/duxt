@@ -7,6 +7,7 @@ import { redirectRules } from '../../modules/redirects';
 import type { Collected, PageRecord } from './validate-report';
 import { report, walk } from './validate-report';
 import type { DuxtResolvedSource } from '../sources/sources-resolve';
+import { readReportNotes, type DuxtReportNotes } from './report-notes';
 
 /**
  * The devtools tab's answers, as text a terminal — or a model — can read.
@@ -42,6 +43,7 @@ export interface DuxtReport {
   findings: { errors: string[]; warnings: string[]; notes: string[] };
   redirects: { from: string; to: string }[];
   locales: string[];
+  additionalNotes?: DuxtReportNotes;
 }
 
 /** Everything the report says, before anything decides how to say it. */
@@ -116,6 +118,11 @@ export async function duxtReport(
     locales
   );
 
+  const additionalNotes = cached ? readReportNotes(rootDir, cached) : undefined;
+  const findings = pages
+    ? report(sources, pages)
+    : { errors: [], warnings: [], notes: [] };
+  findings.warnings.push(...(additionalNotes?.warnings ?? []));
   return {
     rootDir,
     sources,
@@ -123,9 +130,8 @@ export async function duxtReport(
     // Over the pages there ARE. A site nobody has built yet is reported as
     // exactly that further down, rather than as a site whose every collection
     // is empty — which is what running the checks over nothing would say.
-    findings: pages
-      ? report(sources, pages)
-      : { errors: [], warnings: [], notes: [] },
+    findings,
+    additionalNotes,
     redirects: Object.entries(rules).map(([from, rule]) => ({
       from,
       to: rule.redirect.to
@@ -256,6 +262,16 @@ export function duxtReportMarkdown(data: DuxtReport): string {
       out.push(`| \`${rule.from}\` | \`${rule.to}\` |`);
     }
     out.push('');
+  }
+
+  for (const section of data.additionalNotes?.sections ?? []) {
+    out.push(`## ${section.heading}`, '');
+    out.push(
+      ...(section.lines.length
+        ? section.lines.map((line) => `- ${line}`)
+        : ['None.']),
+      ''
+    );
   }
 
   return out.join('\n');

@@ -27,3 +27,5 @@ export {
 export { repositoryRoot } from './sources/repository-root';
 export { resolveLatestRefs } from './sources/sources-git';
 export { readContentCache } from './content/content-cache';
+export { writeReportNotes } from './cli/report-notes';
+export { linkWarnings, walk } from './cli/validate-report';
