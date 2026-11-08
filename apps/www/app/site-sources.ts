@@ -132,6 +132,7 @@ export const siteSources = [
     name: { 'en-GB': 'Lumen field guide', de: 'Lumen-Inselführer' },
     pageType: 'article',
     history: false,
+    origin: { repo: 'kirchDev/duxt', ref: 'main' },
     locales: ['en-GB', { locale: 'de', path: 'apps/www/demo/wiki-de' }]
   },
   // The Demo overview is one document tree at four editions. The current
