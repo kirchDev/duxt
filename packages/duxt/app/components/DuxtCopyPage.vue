@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { stripFrontmatter } from '../../build/content/frontmatter';
-
 /**
  * The top action: hand this page to a model, or read its source.
  *
@@ -24,6 +22,8 @@ const props = defineProps<{
 const { t } = useI18n();
 const localeLink = useDuxtLink();
 const duxt = useDuxtConfig();
+const notify = useDuxtToast();
+const copying = ref(false);
 
 const { copied, copy: copyText } = useDuxtCopy({
   // The button's own label turns into "Copied"; a toast would say it twice.
@@ -43,10 +43,20 @@ function prompt() {
   return t('duxt.page.copy.prompt', { url, title: props.title ?? '' });
 }
 
-function copy() {
-  // Without the frontmatter: what is copied should read as the page, not as
-  // the file. Same call `llms-full.txt` makes over the same field.
-  return copyText(props.rawbody && stripFrontmatter(props.rawbody));
+async function copy() {
+  copying.value = true;
+  try {
+    // The same request-bound formatter as View as Markdown and MCP.
+    const markdown = await $fetch<string>(markdownPath.value, {
+      responseType: 'text'
+    });
+    return await copyText(markdown);
+  } catch {
+    notify.error(t('duxt.page.copyFailed'));
+    return false;
+  } finally {
+    copying.value = false;
+  }
 }
 
 function open(base: string) {
@@ -71,6 +81,7 @@ function open(base: string) {
       variant="outline"
       size="sm"
       class="gap-1.5 rounded-e-none border-e-0"
+      :disabled="copying"
       @click="copy"
     >
       <Icon :name="copied ? 'lucide:check' : 'lucide:copy'" class="size-3.5" />

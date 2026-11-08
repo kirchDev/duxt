@@ -1,7 +1,7 @@
 import { defineEventHandler, setHeader } from 'h3';
 import { duxtDocPage } from '../utils/doc-page';
 import { duxtLocaleSetup, duxtSources } from '../utils/mcp-docs';
-import { stripFrontmatter } from '../../build/content/frontmatter';
+import { duxtPageMarkdown } from '../utils/page-markdown';
 
 /**
  * `…/guide/deploying.md` serves the page's Markdown source.
@@ -35,5 +35,11 @@ export default defineEventHandler(async (event) => {
   if (!body) return;
 
   setHeader(event, 'content-type', 'text/markdown; charset=utf-8');
-  return stripFrontmatter(body).trim();
+  return duxtPageMarkdown(event, {
+    rawbody: body,
+    path: found.path,
+    source: found.source,
+    locale: found.locale,
+    pageType: page.type ?? found.source.pageType
+  });
 });

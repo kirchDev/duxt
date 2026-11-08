@@ -26,7 +26,7 @@ export async function duxtDocPage(
       source.collection as Parameters<typeof queryCollection>[1]
     )
       .path(wanted)
-      .select('title', 'description', 'rawbody')
+      .select('title', 'description', 'rawbody', 'type')
       .first();
     if (page)
       return {
@@ -34,6 +34,7 @@ export async function duxtDocPage(
           title?: string;
           description?: string;
           rawbody?: string;
+          type?: string;
         },
         source,
         locale,
