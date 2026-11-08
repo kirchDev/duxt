@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import {
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -130,9 +131,13 @@ describe('readDuxtBuildConfig', () => {
   });
   it('gets a real extension section, flavor and schema solely through extends', async () => {
     const consumer = site('/');
-    const fixture = fileURLToPath(
-      new URL('../../../apps/www/layers/build-extension', import.meta.url)
-    );
+    const fixture = [
+      '../../../apps/www/fixtures/build-extension',
+      '../../../apps/www/layers/build-extension'
+    ]
+      .map((path) => fileURLToPath(new URL(path, import.meta.url)))
+      .find(existsSync);
+    expect(fixture).toBeDefined();
     writeFileSync(
       join(consumer, 'nuxt.config.ts'),
       `export default { extends: [${JSON.stringify(fixture)}] };`

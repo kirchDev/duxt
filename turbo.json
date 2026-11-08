@@ -11,8 +11,18 @@
       "outputs": [],
       "inputs": [
         "$TURBO_DEFAULT$",
-        "$TURBO_ROOT$/apps/www/app/app.config.ts",
-        "$TURBO_ROOT$/apps/www/layers/build-extension/**",
+        "$TURBO_ROOT$/apps/www/nuxt.config.ts",
+        "$TURBO_ROOT$/apps/www/duxt.build.ts",
+        "$TURBO_ROOT$/apps/www/package.json",
+        "$TURBO_ROOT$/apps/www/app/**",
+        "$TURBO_ROOT$/apps/www/scripts/**",
+        "$TURBO_ROOT$/apps/www/layers/**",
+        "$TURBO_ROOT$/apps/www/site-layers/**",
+        "$TURBO_ROOT$/apps/www/fixtures/**",
+        "$TURBO_ROOT$/packages/duxt-wiki/**",
+        "$TURBO_ROOT$/packages/duxt-typesense/**",
+        "$TURBO_ROOT$/packages/duxt-meilisearch/**",
+        "$TURBO_ROOT$/scripts/**",
         "$TURBO_ROOT$/docs/**"
       ]
     },
