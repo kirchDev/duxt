@@ -405,6 +405,7 @@ function current(to?: string) {
 
         <NuxtLink
           :to="localeLink('/')"
+          :aria-label="duxt.logo?.alt || duxt.title"
           class="flex items-center gap-2 text-[15px] font-semibold tracking-tight"
         >
           <DuxtBrand />

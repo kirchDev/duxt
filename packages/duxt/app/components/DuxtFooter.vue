@@ -54,6 +54,7 @@ const legal = computed(() => duxt.footer?.legal ?? []);
       >
         <NuxtLink
           :to="localeLink('/')"
+          :aria-label="duxt.logo?.alt || duxt.title"
           class="inline-flex items-center gap-2 font-medium text-foreground"
         >
           <DuxtBrand size="sm" />

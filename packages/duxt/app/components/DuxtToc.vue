@@ -10,6 +10,7 @@ const props = defineProps<{ links: TocLink[] }>();
 
 const duxt = useDuxtConfig();
 const localeLink = useDuxtLink();
+const site = useSiteConfig();
 
 const headingIds = (links: TocLink[]): string[] =>
   links.flatMap((link) => [link.id, ...headingIds(link.children ?? [])]);
@@ -34,7 +35,11 @@ const active = useActiveHeading(ids, duxt.toc?.scrollOffset);
       <ul class="space-y-2">
         <li v-for="link in duxt.aside.links" :key="link.to">
           <NuxtLink
-            :to="localeLink(link.to)"
+            :to="relativeSiteLink(localeLink(link.to), site.url)"
+            :external="isAbsoluteHttpLink(link.to)"
+            :rel="
+              isAbsoluteHttpLink(link.to) ? 'noopener noreferrer' : undefined
+            "
             :target="link.external ? '_blank' : undefined"
             class="flex items-start gap-2 text-muted-foreground transition-colors hover:text-foreground"
           >

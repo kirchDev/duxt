@@ -252,16 +252,20 @@ const operations = computed(() =>
           {{ contact.name ?? contact.url ?? contact.email }}
         </a>
 
-        <a
+        <component
+          :is="license.url ? 'a' : 'span'"
           v-if="license"
           :href="license.url"
-          rel="noopener noreferrer"
-          class="inline-flex items-center gap-1.5 transition-colors hover:text-foreground"
+          :rel="license.url ? 'noopener noreferrer' : undefined"
+          class="inline-flex items-center gap-1.5"
+          :class="
+            license.url ? 'transition-colors hover:text-foreground' : undefined
+          "
         >
           <Icon name="lucide:scale" class="size-3.5" />
           <span class="sr-only">{{ $t('duxt.openapi.license') }}:</span>
           {{ license.name ?? license.identifier }}
-        </a>
+        </component>
 
         <a
           v-if="termsOfService"
