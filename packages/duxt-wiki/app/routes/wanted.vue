@@ -4,7 +4,11 @@ import { wikiCreateLink } from '../../wiki-create';
 import { resolveWikiLink } from '../../wikilink-resolution';
 import { wikiTokens } from '../../wikilinks';
 import { wikiMessages } from '../utils/wiki-messages';
-definePageMeta({ layout: 'wiki', sitemap: false });
+definePageMeta({
+  layout: 'wiki',
+  sitemap: false,
+  prerenderNavigation: false
+});
 const route = useRoute();
 const { t } = useI18n({ useScope: 'local', messages: wikiMessages });
 const path = useDuxtPath();
