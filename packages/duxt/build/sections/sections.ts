@@ -55,7 +55,8 @@ import { pageSchema, repositoryRoot } from '../sources/sources';
 export function duxtGeneratedCollections(
   input: DuxtSource[],
   options: DuxtSourcesOptions = {},
-  types: DuxtSectionTypes = duxtSectionTypes()
+  types: DuxtSectionTypes = duxtSectionTypes(),
+  schema: typeof pageSchema = pageSchema
 ) {
   // The same `latest` resolution both other entry points do. Cached per
   // repository for the life of the process, so asking again is free and cannot
@@ -67,8 +68,8 @@ export function duxtGeneratedCollections(
     const type = types[entry.generated!.type]!;
 
     collections[entry.collection] = entry.generated!.remote
-      ? remoteCollection(entry, type)
-      : localCollection(entry, type);
+      ? remoteCollection(entry, type, schema)
+      : localCollection(entry, type, schema);
   }
 
   return collections;
@@ -83,7 +84,11 @@ export function duxtGeneratedCollections(
  * section and which path, where the same throw from inside the parse pass says
  * neither.
  */
-function localCollection(entry: DuxtResolvedSource, type: DuxtSectionType) {
+function localCollection(
+  entry: DuxtResolvedSource,
+  type: DuxtSectionType,
+  schema: typeof pageSchema
+) {
   // The checkout goes with the handle, which is what lets the release history
   // read the commits between two tags. `remoteCollection` below has a
   // `--depth 1` clone and passes one only where that clone is of this very
@@ -106,7 +111,7 @@ function localCollection(entry: DuxtResolvedSource, type: DuxtSectionType) {
   // needs no route of its own.
   source.prefix = entry.prefix;
 
-  return defineCollection({ type: 'page', schema: pageSchema, source });
+  return defineCollection({ type: 'page', schema, source });
 }
 
 /**
@@ -120,13 +125,17 @@ function localCollection(entry: DuxtResolvedSource, type: DuxtSectionType) {
  *
  * Lazy, because the checkout does not exist until Content has run `prepare`.
  */
-function remoteCollection(entry: DuxtResolvedSource, type: DuxtSectionType) {
+function remoteCollection(
+  entry: DuxtResolvedSource,
+  type: DuxtSectionType,
+  schema: typeof pageSchema
+) {
   const ref = generatedSectionRef(entry);
   const url = entry.repositoryUrl!;
 
   const collection = defineCollection({
     type: 'page',
-    schema: pageSchema,
+    schema,
     source: {
       repository: ref
         ? 'tag' in ref

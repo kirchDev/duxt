@@ -225,26 +225,14 @@ describe('duxtTocLinks', () => {
     ).toEqual([{ ...heading('a', 2), children: [heading('b', 3)] }]);
   });
 
-  /**
-   * Content nests by RELATIVE depth and as deep as the headings go; `DuxtToc`
-   * draws two levels. So everything past the second is collapsed into it —
-   * exactly what `generatedToc` already does, so the written page and the
-   * generated one cannot draw the same outline two different ways.
-   */
-  it('collapses everything below h3 into the second level', () => {
-    expect(
-      duxtTocLinks(
-        [
-          {
-            ...heading('a', 2),
-            children: [{ ...heading('b', 3), children: [heading('c', 4)] }]
-          }
-        ],
-        4
-      )
-    ).toEqual([
-      { ...heading('a', 2), children: [heading('b', 3), heading('c', 4)] }
-    ]);
+  it('preserves three nested levels when the configured depth includes h4', () => {
+    const tree = [
+      {
+        ...heading('a', 2),
+        children: [{ ...heading('b', 3), children: [heading('c', 4)] }]
+      }
+    ];
+    expect(duxtTocLinks(tree, 4)).toEqual(tree);
   });
 
   it('drops a heading deeper than the maximum, children included', () => {

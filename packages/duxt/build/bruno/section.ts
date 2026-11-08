@@ -29,8 +29,8 @@
  * in Bruno" clone of today's HEAD can offer.
  */
 import { stringify as stringifyYaml } from 'yaml';
-import { frontmatterBlock } from '../content/frontmatter';
-import { firstLine, pageOrder, urlSegment } from './section-markdown';
+import { frontmatterBlock } from '../unstable';
+import { firstLine, pageOrder, urlSegment } from '../unstable';
 import type {
   DuxtBrunoCollection,
   DuxtBrunoEntry,
@@ -45,7 +45,7 @@ import type {
   DuxtSectionOptions,
   DuxtSectionPage,
   DuxtSectionType
-} from './sections-resolve';
+} from '../unstable';
 
 /**
  * The layout this type binds — the SAME one `openapi` binds.
@@ -88,6 +88,7 @@ export const brunoSectionType: DuxtSectionType = {
    */
   localisation: 'per-locale',
   layout: DUXT_BRUNO_LAYOUT,
+  pageType: 'reference',
   /**
    * `lucide`, not `simple-icons`, and the repository's icon rule says why: this
    * entry names a SECTION OF THE DOCUMENTATION, not the Bruno platform. The one

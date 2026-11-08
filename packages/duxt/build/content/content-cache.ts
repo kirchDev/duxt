@@ -18,6 +18,8 @@ import type { Nuxt } from '@nuxt/schema';
  * A `nuxt prepare` run parses nothing, and "no pages" there is not a finding.
  */
 export interface CachedPage {
+  /** Exact parse-cache key, independent of a transform's content id. */
+  cacheId?: string;
   collection: string;
   path: string;
   file: string;
@@ -114,6 +116,7 @@ export function readContentCacheAt(
       if (!path) continue;
 
       pages.push({
+        cacheId: row.id,
         collection,
         path,
         file: typeof content.id === 'string' ? content.id : row.id,
@@ -125,6 +128,28 @@ export function readContentCacheAt(
   }
 
   return pages;
+}
+
+/** Reparse only rows whose cached Git metadata cannot describe this pack. */
+export function invalidateContentCache(
+  nuxt: Nuxt,
+  ids: readonly string[]
+): void {
+  if (!ids.length) return;
+  const database = new DatabaseSync(cacheFile(nuxt), { timeout: 15_000 });
+  try {
+    database.exec('BEGIN');
+    const remove = database.prepare(
+      'DELETE FROM _development_cache WHERE id = ?'
+    );
+    for (const id of new Set(ids)) remove.run(id);
+    database.exec('COMMIT');
+  } catch (error) {
+    database.exec('ROLLBACK');
+    throw error;
+  } finally {
+    database.close();
+  }
 }
 
 /**

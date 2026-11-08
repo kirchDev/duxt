@@ -23,7 +23,7 @@
  * that rebuilds nightly does not publish a new download for a collection nobody
  * changed — the archive is a function of the files, and of nothing else.
  */
-import type { DuxtSectionInput } from '../sections/sections-resolve';
+import type { DuxtSectionInput } from '../unstable';
 import { BRUNO_UNPUBLISHED } from './bruno-parse';
 
 /** One file in the archive. */

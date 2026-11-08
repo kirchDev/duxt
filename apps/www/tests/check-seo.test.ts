@@ -25,6 +25,10 @@ async function runCheck(mode: string) {
   await mkdir(join(root, '.output/server'), { recursive: true });
   await symlink(resolve('node_modules'), join(root, 'node_modules'), 'dir');
   await copyFile(
+    resolve('scripts/wiki-fixture.ts'),
+    join(root, 'scripts/wiki-fixture.ts')
+  );
+  await copyFile(
     resolve('scripts/check-seo.ts'),
     join(root, 'scripts/check-seo.ts')
   );

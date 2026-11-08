@@ -1,0 +1,14 @@
+diff --git a/dist/runtime/shared/crawl.js b/dist/runtime/shared/crawl.js
+--- a/dist/runtime/shared/crawl.js
++++ b/dist/runtime/shared/crawl.js
+@@ -61,7 +61,9 @@
+     const timeoutController = new AbortController();
+     const abortRequestTimeout = setTimeout(() => timeoutController.abort(), timeout);
+     return await (options.fetch || $fetch).raw(encodeURI(link), {
+-      baseURL: options.baseURL,
++      // A supplied prerender client dispatches relative URLs to the local app.
++      // ofetch must not make them absolute before that dispatch can see them.
++      baseURL: options.fetch && link.startsWith("/") && !link.startsWith("//") ? undefined : options.baseURL,
+       method,
+       redirect,
+       signal: timeoutController.signal,

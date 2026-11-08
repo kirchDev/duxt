@@ -13,7 +13,9 @@ const { data: navigation } = await useDuxtNavigation();
 
 // Nitro's HTML crawler treats v0.1.0 as a file with extension .0 and skips it.
 // Register known pages explicitly so their HTML and Nuxt payloads are emitted.
-if (import.meta.prerender) {
+// A utility page prerendered on its own opts out: on a server-rendered site its
+// one seed would otherwise freeze the whole navigation at the build's origin.
+if (import.meta.prerender && useRoute().meta.prerenderNavigation !== false) {
   prerenderRoutes(
     navigationPagePaths(navigation.value ?? []).map((path) => localeLink(path)!)
   );
@@ -405,6 +407,7 @@ function current(to?: string) {
 
         <NuxtLink
           :to="localeLink('/')"
+          :aria-label="duxt.logo?.alt || duxt.title"
           class="flex items-center gap-2 text-[15px] font-semibold tracking-tight"
         >
           <DuxtBrand />

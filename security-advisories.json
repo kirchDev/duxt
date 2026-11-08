@@ -6,7 +6,7 @@
     "url": "https://github.com/advisories/GHSA-gcqx-w48m-w2h4",
     "reviewed": "2026-10-29",
     "reviewBy": "2026-11-28",
-    "reachability": "Build time only. The one package that calls deepmerge is @rollup/plugin-node-resolve, which merges the bundler's own resolve options while Nitro and Vite build the site; no request, page or Content record reaches it, and the deployed server bundle contains no deepmerge code. The provider layers inherit the same build tooling through their Nuxt peer.",
+    "reachability": "Build time only. The one package that calls deepmerge is @rollup/plugin-node-resolve, which merges the bundler's own resolve options while Nitro and Vite build the site; no request, page or Content record reaches it, and the deployed server bundle contains no deepmerge code. The provider layers inherit the same build tooling through their Nuxt peer. Wiki peer-path inspection on 2026-11-08: duxt-wiki resolves the same Nuxt tooling as the provider layers; the installed Rollup caller clones literal defaults with deepmerge and applies later options by spread. Wiki parsing/cache reads and runtime queryCollection metadata helpers introduce no request or MDC input to that merge.",
     "remediation": "No patched release is published; follow the upstream advisory and drop this review once @rollup/plugin-node-resolve or deepmerge ships a fix.",
     "findings": [
       {
@@ -20,6 +20,7 @@
           "apps__www>nuxtseo-layer-devtools>nuxtseo-shared>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
           "packages__duxt-meilisearch>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
           "packages__duxt-typesense>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
+          "packages__duxt-wiki>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
           "packages__duxt>@nuxtjs/robots>nuxt-site-config>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
           "packages__duxt>@nuxtjs/robots>nuxt-site-config>nuxtseo-shared>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
           "packages__duxt>@nuxtjs/robots>nuxt>@nuxt/nitro-server>nitropack>@rollup/plugin-node-resolve>deepmerge",
@@ -93,7 +94,7 @@
     "url": "https://github.com/advisories/GHSA-3g3m-2fjr-6pw4",
     "reviewed": "2026-11-04",
     "reviewBy": "2026-12-02",
-    "reachability": "Build-time only: @vercel/nft (Nitro file tracing, glob 13) and archiver-utils (Nitro output archiving, glob 10). The flaw is that an aborted async walk keeps reading directories after its AbortSignal fires; neither parent passes caller-controlled patterns or relies on a signal to bound traversal of untrusted trees, and duxt, its providers and apps/www never import glob — their AbortSignal uses all bound fetch requests. Nothing in a served request reaches glob.",
+    "reachability": "Build-time only: @vercel/nft (Nitro file tracing, glob 13) and archiver-utils (Nitro output archiving, glob 10). The flaw is that an aborted async walk keeps reading directories after its AbortSignal fires; neither parent passes caller-controlled patterns or relies on a signal to bound traversal of untrusted trees, and duxt, its providers and apps/www never import glob — their AbortSignal uses all bound fetch requests. Nothing in a served request reaches glob. Wiki peer-path inspection on 2026-11-08: duxt-wiki inherits the same Nuxt/Nitro build callers; file tracing runs at buildEnd without an AbortSignal, and output archiving uses the fixed **/* pattern over build output. Wiki metadata processing adds no request-controlled traversal or cancellation boundary.",
     "remediation": "The fix is glob 14.0.2, outside the ranges @vercel/nft (^13) and archiver-utils (^10) declare. Drop this review once nitropack ships parents that accept glob 14.",
     "findings": [
       {
@@ -115,6 +116,8 @@
           "packages__duxt-meilisearch>nuxt>@nuxt/nitro-server>nitropack>archiver>zip-stream>archiver-utils>glob",
           "packages__duxt-typesense>nuxt>@nuxt/nitro-server>nitropack>archiver>archiver-utils>glob",
           "packages__duxt-typesense>nuxt>@nuxt/nitro-server>nitropack>archiver>zip-stream>archiver-utils>glob",
+          "packages__duxt-wiki>nuxt>@nuxt/nitro-server>nitropack>archiver>archiver-utils>glob",
+          "packages__duxt-wiki>nuxt>@nuxt/nitro-server>nitropack>archiver>zip-stream>archiver-utils>glob",
           "packages__duxt>@nuxtjs/robots>nuxt-site-config>nuxt>@nuxt/nitro-server>nitropack>archiver>archiver-utils>glob",
           "packages__duxt>@nuxtjs/robots>nuxt-site-config>nuxt>@nuxt/nitro-server>nitropack>archiver>zip-stream>archiver-utils>glob",
           "packages__duxt>@nuxtjs/robots>nuxt-site-config>nuxtseo-shared>nuxt>@nuxt/nitro-server>nitropack>archiver>archiver-utils>glob",
@@ -210,6 +213,7 @@
           "apps__www>nuxtseo-layer-devtools>nuxtseo-shared>nuxt>@nuxt/nitro-server>nitropack>@vercel/nft>glob",
           "packages__duxt-meilisearch>nuxt>@nuxt/nitro-server>nitropack>@vercel/nft>glob",
           "packages__duxt-typesense>nuxt>@nuxt/nitro-server>nitropack>@vercel/nft>glob",
+          "packages__duxt-wiki>nuxt>@nuxt/nitro-server>nitropack>@vercel/nft>glob",
           "packages__duxt>@nuxtjs/robots>nuxt-site-config>nuxt>@nuxt/nitro-server>nitropack>@vercel/nft>glob",
           "packages__duxt>@nuxtjs/robots>nuxt-site-config>nuxtseo-shared>nuxt>@nuxt/nitro-server>nitropack>@vercel/nft>glob",
           "packages__duxt>@nuxtjs/robots>nuxt>@nuxt/nitro-server>nitropack>@vercel/nft>glob",
@@ -262,7 +266,7 @@
     "url": "https://github.com/advisories/GHSA-g3hv-75wg-m249",
     "reviewed": "2026-11-04",
     "reviewBy": "2026-12-02",
-    "reachability": "Build- and tooling-time only: @nuxt/content matches source include/exclude patterns from the site's own content.config, and glob, readdir-glob, @vercel/nft and the vite-plugin-checker eslint chain match patterns from build configuration. The denial of service needs an attacker-controlled pattern; every pattern here is authored in the repository or a consumer's config, and no request, query or MCP argument is ever compiled into a minimatch pattern.",
+    "reachability": "Build- and tooling-time only: @nuxt/content matches source include/exclude patterns from the site's own content.config, and glob, readdir-glob, @vercel/nft and the vite-plugin-checker eslint chain match patterns from build configuration. The denial of service needs an attacker-controlled pattern; every pattern here is authored in the repository or a consumer's config, and no request, query or MCP argument is ever compiled into a minimatch pattern. Wiki peer-path inspection on 2026-11-08: duxt-wiki inherits the same Nuxt tooling; glob 10/13 enable optimizationLevel 2 only for build patterns, while Nuxt enables only vueTsc in vite-plugin-checker. The optional ESLint/config-array matchers use configured patterns with dot: true and default optimizationLevel 1. Wiki requests and authored MDC never supply a pattern to these callers.",
     "remediation": "The fix is minimatch 11.0.1, outside the ranges its parents declare (10, 9 and 5). Drop this review once @nuxt/content, glob, readdir-glob and eslint accept minimatch 11.",
     "findings": [
       {
@@ -291,6 +295,9 @@
           "packages__duxt-typesense>nuxt>@nuxt/nitro-server>nitropack>@vercel/nft>glob>minimatch",
           "packages__duxt-typesense>nuxt>@nuxt/vite-builder>vite-plugin-checker>eslint>@eslint/config-array>minimatch",
           "packages__duxt-typesense>nuxt>@nuxt/vite-builder>vite-plugin-checker>eslint>minimatch",
+          "packages__duxt-wiki>nuxt>@nuxt/nitro-server>nitropack>@vercel/nft>glob>minimatch",
+          "packages__duxt-wiki>nuxt>@nuxt/vite-builder>vite-plugin-checker>eslint>@eslint/config-array>minimatch",
+          "packages__duxt-wiki>nuxt>@nuxt/vite-builder>vite-plugin-checker>eslint>minimatch",
           "packages__duxt>@nuxt/content>minimatch",
           "packages__duxt>@nuxtjs/i18n>@intlify/unplugin-vue-i18n>@eslint-community/eslint-utils>eslint>@eslint/config-array>minimatch",
           "packages__duxt>@nuxtjs/i18n>@intlify/unplugin-vue-i18n>@eslint-community/eslint-utils>eslint>minimatch",
@@ -488,6 +495,8 @@
           "packages__duxt-meilisearch>nuxt>@nuxt/nitro-server>nitropack>archiver>zip-stream>archiver-utils>glob>minimatch",
           "packages__duxt-typesense>nuxt>@nuxt/nitro-server>nitropack>archiver>archiver-utils>glob>minimatch",
           "packages__duxt-typesense>nuxt>@nuxt/nitro-server>nitropack>archiver>zip-stream>archiver-utils>glob>minimatch",
+          "packages__duxt-wiki>nuxt>@nuxt/nitro-server>nitropack>archiver>archiver-utils>glob>minimatch",
+          "packages__duxt-wiki>nuxt>@nuxt/nitro-server>nitropack>archiver>zip-stream>archiver-utils>glob>minimatch",
           "packages__duxt>@nuxtjs/robots>nuxt-site-config>nuxt>@nuxt/nitro-server>nitropack>archiver>archiver-utils>glob>minimatch",
           "packages__duxt>@nuxtjs/robots>nuxt-site-config>nuxt>@nuxt/nitro-server>nitropack>archiver>zip-stream>archiver-utils>glob>minimatch",
           "packages__duxt>@nuxtjs/robots>nuxt-site-config>nuxtseo-shared>nuxt>@nuxt/nitro-server>nitropack>archiver>archiver-utils>glob>minimatch",

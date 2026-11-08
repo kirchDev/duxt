@@ -5,7 +5,7 @@ import type { DuxtSearchRecordOptions } from '../build/search/search-records';
 import type { DuxtResolvedSource } from '../build/sources/sources-resolve';
 
 /**
- * duxt's one build-time extension point, and the whole of it.
+ * duxt's one build-time extension point, once per build or content pack.
  *
  * Why there is exactly one hook rather than a registry of them, and why a
  * `duxt.plugins` API is not coming, is written where the contract is:
@@ -27,49 +27,46 @@ import type { DuxtResolvedSource } from '../build/sources/sources-resolve';
  *    after every module has registered its own. Hooks run in registration
  *    order, so this one fires BEFORE Nitro produces anything, and a listener
  *    may still write a file into `public/` and have it copied into the output.
+ *
+ * A content pack prepares templates without reaching `build:done`. It calls
+ * the same emitter after the bundle and `current` have been published. Failed
+ * validation or publication emits nothing; a failed listener fails the command
+ * while leaving the completed bundle published. Runtime activation needs no
+ * search credentials or outbound connection.
  */
 const HOOK = 'duxt:search:records';
 
 export default function duxtSearchRecordsModule(_options: unknown, nuxt: Nuxt) {
-  nuxt.hook('build:done', async () => {
-    if (!listening(nuxt)) return;
-    const bundleDir = (
-      nuxt.options.runtimeConfig.duxt as
-        | { contentBundles?: { dir?: string } }
+  nuxt.hook('build:done', () => emitDuxtSearchRecords(nuxt));
+}
+
+/** Shared with the packer, which calls this only after publishing its bundle. */
+export async function emitDuxtSearchRecords(nuxt: Nuxt) {
+  if (!listening(nuxt)) return;
+
+  // The manifest `modules/config.ts` already resolved, rather than a second
+  // pass of its own: resolving it means `git ls-remote` for every source that
+  // tracks a moving ref, and asking twice is both a second network round trip
+  // and a second chance for the two answers to differ.
+  const sources =
+    (
+      nuxt.options.appConfig.duxt as
+        | { resolvedSources?: DuxtResolvedSource[] }
         | undefined
-    )?.contentBundles?.dir;
-    if (bundleDir || process.env.DUXT_CONTENT_BUNDLE_DIR)
-      console.warn(
-        '[duxt] content bundle: duxt:search:records only indexes build-time content; runtime bundle switches do not refresh this index.'
-      );
+    )?.resolvedSources ?? [];
 
-    // The manifest `modules/config.ts` already resolved, rather than a second
-    // pass of its own: resolving it means `git ls-remote` for every source that
-    // tracks a moving ref, and asking twice is both a second network round trip
-    // and a second chance for the two answers to differ.
-    const sources =
-      (
-        nuxt.options.appConfig.duxt as
-          | { resolvedSources?: DuxtResolvedSource[] }
-          | undefined
-      )?.resolvedSources ?? [];
+  if (!sources.length) return;
 
-    if (!sources.length) return;
+  const cached = readContentCache(
+    nuxt,
+    sources.map((source) => source.collection)
+  );
 
-    const cached = readContentCache(
-      nuxt,
-      sources.map((source) => source.collection)
-    );
+  // No cache at all is not "an empty site": it is a run that parsed nothing.
+  // Handing a provider zero records there would tell it to empty its index.
+  if (!cached) return;
 
-    // No cache at all is not "an empty site": it is a run that parsed nothing.
-    // Handing a provider zero records there would tell it to empty its index.
-    if (!cached) return;
-
-    await nuxt.callHook(
-      HOOK,
-      duxtSearchRecords(sources, cached, routing(nuxt))
-    );
-  });
+  await nuxt.callHook(HOOK, duxtSearchRecords(sources, cached, routing(nuxt)));
 }
 
 /**

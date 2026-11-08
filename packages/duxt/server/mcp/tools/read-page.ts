@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { duxtDocPage } from '../../utils/doc-page';
+import { duxtPageMarkdown } from '../../utils/page-markdown';
 import {
-  duxtAuthoredMarkdown,
   duxtFrontmatter,
   duxtLocaleSetup,
   duxtMcpEvent,
@@ -67,7 +67,7 @@ export default defineMcpTool({
         content: [
           {
             type: 'text',
-            text: `${frontmatter}\n\n${duxtAuthoredMarkdown(page.rawbody)}`
+            text: `${frontmatter}\n\n${await duxtPageMarkdown(event, { rawbody: page.rawbody, path: wanted, source, locale, pageType: source.pageType })}`
           }
         ]
       };

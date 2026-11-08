@@ -271,6 +271,17 @@ export default defineNuxtConfig({
   // exports map and files allowlist are exercised by the development site.
   extends: [
     '@kirchdev/duxt',
+    '@kirchdev/duxt-wiki',
+    // Optional layers stay outside layers/: Nuxt discovers that directory
+    // automatically, including entries omitted from extends. Both Content's
+    // loader and the runtime app config read only this selected source layer.
+    ...(cloudflare
+      ? ['./site-layers/site-content']
+      : [
+          './site-layers/check-content',
+          './fixtures/wiki-fixture',
+          './fixtures/build-extension'
+        ]),
     ...(process.env.DUXT_SEARCH_PROVIDER === 'typesense'
       ? ['@kirchdev/duxt-typesense']
       : process.env.DUXT_SEARCH_PROVIDER === 'meilisearch'

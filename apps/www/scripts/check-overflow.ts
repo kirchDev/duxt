@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+import { checkWikiFixtures, WIKI_ROUTES } from './wiki-fixture.ts';
+import { checkInfoboxFixtures, INFOBOX_ROUTES } from './infobox-fixture.ts';
+import { WIKI_DEMO_ROUTES } from './wiki-demo.ts';
 
 /**
  * Fails the build when a page scrolls sideways on a phone.
@@ -87,6 +90,18 @@ const ROUTES: { path: string; why: string }[] = [
     path: '/demo',
     why: 'a versioned section — the version switcher and banners ride along'
   },
+  ...WIKI_ROUTES.map((path) => ({
+    path,
+    why: 'a rendered wiki page type, including virtual categories'
+  })),
+  ...INFOBOX_ROUTES.map((path) => ({
+    path,
+    why: 'infobox facts and scoped query tables, including translated filters'
+  })),
+  ...WIKI_DEMO_ROUTES.map((path) => ({
+    path,
+    why: 'the published wiki guide’s article facts and category members'
+  })),
   { path: '/demo/images', why: 'the image fixture: one picture of each shape' }
 ];
 
@@ -191,6 +206,8 @@ async function main() {
 
   try {
     await server.ready();
+    await checkWikiFixtures(`http://localhost:${PORT}`);
+    await checkInfoboxFixtures(`http://localhost:${PORT}`);
 
     const { failures, notes } = await sweep(browser);
 

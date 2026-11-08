@@ -60,8 +60,8 @@ async function fixture(pollSeconds?: number) {
         'CREATE TABLE IF NOT EXISTS _content_info (id TEXT PRIMARY KEY, version TEXT, structureVersion TEXT, ready BOOLEAN); -- structure',
         `INSERT INTO _content_info VALUES ('checksum_${collection}', 'v3--${value}', 's', false); -- meta`,
         `DROP TABLE IF EXISTS _content_${collection}; -- structure`,
-        `CREATE TABLE IF NOT EXISTS _content_${collection} (id TEXT); -- structure`,
-        `INSERT INTO _content_${collection} VALUES ('${value}'); -- row`,
+        `CREATE TABLE IF NOT EXISTS _content_${collection} (id TEXT, __hash__ TEXT); -- structure`,
+        `INSERT INTO _content_${collection} VALUES ('${value}', 'row-4'); -- row-4`,
         `UPDATE _content_info SET ready = true WHERE id = 'checksum_${collection}'; -- meta`
       ])
     ).toString('base64');
@@ -155,7 +155,10 @@ it('rolls back earlier collections and keeps old checksums when the last collect
         notes: gzipSync(
           gunzipSync(Buffer.from(dump('notes', 'two'), 'base64'))
             .toString()
-            .replace("VALUES ('two')", "VALUES ('two', 'extra')")
+            .replace(
+              "VALUES ('two', 'row-4')",
+              "VALUES ('two', 'row-4', 'extra')"
+            )
         ).toString('base64')
       }
     },

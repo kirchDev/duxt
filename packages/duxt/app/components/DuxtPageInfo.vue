@@ -224,34 +224,38 @@ const notes = computed(() => {
        the one part that is neither an action nor a line of text, so they go in
        the slot and are spaced as one more item. -->
   <DuxtMetaList :row="row" :actions="actions" :notes="notes">
-    <div v-if="contributors.length" :class="row ? '' : 'space-y-1.5'">
-      <p>{{ $t('duxt.page.contributors') }}</p>
+    <!-- Conditional on the slot, not the div inside it: a slot that is present
+         counts as content, and an empty page info would still draw its rule. -->
+    <template v-if="contributors.length" #default>
+      <div :class="row ? '' : 'space-y-1.5'">
+        <p>{{ $t('duxt.page.contributors') }}</p>
 
-      <ul class="flex flex-wrap items-center gap-x-2 gap-y-1.5">
-        <li
-          v-for="person in contributors"
-          :key="person.name"
-          class="flex items-center gap-1.5"
-        >
-          <img
-            v-if="person.username && avatar(person.username)"
-            :src="avatar(person.username)"
-            alt=""
-            width="18"
-            height="18"
-            loading="lazy"
-            class="size-[18px] rounded-full border"
-          />
-          <span
-            v-else
-            aria-hidden="true"
-            class="flex size-[18px] items-center justify-center rounded-full border bg-muted text-[9px] font-medium"
+        <ul class="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+          <li
+            v-for="person in contributors"
+            :key="person.name"
+            class="flex items-center gap-1.5"
           >
-            {{ person.name.slice(0, 1).toUpperCase() }}
-          </span>
-          <span>{{ person.name }}</span>
-        </li>
-      </ul>
-    </div>
+            <img
+              v-if="person.username && avatar(person.username)"
+              :src="avatar(person.username)"
+              alt=""
+              width="18"
+              height="18"
+              loading="lazy"
+              class="size-[18px] rounded-full border"
+            />
+            <span
+              v-else
+              aria-hidden="true"
+              class="flex size-[18px] items-center justify-center rounded-full border bg-muted text-[9px] font-medium"
+            >
+              {{ person.name.slice(0, 1).toUpperCase() }}
+            </span>
+            <span>{{ person.name }}</span>
+          </li>
+        </ul>
+      </div>
+    </template>
   </DuxtMetaList>
 </template>

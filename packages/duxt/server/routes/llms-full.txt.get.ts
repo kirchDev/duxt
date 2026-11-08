@@ -5,7 +5,8 @@ import { llmsPages } from '../utils/llms-pages';
 import { duxtDefaults, mergeDuxtConfig } from '../../app/utils/duxt-config';
 import { resolveServerTexts } from '../utils/duxt-server-text';
 import { duxtPublicOrigin } from '../utils/public-origin';
-import { stripFrontmatter } from '../../build/content/frontmatter';
+import { duxtPageMarkdown } from '../utils/page-markdown';
+import { duxtSources } from '../utils/mcp-docs';
 
 /**
  * llms-full.txt — the whole documentation as one Markdown file.
@@ -54,7 +55,18 @@ export default defineEventHandler(async (event) => {
     // A page whose collection was declared before `rawbody` was asked for has
     // none. Its title and URL are still worth listing.
     const body = (page as { rawbody?: string }).rawbody;
-    if (body) lines.push(stripFrontmatter(body).trim(), '');
+    if (body)
+      lines.push(
+        await duxtPageMarkdown(event, {
+          rawbody: body,
+          path: page.contentPath ?? page.path,
+          source: page.duxtSource ?? duxtSources()[0]!,
+          locale: page.duxtLocale,
+          pageType:
+            (page as { type?: string }).type ?? page.duxtSource?.pageType
+        }),
+        ''
+      );
   }
 
   setHeader(event, 'content-type', 'text/plain; charset=utf-8');

@@ -39,14 +39,12 @@ export { PARTIALS_COLLECTION, partialsCollection };
  * page's frontmatter was silently dropped before the sidebar ever saw it.
  */
 export const pageSchema = z.object({
+  type: z.string().optional(),
   /** Shown beside the entry in the sidebar, the section row and page cards. */
   icon: z.string().optional(),
-  /** Preserved long enough for the tfplugindocs dialect to normalise it. */
-  page_title: z.string().optional(),
-  /** A tfplugindocs navigation group within its directory category. */
-  subcategory: z.string().optional(),
-  /** Set by a source dialect; useful to navigation consumers, not authors. */
-  category: z.string().optional(),
+  /** Optional order and non-route grouping, written by authors or source dialects. */
+  navigationRank: z.number().optional(),
+  navigationGroup: z.string().optional(),
   /** `landing` renders the page without the docs shell. */
   layout: z.string().optional(),
   /** The latest release of a generated changelog overview. */
@@ -69,16 +67,11 @@ export const pageSchema = z.object({
   // fields rather than one nested object, which was decided: it is what an
   // author writes in every comparable generator.
   //
-  // EVERY BOOLEAN CONTROL CARRIES ITS DEFAULT, and that is not decoration.
-  // `z.boolean().optional()` generates a `BOOLEAN` column with no default, so a
-  // page that says nothing stores NULL — and Content casts a boolean column
-  // with `Boolean(value)` on the way back out, on every adapter. `Boolean(null)`
-  // is `false`, so every page read as though it had refused every control, and
-  // search returned nothing at all on every duxt site (#88). A default makes the
-  // column non-null, which is the only place the distinction survives: once the
-  // cast has run, "said nothing" and "said false" are the same value, and no
-  // predicate downstream can tell them apart. `tests/page-schema-database.test.ts`
-  // holds this by reading a page back out of a real database.
+  // Site controls must preserve an unanswered field. A plain boolean column
+  // casts SQL NULL to false in Content; an anyOf union is decoded as JSON and
+  // keeps NULL intact. A literal null avoids Zod's primitive-union shortcut,
+  // which would turn this back into a boolean column. Search stays page-only
+  // and retains its default below. Database round-trips protect both rules.
   //
   /**
    * `false` drops the contents column; `{ maxDepth }` sets how deep it goes.
@@ -88,7 +81,7 @@ export const pageSchema = z.object({
    * object form is ours alone: MDC's own `depth` is a count from `h2`, and
    * `maxDepth` is the heading level an author actually counts.
    *
-   * The one control with no default, because it needs none: a union is a JSON
+   * A union is a JSON
    * column, and Content leaves a JSON NULL alone rather than casting it — so an
    * unanswered `toc` arrives as `null` and the site's own setting still wins.
    */
@@ -96,17 +89,17 @@ export const pageSchema = z.object({
     .union([z.boolean(), z.object({ maxDepth: z.number().optional() })])
     .optional(),
   /** false hides the trail above the title, whatever `duxt.breadcrumb` says. */
-  breadcrumb: z.boolean().default(true),
+  breadcrumb: z.union([z.boolean(), z.literal(null)]).optional(),
   /** false hides the previous/next pair under the article. */
-  prevNext: z.boolean().default(true),
+  prevNext: z.union([z.boolean(), z.literal(null)]).optional(),
   /** false hides the "was this helpful?" row. */
-  feedback: z.boolean().default(true),
+  feedback: z.union([z.boolean(), z.literal(null)]).optional(),
   /** false hides the edit link, the last-updated line and the contributors. */
-  pageInfo: z.boolean().default(true),
+  pageInfo: z.union([z.boolean(), z.literal(null)]).optional(),
   /** false hides the copy-page and hand-to-a-model control. */
-  copyPage: z.boolean().default(true),
+  copyPage: z.union([z.boolean(), z.literal(null)]).optional(),
   /** true removes the reading-width cap, and nothing else. */
-  fullWidth: z.boolean().default(false),
+  fullWidth: z.union([z.boolean(), z.literal(null)]).optional(),
   /**
    * false removes the page from every duxt-owned discovery surface — the client
    * search, its fuzzy fallback, MCP `search_docs` and the two llms indexes.
@@ -250,7 +243,8 @@ const excluded = (source: DuxtSource) => {
  */
 export function duxtSources(
   input: DuxtSource[],
-  options: DuxtSourcesOptions = {}
+  options: DuxtSourcesOptions = {},
+  schema: typeof pageSchema = pageSchema
 ) {
   // `latest` is a shorthand for a tag git has to be asked about, and both the
   // collections here and the manifest the module resolves must land on the
@@ -294,7 +288,7 @@ export function duxtSources(
 
     const collection = defineCollection({
       type: 'page',
-      schema: pageSchema,
+      schema,
       source: effective.repo
         ? {
             exclude: [
@@ -341,7 +335,7 @@ export function duxtSources(
   // One partials collection per LANGUAGE, named the way the page collections
   // are — see `partialsCollection`.
   for (const [locale, entries] of partialFolders(resolved, expanded)) {
-    collections[partialsCollection(locale)] = definePartials(entries);
+    collections[partialsCollection(locale)] = definePartials(entries, schema);
   }
 
   return collections;
@@ -477,7 +471,8 @@ function definePartials(
     path: string;
     partials: string;
     mediaPath: string;
-  }[]
+  }[],
+  schema: typeof pageSchema
 ) {
   const entries = folders.map((folder) =>
     folder.repo
@@ -500,7 +495,7 @@ function definePartials(
   const collection = defineCollection({
     type: 'page',
     source: entries,
-    schema: pageSchema
+    schema
   });
 
   containedKeys(collection);

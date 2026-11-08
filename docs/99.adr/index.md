@@ -25,3 +25,4 @@ is written as a new ADR that supersedes the old one, never as an edit to it.
 | [ADR-0011](/adr/0011-host-the-provider-layers-in-a-turborepo-monorepo) | Host the provider layers in a Turborepo monorepo | accepted | 2026-09-15 |
 | [ADR-0012](/adr/0012-load-the-nuxt-seo-modules-by-name) | Load the Nuxt SEO modules by name | accepted | 2026-10-29 |
 | [ADR-0013](/adr/0013-load-content-bundles-at-runtime) | Load content bundles at runtime | accepted | 2026-11-04 |
+| [ADR-0014](/adr/0014-load-integration-contributions-only-at-build-time) | Load integration contributions only at build time | accepted | 2026-11-07 |

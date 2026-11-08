@@ -1,3 +1,5 @@
+import { integrationDefaults } from '../integrations/defaults';
+
 /**
  * The layer's defaults, and how a consumer's config is merged over them.
  *
@@ -34,12 +36,12 @@ export const duxtDefaults: DuxtConfig = {
     ]
   },
   contributors: { avatarUrl: 'https://github.com/{username}.png?size=40' },
-  toc: { depth: 3, scrollOffset: 96 },
+  toc: { enabled: true, depth: 3, scrollOffset: 96 },
   search: {
     fuzzy: { threshold: 0.35, minMatchCharLength: 3, limit: 20 },
     recentPages: 5
   },
-  openapi: { exampleDepth: 6, schemaDepth: 8 },
+  ...integrationDefaults,
   // A policy, not a binding table. WHICH keys duxt listens to is the layer's
   // and lives in `duxtShortcuts`; whether the unmodified ones are live at all
   // is the site's, because only a site knows what else its pages put under a
@@ -124,6 +126,11 @@ export const duxtDefaults: DuxtConfig = {
 
   /** A flat docs tree gets a trail that only repeats its own section name. */
   breadcrumb: true,
+  prevNext: true,
+  feedback: true,
+  pageInfo: true,
+  copyPage: true,
+  fullWidth: false,
 
   landing: {
     // No badge, no headline, no description. A pill above the headline says

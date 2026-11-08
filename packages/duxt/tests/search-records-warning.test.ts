@@ -6,7 +6,7 @@ it.each([
   [true, false],
   [false, true]
 ])(
-  'warns only for bundle mode (%s) with search listeners (%s)',
+  'does not report a build-only index for bundle mode (%s) with listeners (%s)',
   async (enabled, listening) => {
     const warnings = vi.spyOn(console, 'warn').mockImplementation(() => {});
     try {
@@ -27,14 +27,7 @@ it.each([
       };
       module(undefined, nuxt as never);
       await build();
-      if (enabled && listening) {
-        expect(warnings).toHaveBeenCalledWith(
-          expect.stringContaining('[duxt] content bundle')
-        );
-        expect(warnings.mock.calls.flat().join(' ')).toContain(
-          'duxt:search:records'
-        );
-      } else expect(warnings).not.toHaveBeenCalled();
+      expect(warnings).not.toHaveBeenCalled();
     } finally {
       warnings.mockRestore();
     }

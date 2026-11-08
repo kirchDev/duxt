@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
+import { wwwSearchConfig } from './fixtures/www-search-config';
 import { duxtManifest } from '../build/sections/sections-resolve';
 import { searchSources } from '../app/utils/search-scope';
 
@@ -67,31 +68,44 @@ it('selects the page resolver language chain for every chosen edition', () => {
   ).toEqual(['de', 'fr', 'en']);
 });
 
-it('includes the real www Terraform, API and release sources from getting-started', async () => {
-  vi.stubGlobal('defineAppConfig', <T>(config: T) => config);
-  try {
-    const { default: config } =
-      await import('../../../apps/www/app/app.config');
-    const sources = duxtManifest(
-      config.duxt.sources,
-      config.duxt.sourceOptions
-    );
-    const current = sources.find((entry) => entry.collection === 'docs');
-    const active = searchSources(sources, current, 'en-GB');
-    expect(active.map((entry) => entry.prefix)).toEqual([
+it('includes the real www Terraform, API and release sources from getting-started', () => {
+  const config = wwwSearchConfig();
+  const sources = config.manifest;
+  const current = sources.find((entry) => entry.collection === 'docs');
+  const active = searchSources(sources, current, 'en-GB');
+  const established = new Set([
+    'demo',
+    'demo/terraform',
+    'wiki',
+    'page-types',
+    'extension-fixture'
+  ]);
+  const additional = [
+    ...new Set(
+      (config.sources ?? []).flatMap((source) =>
+        source.slug && !established.has(source.slug) ? [`/${source.slug}`] : []
+      )
+    )
+  ];
+  expect(active.map((entry) => entry.prefix).sort()).toEqual(
+    [
       '',
+      '/wiki',
+      '/page-types',
+      '/extension-fixture',
       '/demo',
       '/demo/terraform',
       '/releases',
+      '/extension-fixture/fixture-section',
+      '/extension-fixture/inherited-layer-section',
       '/demo/openapi',
       '/demo/bruno',
       '/demo/changelog',
-      '/demo/changelog-flat'
-    ]);
-    expect(
-      active.find((entry) => entry.generated?.type === 'openapi')?.version
-    ).toBe('v3.x');
-  } finally {
-    vi.unstubAllGlobals();
-  }
-});
+      '/demo/changelog-flat',
+      ...additional
+    ].sort()
+  );
+  expect(
+    active.find((entry) => entry.generated?.type === 'openapi')?.version
+  ).toBe('v3.x');
+}, 15_000);

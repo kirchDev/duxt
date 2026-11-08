@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { defineNuxtConfig } from 'nuxt/config';
 import tailwindcss from '@tailwindcss/vite';
 import { highlightLangs } from './build/content/highlight-langs';
+import { linkCheckerSkipInspections } from './build/config/link-checker';
 
 /** Resolve against this layer, not the project extending it. */
 const layer = (path: string) => fileURLToPath(new URL(path, import.meta.url));
@@ -234,6 +235,10 @@ const locales = [
 // The layer itself. A consumer gets all of this by extending '@kirchdev/duxt',
 // which resolves through package.json's `main` to this file.
 export default defineNuxtConfig({
+  components: [
+    { path: layer('./app/components') },
+    { path: layer('./app/components/integrations'), pathPrefix: false }
+  ],
   modules: [
     // First: it narrows the locale list before @nuxtjs/i18n reads it, and
     // resolves the source manifest before anything queries a collection.
@@ -264,7 +269,7 @@ export default defineNuxtConfig({
     // The downloadable archive of every local Bruno collection, written during
     // the build and served as a static asset. A no-op for a site that declares
     // no `bruno` section.
-    layer('./modules/bruno.ts'),
+    layer('./build/bruno/module.ts'),
 
     // The layer's one build-time extension point: every parsed page of every
     // source, version and language, handed to `duxt:search:records` so an
@@ -409,6 +414,9 @@ export default defineNuxtConfig({
          * back to `duxt.toc.depth` — still `h3` — before `DuxtToc` draws it, so
          * a page that asks for nothing gets exactly the column it always had.
          *
+         * MDC can replace these options with a page's `toc` object; authoredToc
+         * recovers any discarded levels from the stored AST in that case.
+         *
          * `searchDepth` is deliberately left alone. It bounds how deep into the
          * node tree headings are looked for, not which levels count, so raising
          * it would change which pages have an outline at all.
@@ -504,6 +512,7 @@ export default defineNuxtConfig({
    */
   linkChecker: {
     failOnError: false,
+    skipInspections: linkCheckerSkipInspections,
     excludeLinks: ['/devtools/**']
   },
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { WIKI_ROUTES } from './wiki-fixture.ts';
 
 /**
  * Reads the SEO tags off the BUILT pages and fails the build over the ones the
@@ -96,7 +97,8 @@ async function main() {
           ...(await checkSourceLanguage()),
           ...(await checkRemovedVersionPages()),
           ...(await checkSocial()),
-          ...(await checkSchemaOrg())
+          ...(await checkSchemaOrg()),
+          ...(await checkWikiSeo())
         ];
       })()
     ]);
@@ -456,3 +458,47 @@ async function checkSchemaOrg() {
 }
 
 await main();
+
+async function checkWikiSeo() {
+  const failures: string[] = [];
+  for (const route of [
+    ...WIKI_ROUTES,
+    '/de-DE/wiki',
+    '/de-DE/wiki/category/unpaged',
+    '/de-DE/wiki/category/modes'
+  ]) {
+    const document = await head(route);
+    const fallback = route.startsWith('/de-DE') && !route.endsWith('/modes');
+    if (
+      route === '/de-DE/wiki/category/modes' &&
+      document.querySelector('h1')?.textContent?.trim() !== 'Spielmodi'
+    )
+      failures.push('translated category must load its own Markdown');
+    const canonical = document.querySelectorAll('link[rel="canonical"]');
+    const expected = `${ORIGIN}${route}`;
+    if (
+      route.endsWith('/unpaged') &&
+      document.querySelector('link[rel="alternate"][type="text/markdown"]')
+    )
+      failures.push(
+        `${route}: virtual category must not advertise absent Markdown`
+      );
+    if (
+      canonical.length !== 1 ||
+      canonical[0]?.getAttribute('href') !== expected
+    )
+      failures.push(`${route}: wiki canonical must be ${expected}`);
+    if (!meta(document, 'og:title') || !meta(document, 'og:image'))
+      failures.push(`${route}: wiki social metadata missing`);
+    if (
+      !document
+        .querySelector('script[type="application/ld+json"]')
+        ?.textContent?.includes('TechArticle')
+    )
+      failures.push(`${route}: wiki article structured data missing`);
+    if (Boolean(meta(document, 'robots')?.includes('noindex')) !== fallback)
+      failures.push(`${route}: wiki translation indexing state`);
+    document.defaultView?.close();
+  }
+  return failures;
+}

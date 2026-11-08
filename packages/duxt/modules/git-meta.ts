@@ -1,5 +1,7 @@
 import { execFileSync } from 'node:child_process';
-import { dirname, relative, sep } from 'node:path';
+import { dirname, join, relative, sep } from 'node:path';
+import { existsSync } from 'node:fs';
+import { isDeepStrictEqual } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import type { Nuxt } from '@nuxt/schema';
 import type { DuxtContributor } from '../build/git/git-contributors';
@@ -10,7 +12,18 @@ import {
   duxtSectionTypes
 } from '../build/sections/sections-resolve';
 import { resolveLatestRefs } from '../build/sources/sources-git';
-import { normaliseTfplugindocsPage } from '../build/sources/tfplugindocs';
+import {
+  expandSources,
+  resolveSources
+} from '../build/sources/sources-resolve';
+import { repositoryRoot } from '../build/sources/repository-root';
+import {
+  sourceHistoryProblem,
+  sourceHistoryProblems
+} from '../build/git/source-history';
+import type { HistorySource } from '../build/git/source-history';
+import { historySourceDirectories } from '../build/git/source-history';
+import { readContentCache } from '../build/content/content-cache';
 
 /**
  * "Last updated" and the contributor list, from the git history the file
@@ -24,11 +37,12 @@ import { normaliseTfplugindocsPage } from '../build/sources/tfplugindocs';
  * looks as if it were written by whoever cut the tip. That is wrong data, not
  * missing data, and worse than nothing — so a remote source is read only when
  * it says `history: true`, and the clone is unshallowed once before it is.
- * A source read off disk is a full checkout already and needs no flag.
+ * Local sources read history by default, unless they set `history: false`.
+ * Builds warn when that history is missing or shallow; packs refuse to publish.
  *
- * Hooked on the parse, not on the build, so the answer is cached exactly as
- * long as it is true: Content re-parses a file when its content changes, which
- * is the same moment its last-modified date does.
+ * Content caches these fields alongside each parsed page. A pack also checks
+ * their provenance and refreshes only stale rows, so a previous build without
+ * history cannot leave a later successful pack with incomplete metadata.
  */
 interface AfterParseContext {
   collection?: { name?: string };
@@ -39,26 +53,28 @@ interface AfterParseContext {
 export type { DuxtContributor };
 
 export default function duxtGitMeta(_options: unknown, nuxt: Nuxt) {
-  const layerDir = fileURLToPath(new URL('..', import.meta.url));
-
-  const dirs = [
-    ...nuxt.options._layers.flatMap((entry) => [
-      entry.config.rootDir,
-      entry.config.srcDir
-    ]),
-    layerDir
-  ].filter(Boolean) as string[];
-
-  const config = readDuxtBuildConfig(dirs);
+  const { config, declared, histories } = historyConfig(nuxt);
   const sources = duxtManifest(
-    resolveLatestRefs(config?.sources ?? [{ path: 'docs' }]),
+    declared,
     config?.sourceOptions ?? {},
     duxtSectionTypes(config?.sectionTypes)
   );
-
   const sourceByCollection = new Map(
     sources.map((source) => [source.collection, source])
   );
+
+  const checked = new Map<string, boolean>();
+  const warned = new Set<string>();
+  const warn = (problem: string) => {
+    if (warned.has(problem)) return;
+    warned.add(problem);
+    console.warn(
+      `[duxt] history: ${problem}. Supply full Git history or set history: false on that source.`
+    );
+  };
+  nuxt.hook('build:before', () => {
+    for (const problem of historyProblems(nuxt, histories)) warn(problem);
+  });
 
   nuxt.hook(
     'content:file:afterParse' as never,
@@ -72,8 +88,13 @@ export default function duxtGitMeta(_options: unknown, nuxt: Nuxt) {
 
       // Source flavours alter metadata only. Their Markdown remains portable to
       // the generator's own publisher, so the body is never rewritten here.
-      if (source.flavor === 'tfplugindocs') {
-        normaliseTfplugindocsPage(content, ctx.file?.id ?? file);
+      if (source.flavor) {
+        const flavor = config?.sourceFlavors?.[source.flavor];
+        if (!flavor)
+          throw new Error(
+            `duxt: unknown source flavor "${source.flavor}". Register it in duxt.build.ts.`
+          );
+        flavor.normalise(content, ctx.file?.id ?? file);
       }
 
       // A source that has not asked for its history is left alone — for a
@@ -81,64 +102,148 @@ export default function duxtGitMeta(_options: unknown, nuxt: Nuxt) {
       // clone, which is wrong data rather than missing data.
       if (!source.history) return;
 
-      if (file.includes('/.data/content/')) unshallow(dirname(file));
+      const root = rootOf(dirname(file)) ?? dirname(file);
+      if (!checked.has(root)) {
+        const remote =
+          histories.find((entry) => entry.collection === source.collection)
+            ?.remote ?? false;
+        const problem = sourceHistoryProblem(dirname(file), remote);
+        checked.set(root, !problem);
+        if (problem) warn(`${source.collection}: ${problem}`);
+      }
+      if (!checked.get(root)) return;
 
       const log = gitLog(file);
+      const metadata = (content.__metadata ??= {}) as Record<string, unknown>;
+      // Cache-only provenance: authored fields keep winning on future packs.
+      metadata.duxtHistory = {
+        tracked: Boolean(log.length),
+        lastUpdated: content.lastUpdated == null,
+        contributors: content.contributors == null
+      };
       if (!log.length) return;
-
       content.lastUpdated ??= log[0]!.date;
       content.contributors ??= contributorsOf(log);
     }) as never
   );
 }
 
+function historyConfig(nuxt: Nuxt) {
+  const layerDir = fileURLToPath(new URL('..', import.meta.url));
+
+  const dirs = [
+    ...nuxt.options._layers.flatMap((entry) => [
+      entry.config.rootDir,
+      entry.config.srcDir
+    ]),
+    layerDir
+  ].filter(Boolean) as string[];
+
+  const config = readDuxtBuildConfig(dirs);
+  const declared = resolveLatestRefs(config?.sources ?? [{ path: 'docs' }]);
+  const options = config?.sourceOptions ?? {};
+  const expanded = expandSources(declared, options);
+  const histories: HistorySource[] = resolveSources(declared, options).flatMap(
+    (source, index) => {
+      const input = expanded[index]!;
+      return source.history && input.source.content !== false
+        ? [{ ...source, remote: Boolean(input.effective.repo) }]
+        : [];
+    }
+  );
+  return { config, declared, histories };
+}
+
+function historyProblems(
+  nuxt: Nuxt,
+  histories: HistorySource[],
+  fetchHistory = false
+) {
+  return sourceHistoryProblems(
+    histories,
+    historySourceDirectories(nuxt, histories, repositoryRoot()),
+    fetchHistory
+  );
+}
+
+/** Packs fail before publication even if Content reused every parsed row. */
+export function assertDuxtHistory(nuxt: Nuxt, fetchHistory = false) {
+  const problems = historyProblems(
+    nuxt,
+    historyConfig(nuxt).histories,
+    fetchHistory
+  );
+  if (problems.length)
+    throw new Error(
+      `duxt: content pack requires complete source history:\n  - ${problems.join('\n  - ')}\nSupply full Git history or set history: false on those sources.`
+    );
+}
+
+/** A failed parse or an old build must not lend missing/stale metadata to a retry. */
+export function staleDuxtHistory(nuxt: Nuxt): string[] {
+  const { histories } = historyConfig(nuxt);
+  const sources = new Map(
+    histories.map((source) => [source.collection, source])
+  );
+  const directories = historySourceDirectories(
+    nuxt,
+    histories,
+    repositoryRoot()
+  );
+  const pages = readContentCache(nuxt, sources.keys()) ?? [];
+  return pages.flatMap((page) => {
+    const id = page.cacheId ?? page.file;
+    const cached = (
+      page.content.__metadata as
+        | {
+            duxtHistory?: {
+              tracked?: boolean;
+              lastUpdated?: boolean;
+              contributors?: boolean;
+            };
+          }
+        | undefined
+    )?.duxtHistory;
+    if (
+      !cached ||
+      typeof cached.tracked !== 'boolean' ||
+      typeof cached.lastUpdated !== 'boolean' ||
+      typeof cached.contributors !== 'boolean'
+    )
+      return [id];
+    const relativeFile = page.file.slice(page.collection.length + 1);
+    const candidates = (directories.get(page.collection) ?? []).map(
+      ({ directory, prefix }) => {
+        const segment = prefix.replace(/^\/|\/$/g, '');
+        const file =
+          segment && relativeFile.startsWith(`${segment}/`)
+            ? relativeFile.slice(segment.length + 1)
+            : relativeFile;
+        return join(directory, file);
+      }
+    );
+    const file = candidates.find((candidate) => existsSync(candidate));
+    if (!file) return [id];
+    const log = gitLog(file);
+    if (!log.length) return cached.tracked ? [id] : [];
+    const stale =
+      !cached.tracked ||
+      page.content.lastUpdated == null ||
+      page.content.contributors == null ||
+      (cached.lastUpdated && page.content.lastUpdated !== log[0]!.date) ||
+      (cached.contributors &&
+        !isDeepStrictEqual(
+          page.content.contributors,
+          JSON.parse(JSON.stringify(contributorsOf(log)))
+        ));
+    return stale ? [id] : [];
+  });
+}
+
 interface Commit {
   date: string;
   name: string;
   email: string;
-}
-
-/**
- * Turn a `--depth 1` clone into one with a history, once per repository.
- *
- * Cached by the repository's own root rather than by the directory the file
- * sits in: a fetch per page would download the same history once per page.
- * A failure is silent on purpose — the caller falls back to no history, which
- * is what the page showed before.
- */
-const unshallowed = new Set<string>();
-
-function unshallow(dir: string) {
-  let root: string;
-
-  try {
-    root = execFileSync('git', ['-C', dir, 'rev-parse', '--show-toplevel'], {
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'ignore']
-    }).trim();
-  } catch {
-    return;
-  }
-
-  if (!root || unshallowed.has(root)) return;
-  unshallowed.add(root);
-
-  try {
-    const shallow = execFileSync(
-      'git',
-      ['-C', root, 'rev-parse', '--is-shallow-repository'],
-      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }
-    ).trim();
-
-    if (shallow !== 'true') return;
-
-    execFileSync('git', ['-C', root, 'fetch', '--unshallow', '--quiet'], {
-      stdio: 'ignore'
-    });
-  } catch {
-    // No network, no remote, or a repository that cannot be deepened. The
-    // page keeps the fields it would have had without this module.
-  }
 }
 
 /**

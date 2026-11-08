@@ -1,9 +1,6 @@
 import { parse as parseYaml } from 'yaml';
 import { describe, expect, it } from 'vitest';
-import {
-  DUXT_BRUNO_LAYOUT,
-  brunoSectionType
-} from '../build/sections/sections-bruno';
+import { DUXT_BRUNO_LAYOUT, brunoSectionType } from '../build/bruno/section';
 import type { DuxtSectionOptions } from '../build/sections/sections-resolve';
 import { duxtSectionInput } from '../build/sections/sections-resolve';
 

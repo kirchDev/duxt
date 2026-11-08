@@ -5,7 +5,10 @@ import type { Nuxt } from '@nuxt/schema';
 import { bundledLanguagesInfo } from 'shiki/langs';
 import { enableWriteAheadLog } from '../build/content/content-cache';
 import type { DuxtBuildConfig } from '../build/config/duxt-app-config';
-import { readDuxtBuildConfig } from '../build/config/duxt-app-config';
+import {
+  readDuxtBuildConfig,
+  rememberDuxtBuildDirectories
+} from '../build/config/duxt-app-config';
 import {
   duxtDefaultRequestSamples,
   duxtRequestSamples
@@ -53,6 +56,7 @@ export default function duxtConfig(_options: unknown, nuxt: Nuxt) {
     layerDir
   ].filter(Boolean) as string[];
 
+  rememberDuxtBuildDirectories(nuxt.options.rootDir, dirs);
   const config = readDuxtBuildConfig(dirs);
 
   const sectionTypes = duxtSectionTypes(config?.sectionTypes);
@@ -75,11 +79,55 @@ export default function duxtConfig(_options: unknown, nuxt: Nuxt) {
   // Cast because the appConfig type is GENERATED FROM THIS ASSIGNMENT: Nuxt
   // infers it from whatever was written last time, so the module cannot satisfy
   // a type it is itself the only source of.
+  const pageTypes = Object.fromEntries(
+    Object.entries(config?.pageTypes ?? {}).map(([name, descriptor]) => {
+      if (
+        !descriptor ||
+        typeof descriptor.layout !== 'string' ||
+        !descriptor.layout ||
+        typeof descriptor.template !== 'string' ||
+        !/^[A-Z][A-Za-z0-9]*$/.test(descriptor.template)
+      )
+        throw new Error(
+          `duxt: page type "${name}" needs a layout and a PascalCase template component.`
+        );
+      return [
+        name,
+        { layout: descriptor.layout, template: descriptor.template }
+      ];
+    })
+  );
+  // Existing third-party section types may still name only a layout. Preserve
+  // their renderer while routing all runtime selection through page types.
+  for (const source of resolvedSources) {
+    if (!source.pageType && source.generated?.layout) {
+      const name = `section-layout:${source.generated.layout}`;
+      source.pageType = name;
+      pageTypes[name] ??= {
+        layout: source.generated.layout,
+        template: 'DuxtGeneratedPage'
+      };
+    }
+    if (source.pageType && !Object.hasOwn(pageTypes, source.pageType))
+      throw new Error(`duxt: unknown source page type "${source.pageType}".`);
+  }
   nuxt.options.appConfig.duxt = {
     ...nuxt.options.appConfig.duxt,
     ...layerIdentity(layerDir),
-    resolvedSources
+    resolvedSources,
+    resolvedPageTypes: pageTypes
   } as typeof nuxt.options.appConfig.duxt;
+
+  nuxt.options.build.templates.push({
+    filename: 'duxt-page-templates.ts',
+    write: true,
+    getContents: () => {
+      const names = [
+        ...new Set(Object.values(pageTypes).map((type) => type.template))
+      ].sort();
+      return `import { ${names.map((name, index) => `${name} as Template${index}`).join(', ')} } from '#components';\nexport default {${names.map((name, index) => `${JSON.stringify(name)}: Template${index}`).join(', ')}};\n`;
+    }
+  });
 
   writeGrammars(nuxt, config);
   checkSourceLocales(nuxt, config, resolvedSources);

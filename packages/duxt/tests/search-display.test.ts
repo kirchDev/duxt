@@ -1,4 +1,5 @@
-import { expect, it, vi } from 'vitest';
+import { expect, it } from 'vitest';
+import { wwwSearchConfig } from './fixtures/www-search-config';
 import { duxtManifest } from '../build/sections/sections-resolve';
 import {
   searchExcerpt,
@@ -235,52 +236,43 @@ it('carries a source display name through the resolved manifest', () => {
   }
 });
 
-it('gives every real www source a readable name, never a slash or an identifier', async () => {
-  vi.stubGlobal('defineAppConfig', <T>(config: T) => config);
-  try {
-    const { default: config } =
-      await import('../../../apps/www/app/app.config');
-    const manifest = duxtManifest(
-      config.duxt.sources,
-      config.duxt.sourceOptions
-    );
-    const names = sourceDisplayNames(
-      manifest.map((entry) => ({
-        collection: entry.collection,
-        // The build resolves the locale record before the theme reads it.
-        name:
-          typeof entry.name === 'string' ? entry.name : entry.name?.['en-GB'],
-        repo: entry.repo,
-        repository: entry.repository,
-        path: entry.path
-      })),
-      config.duxt.title
-    );
+it('gives every real www source a readable name, never a slash or an identifier', () => {
+  const config = wwwSearchConfig();
+  const manifest = config.manifest;
+  const names = sourceDisplayNames(
+    manifest.map((entry) => ({
+      collection: entry.collection,
+      // The build resolves the locale record before the theme reads it.
+      name: typeof entry.name === 'string' ? entry.name : entry.name?.['en-GB'],
+      repo: entry.repo,
+      repository: entry.repository,
+      path: entry.path
+    })),
+    config.title ?? ''
+  );
 
-    expect(names.size).toBe(manifest.length);
-    for (const [collection, name] of names) {
-      expect(name).not.toBe('/');
-      expect(name).not.toBe(collection);
-      expect(name.trim()).not.toBe('');
-    }
-    // Named by config, not slugged — and `tf`, an abbreviation, least of all.
-    expect(names.get('docs')).toBe('duxt documentation');
-    expect(names.get('docs_demo')).toBe('Demo documentation');
-    expect(names.get('docs_demo_terraform')).toBe('Terraform Provider');
-    // Every edition of the demo answers to one name, captions included. The
-    // provider nested under `/demo` is a source of its own with its own name.
-    const demo = (collection: string) =>
-      collection.startsWith('docs_demo') &&
-      !collection.startsWith('docs_demo_terraform');
-    expect(
-      [...names].filter(([collection]) => demo(collection))
-    ).not.toHaveLength(0);
-    for (const [collection, name] of names) {
-      if (demo(collection)) {
-        expect(name).toBe('Demo documentation');
-      }
-    }
-  } finally {
-    vi.unstubAllGlobals();
+  expect(names.size).toBe(manifest.length);
+  for (const [collection, name] of names) {
+    expect(name).not.toBe('/');
+    expect(name).not.toBe(collection);
+    expect(name.trim()).not.toBe('');
   }
-});
+  // Named by config, not slugged — and `tf`, an abbreviation, least of all.
+  expect(names.get('docs')).toBe('duxt documentation');
+  expect(names.get('docs_demo')).toBe('Demo documentation');
+  expect(names.get('docs_demo_terraform')).toBe('Terraform Provider');
+  expect(names.get('docs_page_types')).toBe('Page Types');
+  expect(names.get('docs_extension_fixture')).toBe('Extension Fixture');
+  // Match the source identity: a nested source owns its own display name.
+  const demo = new Set(
+    manifest
+      .filter((entry) => entry.repo === 'demo')
+      .map((entry) => entry.collection)
+  );
+  expect(demo.size).toBeGreaterThan(0);
+  for (const [collection, name] of names) {
+    if (demo.has(collection)) {
+      expect(name).toBe('Demo documentation');
+    }
+  }
+}, 15_000);

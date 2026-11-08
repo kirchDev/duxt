@@ -26,3 +26,4 @@ edição dele.
 | [ADR-0011](/adr/0011-host-the-provider-layers-in-a-turborepo-monorepo) | Alojar as camadas fornecedoras num monorepo Turborepo | accepted | 2026-09-15 |
 | [ADR-0012](/adr/0012-load-the-nuxt-seo-modules-by-name) | Carregar os módulos Nuxt SEO pelo nome | accepted | 2026-10-29 |
 | [ADR-0013](/adr/0013-load-content-bundles-at-runtime) | Carregar pacotes de conteúdo em tempo de execução | accepted | 2026-11-04 |
+| [ADR-0014](/adr/0014-load-integration-contributions-only-at-build-time) | Carregar contribuições de integração apenas na compilação | accepted | 2026-11-07 |

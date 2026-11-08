@@ -18,6 +18,7 @@
 const props = defineProps<{
   href?: string;
   target?: string;
+  name?: string;
 }>();
 
 const { source } = useDuxtCollection();
@@ -45,16 +46,22 @@ const to = computed(() => {
 </script>
 
 <template>
+  <span v-if="!href" :id="name">
+    <span v-if="$attrs.id && name && $attrs.id !== name" :id="name" />
+    <slot />
+  </span>
+
   <a
-    v-if="external || !internal"
+    v-else-if="external || !internal"
     :href="href"
+    :name="name"
     :target="target ?? (external ? '_blank' : undefined)"
     :rel="external ? 'noopener' : undefined"
   >
     <slot />
   </a>
 
-  <NuxtLink v-else :to="to" :target="target">
+  <NuxtLink v-else :to="to" :target="target" :name="name">
     <slot />
   </NuxtLink>
 </template>

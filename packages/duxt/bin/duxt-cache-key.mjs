@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { createJiti } from 'jiti';
+import { resolve } from 'node:path';
 
 /**
  * The cache key for a site's remote sources, as a command.
@@ -41,13 +42,20 @@ const { duxtSourcesCache, runDuxtSourcesCacheCli } = await jiti.import(
   '../build/sources/sources-cache'
 );
 
+const { readDuxtSiteBuildConfig } = await jiti.import(
+  '../build/config/duxt-app-config'
+);
+
 try {
   const rootIndex = argv.indexOf('--root');
   const rootDir = rootIndex === -1 ? undefined : argv[rootIndex + 1];
 
+  const config = await readDuxtSiteBuildConfig(
+    resolve(rootDir ?? process.cwd())
+  );
   const { output, exitCode } = runDuxtSourcesCacheCli(
     argv,
-    duxtSourcesCache({ rootDir })
+    duxtSourcesCache({ rootDir }, config)
   );
 
   console.log(output);

@@ -1,8 +1,8 @@
 /**
- * The contents column for a page whose headings a COMPONENT draws.
+ * Outlines from Content's stored AST, including headings a component draws.
  *
  * Content builds `body.toc` from the Markdown headings it parsed, which is the
- * whole outline of an ordinary page and none of the outline of a generated one:
+ * usual outline of an ordinary page and none of the outline of a generated one:
  * a release page's headings are the group names `ChangelogGroup` renders from a
  * prop. Content sees a component call and nothing else, so `body.toc.links`
  * comes back empty and the page had no contents column at all.
@@ -16,6 +16,7 @@
  * so a link here and the id it points at cannot drift apart.
  */
 import { changelogAnchor, changelogLabel } from './changelog';
+import { duxtTocLinks } from './page-controls';
 
 export interface DuxtGeneratedTocLink {
   id: string;
@@ -100,13 +101,14 @@ function walk(
     if (tag === 'changelog-releases') continue;
 
     const heading = HEADING.exec(tag);
-    if (heading && Number(heading[1]) <= maximumDepth) {
+    const headingDepth = heading ? Number(heading[1]) + (inside ? 1 : 0) : 0;
+    if (heading && headingDepth <= maximumDepth) {
       const id = props.id;
       if (typeof id === 'string' && id) {
         links.push({
           id,
           text: text(node).trim(),
-          depth: inside ? 3 : Number(heading[1])
+          depth: headingDepth
         });
       }
       continue;
@@ -118,24 +120,69 @@ function walk(
   return links;
 }
 
-/** The flat list nested the way `DuxtToc` draws it: one level of children. */
+/**
+ * An authored page's outline, including levels MDC discarded at parse time.
+ *
+ * MDC takes frontmatter `toc` instead of its inline options. A page's
+ * `{ maxDepth: 4 }` therefore loses the layer's parse depth and gets MDC's h3
+ * default. Recover only those missing levels from the AST already on the row;
+ * preserve Content's searchDepth so headings in deeply nested/hidden components
+ * do not start appearing merely because the display depth changed.
+ */
+export function authoredToc(
+  body: unknown,
+  maximumDepth = 3
+): DuxtGeneratedTocLink[] {
+  const document = body as
+    | {
+        value?: unknown;
+        toc?: {
+          depth?: number;
+          searchDepth?: number;
+          links?: DuxtGeneratedTocLink[];
+        };
+      }
+    | undefined;
+  const toc = document?.toc;
+  if (
+    !Array.isArray(document?.value) ||
+    (typeof toc?.depth === 'number' && toc.depth + 1 >= maximumDepth)
+  ) {
+    return duxtTocLinks(toc?.links, maximumDepth);
+  }
+
+  const searchDepth =
+    typeof toc?.searchDepth === 'number' &&
+    Number.isFinite(toc.searchDepth) &&
+    toc.searchDepth >= 0
+      ? toc.searchDepth
+      : 2;
+  const headings: DuxtGeneratedTocLink[] = [];
+  const collect = (nodes: unknown[], nesting: number) => {
+    if (nesting > searchDepth) return;
+    for (const node of nodes) {
+      if (!Array.isArray(node)) continue;
+      const [tag, props, ...children] = node;
+      const level = typeof tag === 'string' ? HEADING.exec(tag) : null;
+      const id = props?.id;
+      if (level && typeof id === 'string' && id)
+        headings.push({ id, text: text(node).trim(), depth: Number(level[1]) });
+      collect(children, nesting + 1);
+    }
+  };
+  collect(document.value, 1);
+  return duxtTocLinks(headings, maximumDepth);
+}
+
+/** Use the same heading hierarchy for authored and generated outlines. */
 export function generatedToc(
   body: unknown,
   maximumDepth = 3
 ): DuxtGeneratedTocLink[] {
   const value = (body as { value?: unknown })?.value;
-  if (!Array.isArray(value)) return [];
-
-  const links: DuxtGeneratedTocLink[] = [];
-
-  for (const link of walk(value, false, maximumDepth)) {
-    const parent = links.at(-1);
-
-    if (link.depth > 2 && parent) (parent.children ??= []).push(link);
-    else links.push({ ...link, depth: 2 });
-  }
-
-  return links;
+  return Array.isArray(value)
+    ? duxtTocLinks(walk(value, false, maximumDepth), maximumDepth)
+    : [];
 }
 
 /**

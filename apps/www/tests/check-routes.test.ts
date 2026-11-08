@@ -249,3 +249,40 @@ test('the classification carries the handler each row accounts for', () => {
     else expect(entry.handlers.length).toBeGreaterThan(0);
   }
 });
+
+test.each([
+  '/api/wiki-fixture',
+  '/api/wikilinks-fixture',
+  '/api/infobox-fixture',
+  '/api/extension-fixture'
+])('a published internal fixture handler is rejected: %s', (handler) => {
+  expect(
+    verifyHandlerCoverage([...registeredHandlers(), handler]).join('\n')
+  ).toContain(handler);
+});
+
+test.each([
+  'wiki/index.html',
+  'wiki/target/index.html',
+  'de-DE/wiki/category/modes/index.html',
+  'page-types/index.html',
+  'extension-fixture/fixture-section/index.html',
+  'api/wiki-fixture/index.json',
+  'api/wikilinks-fixture/index.json',
+  'api/infobox-fixture/index.json',
+  'api/extension-fixture/index.json'
+])('a published internal fixture asset is rejected: %s', (file) => {
+  expect(
+    verifyDeploymentRoutes([...matchingArtifact(), file]).join('\n')
+  ).toContain(file);
+});
+
+test('published demo articles and categories are required assets', () => {
+  const files = matchingArtifact().filter(
+    (file) => !file.startsWith('demo/wiki/')
+  );
+  const findings = verifyDeploymentRoutes(files).join('\n');
+  expect(findings).toContain('demo/wiki/index.html');
+  expect(findings).toContain('demo/wiki/lumen-harbour/index.html');
+  expect(findings).toContain('demo/wiki/category/beacons/index.html');
+});

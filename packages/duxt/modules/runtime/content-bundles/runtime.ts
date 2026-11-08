@@ -46,6 +46,7 @@ interface Bundle {
   checksums: Record<string, string>;
   dumps: Record<string, string>;
   statements: Record<string, string[]>;
+  rowHashes: Record<string, string[]>;
   redirects: Record<string, { redirect: { to: string; statusCode: 301 } }>;
 }
 interface Options {
@@ -84,6 +85,29 @@ const statement = (row: string) => {
   if (!match) throw new Error('Unknown Content SQL dump suffix.');
   return row.slice(0, match.index);
 };
+
+/** Content splits large values into literal appends guarded by the prior row hash. */
+function contentChunkUpdate(sql: string, table: string): boolean {
+  const prefix = `UPDATE ${table} SET `;
+  if (!sql.startsWith(prefix)) return false;
+  const match =
+    /^([A-Za-z_][A-Za-z0-9_]*) = CONCAT\(\1, '(?:[^']|'')*'\), "__hash__" = '([A-Za-z0-9_-]+)' WHERE id = '(?:[^']|'')*' AND "__hash__" = '([A-Za-z0-9_-]+)-([0-9]+)';$/.exec(
+      sql.slice(prefix.length)
+    );
+  if (!match || ['id', '__hash__'].includes(match[1]!.toLowerCase()))
+    return false;
+  const previousOffset = Number(match[4]);
+  if (!Number.isSafeInteger(previousOffset) || previousOffset <= 0)
+    return false;
+  if (match[2] === match[3]) return true;
+  if (!match[2]!.startsWith(match[3] + '-')) return false;
+  const nextOffset = match[2]!.slice(match[3]!.length + 1);
+  return (
+    /^\d+$/.test(nextOffset) &&
+    Number.isSafeInteger(Number(nextOffset)) &&
+    Number(nextOffset) > previousOffset
+  );
+}
 
 // Open once, validate that handle, then read that same handle. O_NONBLOCK keeps
 // a substituted FIFO from holding startup or the poller while waiting for a writer.
@@ -255,6 +279,7 @@ export function createContentBundleRuntime(options: Options) {
       throw new Error('Invalid bundle redirects.');
     const dumps: Record<string, string> = {};
     const statements: Record<string, string[]> = {};
+    const rowHashes: Record<string, string[]> = {};
     for (const collection of collections) {
       if (
         typeof checksums[collection] !== 'string' ||
@@ -279,10 +304,17 @@ export function createContentBundleRuntime(options: Options) {
         .filter((row) => !row.endsWith(' -- structure'))
         .map(statement);
       const table = options.compat.tables[collection]!;
+      // Every INSERT and continuation shares Content's final valuesHash tag.
+      rowHashes[collection] = rows
+        .filter((row) => row.startsWith('INSERT INTO ' + table + ' '))
+        .map((row) => / -- ([A-Za-z0-9_-]+)$/.exec(row)![1]!);
+      if (new Set(rowHashes[collection]).size !== rowHashes[collection].length)
+        throw new Error('Duplicate Content row hashes: ' + collection);
       for (const sql of statements[collection]!) {
         if (
           !sql.startsWith('INSERT INTO ' + table + ' ') &&
           !sql.startsWith('INSERT INTO _content_info ') &&
+          !contentChunkUpdate(sql, table) &&
           sql !==
             `UPDATE _content_info SET ready = true WHERE id = 'checksum_${collection}';`
         )
@@ -298,6 +330,7 @@ export function createContentBundleRuntime(options: Options) {
       checksums,
       dumps,
       statements,
+      rowHashes,
       redirects,
       media: new Map(
         [...payload]
@@ -387,8 +420,33 @@ export function createContentBundleRuntime(options: Options) {
               'checksum_' + collection
             );
             // prepare/run executes exactly one statement; dumps cannot commit our transaction.
-            for (const sql of candidate.statements[collection]!)
-              db.prepare(sql).run();
+            for (const sql of candidate.statements[collection]!) {
+              const result = db.prepare(sql).run();
+              if (
+                contentChunkUpdate(sql, options.compat.tables[collection]!) &&
+                Number(result.changes) !== 1
+              )
+                throw new Error(
+                  'Content chunk did not update exactly one row: ' + collection
+                );
+            }
+            // A missing terminal (or every missing chunk) must not publish truncated JSON.
+            // Base hashes may themselves end in -digits; compare the exact dump tags.
+            const hashes = db
+              .prepare(
+                'SELECT __hash__ FROM ' +
+                  quote(options.compat.tables[collection]!)
+              )
+              .all()
+              .map((row) => row.__hash__);
+            if (
+              hashes.some((hash) => typeof hash !== 'string') ||
+              canonicalJson(hashes.sort()) !==
+                canonicalJson([...candidate.rowHashes[collection]!].sort())
+            )
+              throw new Error(
+                'Imported Content row hashes differ: ' + collection
+              );
             const after = db
               .prepare(
                 `SELECT version, structureVersion, ready FROM ${info} WHERE id = ?`

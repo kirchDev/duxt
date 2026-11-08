@@ -38,6 +38,7 @@
  */
 
 import { startBuiltServer } from './built-server.ts';
+import { assertWikiFixture } from './wiki-assertions.ts';
 
 const PORT = Number(process.env.ADAPTER_CHECK_PORT ?? 3125);
 const ORIGIN = `http://127.0.0.1:${PORT}`;
@@ -82,6 +83,7 @@ async function main() {
       (async () => {
         await server.ready();
 
+        await assertWikiFixture(ORIGIN);
         return [
           ...(await checkPage()),
           ...(await checkRawMarkdown()),
@@ -102,7 +104,7 @@ async function main() {
     }
 
     console.log(
-      `Adapter check passed on ${ADAPTER} — page, .md source, llms.txt and /mcp all answered from the database.`
+      `Adapter check passed on ${ADAPTER} — page, .md source, llms.txt, /mcp and wiki metadata all answered from the database.`
     );
   } catch (error) {
     console.error(`\nAdapter check could not run: ${String(error)}`);

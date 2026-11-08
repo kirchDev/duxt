@@ -135,7 +135,13 @@ export const DEPLOYMENT_ROUTES: readonly DeploymentRoute[] = [
       'the `/demo/openapi/shipments` links the versioned demo section generates and ' +
       'nothing serves. Those are a defect wanting a fix where they are generated, ' +
       'not a classified fallback.',
-    probes: ['index.html', 'getting-started/index.html'],
+    probes: [
+      'index.html',
+      'getting-started/index.html',
+      'demo/wiki/index.html',
+      'demo/wiki/lumen-harbour/index.html',
+      'demo/wiki/category/beacons/index.html'
+    ],
     handlers: ['/**']
   },
   {
@@ -477,6 +483,16 @@ export function verifyDeploymentRoutes(
   const present = new Set(listing);
   const findings: string[] = [];
 
+  // A fixture cannot be published as either HTML or a prerendered endpoint,
+  // including its locale-prefixed variants. Nested /demo/wiki stays public.
+  const fixture =
+    /^(?:[a-z]{2}(?:-[A-Z]{2})?\/)?(?:wiki|page-types|extension-fixture|api\/(?:wiki-fixture|wikilinks-fixture|infobox-fixture|extension-fixture))(?:\/|\.|$)/;
+  for (const file of listing)
+    if (fixture.test(file))
+      findings.push(
+        `The Workers build publishes internal fixture asset \`${file}\`.`
+      );
+
   for (const entry of routes) {
     for (const probe of entry.probes) {
       const matches = matchProbe(listing, present, probe);
@@ -674,7 +690,8 @@ function main(): void {
 
   console.log(
     `\n${DEPLOYMENT_ROUTES.length} routes verified against the ${preset} build artifact, ` +
-      `and all ${new Set(handlers).size} handlers it registers are classified or exempt.`
+      `and all ${new Set(handlers).size} handlers it registers are classified or exempt. ` +
+      'The public wiki demo is present and internal fixtures are absent.'
   );
 }
 

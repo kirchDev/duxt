@@ -28,7 +28,7 @@ declare global {
    * not parsed — a generator that wants it as data parses it itself, and gets to
    * decide what to do when it is not JSON.
    */
-  interface DuxtOpenApiRequest {
+  interface DuxtRequest {
     method: string;
     url: string;
     headers: Record<string, string>;
@@ -80,7 +80,7 @@ declare global {
      * JavaScript its mark.
      */
     icon?: string;
-    generate: (request: DuxtOpenApiRequest) => string;
+    generate: (request: DuxtRequest) => string;
   }
 
   /**
@@ -197,6 +197,8 @@ declare global {
    * a change here needs a rebuild, unlike the rest of this config.
    */
   interface DuxtSourceInput {
+    /** Default registered page type; frontmatter `type` takes precedence. */
+    pageType?: string;
     /** Folder holding the Markdown, relative to the repository root. */
     path?: string;
     /**
@@ -209,7 +211,7 @@ declare global {
     /** Per-source conventions for files that are not documentation pages. */
     exclude?: { drafts?: string; partials?: string };
     /** A layer-owned Markdown dialect, such as tfplugindocs. */
-    flavor?: 'tfplugindocs';
+    flavor?: string;
     /** `owner/name` or a full git URL. Omitted means this repository. */
     repo?: string;
     /** Refs to publish as versions. Omitted means the current checkout. */
@@ -422,6 +424,9 @@ declare global {
    * the navigation, because what it produces is an ordinary collection.
    */
   interface DuxtSectionTypeInput {
+    pageType?:
+      | string
+      | ((options: Record<string, unknown>) => string | undefined);
     parse: (
       artefact: string,
       context: {
@@ -468,6 +473,7 @@ declare global {
 
   /** One entry of the resolved source manifest — see `duxtSourceManifest()`. */
   interface DuxtResolvedSource {
+    pageType?: string;
     collection: string;
     prefix: string;
     repo?: string;
@@ -490,7 +496,7 @@ declare global {
     status: DuxtSourceStatusInput;
     history: boolean;
     /** The layer-owned Markdown dialect this collection is normalised from. */
-    flavor?: 'tfplugindocs';
+    flavor?: string;
     /**
      * Present when this collection is a generated section rather than a docs
      * tree. `path` is then the artefact itself rather than a folder.
@@ -1114,7 +1120,7 @@ declare global {
     /** URL template for contributor avatars; `{username}` is replaced. */
     contributors?: { avatarUrl?: string };
     /** Generated-outline and active-heading controls. */
-    toc?: { depth?: number; scrollOffset?: number };
+    toc?: { enabled?: boolean; depth?: number; scrollOffset?: number };
     /** Search behaviour that depends on a site's corpus. */
     search?: {
       fuzzy?: {
@@ -1125,8 +1131,6 @@ declare global {
       /** `0` disables the visible recent-pages list. */
       recentPages?: number;
     };
-    /** Separate limits for derived examples and schema-tree rendering. */
-    openapi?: { exampleDepth?: number; schemaDepth?: number };
     /**
      * What the site allows duxt to bind globally.
      *
@@ -1237,6 +1241,12 @@ declare global {
     sampleLanguages?: string[];
     /** Layout a consumer can switch off. */
     breadcrumb?: boolean;
+    /** Defaults for page controls; explicit frontmatter wins. */
+    prevNext?: boolean;
+    feedback?: boolean;
+    pageInfo?: boolean;
+    copyPage?: boolean;
+    fullWidth?: boolean;
     /**
      * The section `/rss.xml` publishes — a changelog, a release log, a blog.
      *
@@ -1269,6 +1279,8 @@ declare global {
      * what the theme and the version switcher actually read.
      */
     resolvedSources?: DuxtResolvedSource[];
+    /** Build-resolved page renderers from duxt.build.ts, serializable only. */
+    resolvedPageTypes?: Record<string, { layout: string; template: string }>;
     /**
      * GENERATED, not written. The layer's own version and repository, read out
      * of its `package.json` by the duxt module — what the footer's "Powered by"

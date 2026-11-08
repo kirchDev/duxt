@@ -1,0 +1,110 @@
+<script setup lang="ts">
+import { splitWikiBody } from '../../article';
+import type { DuxtPageTemplateProps } from '@duxt/utils/page-types';
+import { wikiPageKey } from '../../wiki-maintenance';
+const props = defineProps<DuxtPageTemplateProps>();
+const page = computed(() => props.page);
+const wiki = useWikiLinks(page, () => props.from);
+await wiki.ready;
+const path = useDuxtPath();
+const duxt = useDuxtConfig();
+const heading = useDuxtPageFocus();
+const controls = computed(() =>
+  duxtPageControls(page.value, {
+    breadcrumb: duxt.breadcrumb,
+    prevNext: duxt.prevNext,
+    feedback: duxt.feedback,
+    pageInfo: duxt.pageInfo,
+    copyPage: duxt.copyPage,
+    fullWidth: duxt.fullWidth,
+    toc: duxt.toc?.enabled,
+    tocMaxDepth: duxt.toc?.depth
+  })
+);
+
+const outline = computed(() =>
+  controls.value.toc
+    ? authoredToc(page.value?.body, controls.value.tocMaxDepth)
+    : []
+);
+
+const parts = computed(() => splitWikiBody(wiki.body.value));
+const backlinks = computed(() => {
+  const delivered =
+    wiki.allPages.value.find(
+      (row) =>
+        row.path === props.page.path &&
+        row.collection === wiki.context.value?.source.collection
+    ) ?? wiki.allPages.value.find((row) => row.path === props.page.path);
+  return delivered
+    ? (wiki.maintenance.value.backlinks[wikiPageKey(delivered)] ?? [])
+    : [];
+});
+</script>
+
+<template>
+  <div v-if="page" class="flex min-w-0 flex-1 justify-center gap-10">
+    <article data-wiki-article class="min-w-0 flex-1 py-8">
+      <DuxtAnnouncements placement="above-content" />
+
+      <DuxtVersionBanner />
+
+      <DuxtTranslationBanner v-if="untranslated" :from="from" />
+
+      <header class="mb-8 border-b pb-8">
+        <DuxtBreadcrumb v-if="controls.breadcrumb" :path="path" class="mb-3" />
+        <!-- The copy action sits with the title, not under the article: it is
+             what a reader does with the page BEFORE reading it, and a control
+             for that at the bottom is a control nobody finds. -->
+        <div
+          class="flex flex-wrap items-start justify-between gap-x-4 gap-y-2 sm:flex-nowrap"
+        >
+          <h1
+            ref="heading"
+            tabindex="-1"
+            class="min-w-0 text-4xl font-semibold tracking-tight text-balance wrap-break-word outline-none"
+          >
+            {{ page?.title }}
+          </h1>
+
+          <DuxtCopyPage
+            v-if="controls.copyPage"
+            class="mt-1 ms-auto"
+            :path="path"
+            :title="page?.title"
+            :rawbody="(page as { rawbody?: string })?.rawbody"
+          />
+        </div>
+        <p
+          v-if="page?.description"
+          class="mt-3 text-lg text-muted-foreground text-pretty"
+        >
+          {{ page.description }}
+        </p>
+      </header>
+
+      <div class="typeset typeset-docs">
+        <ContentRenderer :value="{ ...page, body: parts.lead }" />
+        <WikiToc v-if="outline.length" :links="outline" />
+        <ContentRenderer :value="{ ...page, body: parts.rest }" />
+        <slot />
+      </div>
+
+      <WikiBacklinks :pages="backlinks" />
+
+      <div v-if="controls.pageInfo" data-wiki-page-info>
+        <DuxtPageInfo :page="page" row />
+      </div>
+
+      <!-- The cards are their own separation; a rule above them would be the
+           third in a row after the backlinks and the page info. -->
+      <DuxtPageNav
+        v-if="controls.prevNext"
+        :path="path"
+        class="mt-8! border-t-0! pt-0!"
+      />
+
+      <DuxtPageFeedback v-if="controls.feedback" />
+    </article>
+  </div>
+</template>

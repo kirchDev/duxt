@@ -169,6 +169,8 @@ export const changelogSectionType: DuxtSectionType = {
    */
   layout: (options) =>
     granularityOf(options) === 'split' ? DUXT_CHANGELOG_LAYOUT : undefined,
+  pageType: (options) =>
+    granularityOf(options) === 'split' ? 'changelog' : 'docs',
   icon: 'lucide:tag'
 };
 

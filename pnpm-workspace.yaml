@@ -141,3 +141,7 @@ allowBuilds:
   # nobody uses, and refusing the build only moves the failure to the first
   # person who tries.
   workerd: true
+
+# Keep relative internal URLs local in LinkChecker prerender requests.
+patchedDependencies:
+  nuxt-link-checker@6.0.1: patches/nuxt-link-checker@6.0.1.patch

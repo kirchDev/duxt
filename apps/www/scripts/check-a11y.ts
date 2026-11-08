@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+import { checkWikiFixtures, WIKI_ROUTES } from './wiki-fixture.ts';
+import { checkInfoboxFixtures, INFOBOX_ROUTES } from './infobox-fixture.ts';
+import { assertWikiDemo, WIKI_DEMO_SHOWCASE_ROUTES } from './wiki-demo.ts';
 
 /**
  * Runs axe-core over a handful of rendered pages.
@@ -27,6 +30,7 @@
  * Run after `build:app`, which is why it sits behind it in `check`.
  */
 
+import assert from 'node:assert/strict';
 import axe from 'axe-core';
 import { JSDOM } from 'jsdom';
 import { startBuiltServer } from './built-server.ts';
@@ -91,6 +95,11 @@ const ROUTES = [
   // shape axe has an opinion about: the button's name, the image's
   // alternative, and whether the indicator is hidden from the tree.
   '/demo/images',
+  // The actual three-level outline and footnote/backlink, rather than fenced examples.
+  '/demo/wiki-foundations',
+  ...WIKI_ROUTES,
+  ...INFOBOX_ROUTES,
+  ...WIKI_DEMO_SHOWCASE_ROUTES,
   '/does-not-exist'
 ];
 
@@ -104,6 +113,8 @@ async function main() {
 
   try {
     await server.ready();
+    await checkWikiFixtures(`http://localhost:${PORT}`);
+    await checkInfoboxFixtures(`http://localhost:${PORT}`);
 
     const failures: string[] = [];
 
@@ -147,6 +158,45 @@ async function check(route: string): Promise<string[]> {
   });
 
   const { window } = dom;
+  assertWikiDemo(window.document, route);
+
+  if (route === '/demo/wiki-foundations') {
+    const document = window.document;
+    const outline = document.querySelector('nav[aria-label="On this page"]');
+    assert.ok(outline, 'wiki fixture renders a table of contents');
+    const nested = outline.querySelector(
+      'ul > li > ul > li > ul > li > a[href="#source-detail"]'
+    );
+    assert.ok(
+      nested,
+      `h4 remains nested beneath h3 and h2 in the rendered outline: ${outline.outerHTML}`
+    );
+    assert.ok(
+      document.getElementById('source-detail'),
+      'outline target exists'
+    );
+    const citation = document.querySelector<HTMLAnchorElement>(
+      'a[data-footnote-ref]'
+    );
+    const backlink = document.querySelector<HTMLAnchorElement>(
+      'a[data-footnote-backref]'
+    );
+    assert.ok(
+      citation,
+      `wiki fixture renders a footnote citation: ${document.querySelector('.typeset')?.innerHTML}`
+    );
+    assert.ok(backlink, 'wiki fixture renders a footnote backlink');
+    const note = document.getElementById(citation.hash.slice(1));
+    assert.ok(
+      note && note.contains(backlink),
+      'citation points to its source note'
+    );
+    assert.equal(
+      backlink.hash,
+      `#${citation.id}`,
+      'footnote links back to the citation'
+    );
+  }
 
   // axe reads globals rather than taking a document, so they are installed for
   // the length of one page and taken away again — two pages sharing a leaked

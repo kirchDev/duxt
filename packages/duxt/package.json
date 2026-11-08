@@ -37,6 +37,7 @@
     "build",
     "components.json",
     "content.config.ts",
+    "duxt.build.ts",
     "i18n",
     "mdc.config.ts",
     "modules",
@@ -55,13 +56,14 @@
     "./openapi-parse": "./build/openapi/openapi-parse.ts",
     "./search-records": "./build/search/search-records.ts",
     "./sections": "./build/sections/sections.ts",
-    "./sections-bruno": "./build/sections/sections-bruno.ts",
-    "./sections-openapi": "./build/sections/sections-openapi.ts",
+    "./sections-bruno": "./build/bruno/section.ts",
+    "./sections-openapi": "./build/openapi/section.ts",
     "./sections-resolve": "./build/sections/sections-resolve.ts",
     "./sources": "./build/sources/sources.ts",
     "./sources-cache": "./build/sources/sources-cache.ts",
     "./sources-git": "./build/sources/sources-git.ts",
-    "./sources-resolve": "./build/sources/sources-resolve.ts"
+    "./sources-resolve": "./build/sources/sources-resolve.ts",
+    "./unstable": "./build/unstable.ts"
   },
   "publishConfig": {
     "access": "public"

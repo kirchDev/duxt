@@ -16,6 +16,8 @@ export interface ContentBundleCompat {
   tables: Record<string, string>;
   collectionMetaHash: string;
   resolvedSourcesHash: string;
+  /** Registered layout/template descriptors are part of the app image. */
+  pageTypesHash?: string;
 }
 
 export interface ContentCompatibilityArtifact {
@@ -56,7 +58,8 @@ export const contentCompatHash = (compat: ContentBundleCompat) =>
       checksumsStructure: compat.checksumsStructure,
       tables: compat.tables,
       collectionMetaHash: compat.collectionMetaHash,
-      resolvedSourcesHash: compat.resolvedSourcesHash
+      resolvedSourcesHash: compat.resolvedSourcesHash,
+      pageTypesHash: compat.pageTypesHash
     })
   );
 

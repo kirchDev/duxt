@@ -10,6 +10,8 @@ import type {
  * current checkout or at named refs.
  */
 export interface DuxtSource {
+  /** Default page renderer; a page's `type` frontmatter wins. */
+  pageType?: string;
   /** Folder holding the Markdown, relative to the repository root. */
   path?: string;
   /**
@@ -179,7 +181,7 @@ export interface DuxtSource {
 }
 
 /** Source dialects the layer understands. */
-export type DuxtSourceFlavor = 'tfplugindocs';
+export type DuxtSourceFlavor = string;
 
 /**
  * Where a version sits in its life.
@@ -324,6 +326,7 @@ export interface DuxtSourcesOptions {
 
 /** One resolved source: which collection serves which URL prefix. */
 export interface DuxtResolvedSource {
+  pageType?: string;
   /** Collection name Content will register. */
   collection: string;
   /** URL prefix it serves; '' for the root. */
@@ -807,10 +810,10 @@ export function resolveSources(
             : source.statusDefaults?.branch
           : undefined) ??
         'current',
-      // A local source is a full checkout already; a remote one has to be
-      // unshallowed, which is why it has to be asked for.
-      history: entry.repo ? (source.history ?? false) : true,
-      flavor: source.flavor
+      // Local history is on unless explicitly disabled; remote history is opt-in.
+      history: source.history ?? !entry.repo,
+      flavor: source.flavor,
+      pageType: source.pageType
     });
   }
 

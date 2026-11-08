@@ -42,7 +42,7 @@ export async function llmsPages(
   // shapes, and a page hidden from one but listed in the other is a bug nobody
   // would go looking for.
   const fields = includeRawbody
-    ? (['path', 'title', 'description', 'rawbody', 'search'] as const)
+    ? (['path', 'title', 'description', 'rawbody', 'search', 'type'] as const)
     : (['path', 'title', 'description', 'search'] as const);
   const entries = await Promise.all(
     collections.map(
@@ -73,7 +73,12 @@ export async function llmsPages(
       pages.map((page) => page.path).filter(Boolean)
     )
   );
-  const result = new Map<string, (typeof entries)[number][1][number]>();
+  type ExportPage = (typeof entries)[number][1][number] & {
+    duxtSource?: DuxtResolvedSource;
+    contentPath?: string;
+    duxtLocale?: string;
+  };
+  const result = new Map<string, ExportPage>();
 
   for (const locale of locales) {
     for (const path of paths) {
@@ -82,9 +87,8 @@ export async function llmsPages(
             (source) => source.collection
           )
         : ['docs'];
-      const page = chain
-        .map((name) => pagesByCollection.get(name)?.get(path))
-        .find(Boolean);
+      const name = chain.find((name) => pagesByCollection.get(name)?.has(path));
+      const page = name && pagesByCollection.get(name)?.get(path);
       if (!page) continue;
       const prefixed =
         locale &&
@@ -93,9 +97,14 @@ export async function llmsPages(
       const publicPath = prefixed
         ? `/${locale}${path === '/' ? '' : path}`
         : path;
-      result.set(publicPath, { ...page, path: publicPath });
+      const provenance = {
+        duxtSource: sources.find((source) => source.collection === name),
+        contentPath: path,
+        duxtLocale: locale
+      };
+      result.set(publicPath, { ...page, path: publicPath, ...provenance });
       if (strategy === 'prefix_and_default' && locale === defaultLocale)
-        result.set(path, { ...page, path });
+        result.set(path, { ...page, path, ...provenance });
     }
   }
   return [...result.values()].sort((a, b) => a.path.localeCompare(b.path));

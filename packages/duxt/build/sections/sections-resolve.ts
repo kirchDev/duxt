@@ -28,9 +28,10 @@ import {
   resolveSources,
   slugify
 } from '../sources/sources-resolve';
-import { brunoSectionType } from './sections-bruno';
-import { changelogSectionType } from './sections-changelog';
-import { openapiSectionType } from './sections-openapi';
+import {
+  duxtLayerDirectory,
+  readDuxtContributions
+} from '../config/duxt-contributions';
 
 /**
  * One artefact beside a source's Markdown, published as pages of the site.
@@ -342,6 +343,8 @@ export interface DuxtSectionReport {
  * `1.0.0`, which is when it stops being cheap.
  */
 export interface DuxtSectionType {
+  /** Default renderer for this section's pages. Explicit page `type` wins. */
+  pageType?: string | ((options: DuxtSectionOptions) => string | undefined);
   /** The artefact, split into pages carrying their own frontmatter. */
   parse: (
     input: DuxtSectionInput,
@@ -414,13 +417,6 @@ export interface DuxtSectionType {
 /** The registry: type name to type. */
 export type DuxtSectionTypes = Record<string, DuxtSectionType>;
 
-/** The types the layer ships. */
-export const duxtBuiltinSectionTypes: DuxtSectionTypes = {
-  bruno: brunoSectionType,
-  changelog: changelogSectionType,
-  openapi: openapiSectionType
-};
-
 /**
  * The registry, open for a consumer to add to.
  *
@@ -431,7 +427,10 @@ export const duxtBuiltinSectionTypes: DuxtSectionTypes = {
  * hook. A consumer's entry wins, so a type can also be replaced.
  */
 export function duxtSectionTypes(custom?: DuxtSectionTypes): DuxtSectionTypes {
-  return { ...duxtBuiltinSectionTypes, ...custom };
+  return {
+    ...readDuxtContributions([duxtLayerDirectory]).sectionTypes,
+    ...custom
+  };
 }
 
 /**
@@ -673,6 +672,10 @@ export function resolveGeneratedSections(
             // disk, so `git log` would answer about nothing; a type that has
             // dates puts them in the frontmatter it writes.
             history: false,
+            pageType:
+              typeof type.pageType === 'function'
+                ? type.pageType(options)
+                : (type.pageType ?? base.entry.pageType),
             generated: {
               type: declared.type,
               label: declared.label,
