@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { ensureFullHistory } from './full-history.ts';
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
@@ -98,6 +99,7 @@ async function main() {
     return response.json();
   };
   const pack = async () => {
+    ensureFullHistory();
     const { stdout } = await execute(
       process.execPath,
       [

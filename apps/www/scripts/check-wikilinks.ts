@@ -16,6 +16,7 @@ import { promisify } from 'node:util';
 import { JSDOM } from 'jsdom';
 import { chromium, type Browser } from 'playwright-core';
 import { startBuiltServer } from './built-server.ts';
+import { ensureFullHistory } from './full-history.ts';
 import { browserPath, hydrated, missingBrowser } from './browser.ts';
 
 const site = fileURLToPath(new URL('..', import.meta.url));
@@ -445,6 +446,7 @@ async function outputs(changed = false) {
 const bin = join(site, '../../packages/duxt/bin/duxt.mjs');
 const execFileAsync = promisify(execFile);
 async function pack() {
+  ensureFullHistory();
   await execFileAsync(
     process.execPath,
     [

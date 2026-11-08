@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { ensureFullHistory } from './full-history.ts';
 import {
   mkdtempSync,
   readFileSync,
@@ -33,6 +34,7 @@ const server = startBuiltServer({
   }
 });
 const pack = () => {
+  ensureFullHistory();
   const packed = spawnSync(
     process.execPath,
     [

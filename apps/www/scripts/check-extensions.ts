@@ -15,6 +15,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import { startBuiltServer } from './built-server.ts';
+import { ensureFullHistory } from './full-history.ts';
 
 const site = fileURLToPath(new URL('..', import.meta.url));
 const origin = 'http://127.0.0.1:3125';
@@ -175,6 +176,7 @@ try {
     wikiAdded,
     '---\ntitle: Bundled article\ncategories: [Modes, Fresh group]\n---\nNew content without an image rebuild.\n'
   );
+  ensureFullHistory();
   const packed = spawnSync(
     process.execPath,
     [
