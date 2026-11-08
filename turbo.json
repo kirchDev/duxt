@@ -89,6 +89,9 @@
     "@kirchdev/duxt-wiki#test": {
       "outputs": [],
       "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/packages/duxt/**"]
+    },
+    "check:wikilinks": {
+      "cache": false
     }
   }
 }

@@ -56,7 +56,7 @@ export function resolveWikiTargets(
 ): WikiResolution[] {
   pages = visiblePages(pages);
   return targets.map((target) => {
-    const name = wikiName(target.split('#')[0]!.split('?')[0]!);
+    const name = wikiName(target.split('#')[0]!);
     if (!name) return { target, pages: [] };
     const path = name.startsWith('~/')
       ? name.slice(1)
@@ -75,10 +75,12 @@ export function resolveWikiTargets(
           ))
     );
     const collection = matched[0]?.collection;
-    return {
-      target,
-      pages: matched.filter((page) => page.collection === collection)
-    };
+    let candidates = matched.filter((page) => page.collection === collection);
+    const disambiguations = candidates.filter(
+      (page) => page.type === 'disambiguation' && wikiName(page.title) === name
+    );
+    if (disambiguations.length === 1) candidates = disambiguations;
+    return { target, pages: candidates };
   });
 }
 

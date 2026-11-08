@@ -1,0 +1,57 @@
+export const collectionWantedRoute = (prefix: string) => `${prefix}/wanted`;
+
+export const collectionWantedPrefixes = (
+  sources: { prefix: string; generated?: unknown }[]
+) => [
+  ...new Set(
+    sources.filter((source) => !source.generated).map((source) => source.prefix)
+  )
+];
+
+/** Only actual internal utility URLs; title values never name distinct pages. */
+export function collectionWantedPaths(
+  prefixes: string[],
+  locales: string[],
+  routing: { strategy?: string; defaultLocale?: string } = {}
+): string[] {
+  const paths = prefixes
+    .filter(
+      (prefix) =>
+        (prefix === '' || /^\/(?!\/)[^?#]*$/.test(prefix)) &&
+        !prefix
+          .split('/')
+          .some((segment) => segment === '.' || segment === '..')
+    )
+    .map(collectionWantedRoute);
+  const strategy = routing.strategy ?? 'prefix_except_default';
+  const routedLocales =
+    strategy === 'no_prefix'
+      ? []
+      : locales.filter(
+          (locale) =>
+            /^[\w-]+$/.test(locale) &&
+            (strategy !== 'prefix_except_default' ||
+              locale !== routing.defaultLocale)
+        );
+  const routes = [
+    ...new Set(
+      paths.flatMap((path) => [
+        ...(strategy === 'prefix' ? [] : [path]),
+        ...routedLocales.map((locale) => `/${locale}${path}`)
+      ])
+    )
+  ];
+  return routes;
+}
+
+export function wantedTitleQueryPattern(
+  prefixes: string[],
+  locales: string[],
+  routing: { strategy?: string; defaultLocale?: string } = {}
+): RegExp | undefined {
+  const routes = collectionWantedPaths(prefixes, locales, routing);
+  if (!routes.length) return;
+  const escape = (value: string) =>
+    value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`^(?:${routes.map(escape).join('|')})\\?title=[^&#]*$`);
+}

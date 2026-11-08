@@ -2,6 +2,7 @@ import { loadWikiPages, WIKI_FIELDS } from '../../queries';
 
 /** A request/payload-local metadata read in the active source's locale order. */
 export function useWikiPages() {
+  const app = useNuxtApp();
   const { source, fallbacks } = useDuxtCollection();
   const { locale } = useI18n();
   const collections = computed(() =>
@@ -14,12 +15,14 @@ export function useWikiPages() {
     () =>
       loadWikiPages(
         async (collection, offset, limit) =>
-          await queryCollection(collection as DuxtCollectionArg)
-            .select(...WIKI_FIELDS)
-            .order('path', 'ASC')
-            .limit(limit)
-            .skip(offset)
-            .all(),
+          await app.runWithContext(() =>
+            queryCollection(collection as DuxtCollectionArg)
+              .select(...WIKI_FIELDS)
+              .order('path', 'ASC')
+              .limit(limit)
+              .skip(offset)
+              .all()
+          ),
         collections.value
       ),
     { watch: [collections, locale] }

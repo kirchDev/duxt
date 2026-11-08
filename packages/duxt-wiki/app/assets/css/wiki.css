@@ -2,3 +2,8 @@
 @reference '@duxt/assets/css/duxt.css';
 @tailwind utilities;
 @source '../../';
+
+.wiki-red-link {
+  color: var(--destructive);
+  text-decoration-style: dotted;
+}

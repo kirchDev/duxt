@@ -1,3 +1,5 @@
+import { wikiTokens } from './wikilinks.ts';
+
 export interface WikiLink {
   target: string;
   kind: 'markdown' | 'wiki';
@@ -39,27 +41,14 @@ export function collectWikiMetadata(page: Record<string, unknown>): void {
   };
   const walk = (node: unknown): void => {
     if (typeof node === 'string') {
-      let cursor = 0;
-      while (cursor < node.length) {
-        const start = node.indexOf('[[', cursor);
-        if (start === -1) break;
-        let end = start + 2;
-        while (end < node.length && node[end] !== ']' && node[end] !== '\n')
-          end++;
-        if (end > start + 2 && node[end] === ']' && node[end + 1] === ']') {
-          add(
-            node
-              .slice(start + 2, end)
-              .split('|')[0]!
-              .trim(),
-            'wiki'
-          );
-          cursor = end + 2;
-        } else {
-          // Every nested opener hits this same invalid delimiter; skip it once.
-          cursor = end + 1;
-        }
-      }
+      for (const token of wikiTokens(node, false))
+        add(
+          node
+            .slice(token.start + 2, token.end - 2)
+            .split('|')[0]!
+            .trim(),
+          'wiki'
+        );
     } else if (Array.isArray(node)) {
       const [tag, props, ...children] = node;
       if (

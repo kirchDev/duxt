@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { splitWikiBody } from '../../article';
 import type { DuxtPageTemplateProps } from '@duxt/utils/page-types';
+import { wikiPageKey } from '../../wiki-maintenance';
 const props = defineProps<DuxtPageTemplateProps>();
 const page = computed(() => props.page);
+const wiki = useWikiLinks(page, () => props.from);
+await wiki.ready;
 const path = useDuxtPath();
 const duxt = useDuxtConfig();
 const heading = useDuxtPageFocus();
@@ -25,7 +28,18 @@ const outline = computed(() =>
     : []
 );
 
-const parts = computed(() => splitWikiBody(page.value?.body));
+const parts = computed(() => splitWikiBody(wiki.body.value));
+const backlinks = computed(() => {
+  const delivered =
+    wiki.allPages.value.find(
+      (row) =>
+        row.path === props.page.path &&
+        row.collection === wiki.context.value?.source.collection
+    ) ?? wiki.allPages.value.find((row) => row.path === props.page.path);
+  return delivered
+    ? (wiki.maintenance.value.backlinks[wikiPageKey(delivered)] ?? [])
+    : [];
+});
 </script>
 
 <template>
@@ -79,6 +93,8 @@ const parts = computed(() => splitWikiBody(page.value?.body));
         <ContentRenderer :value="{ ...page, body: parts.rest }" />
         <slot />
       </div>
+
+      <WikiBacklinks :pages="backlinks" />
 
       <div
         v-if="controls.pageInfo"

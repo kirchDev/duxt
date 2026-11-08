@@ -169,6 +169,7 @@ export default defineAppConfig({
         path: 'apps/www/layers/wiki-fixture/docs',
         slug: 'wiki',
         pageType: 'article',
+        origin: { repo: 'kirchDev/duxt', ref: 'dev' },
         history: false,
         locales: [
           'en-GB',

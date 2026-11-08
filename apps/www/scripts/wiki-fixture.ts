@@ -62,8 +62,10 @@ export async function checkWikiFixtures(origin: string) {
       );
     if (path === '/wiki') {
       const content = doc.querySelector('main article')!;
-      const lead = [...content.querySelectorAll('p')].find((node) =>
-        node.textContent?.includes('and [[FAST#Part]]')
+      const lead = [...content.querySelectorAll('p')].find(
+        (node) =>
+          node.textContent?.includes('and FAST#Part') &&
+          node.querySelector('a[href="/wiki/target#part"]')
       );
       const toc = content.querySelector('[data-wiki-toc]')!;
       const heading = content.querySelector('h2#history')!;
