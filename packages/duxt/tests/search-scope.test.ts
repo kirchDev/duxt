@@ -93,6 +93,7 @@ it('includes the real www Terraform, API and release sources from getting-starte
     const active = searchSources(sources, current, 'en-GB');
     expect(active.map((entry) => entry.prefix)).toEqual([
       '',
+      '/wiki',
       '/page-types',
       '/extension-fixture',
       '/demo',
