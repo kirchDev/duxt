@@ -227,6 +227,67 @@ async function outputs(changed = false) {
         )?.textContent,
         label
       );
+    for (const prefix of [
+      'Occurrence anchor:',
+      'Occurrence direct:',
+      'Occurrence after code:'
+    ]) {
+      const paragraph = [...localized.querySelectorAll('main p')].find((node) =>
+        node.textContent?.startsWith(prefix)
+      );
+      assert.ok(paragraph, prefix);
+      const links = paragraph.querySelectorAll(`a[href="${locale}${target}"]`);
+      assert.equal(
+        links.length,
+        1,
+        `${prefix} only the valid occurrence resolves`
+      );
+      assert.ok(
+        paragraph.textContent?.includes('[[WikiAlias]]'),
+        `${prefix} escaped twin remains literal`
+      );
+    }
+    const ordinary = [...localized.querySelectorAll('main p')].find((node) =>
+      node.textContent?.startsWith('Occurrence direct:')
+    );
+    assert.ok(
+      ordinary?.querySelector(`a[href="${locale}/demo/images"]`),
+      'ordinary Markdown link keeps precedence'
+    );
+    assert.ok(
+      localized.querySelector('main img[alt="x [[Protected shadow]]"]'),
+      'image alt remains literal'
+    );
+    assert.equal(
+      localized.querySelector('main a[href*="Protected%20shadow"]'),
+      null
+    );
+    const entity = [...localized.querySelectorAll('main a')].find(
+      (node) => node.textContent === 'R&D parser'
+    );
+    assert.equal(
+      entity?.getAttribute('href'),
+      `${locale}${target}`,
+      'native entity label resolves'
+    );
+    const mixedNormal = [...localized.querySelectorAll('main a')].find(
+      (node) => node.textContent === 'Mixed normal'
+    );
+    const mixedStruck = [...localized.querySelectorAll('main a')].find(
+      (node) => node.textContent === 'Mixed struck'
+    );
+    assert.equal(mixedNormal?.getAttribute('href'), `${locale}${target}`);
+    assert.equal(mixedNormal?.closest('del'), null);
+    assert.equal(mixedStruck?.getAttribute('href'), `${locale}${target}`);
+    assert.ok(
+      mixedStruck?.closest('del'),
+      'mixed root token retains its own authored strike'
+    );
+    assert.equal(
+      mixedStruck?.closest('p')?.textContent,
+      'Mixed normal and Mixed struck',
+      'no visible strike delimiters'
+    );
     const twinLinks = [...localized.querySelectorAll('main a')].filter(
       (node) => node.textContent === 'Generated twin'
     );
@@ -319,6 +380,28 @@ async function outputs(changed = false) {
     assert.ok(!text.includes('[Foreign wanted]('));
     assert.ok(text.includes('**Generated prose**'));
     assert.ok(text.includes('~~Wiki strike~~'));
+    assert.ok(
+      text.includes(
+        `Occurrence anchor: [ordinary [[WikiAlias]]](~/demo/images) and \\[[WikiAlias]] and [WikiAlias](${target}).`
+      )
+    );
+    assert.ok(
+      text.includes(
+        `Occurrence direct: [[WikiAlias]](~/demo/images) and [WikiAlias](${target}) and \\[[WikiAlias]].`
+      )
+    );
+    assert.ok(
+      text.includes(
+        '![x [[Protected shadow]]](/favicon.svg) and \\[[Protected shadow]]'
+      )
+    );
+    assert.ok(text.includes('    [[Indented shadow]]'));
+    assert.ok(text.includes(`[R&D parser](${target})`));
+    assert.ok(
+      text.includes(
+        `[Mixed normal](${target}) and ~~[Mixed struck](${target})~~`
+      )
+    );
     assert.equal(
       text.split(
         '[Generated twin](/demo/openapi/consignments/listconsignments)'

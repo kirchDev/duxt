@@ -38,6 +38,20 @@ categories: [Wikilinks]
 [[Fenced literal]]
 ```
 
+Occurrence anchor: [ordinary [[WikiAlias]]](~/demo/images) and \[[WikiAlias]] and [[WikiAlias]].
+
+Occurrence direct: [[WikiAlias]](~/demo/images) and [[WikiAlias]] and \[[WikiAlias]].
+
+Occurrence image: ![x [[Protected shadow]]](/favicon.svg) and \[[Protected shadow]].
+
+    [[Indented shadow]]
+
+Occurrence after code: \[[WikiAlias]] and [[WikiAlias]].
+
+[[WikiAlias|R&amp;D parser]]
+
+[[~/wiki/WikiAlias|Mixed normal]] and ~~[[~/wiki/WikiAlias|Mixed struck]]~~
+
 ## Checks
 
 The target's current row decides every link, even after it moves.
