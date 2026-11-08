@@ -67,7 +67,7 @@ export default defineMcpTool({
         content: [
           {
             type: 'text',
-            text: `${frontmatter}\n\n${await duxtPageMarkdown(event, { rawbody: page.rawbody, path: wanted, source, locale, pageType: page.type ?? source.pageType })}`
+            text: `${frontmatter}\n\n${await duxtPageMarkdown(event, { rawbody: page.rawbody, path: wanted, source, locale, pageType: source.pageType })}`
           }
         ]
       };

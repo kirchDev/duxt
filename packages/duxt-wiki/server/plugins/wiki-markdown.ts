@@ -19,20 +19,20 @@ export default defineNitroPlugin((nitro) => {
       if (!page.markdown.includes('[[')) return page.markdown;
       const sources =
         (useAppConfig().duxt as DuxtConfig | undefined)?.resolvedSources ?? [];
-      if (
-        !['article', 'category', 'disambiguation'].includes(
-          page.pageType ?? page.source.pageType ?? 'docs'
-        )
-      )
-        return page.markdown;
       const stored = await queryCollection(
         event,
         page.source.collection as Parameters<typeof queryCollection>[1]
       )
         .path(page.path)
-        .select('body')
         .first();
-      const body = (stored as { body?: unknown } | null)?.body;
+      const current = stored as { body?: unknown; type?: string } | null;
+      if (
+        !['article', 'category', 'disambiguation'].includes(
+          current?.type ?? page.source.pageType ?? 'docs'
+        )
+      )
+        return page.markdown;
+      const body = current?.body;
       const tokens = wikiBodyTokens(body);
       if (!tokens.length) return page.markdown;
       const setup = duxtLocaleSetup(event);

@@ -40,6 +40,6 @@ export default defineEventHandler(async (event) => {
     path: found.path,
     source: found.source,
     locale: found.locale,
-    pageType: page.type ?? found.source.pageType
+    pageType: found.source.pageType
   });
 });
