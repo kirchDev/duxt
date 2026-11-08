@@ -74,6 +74,45 @@ it('uses the preferred locale once, keeps page-less categories and reports cycle
   expect(wikiCategoryCycles(pages)).toEqual([['Modes', 'Catalog', 'Modes']]);
 });
 
+it.each([false, true])(
+  'collects incoming links from the visible locale only (preferred links: %s)',
+  (preferredLinks) => {
+    const target = page('/wiki/to', 'Target', { collection: 'docs_de' });
+    const translated = page('/wiki/from', 'Von', {
+      collection: 'docs_de',
+      links: preferredLinks ? [{ target: 'Target', kind: 'wiki' }] : []
+    });
+    const original = page('/wiki/from', 'From', {
+      links: [{ target: 'Target', kind: 'wiki' }]
+    });
+    const fallbackOnly = page('/wiki/fallback', 'Fallback', {
+      links: [{ target: 'Target', kind: 'wiki' }]
+    });
+    expect(
+      wikiIncoming([target, translated, original, fallbackOnly], target)
+    ).toEqual(preferredLinks ? [translated, fallbackOnly] : [fallbackOnly]);
+  }
+);
+
+it('resolves incoming and direct targets against the same visible locale rows', () => {
+  const translated = page('/wiki/to', 'Ziel', { collection: 'docs_de' });
+  const original = page('/wiki/to', 'Target', { aliases: ['Hidden'] });
+  const linker = page('/wiki/from', 'Von', {
+    collection: 'docs_de',
+    links: [{ target: 'Hidden', kind: 'wiki' }]
+  });
+  const pages = [translated, linker, original];
+  expect(
+    resolveWikiTargets(pages, ['Hidden', 'Target', 'Ziel', '/wiki/to'])
+  ).toEqual([
+    { target: 'Hidden', pages: [] },
+    { target: 'Target', pages: [] },
+    { target: 'Ziel', pages: [translated] },
+    { target: '/wiki/to', pages: [translated] }
+  ]);
+  expect(wikiIncoming(pages, translated)).toEqual([]);
+});
+
 it('pages batches and preserves scope boundaries without guessing duplicate names', async () => {
   const rows = Array.from({ length: 130 }, (_, index) =>
     page(`/wiki/p${index}`, `Title ${index}`)

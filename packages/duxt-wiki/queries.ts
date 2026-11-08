@@ -40,12 +40,21 @@ export interface WikiResolution {
   pages: WikiPage[];
 }
 
+/** A fallback row is visible only where no earlier locale owns its path. */
+function visiblePages(pages: WikiPage[]): WikiPage[] {
+  const visible = new Map<string, WikiPage>();
+  for (const page of pages)
+    if (!visible.has(page.path)) visible.set(page.path, page);
+  return [...visible.values()];
+}
+
 /** Collections are supplied in locale precedence; lower-priority names fall back. */
 export function resolveWikiTargets(
   pages: WikiPage[],
   targets: string[],
   prefix = ''
 ): WikiResolution[] {
+  pages = visiblePages(pages);
   return targets.map((target) => {
     const name = wikiName(target.split('#')[0]!.split('?')[0]!);
     if (!name) return { target, pages: [] };
@@ -78,6 +87,7 @@ export function wikiIncoming(
   target: WikiPage,
   prefix = ''
 ): WikiPage[] {
+  pages = visiblePages(pages);
   return pages.filter((page) =>
     page.links.some((link) => {
       if (link.kind === 'markdown' && /^(?:[a-z]+:|\/\/)/i.test(link.target))
@@ -107,10 +117,7 @@ function categoryPage(pages: WikiPage[], name: string): WikiPage | undefined {
 }
 
 export function wikiCategory(pages: WikiPage[], name: string) {
-  const visible = new Map<string, WikiPage>();
-  for (const page of pages)
-    if (!visible.has(page.path)) visible.set(page.path, page);
-  pages = [...visible.values()];
+  pages = visiblePages(pages);
   const page = categoryPage(pages, name);
   const identities = new Set(
     [name, ...(page ? [page.title, ...page.aliases] : [])].map(wikiName)
