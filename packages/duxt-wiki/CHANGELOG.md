@@ -11,8 +11,6 @@
 - **wiki:** resolve links and expose wanted pages ([17df4c9](https://github.com/kirchDev/duxt/commit/17df4c94ae136d5437d40144c50a7ff12e2cb9a3))
 - **wiki:** add wiki layouts and dynamic categories ([76fc487](https://github.com/kirchDev/duxt/commit/76fc487b02bc34ed6f8961d0e7821777c971fbf5))
 - **wiki:** persist and query shared page metadata ([b1aad20](https://github.com/kirchDev/duxt/commit/b1aad20fd645cfaf42afa64c9a2b61ef150f5420))
-- **sources:** recognise component-prefixed release tags ([cb93d59](https://github.com/kirchDev/duxt/commit/cb93d59fa983448aed1c42c5c4d2c424093a5294))
-- **header:** reveal the new theme as a circle from the toggle ([04bc8c0](https://github.com/kirchDev/duxt/commit/04bc8c0ff942285c5b5fb03895a589220c0d5a92))
 
 ### Bug Fixes
 
@@ -25,6 +23,3 @@
 - **wiki:** match category identities symmetrically ([422b1d9](https://github.com/kirchDev/duxt/commit/422b1d9e9106ed3c1ba88d958c49244be39d9b03))
 - **wiki:** resolve links against visible locale pages ([0217d00](https://github.com/kirchDev/duxt/commit/0217d00f719cd602466b00aad6a599398505d3d5))
 - **wiki:** scan authored wikilinks in linear time ([cb85da8](https://github.com/kirchDev/duxt/commit/cb85da8f78a5dfea034ecdb07e4f029100af8d11))
-- **changelog:** animate the height of the selected-kinds row ([e1af601](https://github.com/kirchDev/duxt/commit/e1af6019389ab9f02d1713dd2280e85f3923cdbf))
-- **toc:** mark the heading a table-of-contents click jumped to ([39ee6e4](https://github.com/kirchDev/duxt/commit/39ee6e4312b25aba5856bd48137528ef14147730))
-- **image:** cover the whole viewport from the zoom dialog's first frame ([cc4311a](https://github.com/kirchDev/duxt/commit/cc4311a8f9c85efe28a6e7081ea1e951b40e15b4))
