@@ -183,6 +183,11 @@ export default defineAppConfig({
             type: 'fixture-section',
             path: 'apps/www/layers/build-extension/fixture.txt',
             label: 'Fixture section'
+          },
+          {
+            type: 'inherited-section',
+            path: 'apps/www/layers/build-extension/fixture.txt',
+            label: 'Inherited layer section'
           }
         ]
       },

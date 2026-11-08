@@ -12,6 +12,20 @@ export default {
     }
   },
   sectionTypes: {
+    'inherited-section': {
+      versioning: 'per-version',
+      localisation: 'per-locale',
+      parse: (input) => {
+        if (!input.text().includes('site overrides'))
+          throw new Error('DUXT_FIXTURE_PARSER_BUILD_ONLY');
+        return [
+          {
+            file: 'index.md',
+            body: '---\nlayerFixture: generated-layer-field\n---\n# Inherited layer section\n\nGenerated prose from the unoverridden layer parser.'
+          }
+        ];
+      }
+    },
     'fixture-section': {
       versioning: 'per-version',
       localisation: 'per-locale',
@@ -31,5 +45,10 @@ export default {
       }
     }
   },
-  pageSchema: (z) => ({ extensionFixture: z.string().optional() })
+  pageSchema: (z) => ({
+    extensionFixture: z.literal('layer-schema-must-be-overridden').optional(),
+    layerFixture: z
+      .enum(['authored-layer-field', 'generated-layer-field'])
+      .optional()
+  })
 } satisfies DuxtBuildContribution;

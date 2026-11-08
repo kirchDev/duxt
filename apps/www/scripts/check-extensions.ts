@@ -40,11 +40,28 @@ try {
     `${await response.clone().text()}\n${server.stderr()}`
   );
   const result = (await response.json()) as {
-    page: { title: string; extensionFixture: string };
+    page: { title: string; extensionFixture: string; layerFixture: string };
+    inherited: { title: string; layerFixture: string };
     generated: { title: string; extensionFixture: string };
   };
   assert.equal(result.page.title, 'Layer source flavor');
   assert.equal(result.page.extensionFixture, 'flavor-from-layer');
+  assert.equal(result.page.layerFixture, 'authored-layer-field');
+  assert.equal(result.inherited.title, 'Inherited layer section');
+  assert.equal(result.inherited.layerFixture, 'generated-layer-field');
+  const inherited = await fetch(
+    `${origin}/extension-fixture/inherited-layer-section`
+  );
+  assert.equal(inherited.status, 200);
+  assert.match(await inherited.text(), /Inherited layer section/);
+  const inheritedMarkdown = await fetch(
+    `${origin}/extension-fixture/inherited-layer-section.md`
+  );
+  assert.equal(inheritedMarkdown.status, 200);
+  assert.match(
+    await inheritedMarkdown.text(),
+    /Generated prose from the unoverridden layer parser/
+  );
   assert.equal(result.generated.title, 'Site section override');
   assert.equal(result.generated.extensionFixture, 'generated-schema-field');
   const generated = await (
@@ -57,6 +74,7 @@ try {
   assert.match(markdown, /Generated fixture prose from the site override/);
   const llms = await (await fetch(`${origin}/llms.txt`)).text();
   assert.match(llms, /extension-fixture\/fixture-section/);
+  assert.match(llms, /extension-fixture\/inherited-layer-section/);
   const home = await (await fetch(origin)).text();
   assert.match(home, /data-form-type="other"/);
   assert.match(home, /echoconsignment|\/echo/);
@@ -172,7 +190,7 @@ try {
       /DUXT_FIXTURE_PARSER_BUILD_ONLY/
     );
   console.log(
-    'Build extensions: layer flavor, shared schema, site parser override, rendered operation demo, Markdown/llms exports, browser separation, extends-only page templates, client navigation and a real content-only bundle type switch passed.'
+    'Build extensions: inherited layer parser/schema/flavor, separate site parser/schema overrides, rendered operation demo, Markdown/llms exports, browser separation, extends-only page templates, client navigation and a real content-only bundle type switch passed.'
   );
 } catch (error) {
   if (server.stderr().trim()) console.error(server.stderr().trim());

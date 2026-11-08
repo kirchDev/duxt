@@ -141,12 +141,18 @@ describe('readDuxtBuildConfig', () => {
     expect(config?.sectionTypes?.['fixture-section']?.versioning).toBe(
       'per-version'
     );
+    expect(config?.sectionTypes?.['inherited-section']?.versioning).toBe(
+      'per-version'
+    );
     expect(typeof config?.sourceFlavors?.['fixture-flavor']?.normalise).toBe(
       'function'
     );
     const { z } = await import('@nuxt/content');
     expect(Object.keys(config?.pageSchema?.(z) ?? {})).toContain(
       'extensionFixture'
+    );
+    expect(Object.keys(config?.pageSchema?.(z) ?? {})).toContain(
+      'layerFixture'
     );
     expect(config?.pageTypes?.['fixture-article']).toEqual({
       layout: 'fixture-page',

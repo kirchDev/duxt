@@ -1,4 +1,5 @@
 ---
+layerFixture: authored-layer-field
 title: Original fixture title
 description: The build-only extension layer supplies this page metadata.
 ---
