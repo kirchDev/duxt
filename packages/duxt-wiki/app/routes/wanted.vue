@@ -112,7 +112,10 @@ useHead(() => ({
               target="_blank"
               rel="noopener"
             >
-              <Icon name="lucide:file-plus" aria-hidden="true" />
+              <Icon
+                :name="`simple-icons:${proposal.forge.toLowerCase()}`"
+                aria-hidden="true"
+              />
               {{ t('create', { forge: proposal.forge }) }}
             </a>
           </UiButton>
