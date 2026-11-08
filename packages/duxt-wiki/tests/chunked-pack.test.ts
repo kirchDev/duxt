@@ -12,13 +12,14 @@ import { fileURLToPath } from 'node:url';
 import { gunzipSync, gzipSync } from 'node:zlib';
 import { DatabaseSync } from 'node:sqlite';
 import { expect, it } from 'vitest';
+import { wikiBodyTokens } from '../wikilinks';
 import { writeContentBundle } from '../../duxt/build/content/content-bundle';
 import { createContentBundleRuntime } from '../../duxt/modules/runtime/content-bundles/runtime';
 
 const wiki = fileURLToPath(new URL('..', import.meta.url));
 const core = fileURLToPath(new URL('../../duxt', import.meta.url));
 
-it('activates real Content chunks when a page has a large links column', async () => {
+it('activates genuine Content body and links chunks without losing Wiki targets', async () => {
   const root = mkdtempSync(join(wiki, '.wiki-chunk-test-'));
   try {
     mkdirSync(join(root, '.git'));
@@ -31,6 +32,20 @@ it('activates real Content chunks when a page has a large links column', async (
     writeFileSync(
       join(root, 'app.config.ts'),
       "export default defineAppConfig({ duxt: { sources: [{ path: 'docs', history: false }] } })"
+    );
+    // Parser-owned span evidence makes body the largest Wiki-page column.
+    // A genuine data collection independently keeps the links-column path covered.
+    writeFileSync(
+      join(root, 'content.config.ts'),
+      `import {defineContentConfig,defineCollection,z} from '@nuxt/content'; export default defineContentConfig({collections:{link_chunks:defineCollection({type:'data',source:{cwd:${JSON.stringify(root)},include:'link-chunks.json'},schema:z.object({links:z.array(z.object({target:z.string(),kind:z.literal('wiki')}))})})}})`
+    );
+    const expectedLinks = Array.from({ length: 4000 }, (_, index) => ({
+      target: String.raw`Target${index}: Farmer's 🚀; C:\path`,
+      kind: 'wiki'
+    }));
+    writeFileSync(
+      join(root, 'link-chunks.json'),
+      JSON.stringify({ links: expectedLinks })
     );
     writeFileSync(
       join(root, 'docs/large.md'),
@@ -69,12 +84,20 @@ it('activates real Content chunks when a page has a large links column', async (
         readFileSync(join(payload, 'dumps', name), 'utf8')
       ])
     );
-    const statements = JSON.parse(
+    const wikiStatements = JSON.parse(
       gunzipSync(Buffer.from(dumps.docs!, 'base64')).toString()
     ) as string[];
     expect(
+      wikiStatements.some((sql) =>
+        sql.startsWith('UPDATE _content_docs SET body = CONCAT(body, ')
+      )
+    ).toBe(true);
+    const statements = JSON.parse(
+      gunzipSync(Buffer.from(dumps.link_chunks!, 'base64')).toString()
+    ) as string[];
+    expect(
       statements.some((sql) =>
-        sql.startsWith('UPDATE _content_docs SET links = CONCAT(links, ')
+        sql.startsWith('UPDATE _content_link_chunks SET links = CONCAT(links, ')
       )
     ).toBe(true);
     const checksums = JSON.parse(
@@ -98,7 +121,7 @@ it('activates real Content chunks when a page has a large links column', async (
     expect(runtime.status().lastRejection).toBeNull();
     expect(runtime.status().active?.id).toBe(id);
     const updates = statements.filter((sql) =>
-      sql.startsWith('UPDATE _content_docs SET links = CONCAT(')
+      sql.startsWith('UPDATE _content_link_chunks SET links = CONCAT(')
     );
     expect(updates.length).toBeGreaterThan(1);
     const invalid: [string, (rows: string[]) => string[]][] = [
@@ -166,7 +189,7 @@ it('activates real Content chunks when a page has a large links column', async (
           rows.map((row) =>
             row === updates[0]
               ? row.replace(
-                  'UPDATE _content_docs SET',
+                  'UPDATE _content_link_chunks SET',
                   'UPDATE _content_info SET'
                 )
               : row
@@ -230,7 +253,7 @@ it('activates real Content chunks when a page has a large links column', async (
           checksums,
           dumps: {
             ...dumps,
-            docs: gzipSync(JSON.stringify(tamper(statements))).toString(
+            link_chunks: gzipSync(JSON.stringify(tamper(statements))).toString(
               'base64'
             )
           },
@@ -264,16 +287,31 @@ it('activates real Content chunks when a page has a large links column', async (
         );
       expect(runtime.status().active?.id, name).toBe(id);
       expect(runtimeChecksums, name).toEqual(checksums);
+      expect(runtime.dump('link_chunks'), name).toBe(dumps.link_chunks);
       expect(runtime.dump('docs'), name).toBe(dumps.docs);
       expect(runtime.media('/candidate.svg'), name).toBeUndefined();
     }
     const db = new DatabaseSync(filename);
     try {
-      const row = db
-        .prepare("SELECT links FROM _content_docs WHERE path = '/large'")
-        .get()!;
+      const row = db.prepare('SELECT links FROM _content_link_chunks').get()!;
       const links = JSON.parse(String(row.links));
       expect(links).toHaveLength(4000);
+      expect(links).toEqual(expectedLinks);
+      const wikiRow = db
+        .prepare(
+          "SELECT links, rawbody, body FROM _content_docs WHERE path = '/large'"
+        )
+        .get()!;
+      expect(JSON.parse(String(wikiRow.links))).toEqual(expectedLinks);
+      expect(
+        wikiBodyTokens(JSON.parse(String(wikiRow.body))).map(
+          (token) => token.target
+        )
+      ).toEqual(expectedLinks.map((link) => link.target));
+      expect(wikiRow.rawbody).toBe(
+        readFileSync(join(root, 'docs/large.md'), 'utf8')
+      );
+
       expect(links[0]).toEqual({
         target: String.raw`Target0: Farmer's 🚀; C:\path`,
         kind: 'wiki'

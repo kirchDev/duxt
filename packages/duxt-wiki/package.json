@@ -20,6 +20,7 @@
     "infobox-module.ts",
     "query-infobox.ts",
     "wikilinks.ts",
+    "remark-wikilinks.ts",
     "wikilink-resolution.ts",
     "wiki-maintenance.ts",
     "wiki-create.ts",

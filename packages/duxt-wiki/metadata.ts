@@ -1,4 +1,4 @@
-import { wikiBodyView, wikiTokenOccurrences, wikiTokens } from './wikilinks.ts';
+import { wikiNodeToken, wikiTokens } from './wikilinks.ts';
 
 export interface WikiLink {
   target: string;
@@ -32,7 +32,6 @@ function names(value: unknown): string[] {
 /** Mutates the parsed document before Content persists its cache and SQL row. */
 export function collectWikiMetadata(page: Record<string, unknown>): void {
   const rawbody = typeof page.rawbody === 'string' ? page.rawbody : undefined;
-  const authored = wikiTokenOccurrences(rawbody);
   const links: WikiLink[] = [];
   const seen = new Set<string>();
   const add = (target: string, kind: WikiLink['kind']) => {
@@ -43,8 +42,9 @@ export function collectWikiMetadata(page: Record<string, unknown>): void {
   };
   const walk = (node: unknown): void => {
     if (typeof node === 'string') {
-      for (const token of wikiTokens(node, false)) {
-        if (!authored(node.slice(token.start, token.end))) continue;
+      for (const token of rawbody === undefined
+        ? wikiTokens(node, false)
+        : []) {
         add(
           node
             .slice(token.start + 2, token.end - 2)
@@ -62,8 +62,18 @@ export function collectWikiMetadata(page: Record<string, unknown>): void {
         !Array.isArray(props)
       ) {
         if (tag === 'code' || tag === 'pre') return;
-        if (tag === 'a' && typeof props.href === 'string')
+        const token = wikiNodeToken(node);
+        if (token) {
+          add(
+            token.target + (token.section ? '#' + token.section : ''),
+            'wiki'
+          );
+          return;
+        }
+        if (tag === 'a' && typeof props.href === 'string') {
           add(props.href, 'markdown');
+          return;
+        }
         for (const child of children) walk(child);
       } else for (const child of node) walk(child);
     } else if (node && typeof node === 'object') {
@@ -73,7 +83,7 @@ export function collectWikiMetadata(page: Record<string, unknown>): void {
       else if (body.children) walk(body.children);
     }
   };
-  walk(wikiBodyView(page.body, rawbody));
+  walk(page.body);
   page.links = links;
   page.categories = names(page.categories);
   page.aliases = names(page.aliases);

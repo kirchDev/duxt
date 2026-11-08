@@ -48,6 +48,11 @@ export default defineNuxtConfig({
       };
     }
   },
+  content: {
+    build: {
+      markdown: { remarkPlugins: { [layer('./remark-wikilinks.ts')]: {} } }
+    }
+  },
   css: [layer('./app/assets/css/wiki.css')],
   alias: { '@duxt-wiki': layer('./app') },
   components: [

@@ -15,7 +15,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { expect, it } from 'vitest';
 import type { DuxtResolvedSource } from '@kirchdev/duxt/sources-resolve';
 import { loadWikiPages, WIKI_FIELDS } from '../queries';
-import { renderWikiBody, wikiTokens } from '../wikilinks';
+import { formatWikiMarkdown, renderWikiBody, wikiTokens } from '../wikilinks';
 import { resolveWikiLink } from '../wikilink-resolution';
 
 it('keeps repeated explicit links through real GFM parsing, metadata and a render copy', async () => {
@@ -26,6 +26,9 @@ it('keeps repeated explicit links through real GFM parsing, metadata and a rende
     writeFileSync(join(root, path), value);
   const authored =
     '---\ntitle: Article\n---\n\n[[~/demo/api/List shipments|First]] · **prose** [ordinary](/wiki) · [[~/demo/api/endpoints/listshipments|Second]]\n\n[[~/demo/api/List shipments|Good before]] and \\[[~/fake]]\n\n\\[[~/fake]] and [[~/demo/api/List shipments|Good after]]\n\n~ordinary and [[~/demo/api/List shipments|Good ordinary]]\n\n\\[[~/demo/api/List shipments|Twin]] and [[~/demo/api/List shipments|Twin]]\n\n[[~/demo/api/List shipments|Twin]] and \\[[~/demo/api/List shipments|Twin]]\n\n~~[[~/demo/api/List shipments|In strike]]~~\n\n~~Real strike~~ and `[[~/demo/api/Inline]]`\n\n```md\n[[~/demo/api/Fenced]]\n```\n';
+  const reviewCases =
+    '\n\n[ordinary [[Twin]]](https://example.com) and \\[[Twin]] and [[Twin]]\n\n[[Twin]](/ordinary) and [[Twin]] and \\[[Twin]]\n\n![x [[Twin]]](image.png) and \\[[Twin]]\n\n    [[Twin]]\n\n\\[[Twin]] and [[Twin]]\n\n[[Twin|R&amp;D]]\n\n[[~/demo/api/List shipments|Mixed first]] and ~~[[~/demo/api/List shipments|Mixed second]]~~';
+  const fullAuthored = authored + reviewCases;
   try {
     mkdirSync(join(root, '.git'));
     mkdirSync(join(root, 'docs'));
@@ -39,7 +42,12 @@ it('keeps repeated explicit links through real GFM parsing, metadata and a rende
       'app.config.ts',
       `export default defineAppConfig({duxt:{title:'Wiki test',sourceOptions:{defaultLocale:'en-GB'},sources:[{path:'docs',slug:'wiki',pageType:'article',history:false},{path:'demo',slug:'demo',history:false,generated:[{type:'openapi',path:'api.json',label:'API',slug:'api'}]}]}})`
     );
-    write('docs/article.md', authored);
+    write('docs/article.md', fullAuthored);
+    write('docs/twin.md', '---\ntitle: Twin\n---\nTarget.');
+    write(
+      'docs/protected.md',
+      '---\ntitle: Protected\n---\n![x [[Twin]]](image.png) and \\[[Twin]]\n\n    [[Indented only]]\n\n`[[Inline only]]`\n\n```md\n[[Fenced only]]\n```'
+    );
     write('demo/index.md', '---\ntitle: Demo\n---\nDemo.');
     write(
       'api.json',
@@ -109,14 +117,15 @@ it('keeps repeated explicit links through real GFM parsing, metadata and a rende
         .get()!;
       const body = JSON.parse(String(stored.body));
       const before = JSON.stringify(body);
-      expect(stored.rawbody).toBe(authored);
+      expect(stored.rawbody).toBe(fullAuthored);
       expect(
         JSON.parse(String(stored.links))
           .filter((link: { kind: string }) => link.kind === 'wiki')
           .map((link: { target: string }) => link.target)
       ).toEqual([
         '~/demo/api/List shipments',
-        '~/demo/api/endpoints/listshipments'
+        '~/demo/api/endpoints/listshipments',
+        'Twin'
       ]);
       const pages = await loadWikiPages(
         async (collection, offset, limit) =>
@@ -141,7 +150,7 @@ it('keeps repeated explicit links through real GFM parsing, metadata and a rende
           resolved.push(token.label);
           return resolveWikiLink(pages, token, context);
         },
-        authored
+        fullAuthored
       );
       const text = JSON.stringify(rendered);
       expect(text).toContain(
@@ -163,18 +172,54 @@ it('keeps repeated explicit links through real GFM parsing, metadata and a rende
         'Good ordinary',
         'Twin',
         'Twin',
-        'In strike'
+        'In strike',
+        'Twin',
+        'Twin',
+        'Twin',
+        'R&D',
+        'Mixed first',
+        'Mixed second'
       ]);
       expect(text.match(/\[\[~\/fake\]\]/g)).toHaveLength(2);
       expect(
         text.match(/\[\[~\/demo\/api\/List shipments\|Twin\]\]/g)
       ).toHaveLength(2);
+      expect(text).toContain(
+        '["del",{},["a",{"href":"~/demo/api/endpoints/listshipments"},"Mixed second"]]'
+      );
+      expect(text).toContain('["a",{"href":"~/wiki/twin"},"R&D"]');
+      expect(text).toContain(
+        '" and [[Twin]] and ",["a",{"href":"~/wiki/twin"},"Twin"]'
+      );
+      const protectedRow = database
+        .prepare(
+          `SELECT links FROM "_content_${source.collection}" WHERE path = '/wiki/protected'`
+        )
+        .get()!;
+      expect(JSON.parse(String(protectedRow.links))).toEqual([]);
+      const markdown = formatWikiMarkdown(
+        fullAuthored.slice(fullAuthored.indexOf('---\n', 4) + 4).trim(),
+        (token) => resolveWikiLink(pages, token, context).href,
+        body
+      );
+      expect(markdown).toContain(
+        '[ordinary [[Twin]]](https://example.com) and \\[[Twin]] and [Twin](/wiki/twin)'
+      );
+      expect(markdown).toContain(
+        '[[Twin]](/ordinary) and [Twin](/wiki/twin) and \\[[Twin]]'
+      );
+      expect(markdown).toContain('![x [[Twin]]](image.png) and \\[[Twin]]');
+      expect(markdown).toContain('    [[Twin]]');
+      expect(markdown).toContain('[R&D](/wiki/twin)');
+      expect(markdown).toContain(
+        '[Mixed first](/demo/api/endpoints/listshipments) and ~~[Mixed second](/demo/api/endpoints/listshipments)~~'
+      );
       expect(JSON.stringify(body)).toBe(before);
       expect(wikiTokens(authored)).toHaveLength(8);
       const accepted = readFileSync(join(root, 'bundles/current'), 'utf8');
       write(
         'docs/article.md',
-        authored + '\n::unshipped-wiki-widget\nUnavailable.\n::\n'
+        fullAuthored + '\n::unshipped-wiki-widget\nUnavailable.\n::\n'
       );
       await expect(pack(expected)).rejects.toThrow(
         /unavailable MDC components:.*UnshippedWikiWidget/
