@@ -174,6 +174,9 @@ overrides:
   agents>@modelcontextprotocol/server: 2.3.1
   agents>@modelcontextprotocol/sdk: 1.32.1
 
+patchedDependencies:
+  nuxt-link-checker@6.0.1: fecc10b5a214995e33fd44be8804e18d16e1a8cf44e6ef6ebae7adf6e3870b59
+
 importers:
 
   .:
@@ -370,7 +373,7 @@ importers:
         version: 12.2.0
       nuxt-link-checker:
         specifier: ^6.0.1
-        version: 6.0.1(9765c237adc577983b25050cc74ddf45)
+        version: 6.0.1(patch_hash=fecc10b5a214995e33fd44be8804e18d16e1a8cf44e6ef6ebae7adf6e3870b59)(9765c237adc577983b25050cc74ddf45)
       nuxt-og-image:
         specifier: ^7.0.7
         version: 7.0.7(fa1fdc50aa09d3ce8a74a8c1350a2f80)
@@ -17190,7 +17193,7 @@ snapshots:
 
   nuxt-define@1.0.0: {}
 
-  nuxt-link-checker@6.0.1(9765c237adc577983b25050cc74ddf45):
+  nuxt-link-checker@6.0.1(patch_hash=fecc10b5a214995e33fd44be8804e18d16e1a8cf44e6ef6ebae7adf6e3870b59)(9765c237adc577983b25050cc74ddf45):
     dependencies:
       '@nuxt/kit': 4.6.2(@nuxt/schema@4.6.3)(confbox@0.2.4)(dotenv@17.4.2)(giget@3.3.1)(jiti@2.7.0)(magic-string@1.4.3)(mlly@1.8.2)(oxc-parser@0.153.0)(rolldown@1.2.16)(unplugin@3.4.0(esbuild@0.28.2)(rolldown@1.2.16)(rollup@4.67.3)(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.1)))
       '@vueuse/core': 15.0.0(vue@3.5.44(typescript@6.0.3))
