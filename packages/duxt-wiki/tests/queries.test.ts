@@ -144,13 +144,18 @@ it('matches punctuation in titles and keeps ordinary relative links in their pag
   expect(wikiIncoming([target, linker], target, '/wiki')).toEqual([linker]);
 });
 
-it('treats a category page title, alias and URL name as the same membership', () => {
-  const category = page('/wiki/category/game-modes', 'Game modes', {
-    aliases: ['Play styles']
-  });
-  const first = page('/wiki/one', 'One', { categories: ['Game modes'] });
-  const second = page('/wiki/two', 'Two', { categories: ['Play styles'] });
-  expect(wikiCategory([category, first, second], 'game-modes').members).toEqual(
-    [first, second]
-  );
-});
+it.each(['game-modes', 'Game modes', 'Play styles'])(
+  'finds every category membership when queried by %s',
+  (name) => {
+    const category = page('/wiki/category/game-modes', 'Game modes', {
+      aliases: ['Play styles']
+    });
+    const first = page('/wiki/one', 'One', { categories: ['Game modes'] });
+    const second = page('/wiki/two', 'Two', { categories: ['Play styles'] });
+    const third = page('/wiki/three', 'Three', { categories: ['game-modes'] });
+    expect(wikiCategory([category, first, second, third], name)).toMatchObject({
+      page: category,
+      members: [first, second, third]
+    });
+  }
+);

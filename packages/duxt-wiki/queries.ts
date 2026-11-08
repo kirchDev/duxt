@@ -104,15 +104,19 @@ export function wikiIncoming(
   );
 }
 
+function categoryNames(page: WikiPage): string[] {
+  return [
+    page.title,
+    ...page.aliases,
+    decodeURIComponent(page.path.split('/').at(-1)!)
+  ];
+}
+
 function categoryPage(pages: WikiPage[], name: string): WikiPage | undefined {
   return pages.find(
     (page) =>
       /\/category\/[^/]+$/.test(page.path) &&
-      [
-        page.title,
-        ...page.aliases,
-        decodeURIComponent(page.path.split('/').at(-1)!)
-      ].some((value) => wikiName(value) === wikiName(name))
+      categoryNames(page).some((value) => wikiName(value) === wikiName(name))
   );
 }
 
@@ -120,7 +124,7 @@ export function wikiCategory(pages: WikiPage[], name: string) {
   pages = visiblePages(pages);
   const page = categoryPage(pages, name);
   const identities = new Set(
-    [name, ...(page ? [page.title, ...page.aliases] : [])].map(wikiName)
+    [name, ...(page ? categoryNames(page) : [])].map(wikiName)
   );
   const members = pages.filter((entry) =>
     entry.categories.some((category) => identities.has(wikiName(category)))
