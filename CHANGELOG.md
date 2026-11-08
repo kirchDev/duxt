@@ -1,5 +1,34 @@
 # Changelog
 
+## [v0.13.0](https://github.com/kirchDev/duxt/compare/duxt@v0.12.0...duxt@v0.13.0) (2026-11-08)
+
+### Features
+
+- **content:** report validated integration notes ([4873315](https://github.com/kirchDev/duxt/commit/487331508fbdb46d836429236c34014987fc180f))
+- **content:** format machine-readable pages per request ([9718fed](https://github.com/kirchDev/duxt/commit/9718fed25e2cfe8c908b930792fca8637c320ff4))
+- **wiki:** add wiki layouts and dynamic categories ([76fc487](https://github.com/kirchDev/duxt/commit/76fc487b02bc34ed6f8961d0e7821777c971fbf5))
+- **wiki:** persist and query shared page metadata ([b1aad20](https://github.com/kirchDev/duxt/commit/b1aad20fd645cfaf42afa64c9a2b61ef150f5420))
+- **content:** add page types with layouts and templates ([9d34f11](https://github.com/kirchDev/duxt/commit/9d34f11d4db938c187917762b4820f26d5991efc))
+- **content:** support build-only integration contributions ([82f7243](https://github.com/kirchDev/duxt/commit/82f724314e1aca82bea985de6a89b5f30145f900))
+- **content:** keep search and history current in packs ([48b407a](https://github.com/kirchDev/duxt/commit/48b407ada19885525db6157fb346454d19900a60))
+- **theme:** prepare the docs shell for wiki pages ([b5611a8](https://github.com/kirchDev/duxt/commit/b5611a87894f42ae5287a2153cd5ade99ae982c9))
+
+### Bug Fixes
+
+- **wiki:** keep wanted pages from prerendering the navigation ([467f35e](https://github.com/kirchDev/duxt/commit/467f35e350bd58f1566e8387ac420ea4d4ba3647))
+- **theme:** draw no page info rule without content ([4522907](https://github.com/kirchDev/duxt/commit/452290712e6daf7015c53f61ffed5d5ca5be237f))
+- **theme:** render valid and named navigation links ([eb79bb5](https://github.com/kirchDev/duxt/commit/eb79bb516a31cf1b3aef967bad0fc2d4843230e3))
+- **content:** preserve configured public url identities ([d4e144f](https://github.com/kirchDev/duxt/commit/d4e144f1d3415d5e65f868bd77d158fe39b8f370))
+- **content:** keep link checker prerender requests local ([cf7f21e](https://github.com/kirchDev/duxt/commit/cf7f21e19490f065de9822af99f8e53a509c83bc))
+- **wiki:** keep page types out of core page reads ([44facbe](https://github.com/kirchDev/duxt/commit/44facbe6bc95ca320dcce7ffde5a62efbe782317))
+- **content:** corroborate non-component manifest fragments ([71a79c4](https://github.com/kirchDev/duxt/commit/71a79c4990a76b40314359df61115ed4918ba256))
+- **content:** import chunked bundle rows atomically ([b65b334](https://github.com/kirchDev/duxt/commit/b65b3344a0583cfb86c5622455191790966dfe3e))
+- **content:** type schema contributions with Content's Zod ([f3f4732](https://github.com/kirchDev/duxt/commit/f3f47323edc94de970cb9ca6c29f255666883d6a))
+- **content:** refresh the page type config preview ([17edb18](https://github.com/kirchDev/duxt/commit/17edb187eaeeee55a20779cb54c665aa7e9f8f25))
+- complete integration boundary regressions ([17453c9](https://github.com/kirchDev/duxt/commit/17453c92cee9720b5a689b8726cf7665e6d89105))
+- **theme:** refresh the page control config preview ([6bb1301](https://github.com/kirchDev/duxt/commit/6bb13015ba65442290ff33a45012977bbf75461f))
+- **content:** refresh cached history before publishing packs ([8234398](https://github.com/kirchDev/duxt/commit/823439826a7d3fd5695e7ad82e996b26b8576c6f))
+
 ## [v0.12.0](https://github.com/kirchDev/duxt/compare/duxt@v0.11.0...duxt@v0.12.0) (2026-11-05)
 
 ### Features
