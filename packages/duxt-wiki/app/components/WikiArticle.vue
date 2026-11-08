@@ -44,11 +44,7 @@ const backlinks = computed(() => {
 
 <template>
   <div v-if="page" class="flex min-w-0 flex-1 justify-center gap-10">
-    <article
-      data-wiki-article
-      class="min-w-0 flex-1 py-8"
-      :class="controls.fullWidth ? undefined : 'max-w-5xl'"
-    >
+    <article data-wiki-article class="min-w-0 flex-1 py-8">
       <DuxtAnnouncements placement="above-content" />
 
       <DuxtVersionBanner />
@@ -96,15 +92,17 @@ const backlinks = computed(() => {
 
       <WikiBacklinks :pages="backlinks" />
 
-      <div
-        v-if="controls.pageInfo"
-        data-wiki-page-info
-        class="mt-8 border-t pt-6"
-      >
+      <div v-if="controls.pageInfo" data-wiki-page-info>
         <DuxtPageInfo :page="page" row />
       </div>
 
-      <DuxtPageNav v-if="controls.prevNext" :path="path" />
+      <!-- The cards are their own separation; a rule above them would be the
+           third in a row after the backlinks and the page info. -->
+      <DuxtPageNav
+        v-if="controls.prevNext"
+        :path="path"
+        class="mt-8! border-t-0! pt-0!"
+      />
 
       <DuxtPageFeedback v-if="controls.feedback" />
     </article>
