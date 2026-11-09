@@ -40,6 +40,21 @@ export function collectionWantedPaths(
   return routes;
 }
 
+/**
+ * Nuxt hands every static page route to the prerenderer, and a wanted page
+ * exists under every source and version so a bundle can introduce a red link at
+ * runtime. Only the ones a wiki needs are worth writing: each carries the
+ * navigation of its edition, and the crawler walks that whole edition from it.
+ */
+export function isUnneededWantedRoute(
+  route: string,
+  routes: Iterable<string>,
+  needed: Iterable<string>
+): boolean {
+  const path = route.split('?')[0]!;
+  return new Set(routes).has(path) && !new Set(needed).has(path);
+}
+
 export function wantedTitleQueryPattern(
   prefixes: string[],
   locales: string[],

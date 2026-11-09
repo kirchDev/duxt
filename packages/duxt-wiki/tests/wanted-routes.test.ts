@@ -1,6 +1,7 @@
 import { expect, it } from 'vitest';
 import {
   collectionWantedPrefixes,
+  isUnneededWantedRoute,
   wantedTitleQueryPattern
 } from '../wanted-routes';
 
@@ -63,4 +64,12 @@ it('exempts only exact configured utility routes and title queries, never extern
       strategy: 'prefix_and_default'
     })!.test('/en/wiki/wanted?title=A')
   ).toBe(true);
+});
+
+it('keeps only the wanted pages a wiki needs out of the prerender pass', () => {
+  const routes = ['/wiki/wanted', '/v1/wanted'];
+  const needed = ['/wiki/wanted'];
+  expect(isUnneededWantedRoute('/v1/wanted', routes, needed)).toBe(true);
+  expect(isUnneededWantedRoute('/wiki/wanted', routes, needed)).toBe(false);
+  expect(isUnneededWantedRoute('/v1/guide', routes, needed)).toBe(false);
 });
