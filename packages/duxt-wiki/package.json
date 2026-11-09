@@ -1,7 +1,7 @@
 {
   "$schema": "https://www.schemastore.org/package.json",
   "name": "@kirchdev/duxt-wiki",
-  "version": "0.13.0",
+  "version": "0.13.1",
   "description": "Opt-in shared wiki metadata and scoped Content queries for duxt.",
   "license": "MIT",
   "repository": {
