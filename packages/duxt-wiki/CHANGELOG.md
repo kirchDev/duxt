@@ -1,5 +1,11 @@
 # Changelog
 
+## [v0.13.1](https://github.com/kirchDev/duxt/compare/duxt-wiki@v0.13.0...duxt-wiki@v0.13.1) (2026-11-09)
+
+### Bug Fixes
+
+- **wiki:** prerender only the wanted pages a wiki needs ([03f0b00](https://github.com/kirchDev/duxt/commit/03f0b008e2f5e05623a672ae802c99bbf24c1b3c))
+
 ## v0.13.0 (2026-11-08)
 
 ### Features
