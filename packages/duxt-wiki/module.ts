@@ -15,6 +15,7 @@ import { collectionWantedRoute } from './wikilink-resolution';
 import {
   collectionWantedPrefixes,
   collectionWantedPaths,
+  isUnneededWantedRoute,
   wantedTitleQueryPattern
 } from './wanted-routes';
 
@@ -102,7 +103,16 @@ export default function duxtWiki(_options: unknown, nuxt: Nuxt) {
     ];
     config.prerender.ignore = [
       ...(config.prerender.ignore ?? []),
-      (route) => Boolean(query?.test(route))
+      (route) => Boolean(query?.test(route)),
+      (route) =>
+        isUnneededWantedRoute(route, paths, [
+          ...seeds,
+          ...collectionWantedPaths(
+            [...neededWantedPrefixes],
+            routeOptions.locales,
+            routeOptions
+          )
+        ])
     ];
     const options = nuxt.options as unknown as {
       sitemap?: { exclude?: string[] };
