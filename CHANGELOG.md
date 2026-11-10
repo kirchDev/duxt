@@ -1,5 +1,11 @@
 # Changelog
 
+## [v0.14.0](https://github.com/kirchDev/duxt/compare/duxt@v0.13.0...duxt@v0.14.0) (2026-11-10)
+
+### Features
+
+- **navigation:** open nested and mega menus from both navbar rows ([0796edd](https://github.com/kirchDev/duxt/commit/0796edd49229d00ccade4f8383089404aa065857))
+
 ## [v0.13.0](https://github.com/kirchDev/duxt/compare/duxt@v0.12.0...duxt@v0.13.0) (2026-11-08)
 
 ### Features
