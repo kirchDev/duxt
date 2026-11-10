@@ -37,7 +37,7 @@ const { toggle: toggleTheme } = useDuxtThemeToggle();
  * as an anchor with no href.
  */
 function linkTarget(link: DuxtLink) {
-  return link.to ?? duxt.sections?.[0]?.to ?? '/';
+  return link.to ?? menuAnchor(duxt.sections?.[0] ?? {}) ?? '/';
 }
 
 function isActive(to?: string) {
@@ -72,7 +72,7 @@ function entryActive(link: DuxtLink) {
   }
 
   return sectionsForPath(duxt.sections ?? [], sources, path.value).some(
-    (section) => isActive(section.to)
+    (section) => menuTargets(section).some(isActive)
   );
 }
 
@@ -117,34 +117,13 @@ const sheet = computed(() =>
 
 /** A group owns the page when any of its children does. */
 function groupActive(link: DuxtLink) {
-  return (link.children ?? []).some((child) => isActive(child.to));
+  return menuOwns(link, path.value);
 }
 
-/**
- * Which navigation groups in the sheet are open.
- *
- * Controlled rather than `default-open`, for the reason `DuxtNavigation`
- * spells out: the initial value is read once, so a group the reader lands
- * inside would stay shut. A group they close by hand stays closed, because the
- * route only ever forces one open.
- */
-const openGroups = ref<Record<string, boolean>>({});
+const sheetLevels = useTemplateRef('sheetLevels');
 
-watchEffect(() => {
-  for (const entry of sheet.value.entries) {
-    const key = asText(entry.label);
-    if (key && entry.children?.length && groupActive(entry)) {
-      openGroups.value[key] = true;
-    }
-  }
-});
-
-function groupOpen(link: DuxtLink) {
-  return openGroups.value[asText(link.label) ?? ''] ?? false;
-}
-
-function setGroupOpen(link: DuxtLink, value: boolean) {
-  openGroups.value[asText(link.label) ?? ''] = value;
+function openLevel(link: DuxtLink, event: Event) {
+  sheetLevels.value?.drill(link, event);
 }
 
 /** `page` for the page itself, `true` for the branch holding it. */
@@ -208,7 +187,7 @@ function current(to?: string) {
                  widest first: the navbar links, then the sections, then the
                  tree of the section you are in. On a phone the second navbar
                  row is hidden, so without this the sections are unreachable. -->
-            <div class="flex-1 overflow-y-auto p-4">
+            <DuxtSheetDrill ref="sheetLevels">
               <template v-if="sheet.entries.length || duxt.links?.length">
                 <p
                   class="mb-2 px-2 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase"
@@ -217,68 +196,28 @@ function current(to?: string) {
                 </p>
                 <ul class="space-y-0.5 text-sm">
                   <li v-for="link in sheet.entries" :key="asText(link.label)">
-                    <!-- A group opens in place rather than flattening into its
-                         parent's list: on the desktop it is a dropdown, and
-                         spilling its five links between "Docs" and "Credits"
-                         lost both the grouping and its name. -->
-                    <UiCollapsible
+                    <!-- A group opens as a level of its own rather than
+                         flattening into its parent's list: on the desktop it is
+                         a dropdown, and spilling its links between "Docs" and
+                         "Credits" lost both the grouping and its name. -->
+                    <button
                       v-if="link.children?.length"
-                      :open="groupOpen(link)"
-                      @update:open="(value) => setGroupOpen(link, value)"
+                      type="button"
+                      class="flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-accent"
+                      :class="
+                        groupActive(link)
+                          ? 'font-medium text-foreground'
+                          : 'text-muted-foreground hover:text-foreground'
+                      "
+                      @click="openLevel(link, $event)"
                     >
-                      <UiCollapsibleTrigger
-                        class="group flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors w-full cursor-pointer hover:bg-accent"
-                        :class="
-                          groupActive(link)
-                            ? 'font-medium text-foreground'
-                            : 'text-muted-foreground hover:text-foreground'
-                        "
-                      >
-                        <Icon
-                          v-if="link.icon"
-                          :name="link.icon"
-                          class="size-4"
-                        />
-                        <span class="truncate">{{ link.label }}</span>
-                        <Icon
-                          name="lucide:chevron-right"
-                          class="ms-auto size-3.5 transition-transform group-data-[state=open]:rotate-90"
-                        />
-                      </UiCollapsibleTrigger>
-
-                      <UiCollapsibleContent>
-                        <ul class="mt-0.5 ms-3.5 space-y-0.5 border-s ps-2.5">
-                          <li
-                            v-for="child in link.children"
-                            :key="child.to ?? asText(child.label)"
-                          >
-                            <NuxtLink
-                              :to="localeLink(child.to)"
-                              :target="child.external ? '_blank' : undefined"
-                              :aria-current="current(child.to)"
-                              class="flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors"
-                              :class="
-                                isActive(child.to)
-                                  ? 'bg-accent font-medium text-foreground'
-                                  : 'text-muted-foreground hover:bg-accent hover:text-foreground'
-                              "
-                            >
-                              <Icon
-                                v-if="child.icon"
-                                :name="child.icon"
-                                class="size-4"
-                              />
-                              {{ child.label }}
-                              <Icon
-                                v-if="child.external"
-                                name="lucide:arrow-up-right"
-                                class="size-3 opacity-50"
-                              />
-                            </NuxtLink>
-                          </li>
-                        </ul>
-                      </UiCollapsibleContent>
-                    </UiCollapsible>
+                      <Icon v-if="link.icon" :name="link.icon" class="size-4" />
+                      <span class="truncate">{{ link.label }}</span>
+                      <Icon
+                        name="lucide:chevron-right"
+                        class="ms-auto size-3.5 rtl:rotate-180"
+                      />
+                    </button>
 
                     <NuxtLink
                       v-else
@@ -329,32 +268,7 @@ function current(to?: string) {
                 >
                   {{ $t('duxt.nav.sections') }}
                 </p>
-                <ul class="space-y-0.5 text-sm">
-                  <!-- Keyed on the URL, as the desktop row is: two sources may
-                       name a section the same, and a label is not unique. -->
-                  <li
-                    v-for="section in sheet.sections"
-                    :key="section.to ?? asText(section.label)"
-                  >
-                    <NuxtLink
-                      :to="localeLink(section.to)"
-                      :aria-current="current(section.to)"
-                      class="flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors"
-                      :class="
-                        isActive(section.to)
-                          ? 'bg-accent font-medium text-foreground'
-                          : 'text-muted-foreground hover:bg-accent hover:text-foreground'
-                      "
-                    >
-                      <Icon
-                        v-if="section.icon"
-                        :name="section.icon"
-                        class="size-4"
-                      />
-                      {{ section.label }}
-                    </NuxtLink>
-                  </li>
-                </ul>
+                <DuxtSheetLinks :links="sheet.sections" @drill="openLevel" />
               </template>
 
               <template v-if="path !== '/' && items.length">
@@ -368,7 +282,7 @@ function current(to?: string) {
                      of this tree already carries the one on the page. -->
                 <DuxtNavigation :items="items" />
               </template>
-            </div>
+            </DuxtSheetDrill>
 
             <!-- Below sm the row keeps only the brand, the burger and the
                  search, so the two settings live here. `mt-auto` on SheetFooter
@@ -424,56 +338,21 @@ function current(to?: string) {
           :aria-label="$t('duxt.nav.main')"
         >
           <template v-for="link in duxt.navigation" :key="link.label">
-            <UiDropdownMenu v-if="link.children?.length">
-              <UiDropdownMenuTrigger as-child>
-                <UiButton
-                  variant="ghost"
-                  size="sm"
-                  class="gap-1.5 font-medium text-muted-foreground"
-                >
-                  {{ link.label }}
-                  <Icon
-                    name="lucide:chevron-down"
-                    class="size-3.5 opacity-60"
-                  />
-                </UiButton>
-              </UiDropdownMenuTrigger>
-              <UiDropdownMenuContent align="center" class="w-64">
-                <UiDropdownMenuItem
-                  v-for="child in link.children"
-                  :key="child.to"
-                  as-child
-                >
-                  <NuxtLink
-                    :to="localeLink(child.to)"
-                    :target="child.external ? '_blank' : undefined"
-                    class="flex items-start gap-2.5"
-                  >
-                    <Icon
-                      v-if="child.icon"
-                      :name="child.icon"
-                      class="mt-0.5 size-4 shrink-0"
-                    />
-                    <span class="min-w-0">
-                      <!-- The same arrow the sheet draws for an external
-                           child, held to the label's last word. -->
-                      <span class="block font-medium">
-                        <DuxtLinkLabel
-                          :label="child.label"
-                          :external="child.external"
-                        />
-                      </span>
-                      <span
-                        v-if="child.description"
-                        class="block text-xs text-muted-foreground"
-                      >
-                        {{ child.description }}
-                      </span>
-                    </span>
-                  </NuxtLink>
-                </UiDropdownMenuItem>
-              </UiDropdownMenuContent>
-            </UiDropdownMenu>
+            <DuxtNavigationMenu v-if="link.children?.length" :link="link">
+              <UiButton
+                variant="ghost"
+                size="sm"
+                class="gap-1.5 font-medium"
+                :class="
+                  groupActive(link)
+                    ? 'text-foreground'
+                    : 'text-muted-foreground'
+                "
+              >
+                {{ link.label }}
+                <Icon name="lucide:chevron-down" class="size-3.5 opacity-60" />
+              </UiButton>
+            </DuxtNavigationMenu>
 
             <UiButton
               v-else

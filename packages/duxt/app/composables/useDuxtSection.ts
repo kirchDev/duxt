@@ -37,15 +37,17 @@ export function useDuxtSection(
    * moves them to the edition being read, the same list the section row shows.
    */
   const section = computed(() =>
+    // Every link rather than the top-level entries: the sidebar shows the tree
+    // under the page a link names, and a menu names none of its own.
     currentSection(
-      [
+      menuLinks([
         ...sectionsForPath(
           duxt.sections ?? [],
           duxt.resolvedSources ?? [],
           path.value
         ),
         ...(duxt.navigation ?? [])
-      ],
+      ]),
       path.value
     )
   );

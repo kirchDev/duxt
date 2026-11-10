@@ -22,7 +22,7 @@ const path = useDuxtPath();
 // `resolvePageIcon`.
 const duxt = useDuxtConfig();
 const iconOf = (item: ContentNavigationItem) =>
-  resolvePageIcon(item, duxt.sections, duxt.pageIcon);
+  resolvePageIcon(item, menuLinks(duxt.sections ?? []), duxt.pageIcon);
 
 const contains = (item: ContentNavigationItem): boolean =>
   path.value === item.path ||

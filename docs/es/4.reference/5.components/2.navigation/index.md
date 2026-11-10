@@ -8,6 +8,9 @@ Seis componentes sobre un mismo árbol. La fila de secciones nombra sus partes d
 primer nivel, la barra lateral recorre la rama en la que está el lector, y los
 tres últimos responden a «dónde estoy» y «qué viene después».
 
+Otros dos dibujan los menús que abre una entrada, en el escritorio y en el panel
+móvil.
+
 La mayoría acepta una prop, porque cada uno dibuja una parte concreta del árbol
 en lugar de la configuración entera.
 

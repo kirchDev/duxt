@@ -2,6 +2,7 @@
   "duxt": {
     "nav": {
       "open": "Open navigation",
+      "back": "Back",
       "sections": "Sections",
       "previous": "Previous",
       "next": "Next",

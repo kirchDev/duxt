@@ -41,8 +41,8 @@ export function useDuxtSectionRow() {
   // never one the edition lacks, and the header must not move while the tree
   // is still loading.
   const visible = computed(() =>
-    scoped.value.some(
-      (section) => section.to && path.value.startsWith(section.to)
+    scoped.value.some((section) =>
+      menuTargets(section).some((to) => path.value.startsWith(to))
     )
   );
 

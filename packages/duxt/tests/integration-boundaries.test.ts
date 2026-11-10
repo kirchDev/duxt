@@ -81,7 +81,9 @@ it('keeps core free of integration imports and named dispatch', () => {
   // The aggregate is the explicit built-in registration boundary; no generic
   // caller may reach an owned implementation through a neutral alias instead.
   expect(edges).toEqual([registrationEdge]);
-});
+  // It parses every source file in the layer, which the default limit does not
+  // leave room for on a machine running the other suites beside it.
+}, 30_000);
 
 const integrationName = /openapi|bruno|tfplugindocs/i;
 
