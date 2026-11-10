@@ -132,3 +132,30 @@ describe('a second source', () => {
     expect(sheet.entries[0]!.children).toHaveLength(3);
   });
 });
+
+describe('an area entry that already has a menu', () => {
+  const sources = [{ prefix: '/demo' }, { prefix: '' }];
+  const menu = {
+    label: 'Demo',
+    to: '/demo',
+    children: [{ label: 'API', to: '/demo/api' }]
+  };
+
+  it('lists each section once and adds only what the menu leaves out', () => {
+    const { entries, sections } = buildSheetNavigation(
+      [menu],
+      [
+        { label: 'Overview', to: '/demo' },
+        { label: 'API', to: '/demo/api' },
+        { label: 'Wiki', to: '/demo/wiki' }
+      ],
+      sources
+    );
+
+    expect(entries[0]?.children?.map((child) => child.to)).toEqual([
+      '/demo/api',
+      '/demo/wiki'
+    ]);
+    expect(sections).toEqual([]);
+  });
+});

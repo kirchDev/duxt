@@ -311,7 +311,7 @@ const searchHint = computed(() => hint('search'));
 
         <UiCommandGroup :heading="$t('duxt.search.sections')">
           <UiCommandItem
-            v-for="section in duxt.sections ?? []"
+            v-for="section in menuLinks(duxt.sections ?? [])"
             :key="section.to"
             :value="`section ${section.label}`"
             class="gap-2"

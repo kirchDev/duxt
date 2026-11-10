@@ -15,6 +15,7 @@
  * that lives there: prefix work done inline in a component can only be checked
  * by clicking.
  */
+import { menuAnchor, menuTargets } from './navigation-menu';
 import { isInside, sourceForPath, versionPath } from './version-paths';
 
 /** The minimum a source has to carry to place a path or an entry. */
@@ -157,6 +158,12 @@ function sameTree(a: Area, b: Area, sources: Area[]): boolean {
   return unversioned(a, sources) === unversioned(b, sources);
 }
 
+/** The least of a navbar entry this file reads: where it is, and its menu. */
+interface MenuEntry {
+  to?: string;
+  children?: MenuEntry[];
+}
+
 /**
  * The entries of one area, in the order the site declared them.
  *
@@ -164,7 +171,7 @@ function sameTree(a: Area, b: Area, sources: Area[]): boolean {
  * link the consumer wrote for a reason the layer cannot read, and dropping it
  * would make it disappear from a site that gained a second source.
  */
-export function sectionsForPath<T extends { to?: string }>(
+export function sectionsForPath<T extends MenuEntry>(
   sections: T[],
   sources: Area[],
   path: string
@@ -178,14 +185,20 @@ export function sectionsForPath<T extends { to?: string }>(
   const scoped =
     all.length < 2
       ? sections
-      : sections.filter(
-          (section) => !section.to || areaForPath(section.to, sources) === area
-        );
+      : sections.filter((section) => {
+          const anchor = menuAnchor(section);
+          return !anchor || areaForPath(anchor, sources) === area;
+        });
 
   const reader = documentationFor(sourceForPath(path, sources), sources);
   if (!reader?.version) return scoped;
 
-  return scoped.map((section) => {
+  // Down the whole menu: a link nested in an entry is declared at the default
+  // edition just as the entry is.
+  const move = (entry: T): T => {
+    const section = entry.children?.length
+      ? { ...entry, children: (entry.children as T[]).map(move) }
+      : entry;
     const target = section.to ? sourceForPath(section.to, sources) : undefined;
 
     // A consumer declares the overview once, at the default edition. It is a
@@ -205,7 +218,9 @@ export function sectionsForPath<T extends { to?: string }>(
     }
 
     return section;
-  });
+  };
+
+  return scoped.map(move);
 }
 
 /** The least of a navigation node this file reads: where it is, and below. */
@@ -230,7 +245,7 @@ interface NavigationNode {
  * unknown — an entry hidden by a lookup that has not answered yet is a part of
  * the site that disappears for no reason.
  */
-export function sectionsInEdition<T extends { to?: string }>(
+export function sectionsInEdition<T extends MenuEntry>(
   sections: T[],
   sources: Area[],
   path: string,
@@ -251,8 +266,7 @@ export function sectionsInEdition<T extends { to?: string }>(
   };
   walk(navigation);
 
-  return sections.filter((section) => {
-    const to = section.to;
+  const inEdition = (to: string | undefined) => {
     if (!to || to === '/') return true;
 
     const target = sourceForPath(to, sources);
@@ -266,7 +280,22 @@ export function sectionsInEdition<T extends { to?: string }>(
     }
 
     return pages.some((page) => isInside(page, to));
-  });
+  };
+
+  // A menu keeps the links this edition has, and goes when none are left. A
+  // menu whose own page is missing still opens, but no longer leads to it.
+  const keep = (entries: T[]): T[] =>
+    entries.flatMap((entry) => {
+      if (!entry.children?.length) return inEdition(entry.to) ? [entry] : [];
+
+      const children = keep(entry.children as T[]);
+      const own = entry.to && inEdition(entry.to) ? entry.to : undefined;
+      if (!children.length && !own) return [];
+
+      return [{ ...entry, to: own, children }];
+    });
+
+  return keep(sections);
 }
 
 /**
@@ -281,11 +310,20 @@ export function sectionsInEdition<T extends { to?: string }>(
  * already follow — the deepest thing that claims the page is the thing the page
  * is in.
  */
-export function currentSection<T extends { to?: string }>(
+export function currentSection<T extends MenuEntry>(
   sections: T[],
   path: string
 ): T | undefined {
+  // An entry with a menu claims the page through any link inside it.
+  const claim = (section: T) =>
+    Math.max(
+      -1,
+      ...menuTargets(section)
+        .filter((to) => isInside(path, to))
+        .map((to) => to.length)
+    );
+
   return sections
-    .filter((section) => section.to && isInside(path, section.to))
-    .sort((a, b) => (b.to?.length ?? 0) - (a.to?.length ?? 0))[0];
+    .filter((section) => claim(section) >= 0)
+    .sort((a, b) => claim(b) - claim(a))[0];
 }

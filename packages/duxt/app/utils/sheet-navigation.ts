@@ -16,6 +16,7 @@
  * part is what happens when there is nothing to hang them on — and a section
  * that silently reaches no list at all is unreachable on a phone.
  */
+import { menuAnchor, menuTargets } from './navigation-menu';
 import { areaForPath } from './section-scope';
 
 /** The navbar with the sections adopted, plus whatever nobody adopted. */
@@ -57,7 +58,24 @@ function adopts(entry: DuxtLink) {
  * stated with a `to` because this one has somewhere to point.
  */
 const adoptsArea = (entry: DuxtLink, area: string) =>
-  Boolean(area) && entry.to === area && !entry.children?.length;
+  Boolean(area) && entry.to === area;
+
+/**
+ * What an area's entry gains. A menu the site wrote already lists some of the
+ * area's sections, so only those it leaves out are added, which keeps every
+ * section reachable on a phone without listing any twice.
+ */
+function adoptedChildren(entry: DuxtLink, sections: DuxtSection[]) {
+  if (!entry.children?.length) return sections;
+
+  const listed = new Set(menuTargets(entry));
+  return [
+    ...entry.children,
+    ...sections.filter((section) =>
+      menuTargets(section).some((to) => !listed.has(to))
+    )
+  ];
+}
 
 export function buildSheetNavigation(
   navigation: DuxtLink[] | undefined,
@@ -72,7 +90,8 @@ export function buildSheetNavigation(
   // One bucket per area, in the order the site declared the sections.
   const byArea = new Map<string, DuxtSection[]>();
   for (const section of list) {
-    const area = section.to ? areaForPath(section.to, sources) : '';
+    const anchor = menuAnchor(section);
+    const area = anchor ? areaForPath(anchor, sources) : '';
     byArea.set(area, [...(byArea.get(area) ?? []), section]);
   }
 
@@ -93,7 +112,9 @@ export function buildSheetNavigation(
 
   return {
     entries: adopted.map(({ entry, taken }) =>
-      taken.length ? { ...entry, children: taken } : entry
+      taken.length
+        ? { ...entry, children: adoptedChildren(entry, taken) }
+        : entry
     ),
     sections: orphans
   };

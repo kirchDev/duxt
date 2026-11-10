@@ -12,7 +12,7 @@ const localeLink = useDuxtLink();
 // `resolvePageIcon`.
 const duxt = useDuxtConfig();
 const iconOf = (item: ContentNavigationItem) =>
-  resolvePageIcon(item, duxt.sections, duxt.pageIcon);
+  resolvePageIcon(item, menuLinks(duxt.sections ?? []), duxt.pageIcon);
 </script>
 
 <template>

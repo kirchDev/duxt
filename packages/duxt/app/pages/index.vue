@@ -27,7 +27,9 @@ const { t } = useI18n();
  * `index.vue` and `DuxtHeader` use, because the layer cannot know what a
  * consumer called its first page.
  */
-const firstSection = computed(() => duxt.sections?.[0]?.to ?? '/');
+const firstSection = computed(
+  () => menuAnchor(duxt.sections?.[0] ?? {}) ?? '/'
+);
 const actionTarget = (action: DuxtResolved<DuxtAction>) =>
   action.to ?? firstSection.value;
 

@@ -13,6 +13,7 @@
  */
 // Named rather than auto-imported: a test runs this file outside Nuxt, where
 // nothing fills the auto-imports in.
+import { menuTargets } from './navigation-menu';
 import { sourceForPath } from './version-paths';
 
 /**
@@ -63,7 +64,7 @@ export function withGeneratedSections(
     // the de-dupe holds among the generated entries as well as against the
     // hand-written ones. Building it once before the map was the bug: it
     // answered for the consumer's list only.
-    const taken = new Set(existing.map((entry) => entry.to).filter(Boolean));
+    const taken = new Set(existing.flatMap(menuTargets));
     const entries: DuxtLink[] = [];
     const listed: DuxtResolvedSource[][] = [];
 
@@ -143,18 +144,27 @@ function followReader(
 ): DuxtLink[] | undefined {
   let changed = false;
 
-  const moved = existing.map((entry) => {
+  const move = (entry: DuxtLink): DuxtLink => {
+    const before = entry.children;
+    const children = before?.map(move);
+    const parent =
+      children?.some((child, index) => child !== before![index]) === true
+        ? { ...entry, children }
+        : entry;
+
     const declaration = listed.find((candidate) =>
       candidate.some((source) => source.prefix === entry.to)
     );
-    if (!declaration) return entry;
+    if (!declaration) return parent;
 
     const to = entryPath(declaration, base);
-    if (to === entry.to) return entry;
+    if (to === entry.to) return parent;
 
-    changed = true;
-    return { ...entry, to };
-  });
+    return { ...parent, to };
+  };
+
+  const moved = existing.map(move);
+  changed = moved.some((entry, index) => entry !== existing[index]);
 
   return changed ? moved : undefined;
 }

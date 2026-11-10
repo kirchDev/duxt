@@ -304,6 +304,14 @@ const PHYSICAL_ON_PURPOSE: Record<
     }
   ],
 
+  'components/DuxtSheetDrill.vue': [
+    {
+      tokens: ['translate-x-full'],
+      reason:
+        'A level sliding in from the inline end. CSS has no logical `translate`, so the left-to-right value is paired with `rtl:-translate-x-full` beside it, which is the mirrored half.'
+    }
+  ],
+
   'components/OgImage/Duxt.satori.vue': [
     {
       tokens: ['margin-left:'],

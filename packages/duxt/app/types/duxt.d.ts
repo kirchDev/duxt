@@ -531,7 +531,52 @@ declare global {
     icon?: string;
     description?: DuxtText;
     external?: boolean;
+    /**
+     * Turns a navbar entry into a menu, in either row. An entry with children
+     * of its own opens a further menu beside it, as deep as the data goes.
+     */
     children?: DuxtLink[];
+    /**
+     * How a navbar entry's menu is drawn. `mega` lays its children out as a
+     * grid of cells. A child with children of its own is a column under its
+     * name, with `image` and `description` beneath that name; a child without
+     * is a cell of its own.
+     */
+    menu?: 'dropdown' | 'mega';
+    /** How many columns a `mega` menu has. Its cells' spans, up to four, if unset. */
+    columns?: number;
+    /** How wide a `mega` menu is: `full`, or any CSS length. */
+    width?: string;
+    /**
+     * Rules between columns. On a `mega` menu, between all of them; on a cell,
+     * before that cell only, which also overrides the menu's setting.
+     */
+    divided?: boolean;
+    /** How many of the `mega` menu's columns this cell takes. */
+    span?: number;
+    /**
+     * Hides a column's name in the panel. It stays for screen readers, and as
+     * the title of the column's level in the mobile sheet.
+     */
+    hideLabel?: boolean;
+    /**
+     * How the entry is drawn inside a menu: `row` is the icon, label and
+     * description; `feature` puts a larger image or icon beside them; `card`
+     * puts the image above them; `callout` is a tinted block with an arrow; and
+     * `more` is a "see everything" link. A `card` if it has an image, if unset.
+     */
+    display?: 'row' | 'feature' | 'card' | 'callout' | 'more';
+    /** The image of a `card` or `feature` entry, or of a mega menu's column. */
+    image?: string;
+    /** A short tag beside the label, such as "New". */
+    badge?: DuxtText;
+    /**
+     * A globally registered component to draw inside the menu entry, in place
+     * of its icon and text. It receives the entry as `link`, fills its cell,
+     * and stays inside the entry's link, so the keyboard reaches it as it does
+     * any other row.
+     */
+    component?: string;
   }
 
   interface DuxtSection extends DuxtLink {

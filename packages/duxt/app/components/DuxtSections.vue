@@ -16,8 +16,12 @@ const { sections, visible } = useDuxtSectionRow();
  */
 const active = computed(() => currentSection(sections.value, path.value));
 
-function isActive(to?: string) {
-  return Boolean(to && to === active.value?.to);
+function isActive(section: DuxtSection) {
+  return Boolean(active.value && entryKey(active.value) === entryKey(section));
+}
+
+function entryKey(section: DuxtSection) {
+  return section.to ?? asText(section.label);
 }
 
 /**
@@ -25,9 +29,15 @@ function isActive(to?: string) {
  * the exact match announces `page` and an ancestor announces `true`, which is
  * the distinction `aria-current` exists to make.
  */
-function current(to?: string) {
-  if (!isActive(to)) return undefined;
-  return path.value === to ? 'page' : 'true';
+function current(section: DuxtSection) {
+  if (!isActive(section)) return undefined;
+  return path.value === section.to ? 'page' : 'true';
+}
+
+function chip(section: DuxtSection) {
+  return isActive(section)
+    ? 'bg-accent font-medium text-foreground'
+    : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground';
 }
 </script>
 
@@ -45,31 +55,48 @@ function current(to?: string) {
       class="mx-auto flex max-w-[90rem] items-center gap-1 overflow-x-auto px-4 lg:px-8"
       :aria-label="$t('duxt.nav.sections')"
     >
-      <NuxtLink
-        v-for="section in sections"
-        :key="section.to"
-        :to="localeLink(section.to)"
-        :aria-current="current(section.to)"
-        class="my-1.5 flex shrink-0 items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors"
-        :class="
-          isActive(section.to)
-            ? 'bg-accent font-medium text-foreground'
-            : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground'
-        "
-      >
-        <Icon v-if="section.icon" :name="section.icon" class="size-4" />
-        <!-- The lit chip is `font-medium`, which is wider than the regular
-             weight, so every chip after it shifted sideways on each navigation.
-             The invisible zero-height `::after` carries the label at the medium
-             weight and reserves that width whether the chip is lit or not. A
-             pseudo-element rather than a second span, so `textContent` stays the
-             label once and `visibility: hidden` keeps it out of the name. -->
-        <span
-          class="inline-flex flex-col after:invisible after:h-0 after:overflow-hidden after:font-medium after:content-[attr(data-label)]"
-          :data-label="section.label"
-          >{{ section.label }}</span
+      <template v-for="section in sections" :key="entryKey(section)">
+        <DuxtNavigationMenu
+          v-if="section.children?.length"
+          :link="section"
+          align="start"
         >
-      </NuxtLink>
+          <button
+            type="button"
+            class="my-1.5 flex shrink-0 cursor-pointer items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors"
+            :class="chip(section)"
+          >
+            <Icon v-if="section.icon" :name="section.icon" class="size-4" />
+            <span
+              class="inline-flex flex-col after:invisible after:h-0 after:overflow-hidden after:font-medium after:content-[attr(data-label)]"
+              :data-label="section.label"
+              >{{ section.label }}</span
+            >
+            <Icon name="lucide:chevron-down" class="size-3.5 opacity-60" />
+          </button>
+        </DuxtNavigationMenu>
+
+        <NuxtLink
+          v-else
+          :to="localeLink(section.to)"
+          :aria-current="current(section)"
+          class="my-1.5 flex shrink-0 items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors"
+          :class="chip(section)"
+        >
+          <Icon v-if="section.icon" :name="section.icon" class="size-4" />
+          <!-- The lit chip is `font-medium`, which is wider than the regular
+               weight, so every chip after it shifted sideways on each navigation.
+               The invisible zero-height `::after` carries the label at the medium
+               weight and reserves that width whether the chip is lit or not. A
+               pseudo-element rather than a second span, so `textContent` stays the
+               label once and `visibility: hidden` keeps it out of the name. -->
+          <span
+            class="inline-flex flex-col after:invisible after:h-0 after:overflow-hidden after:font-medium after:content-[attr(data-label)]"
+            :data-label="section.label"
+            >{{ section.label }}</span
+          >
+        </NuxtLink>
+      </template>
     </nav>
   </div>
 </template>
