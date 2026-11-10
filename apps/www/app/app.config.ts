@@ -2,6 +2,22 @@
 // in the content layer selected by nuxt.config.ts, so Content's build loader
 // and Nuxt's runtime app config see the same public or check-only sources.
 
+// The menu demos repeat short strings in every language; one line each keeps
+// them readable.
+const menuText = (
+  en: string,
+  de: string,
+  es: string,
+  fr: string,
+  pt: string
+) => ({
+  'en-GB': en,
+  'de-DE': de,
+  'es-ES': es,
+  'fr-FR': fr,
+  'pt-PT': pt
+});
+
 export default defineAppConfig({
   duxt: {
     /**
@@ -329,6 +345,500 @@ export default defineAppConfig({
         label: 'Terraform',
         to: '/demo/terraform',
         icon: 'vscode-icons:file-type-terraform'
+      },
+      // The menus a navbar entry can open. They come last on purpose: their links
+      // repeat the chips above, and of two entries claiming a page the first
+      // stays lit.
+      {
+        label: {
+          'en-GB': 'Nested menu',
+          'de-DE': 'Verschachteltes Menü',
+          'es-ES': 'Menú anidado',
+          'fr-FR': 'Menu imbriqué',
+          'pt-PT': 'Menu aninhado'
+        },
+        icon: 'lucide:list-tree',
+        children: [
+          {
+            label: 'API',
+            icon: 'lucide:webhook',
+            children: [
+              {
+                label: 'OpenAPI',
+                to: '/demo/openapi',
+                icon: 'vscode-icons:file-type-swagger'
+              },
+              {
+                label: 'Bruno',
+                to: '/demo/bruno',
+                icon: 'vscode-icons:file-type-bruno'
+              },
+              {
+                label: {
+                  'en-GB': 'Examples',
+                  'de-DE': 'Beispiele',
+                  'es-ES': 'Ejemplos',
+                  'fr-FR': 'Exemples',
+                  'pt-PT': 'Exemplos'
+                },
+                icon: 'lucide:flask-round',
+                children: [
+                  {
+                    label: 'Echo consignment',
+                    to: '/demo/openapi/demo/echoconsignment',
+                    icon: 'lucide:send'
+                  }
+                ]
+              }
+            ]
+          },
+          { label: 'Wiki', to: '/demo/wiki', icon: 'lucide:book-open' },
+          { label: 'Changelog', to: '/demo/changelog', icon: 'lucide:tag' }
+        ]
+      },
+      // Four layouts from one set of options: `columns`, `span`, `width`,
+      // `divided`, and each entry's `display`.
+      {
+        label: menuText(
+          'Mega columns',
+          'Mega-Spalten',
+          'Mega columnas',
+          'Méga colonnes',
+          'Mega colunas'
+        ),
+        menu: 'mega',
+        columns: 4,
+        children: [
+          {
+            label: menuText(
+              'Highlights',
+              'Highlights',
+              'Destacados',
+              'À la une',
+              'Destaques'
+            ),
+            hideLabel: true,
+            children: [
+              {
+                label: 'OpenAPI',
+                to: '/demo/openapi',
+                image: '/demo/pipeline.svg',
+                display: 'feature',
+                description: menuText(
+                  'A reference built from a spec',
+                  'Eine Referenz aus einer Spec',
+                  'Una referencia creada desde una spec',
+                  'Une référence issue d’une spec',
+                  'Uma referência criada a partir de uma spec'
+                )
+              },
+              {
+                label: 'Wiki',
+                to: '/demo/wiki',
+                image: '/favicon.svg',
+                display: 'feature',
+                description: menuText(
+                  'Pages that link each other',
+                  'Seiten, die sich verlinken',
+                  'Páginas enlazadas entre sí',
+                  'Des pages reliées entre elles',
+                  'Páginas ligadas entre si'
+                )
+              }
+            ]
+          },
+          {
+            label: 'API',
+            divided: true,
+            children: [
+              { label: 'OpenAPI', to: '/demo/openapi' },
+              { label: 'Bruno', to: '/demo/bruno' },
+              {
+                label: 'Echo consignment',
+                to: '/demo/openapi/demo/echoconsignment'
+              },
+              {
+                label: menuText(
+                  'All of the API',
+                  'Die ganze API',
+                  'Toda la API',
+                  'Toute l’API',
+                  'Toda a API'
+                ),
+                to: '/demo/openapi',
+                display: 'more'
+              }
+            ]
+          },
+          {
+            label: menuText(
+              'Content',
+              'Inhalte',
+              'Contenido',
+              'Contenu',
+              'Conteúdo'
+            ),
+            children: [
+              { label: 'Wiki', to: '/demo/wiki' },
+              { label: 'Changelog', to: '/demo/changelog' },
+              { label: 'Terraform', to: '/demo/terraform' }
+            ]
+          },
+          {
+            label: menuText(
+              'Writing',
+              'Schreiben',
+              'Escritura',
+              'Rédaction',
+              'Escrita'
+            ),
+            children: [
+              {
+                label: menuText(
+                  'Images',
+                  'Bilder',
+                  'Imágenes',
+                  'Images',
+                  'Imagens'
+                ),
+                to: '/demo/images'
+              },
+              {
+                label: menuText(
+                  'Diagrams',
+                  'Diagramme',
+                  'Diagramas',
+                  'Diagrammes',
+                  'Diagramas'
+                ),
+                to: '/demo/diagrams'
+              },
+              {
+                label: menuText(
+                  'Versions',
+                  'Versionen',
+                  'Versiones',
+                  'Versions',
+                  'Versões'
+                ),
+                to: '/demo/versions'
+              }
+            ]
+          }
+        ]
+      },
+      {
+        label: menuText(
+          'Mega grid',
+          'Mega-Raster',
+          'Mega rejilla',
+          'Méga grille',
+          'Mega grelha'
+        ),
+        menu: 'mega',
+        columns: 3,
+        children: [
+          {
+            label: 'OpenAPI',
+            to: '/demo/openapi',
+            icon: 'lucide:webhook',
+            display: 'feature',
+            description: menuText(
+              'A reference built from a spec',
+              'Eine Referenz aus einer Spec',
+              'Una referencia creada desde una spec',
+              'Une référence issue d’une spec',
+              'Uma referência criada a partir de uma spec'
+            )
+          },
+          {
+            label: 'Bruno',
+            to: '/demo/bruno',
+            icon: 'lucide:send',
+            display: 'feature',
+            description: menuText(
+              'The same API as a collection',
+              'Dieselbe API als Collection',
+              'La misma API como colección',
+              'La même API en collection',
+              'A mesma API como coleção'
+            )
+          },
+          {
+            label: 'Wiki',
+            to: '/demo/wiki',
+            icon: 'lucide:book-open',
+            display: 'feature',
+            badge: menuText('New', 'Neu', 'Nuevo', 'Nouveau', 'Novo'),
+            description: menuText(
+              'Pages that link each other',
+              'Seiten, die sich verlinken',
+              'Páginas enlazadas entre sí',
+              'Des pages reliées entre elles',
+              'Páginas ligadas entre si'
+            )
+          },
+          {
+            label: 'Terraform',
+            to: '/demo/terraform',
+            icon: 'lucide:boxes',
+            display: 'feature',
+            description: menuText(
+              'A provider’s reference',
+              'Referenz eines Providers',
+              'La referencia de un proveedor',
+              'La référence d’un fournisseur',
+              'A referência de um fornecedor'
+            )
+          },
+          {
+            label: menuText(
+              'Try a request',
+              'Anfrage ausprobieren',
+              'Probar una petición',
+              'Essayer une requête',
+              'Experimentar um pedido'
+            ),
+            to: '/demo/openapi/demo/echoconsignment',
+            component: 'DemoNavPromo',
+            description: menuText(
+              'A site’s own component',
+              'Eine eigene Komponente der Seite',
+              'Un componente propio del sitio',
+              'Un composant propre au site',
+              'Um componente próprio do site'
+            )
+          },
+          {
+            label: menuText(
+              'See every release',
+              'Alle Releases ansehen',
+              'Ver todas las versiones',
+              'Voir toutes les versions',
+              'Ver todas as versões'
+            ),
+            to: '/demo/changelog',
+            display: 'callout'
+          }
+        ]
+      },
+      {
+        label: menuText(
+          'Mega panel',
+          'Mega-Panel',
+          'Mega panel',
+          'Méga panneau',
+          'Mega painel'
+        ),
+        menu: 'mega',
+        width: 'full',
+        columns: 6,
+        divided: true,
+        children: [
+          {
+            label: menuText(
+              'Demo area',
+              'Demobereich',
+              'Área de demo',
+              'Espace démo',
+              'Área de demonstração'
+            ),
+            span: 2,
+            image: '/demo/pipeline.svg',
+            description: menuText(
+              'One invented API, drawn from every source format duxt reads.',
+              'Eine erfundene API, gezeichnet aus jedem Quellformat, das duxt liest.',
+              'Una API inventada, dibujada desde cada formato que duxt lee.',
+              'Une API inventée, rendue depuis chaque format lu par duxt.',
+              'Uma API inventada, desenhada a partir de cada formato que o duxt lê.'
+            ),
+            children: [
+              {
+                label: menuText(
+                  'Start with the source',
+                  'Mit der Quelle anfangen',
+                  'Empezar por la fuente',
+                  'Commencer par la source',
+                  'Começar pela fonte'
+                ),
+                to: '/demo/source',
+                display: 'more'
+              }
+            ]
+          },
+          {
+            label: 'API',
+            children: [
+              {
+                label: 'OpenAPI',
+                to: '/demo/openapi',
+                icon: 'vscode-icons:file-type-swagger'
+              },
+              {
+                label: 'Bruno',
+                to: '/demo/bruno',
+                icon: 'vscode-icons:file-type-bruno'
+              }
+            ]
+          },
+          {
+            label: menuText(
+              'Content',
+              'Inhalte',
+              'Contenido',
+              'Contenu',
+              'Conteúdo'
+            ),
+            children: [
+              {
+                label: 'Wiki',
+                to: '/demo/wiki',
+                icon: 'lucide:book-open',
+                badge: menuText('New', 'Neu', 'Nuevo', 'Nouveau', 'Novo')
+              },
+              { label: 'Changelog', to: '/demo/changelog', icon: 'lucide:tag' }
+            ]
+          },
+          {
+            label: menuText(
+              'Writing',
+              'Schreiben',
+              'Escritura',
+              'Rédaction',
+              'Escrita'
+            ),
+            children: [
+              {
+                label: menuText(
+                  'Images',
+                  'Bilder',
+                  'Imágenes',
+                  'Images',
+                  'Imagens'
+                ),
+                to: '/demo/images',
+                icon: 'lucide:image'
+              },
+              {
+                label: menuText(
+                  'Diagrams',
+                  'Diagramme',
+                  'Diagramas',
+                  'Diagrammes',
+                  'Diagramas'
+                ),
+                to: '/demo/diagrams',
+                icon: 'lucide:workflow'
+              }
+            ]
+          },
+          {
+            label: 'Infra',
+            children: [
+              {
+                label: 'Terraform',
+                to: '/demo/terraform',
+                icon: 'vscode-icons:file-type-terraform'
+              },
+              {
+                label: menuText(
+                  'Versions',
+                  'Versionen',
+                  'Versiones',
+                  'Versions',
+                  'Versões'
+                ),
+                to: '/demo/versions',
+                icon: 'lucide:git-branch'
+              }
+            ]
+          }
+        ]
+      },
+      {
+        label: menuText(
+          'Mega images',
+          'Mega-Bilder',
+          'Mega imágenes',
+          'Méga images',
+          'Mega imagens'
+        ),
+        menu: 'mega',
+        width: 'full',
+        columns: 4,
+        children: [
+          {
+            label: 'API',
+            image: '/demo/pipeline.svg',
+            children: [
+              { label: 'OpenAPI', to: '/demo/openapi' },
+              { label: 'Bruno', to: '/demo/bruno' }
+            ]
+          },
+          {
+            label: menuText(
+              'Content',
+              'Inhalte',
+              'Contenido',
+              'Contenu',
+              'Conteúdo'
+            ),
+            image: '/demo/screenshot.png',
+            children: [
+              { label: 'Wiki', to: '/demo/wiki' },
+              { label: 'Changelog', to: '/demo/changelog' }
+            ]
+          },
+          {
+            label: menuText(
+              'Writing',
+              'Schreiben',
+              'Escritura',
+              'Rédaction',
+              'Escrita'
+            ),
+            image: '/demo/ornament.png',
+            children: [
+              {
+                label: menuText(
+                  'Images',
+                  'Bilder',
+                  'Imágenes',
+                  'Images',
+                  'Imagens'
+                ),
+                to: '/demo/images'
+              },
+              {
+                label: menuText(
+                  'Diagrams',
+                  'Diagramme',
+                  'Diagramas',
+                  'Diagrammes',
+                  'Diagramas'
+                ),
+                to: '/demo/diagrams'
+              }
+            ]
+          },
+          {
+            label: 'Infra',
+            image: '/demo/screenshot-dark.png',
+            children: [
+              { label: 'Terraform', to: '/demo/terraform' },
+              {
+                label: menuText(
+                  'Versions',
+                  'Versionen',
+                  'Versiones',
+                  'Versions',
+                  'Versões'
+                ),
+                to: '/demo/versions'
+              }
+            ]
+          }
+        ]
       }
     ],
 
