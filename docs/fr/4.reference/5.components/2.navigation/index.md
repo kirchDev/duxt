@@ -9,6 +9,9 @@ premier niveau, la barre latérale parcourt la branche où se trouve le lecteur,
 et les trois derniers répondent à « où suis-je » et « qu’est-ce qui vient
 ensuite ».
 
+Deux autres dessinent les menus qu’ouvre une entrée, sur ordinateur et dans le
+panneau mobile.
+
 La plupart d’entre eux prennent une prop, parce que chacun dessine une partie
 précise de l’arbre plutôt que la configuration entière.
 

@@ -8,6 +8,9 @@ Seis componentes sobre uma árvore. A linha de secções nomeia as suas partes d
 topo, a barra lateral percorre o ramo em que o leitor está, e os últimos três
 respondem a «onde estou» e «o que vem a seguir».
 
+Outros dois desenham os menus que uma entrada abre, no computador e no painel
+móvel.
+
 A maioria recebe uma prop, porque cada um desenha uma parte específica da
 árvore em vez da configuração inteira.
 
