@@ -498,6 +498,12 @@ declare global {
     /** The layer-owned Markdown dialect this collection is normalised from. */
     flavor?: string;
     /**
+     * The documentation area this source belongs to, written by the build so
+     * the section row does not recompute it on every navigation. Derived from
+     * `prefix`, `repo`, `version` and `generated` alone.
+     */
+    area?: string;
+    /**
      * Present when this collection is a generated section rather than a docs
      * tree. `path` is then the artefact itself rather than a folder.
      */

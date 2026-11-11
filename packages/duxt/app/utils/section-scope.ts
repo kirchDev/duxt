@@ -24,6 +24,8 @@ interface Area {
   repo?: string;
   version?: string;
   generated?: unknown;
+  /** The area root, precomputed at build time — see `withSourceAreas`. */
+  area?: string;
 }
 
 /** The documentation source that owns an area, without a generated section. */
@@ -133,9 +135,42 @@ const areas = (sources: Area[]): string[] => [
   ...new Set(
     sources
       .filter((source) => !source.generated)
-      .map((source) => areaRoot(source, sources))
+      .map((source) => areaOf(source, sources))
   )
 ];
+
+/**
+ * A source's area: the precomputed one where the build wrote it, computed
+ * here otherwise.
+ *
+ * `areaRoot` compares a source against every other one, and `areas` does that
+ * for every source — cubic in the number of sources, and the number grows with
+ * every version and every generated section. duxt.app reached 110 sources, and
+ * the browser spent half a second of each client navigation recomputing an
+ * answer that depends on nothing but the manifest. So the build answers it once.
+ */
+function areaOf(source: Area | undefined, sources: Area[]): string {
+  if (!source) return '';
+
+  return source.area ?? areaRoot(source, sources);
+}
+
+/**
+ * The manifest with every source's area written onto it.
+ *
+ * Called by the build on `resolvedSources`, which `duxt content pack` resolves
+ * through the same module — so a content bundle carries the same areas as the
+ * app it is published for. Pure in the sources: an area depends only on the
+ * `prefix`, `repo`, `version` and `generated` the manifest already holds, which
+ * is also why the field adds nothing to a bundle's compatibility hash.
+ */
+export function withSourceAreas<T extends Area>(
+  sources: T[]
+): (T & { area: string })[] {
+  const roots = sources.map((source) => areaRoot(source, sources));
+
+  return sources.map((source, index) => ({ ...source, area: roots[index]! }));
+}
 
 /**
  * The area a path is in — the longest documentation prefix it sits under.
@@ -144,7 +179,7 @@ const areas = (sources: Area[]): string[] => [
  * never asked for any of this.
  */
 export function areaForPath(path: string, sources: Area[]): string {
-  return areaRoot(sourceForPath(path, sources), sources);
+  return areaOf(sourceForPath(path, sources), sources);
 }
 
 /**

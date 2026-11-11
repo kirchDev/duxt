@@ -13,6 +13,7 @@ import {
   duxtDefaultRequestSamples,
   duxtRequestSamples
 } from '../app/utils/request-samples';
+import { withSourceAreas } from '../app/utils/section-scope';
 import {
   duxtManifest,
   duxtSectionTypes
@@ -114,7 +115,9 @@ export default function duxtConfig(_options: unknown, nuxt: Nuxt) {
   nuxt.options.appConfig.duxt = {
     ...nuxt.options.appConfig.duxt,
     ...layerIdentity(layerDir),
-    resolvedSources,
+    // Each source's area, answered here once rather than by the browser on
+    // every navigation — see `withSourceAreas`.
+    resolvedSources: withSourceAreas(resolvedSources),
     resolvedPageTypes: pageTypes
   } as typeof nuxt.options.appConfig.duxt;
 
