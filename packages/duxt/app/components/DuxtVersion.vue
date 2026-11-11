@@ -23,6 +23,7 @@ const props = withDefaults(defineProps<{ variant?: 'badge' | 'block' }>(), {
 
 const duxt = useDuxtConfig();
 const path = useDuxtPath();
+const routerPath = useDuxtRouterPath();
 const localeLink = useDuxtLink();
 const { source } = useDuxtCollection();
 
@@ -75,6 +76,12 @@ function caption(version: DuxtLink) {
 const { data: missing } = useAsyncData(
   () => `duxt-version-missing-${path.value}`,
   async () => {
+    // A key for the page being LEFT, in the browser, is a lookup nobody reads:
+    // the header asks it for a tick after Nuxt released that page's data, and
+    // answering it loaded every version's collection into the browser on each
+    // navigation. `null` is "not asked", which the links read as nothing gone.
+    if (import.meta.client && path.value !== routerPath.value) return null;
+
     const sources = duxt.resolvedSources ?? [];
     const own = source.value;
     if (!own || path.value === own.prefix) {
@@ -104,7 +111,10 @@ const { data: missing } = useAsyncData(
 
     return gone;
   },
-  { default: () => [], watch: [path] }
+  // No `watch: [path]`: the key already follows the path, and a key change
+  // reads the arriving page's payload. A watcher fires on its own and refetches
+  // past that payload — in the browser, through every version's collection.
+  { default: () => [] }
 );
 
 /**
@@ -117,7 +127,7 @@ function pathIn(version: { to?: string }) {
       path.value,
       current.value?.to,
       version.to ?? '/',
-      new Set(missing.value)
+      new Set(missing.value ?? [])
     )
   );
 }

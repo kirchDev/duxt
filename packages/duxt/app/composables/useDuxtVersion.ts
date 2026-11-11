@@ -11,6 +11,7 @@
 export function useDuxtVersion() {
   const duxt = useDuxtConfig();
   const path = useDuxtPath();
+  const routerPath = useDuxtRouterPath();
 
   const sources = computed(() => duxt.resolvedSources ?? []);
 
@@ -119,6 +120,10 @@ export function useDuxtVersion() {
   const { data: preferredMissing } = useAsyncData(
     () => `duxt-preferred-missing-${path.value}`,
     async () => {
+      // The page being left, asked for by a layout a tick late — see
+      // `useDuxtRouterPath`. Not a question anybody reads the answer to.
+      if (import.meta.client && path.value !== routerPath.value) return false;
+
       const own = current.value;
       const target = preferred.value;
       if (!own || !target || own === target || path.value === own.prefix) {
@@ -137,7 +142,8 @@ export function useDuxtVersion() {
 
       return !hit;
     },
-    { default: () => false, watch: [path] }
+    // The key follows the path; a watcher would refetch past the payload.
+    { default: () => false }
   );
 
   /**
