@@ -1,3 +1,4 @@
+import { stripVTControlCharacters } from 'node:util';
 import { describe, expect, it } from 'vitest';
 import { runDuxtCli } from '../build/cli/cli';
 import type { DuxtReport } from '../build/cli/report';
@@ -6,7 +7,7 @@ import type { DuxtReport } from '../build/cli/report';
  * Usage is rendered with colour unless the environment says otherwise, and
  * whether it does is not what any of these tests are about.
  */
-const plain = (text: string) => text.replaceAll(/\[\d+m/g, '');
+const plain = (text: string) => stripVTControlCharacters(text);
 
 /**
  * The report, as the thing that must NOT be reached.
