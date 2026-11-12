@@ -18,7 +18,7 @@
  *    move them off an address `localhost` may resolve past.
  */
 import { spawn, type ChildProcess } from 'node:child_process';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -64,7 +64,16 @@ export function startBuiltServer({
 }: BuiltServerOptions): BuiltServer {
   // Content restores collection dumps on first use. Two checks sharing the
   // runtime SQLite file can interleave table restoration and serve false 404s.
-  const databaseRoot = mkdtempSync(join(tmpdir(), 'duxt-built-server-'));
+  //
+  // In memory where the machine has it. Content restores a dump one INSERT at a
+  // time, each its own commit, so on a disk every row waits for an fsync: the
+  // first request to a docs page restores every version's collection and took
+  // over 20 seconds on a disk against under 2 in memory — longer than the
+  // 30-second budget the checks give a first response, once the page itself is
+  // rendered too. What is measured here is the site, not the disk.
+  const databaseRoot = mkdtempSync(
+    join(existsSync('/dev/shm') ? '/dev/shm' : tmpdir(), 'duxt-built-server-')
+  );
   const bound = origin
     ? {
         HOST: '127.0.0.1',
