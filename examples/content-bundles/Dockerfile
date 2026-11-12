@@ -1,4 +1,4 @@
-FROM node:26.13.0-bookworm-slim AS source
+FROM node:26.13.1-bookworm-slim AS source
 WORKDIR /app
 RUN npm install --global pnpm@12.16.1
 COPY . .
@@ -12,7 +12,7 @@ FROM source AS build
 WORKDIR /app/examples/content-bundles/site
 RUN node ../../../apps/www/node_modules/nuxt/bin/nuxt.mjs build
 
-FROM node:26.13.0-bookworm-slim AS app
+FROM node:26.13.1-bookworm-slim AS app
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=build /app/examples/content-bundles/site/.output ./
