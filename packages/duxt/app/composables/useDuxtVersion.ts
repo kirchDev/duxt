@@ -126,7 +126,14 @@ export function useDuxtVersion() {
 
       const own = current.value;
       const target = preferred.value;
-      if (!own || !target || own === target || path.value === own.prefix) {
+      if (
+        !own ||
+        !target ||
+        own === target ||
+        // The unprefixed source's root is `/`, not its empty prefix — see
+        // `DuxtVersion`. A root exists in every version by definition.
+        path.value === (own.prefix || '/')
+      ) {
         return false;
       }
 

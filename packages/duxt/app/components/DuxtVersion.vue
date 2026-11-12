@@ -84,7 +84,12 @@ const { data: missing } = useAsyncData(
 
     const sources = duxt.resolvedSources ?? [];
     const own = source.value;
-    if (!own || path.value === own.prefix) {
+    // A source's root IS the root of every one of its versions, so there is
+    // nothing to look up — and the unprefixed source's root is `/`, not its
+    // empty prefix. Comparing against the raw prefix sent the landing page
+    // through every version's collection, restoring all of them on a cold
+    // server before its first byte.
+    if (!own || path.value === (own.prefix || '/')) {
       return [];
     }
 
