@@ -7,7 +7,7 @@
   "type": "module",
   "scripts": {
     "dev": "nuxt dev",
-    "build": "nuxt build",
+    "build": "NODE_OPTIONS=\"${NODE_OPTIONS:-} --max-old-space-size=8192\" nuxt build",
     "build:cf": "NITRO_PRESET=cloudflare-module NUXT_PUBLIC_I18N_BASE_URL=https://duxt.app NUXT_SITE_URL=https://duxt.app nuxt build && pnpm run check:routes && pnpm run check:seo:static",
     "check:a11y": "node scripts/check-a11y.ts",
     "check:adapters": "node scripts/check-adapters.ts",
