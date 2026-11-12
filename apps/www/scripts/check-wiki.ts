@@ -101,7 +101,15 @@ try {
   );
   assert.deepEqual(await assertWikiFixture(origin), initial);
   renameSync(original, renamed);
-  writeFileSync(renamed, source.replace('title: Élite_%', 'title: Renamed'));
+  // A body no earlier run wrote. Content keeps a parse-cache row for every file
+  // it ever parsed, and a row for this path from a previous run — on a machine
+  // or a CI cache that kept `.data` — would let the pack skip the parse this
+  // check exists to observe.
+  writeFileSync(
+    renamed,
+    source.replace('title: Élite_%', 'title: Renamed') +
+      `\n<!-- check-wiki run ${process.pid}-${Date.now()} -->\n`
+  );
   writeFileSync(parsed, '');
   pack();
   const events = readFileSync(parsed, 'utf8');
