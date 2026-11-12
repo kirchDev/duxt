@@ -30,7 +30,8 @@ it('registers its Node importer only for production Node SQLite servers', () => 
     };
     hooks['nitro:init']!(nitro);
     expect(nitro.options.plugins).toHaveLength(expected);
-    expect(Object.keys(nitro.options.virtual)).toHaveLength(expected * 2);
+    // The compat artefact, the OG cache hook and the redirect tables.
+    expect(Object.keys(nitro.options.virtual)).toHaveLength(expected * 3);
     expect(nuxt.options.runtimeConfig).toMatchObject({
       duxt: { contentBundles: { dir: '', statusRoute: false } }
     });

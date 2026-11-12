@@ -1,3 +1,4 @@
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Nuxt } from '@nuxt/schema';
 import { readDuxtBuildConfig } from '../build/config/duxt-app-config';
@@ -23,7 +24,54 @@ import { readContentCache } from '../build/content/content-cache';
  * knows which of those exist. A consumer writing the rule by hand would have to
  * rediscover that scheme for every page.
  */
+/**
+ * The redirect tables the server reads, kept OUT of the runtime config.
+ *
+ * They used to sit under `runtimeConfig.duxt` — 713 keys on duxt.app, most of
+ * them whole URL paths. Nitro copies the runtime config for every request
+ * `useRuntimeConfig(event)` is called on, and @nuxtjs/i18n calls it on every
+ * request; for each key it derives an environment variable name character by
+ * character and reads `process.env` twice. That came to roughly a third of
+ * the time a page took to render, for tables that are build output and that
+ * no environment variable may override. A virtual module costs nothing per
+ * request.
+ *
+ * One object per build, filled by this module and by the content-bundles
+ * module after it, and serialised only when Nitro bundles `#duxt/redirects`.
+ */
+export interface DuxtRedirectTables {
+  /** The paths whose rule this module wrote — see the devtools panel. */
+  redirects: string[];
+  /** Those rules, for a server that answers them itself. */
+  imageRedirects: Record<string, { redirect: { to: string; statusCode: 301 } }>;
+  /** Every path some route rule claims — see the content-bundles plugin. */
+  redirectOverrides: string[];
+}
+
+export function duxtRedirectTables(nuxt: Nuxt): DuxtRedirectTables {
+  const holder = nuxt as Nuxt & { _duxtRedirectTables?: DuxtRedirectTables };
+  return (holder._duxtRedirectTables ??= {
+    redirects: [],
+    imageRedirects: {},
+    redirectOverrides: []
+  });
+}
+
 export default function duxtRedirects(_options: unknown, nuxt: Nuxt) {
+  const tables = duxtRedirectTables(nuxt);
+
+  nuxt.options.build.templates.push({
+    filename: 'types/duxt-redirects.d.ts',
+    write: true,
+    getContents: () =>
+      `declare module '#duxt/redirects' { const tables: { redirects: string[]; imageRedirects: Record<string, { redirect: { to: string; statusCode: 301 } }>; redirectOverrides: string[] }; export default tables; }\n`
+  });
+  nuxt.hook('prepare:types', ({ references }) => {
+    references.push({
+      path: join(nuxt.options.buildDir, 'types/duxt-redirects.d.ts')
+    });
+  });
+
   const layerDir = fileURLToPath(new URL('..', import.meta.url));
 
   const dirs = [
@@ -45,6 +93,14 @@ export default function duxtRedirects(_options: unknown, nuxt: Nuxt) {
   // configured, and Content has filled the cache by then (it parses in its own
   // `modules:done` listener, which runs earlier).
   nuxt.hook('nitro:config', (nitro) => {
+    // Registered before anything can return: the readers import it whether
+    // or not this site has a single redirect. Read lazily, at bundle time, so
+    // what the content-bundles module adds later is in it.
+    nitro.virtual = {
+      ...nitro.virtual,
+      '#duxt/redirects': () => `export default ${JSON.stringify(tables)};`
+    };
+
     const pages = readContentCache(
       nuxt,
       sources.map((source) => source.collection)
@@ -83,15 +139,10 @@ export default function duxtRedirects(_options: unknown, nuxt: Nuxt) {
     );
 
     nitro.routeRules = { ...rules, ...nitro.routeRules };
-    nitro.runtimeConfig = Object.assign({}, nitro.runtimeConfig, {
-      duxt: {
-        ...nitro.runtimeConfig?.duxt,
-        redirects: owned,
-        imageRedirects: Object.fromEntries(
-          owned.map((path) => [path, rules[path]])
-        )
-      }
-    });
+    tables.redirects = owned;
+    tables.imageRedirects = Object.fromEntries(
+      owned.map((path) => [path, rules[path]!])
+    );
   });
 }
 

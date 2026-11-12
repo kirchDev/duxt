@@ -16,6 +16,7 @@ import {
 } from 'h3';
 import { checksums, checksumsStructure, tables } from '#content/manifest';
 import artifact from '#duxt/content-bundle-compat';
+import redirectTables from '#duxt/redirects';
 import type { createContentBundleRuntime } from './runtime';
 
 export default defineNitroPlugin((nitro) => {
@@ -34,16 +35,8 @@ export default defineNitroPlugin((nitro) => {
   const directory = process.env.DUXT_CONTENT_BUNDLE_DIR || bundles?.dir;
   let runtime: ReturnType<typeof createContentBundleRuntime>;
   if (import.meta.prerender) return;
-  const overrides =
-    (config.duxt as { redirectOverrides?: string[] })?.redirectOverrides ?? [];
-  const fallback = (
-    config.duxt as {
-      imageRedirects?: Record<
-        string,
-        { redirect: { to: string; statusCode: 301 } }
-      >;
-    }
-  )?.imageRedirects;
+  const overrides = redirectTables.redirectOverrides;
+  const fallback = redirectTables.imageRedirects;
   nitro.h3App.stack.unshift({
     route: '/',
     handler: eventHandler(async (event) => {
