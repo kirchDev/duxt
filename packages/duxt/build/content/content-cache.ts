@@ -94,6 +94,39 @@ export function readContentCacheAt(
     timeout: 15_000
   });
 
+  /**
+   * The files the LAST PARSE still had, per collection.
+   *
+   * The parse cache never forgets a file: Content removes a row only when its
+   * dev watcher sees the file go, and a build never does. So a page that was
+   * moved or deleted stays in it — a hundred of them in this repository's own
+   * cache when this was written — and every reader here saw it as a live
+   * page: its `redirectFrom` became a rule, `duxt report` counted it and a
+   * content pack shipped it. Content's own collection tables are rebuilt from
+   * the files that exist on every parse and share the cache's ids, so they say
+   * which rows are current. A collection without a table yet is read as
+   * before.
+   */
+  const current = new Map<string, Set<string> | undefined>();
+  const currentIds = (collection: string) => {
+    if (!current.has(collection)) {
+      let ids: Set<string> | undefined;
+      try {
+        ids = new Set(
+          (
+            database
+              .prepare(`SELECT id FROM "_content_${collection}"`)
+              .all() as { id: string }[]
+          ).map((row) => row.id)
+        );
+      } catch {
+        ids = undefined;
+      }
+      current.set(collection, ids);
+    }
+    return current.get(collection);
+  };
+
   try {
     const rows = database
       .prepare('SELECT id, value FROM _development_cache')
@@ -104,6 +137,7 @@ export function readContentCacheAt(
       // The cache carries a version marker and, after a config change, rows of
       // collections that no longer exist.
       if (!names.has(collection)) continue;
+      if (currentIds(collection)?.has(row.id) === false) continue;
 
       let content: Record<string, unknown>;
       try {
