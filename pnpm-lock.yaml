@@ -175,6 +175,7 @@ overrides:
   agents>@modelcontextprotocol/sdk: 1.32.1
 
 patchedDependencies:
+  '@rollup/plugin-inject@5.0.5': 7ae493250c82c6bea3036e8b1966c363ec397186a45a1024a7e0caf2868a2f2b
   nuxt-link-checker@6.0.1: fecc10b5a214995e33fd44be8804e18d16e1a8cf44e6ef6ebae7adf6e3870b59
 
 importers:
@@ -13196,7 +13197,7 @@ snapshots:
     optionalDependencies:
       rollup: 4.67.3
 
-  '@rollup/plugin-inject@5.0.5(rollup@4.67.3)':
+  '@rollup/plugin-inject@5.0.5(patch_hash=7ae493250c82c6bea3036e8b1966c363ec397186a45a1024a7e0caf2868a2f2b)(rollup@4.67.3)':
     dependencies:
       '@rollup/pluginutils': 5.4.0(rollup@4.67.3)
       estree-walker: 2.0.2
@@ -16994,7 +16995,7 @@ snapshots:
       '@cloudflare/kv-asset-handler': 0.4.2
       '@rollup/plugin-alias': 6.0.0(rollup@4.67.3)
       '@rollup/plugin-commonjs': 29.0.3(rollup@4.67.3)
-      '@rollup/plugin-inject': 5.0.5(rollup@4.67.3)
+      '@rollup/plugin-inject': 5.0.5(patch_hash=7ae493250c82c6bea3036e8b1966c363ec397186a45a1024a7e0caf2868a2f2b)(rollup@4.67.3)
       '@rollup/plugin-json': 6.1.0(rollup@4.67.3)
       '@rollup/plugin-node-resolve': 16.0.3(rollup@4.67.3)
       '@rollup/plugin-replace': 6.0.3(rollup@4.67.3)

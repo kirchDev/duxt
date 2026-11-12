@@ -142,6 +142,13 @@ allowBuilds:
   # person who tries.
   workerd: true
 
-# Keep relative internal URLs local in LinkChecker prerender requests.
 patchedDependencies:
+  # Return no transform when nothing was injected. 5.0.5 — still the latest —
+  # builds a high-resolution sourcemap of every module its prefilter matches,
+  # injected or not: 1,248 unchanged modules and 89 million characters in one
+  # build of apps/www, the 24.6 MB Content dump twice among them. That was the
+  # heap spike in Nitro's final server bundle that took the Node build past
+  # 4 GB. Workspace only: a site that extends the layer does not inherit it.
+  '@rollup/plugin-inject@5.0.5': patches/@rollup__plugin-inject@5.0.5.patch
+  # Keep relative internal URLs local in LinkChecker prerender requests.
   nuxt-link-checker@6.0.1: patches/nuxt-link-checker@6.0.1.patch
