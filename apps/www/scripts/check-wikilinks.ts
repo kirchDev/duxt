@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {
+  appendFileSync,
   mkdtempSync,
   readFileSync,
   renameSync,
@@ -779,6 +780,12 @@ try {
     'unchanged pack reparses no files'
   );
   renameSync(original, renamed);
+  // A body no earlier run wrote, for the reason `check-wiki.ts` gives: a
+  // parse-cache row for this path from a previous run would skip the parse.
+  appendFileSync(
+    renamed,
+    `\n<!-- check-wikilinks run ${process.pid}-${Date.now()} -->\n`
+  );
   writeFileSync(parsed, '');
   phase('rename bundle');
   await pack();

@@ -105,7 +105,7 @@ jobs:
           # clone gives every page the same commit date.
           fetch-depth: 0
 
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -120,8 +120,9 @@ jobs:
       # ref, so what a run downloads is a function of the RESOLVED source list —
       # which is exactly what this command prints, `latest` already replaced by
       # the tag it means. `contents.sqlite` lives in the same directory and is
-      # excluded by the `paths` it emits: that one is the OUTPUT of the parse,
-      # so a restored copy hides a content change rather than saving a download.
+      # excluded by the `paths` it emits: it is the OUTPUT of the parse, so it
+      # follows the pages rather than the source list, and has a cache of its
+      # own with a rolling key further down.
       #
       # PUBLIC SOURCES ONLY, decided by the command rather than here. An Actions
       # cache written on this branch is readable by every pull request against
@@ -199,6 +200,30 @@ jobs:
           path: ${{ steps.og.outputs.path }}
           key: ${{ steps.og.outputs.key }}
           restore-keys: ${{ steps.og.outputs['restore-keys'] }}
+
+      # THE PARSE, KEPT. Content's parse cache turns a cold build's parse of
+      # every file — 12,232 of them, three to six minutes measured locally —
+      # into a checksum comparison of about thirty seconds. It used to be left
+      # out because a restored copy still held the rows of deleted pages, and
+      # duxt's own readers took them for live ones: their `redirectFrom` became
+      # rules, `duxt report` counted them and a content pack shipped them.
+      # `readContentCacheAt` now keeps only the rows Content's freshly rebuilt
+      # collection tables still hold, and Content itself reparses every file
+      # whose content, collection or Markdown configuration moved. A stale
+      # restore therefore costs a parse, never a page that does not exist.
+      #
+      # A ROLLING KEY, for the reason the OG images have one: what it holds
+      # follows the pages, so an exact key would freeze it at the first save.
+      # The lockfile is in the namespace so a Content upgrade starts empty
+      # instead of downloading rows its new database version discards. The
+      # glob takes the write-ahead log with the database, which is where the
+      # last pages of a build sit until a checkpoint moves them.
+      - name: Restore the Content parse cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: apps/www/.data/content/contents.sqlite*
+          key: content-parse-${{ hashFiles('pnpm-lock.yaml') }}-${{ steps.source.outputs.sha }}
+          restore-keys: content-parse-${{ hashFiles('pnpm-lock.yaml') }}-
 
       # THE BUILD HAPPENS HERE, NOT AT CLOUDFLARE. No Pages git integration and
       # no build on their side: the artefact is produced by this runner, with
@@ -311,7 +336,7 @@ jobs:
         with:
           ref: ${{ needs.build.outputs.sha }}
 
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:

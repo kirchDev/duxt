@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import redirectTables from '#duxt/redirects';
 import { context } from './context';
 import type { CacheEntry, LocaleFile, RedirectRule } from './render/system';
 import {
@@ -150,13 +151,12 @@ function sizeOf(path: string): number {
 export function redirectsPanel(): string {
   const config = useRuntimeConfig() as {
     nitro?: { routeRules?: Record<string, { redirect?: unknown }> };
-    duxt?: { redirects?: string[] };
   };
 
   const rules = config.nitro?.routeRules;
   if (!rules) return renderRedirects();
 
-  const ours = new Set(config.duxt?.redirects ?? []);
+  const ours = new Set(redirectTables.redirects);
 
   const redirects: RedirectRule[] = Object.entries(rules)
     .filter(([, rule]) => rule?.redirect)

@@ -766,4 +766,8 @@ it('refreshes real Content, media, redirects, MCP and caches without restarting'
     if (server && server.exitCode === null) await once(server, 'exit');
     rmSync(root, { recursive: true, force: true });
   }
-}, 180000);
+  // At least the sum of the budgets inside it: a full `nuxt build` (120 s), the
+  // prepare pass (30 s) and five polls of up to 30 s each. 180 s was less than
+  // that sum, and under CI's parallel package tests the build alone came close
+  // enough that the test timed out while every step was still within its own.
+}, 300000);

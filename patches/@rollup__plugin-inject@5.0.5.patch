@@ -1,0 +1,40 @@
+diff --git a/dist/cjs/index.js b/dist/cjs/index.js
+index 84d823ae0009f3007aa059154e65f0141896724c..7d81b43fc65383c269a8113190b281da2733da4c 100644
+--- a/dist/cjs/index.js
++++ b/dist/cjs/index.js
+@@ -195,11 +195,10 @@ function inject(options) {
+       });
+ 
+       if (newImports.size === 0) {
+-        return {
+-          code: code,
+-          ast: ast,
+-          map: sourceMap ? magicString.generateMap({ hires: true }) : null
+-        };
++        // Nothing injected, so nothing changed: no transform and no sourcemap.
++        // A high-resolution map of an unchanged module is pure cost, and for
++        // multi-megabyte generated modules it is gigabytes of heap.
++        return null;
+       }
+       var importBlock = Array.from(newImports.values()).join('\n\n');
+ 
+diff --git a/dist/es/index.js b/dist/es/index.js
+index 5c7cfab57a043234cfbe2af4aa4b7058e5977073..c53f5c4700fed65eb0f58ad72e0848b5fcdc2a90 100644
+--- a/dist/es/index.js
++++ b/dist/es/index.js
+@@ -191,11 +191,10 @@ function inject(options) {
+       });
+ 
+       if (newImports.size === 0) {
+-        return {
+-          code: code,
+-          ast: ast,
+-          map: sourceMap ? magicString.generateMap({ hires: true }) : null
+-        };
++        // Nothing injected, so nothing changed: no transform and no sourcemap.
++        // A high-resolution map of an unchanged module is pure cost, and for
++        // multi-megabyte generated modules it is gigabytes of heap.
++        return null;
+       }
+       var importBlock = Array.from(newImports.values()).join('\n\n');
+ 

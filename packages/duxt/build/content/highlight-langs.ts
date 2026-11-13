@@ -13,13 +13,18 @@
  * costs somebody a config change they will not discover; too long a list costs
  * them 0.3 s of build time.
  *
- * NOTHING REACHES A BROWSER. Content highlights fences at build time inside
+ * NO GRAMMAR REACHES A BROWSER. Content highlights fences at build time inside
  * rehype, so a grammar is a build-time cost and never a client byte — measured
  * at 358 ms and 39 MB of heap for the whole set, once per build, because
  * Content caches the highlighter on a hash of these options. That is why the
  * "load it on demand" rule that governs `mermaid` and CodeMirror does not apply
  * here, and why `app/utils/code-highlight.ts` — which DOES run in the browser —
  * still carries a hand-picked handful.
+ *
+ * The NAMES do reach it. `@nuxtjs/mdc` copies these options into
+ * `runtimeConfig.public.mdc.highlight` for its runtime highlighter, so the list
+ * is part of the public config inlined into every page — about 2.8 kB of a
+ * docs page's HTML on duxt.app — and of the config Nitro copies per request.
  *
  * THE ALIASES ARE LISTED BECAUSE THE LOOKUP IS AN EXACT KEY ACCESS.
  * `@nuxtjs/mdc` resolves a fence's language against the record built from this

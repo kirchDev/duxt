@@ -266,6 +266,10 @@ export default defineNuxtConfig({
     layer('./modules/content-compatibility.ts'),
     layer('./modules/content-bundles.ts'),
 
+    // Content's internal query requests reuse the process's runtime config
+    // instead of each cloning it again for @nuxtjs/i18n.
+    layer('./modules/shared-runtime-config.ts'),
+
     // The downloadable archive of every local Bruno collection, written during
     // the build and served as a static asset. A no-op for a site that declares
     // no `bruno` section.

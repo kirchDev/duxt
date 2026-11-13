@@ -48,13 +48,55 @@ function visiblePages(pages: WikiPage[]): WikiPage[] {
   return [...visible.values()];
 }
 
+/**
+ * The rows a target can resolve to, looked up rather than searched.
+ *
+ * `wikiMaintenance` resolves every link of every page, and each resolution
+ * used to filter every page and normalise its path, title and aliases again —
+ * pages × links × pages. A wanted page over duxt.app's documentation took eight
+ * seconds to prerender for it. Built once per row list and kept beside it, so
+ * the same list asked a thousand times is indexed once; a new list is a new
+ * index. Lists are never mutated after they are handed in.
+ */
+interface TargetIndex {
+  order: Map<WikiPage, number>;
+  byPath: Map<string, WikiPage[]>;
+  byName: Map<string, WikiPage[]>;
+}
+
+const targetIndexes = new WeakMap<WikiPage[], TargetIndex>();
+
+function targetIndex(pages: WikiPage[]): TargetIndex {
+  const known = targetIndexes.get(pages);
+  if (known) return known;
+
+  const index: TargetIndex = {
+    order: new Map(),
+    byPath: new Map(),
+    byName: new Map()
+  };
+  const add = (map: Map<string, WikiPage[]>, key: string, page: WikiPage) => {
+    const list = map.get(key);
+    if (list) list.push(page);
+    else map.set(key, [page]);
+  };
+  visiblePages(pages).forEach((page, at) => {
+    index.order.set(page, at);
+    add(index.byPath, wikiName(page.path), page);
+    for (const name of new Set([page.title, ...page.aliases].map(wikiName)))
+      add(index.byName, name, page);
+  });
+  targetIndexes.set(pages, index);
+  return index;
+}
+
 /** Collections are supplied in locale precedence; lower-priority names fall back. */
 export function resolveWikiTargets(
   pages: WikiPage[],
   targets: string[],
   prefix = ''
 ): WikiResolution[] {
-  pages = visiblePages(pages);
+  const index = targetIndex(pages);
   return targets.map((target) => {
     const name = wikiName(target.split('#')[0]!);
     if (!name) return { target, pages: [] };
@@ -65,15 +107,16 @@ export function resolveWikiTargets(
           name !== wikiName(prefix)
         ? `${wikiName(prefix)}/${name.replace(/^\//, '')}`
         : `/${name.replace(/^\//, '')}`;
-    const matched = pages.filter(
-      (page) =>
-        wikiName(page.path) === path ||
-        (!name.startsWith('/') &&
-          !name.startsWith('~/') &&
-          [page.title, ...page.aliases].some(
-            (value) => wikiName(value) === name
-          ))
-    );
+    // By path, and by title or alias where the name is not a path: the same
+    // rows the filter over every page matched, in the same order.
+    const matched = [
+      ...new Set([
+        ...(index.byPath.get(path) ?? []),
+        ...(!name.startsWith('/') && !name.startsWith('~/')
+          ? (index.byName.get(name) ?? [])
+          : [])
+      ])
+    ].sort((a, b) => index.order.get(a)! - index.order.get(b)!);
     const collection = matched[0]?.collection;
     let candidates = matched.filter((page) => page.collection === collection);
     const disambiguations = candidates.filter(

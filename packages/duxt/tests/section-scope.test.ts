@@ -3,7 +3,8 @@ import {
   areaForPath,
   currentSection,
   sectionsForPath,
-  sectionsInEdition
+  sectionsInEdition,
+  withSourceAreas
 } from '../app/utils/section-scope';
 
 /**
@@ -322,5 +323,80 @@ describe('currentSection', () => {
 
   it('answers nothing where no entry claims the page', () => {
     expect(currentSection(row, '/getting-started')).toBeUndefined();
+  });
+});
+
+describe('withSourceAreas', () => {
+  /**
+   * The build writes each source's area so the browser need not recompute it on
+   * every navigation. It is only an optimisation if it never changes an answer:
+   * every path and every row must come out the same with the field as without.
+   */
+  const sources = [
+    { prefix: '' },
+    { prefix: '/v0.2.0', version: 'v0.2.0' },
+    { prefix: '/demo', repo: 'demo', version: 'v3.x' },
+    { prefix: '/demo/v2.x', repo: 'demo', version: 'v2.x' },
+    { prefix: '/demo/terraform', repo: 'demo/terraform' },
+    {
+      prefix: '/demo/api',
+      repo: 'demo',
+      version: 'v3.x',
+      generated: { type: 'openapi' }
+    },
+    {
+      prefix: '/demo/v2.x/api',
+      repo: 'demo',
+      version: 'v2.x',
+      generated: { type: 'openapi' }
+    },
+    {
+      prefix: '/demo/changelog',
+      repo: 'demo',
+      generated: { type: 'changelog' }
+    },
+    { prefix: '/changelog', generated: { type: 'changelog' } }
+  ];
+  const row = [
+    { label: 'Guides', to: '/guides' },
+    { label: 'Demo', to: '/demo' },
+    { label: 'Demo API', to: '/demo/api' },
+    { label: 'Terraform', to: '/demo/terraform' },
+    { label: 'Changelog', to: '/changelog' },
+    { label: 'Elsewhere' }
+  ];
+  const paths = [
+    '/',
+    '/guides',
+    '/v0.2.0/guides',
+    '/demo',
+    '/demo/v2.x/start',
+    '/demo/api/pets',
+    '/demo/v2.x/api',
+    '/demo/terraform/resources',
+    '/demo/changelog',
+    '/changelog'
+  ];
+
+  it('writes an area onto every source', () => {
+    for (const source of withSourceAreas(sources))
+      expect(typeof source.area).toBe('string');
+  });
+
+  it('answers every path and every row exactly as the live computation', () => {
+    const prepared = withSourceAreas(sources);
+
+    for (const path of paths) {
+      expect(areaForPath(path, prepared)).toBe(areaForPath(path, sources));
+      expect(sectionsForPath(row, prepared, path)).toEqual(
+        sectionsForPath(row, sources, path)
+      );
+    }
+  });
+
+  it('reads the written area rather than recomputing it', () => {
+    const marked = sources.map((source) => ({ ...source, area: '/marked' }));
+
+    expect(areaForPath('/guides', marked)).toBe('/marked');
   });
 });

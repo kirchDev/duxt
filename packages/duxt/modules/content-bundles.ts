@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import type { Nuxt } from '@nuxt/schema';
 import { isContentComponent } from '../build/content/content-components';
 import { contentCompatibility } from '../build/content/content-compatibility';
+import { duxtRedirectTables } from './redirects';
 
 export default function duxtContentBundles(_options: unknown, nuxt: Nuxt) {
   const config = nuxt.options.runtimeConfig as unknown as {
@@ -99,13 +100,14 @@ export default function duxtContentBundles(_options: unknown, nuxt: Nuxt) {
       ),
       order: -25
     });
-    const redirects = nitro.options.runtimeConfig?.duxt as
-      | { redirects?: string[]; redirectOverrides?: string[] }
-      | undefined;
-    for (const path of redirects?.redirects ?? [])
+    const redirects = duxtRedirectTables(nuxt);
+    // Also registered here: a server that answers redirects itself reads the
+    // tables, even in an app that does not run the redirects module.
+    nitro.options.virtual['#duxt/redirects'] ??= () =>
+      `export default ${JSON.stringify(redirects)};`;
+    for (const path of redirects.redirects)
       delete nitro.options.routeRules[path];
-    if (redirects)
-      redirects.redirectOverrides = Object.keys(nitro.options.routeRules ?? {});
+    redirects.redirectOverrides = Object.keys(nitro.options.routeRules ?? {});
     nitro.options.virtual['#duxt/content-bundle-caches'] = nitro.options
       .alias?.['#og-image-cache']
       ? "import { htmlPayloadCache } from '#og-image-cache'; export const clearOgPayloads = () => htmlPayloadCache.clear();"

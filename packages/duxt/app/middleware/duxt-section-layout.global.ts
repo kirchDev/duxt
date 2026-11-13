@@ -8,6 +8,20 @@ export default defineNuxtRouteMiddleware(async (to) => {
   // hydration would download SQLite and collection dumps just to repeat it.
   if (import.meta.client && app.isHydrating && app.payload.serverRendered)
     return;
+
+  // A client navigation to a prerendered page reads the layout the server
+  // wrote into that page's payload below. Querying for it instead opened the
+  // collection in the browser — SQLite in WebAssembly plus the collection's
+  // whole dump — on every navigation, for one column of one row. Nuxt fetches
+  // the same payload for the page itself, and the two requests are one.
+  const key = `duxt-layout:${to.path}`;
+  if (import.meta.client) {
+    const layout = (await loadPayload(to.path))?.data?.[key];
+    if (typeof layout === 'string') {
+      (setPageLayout as (name: string) => void)(layout);
+      return;
+    }
+  }
   const config = useAppConfig().duxt as DuxtConfig | undefined;
   const i18n = useNuxtApp().$i18n as unknown as {
     locales?: { value?: (string | { code: string })[] };
@@ -39,6 +53,8 @@ export default defineNuxtRouteMiddleware(async (to) => {
       .first();
     if (!page) continue;
     const type = duxtPageType(page, source, config?.resolvedPageTypes ?? {});
+    // Carried in the payload, which prerendering writes to `_payload.json`.
+    if (import.meta.server) app.payload.data[key] = type.layout;
     (setPageLayout as (name: string) => void)(type.layout);
     return;
   }

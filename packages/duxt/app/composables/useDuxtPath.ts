@@ -14,6 +14,27 @@ export function useDuxtPath() {
 }
 
 /**
+ * Where the ROUTER is — the destination of a navigation still rendering.
+ *
+ * `useDuxtPath` follows the route the calling component is rendered for, and a
+ * layout and the page it holds see a navigation at different moments. For one
+ * tick the header can still ask about the page being left, after Nuxt has
+ * already released that page's data. A lookup run for that path in the browser
+ * answers nothing anybody reads and pays for every collection it touches; this
+ * is what tells such a lookup apart from one for the page arriving.
+ */
+export function useDuxtRouterPath() {
+  const router = useRouter();
+  const { locales } = useI18n();
+
+  const codes = computed(() => localeCodesOf(locales.value));
+
+  return computed(() =>
+    stripLocalePrefix(router.currentRoute.value.path, codes.value)
+  );
+}
+
+/**
  * The counterpart: a documentation path, written back out as a link the
  * current locale can be reached at.
  *
