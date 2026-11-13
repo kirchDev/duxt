@@ -1,5 +1,21 @@
 # Changelog
 
+## [v0.14.1](https://github.com/kirchDev/duxt/compare/duxt@v0.14.0...duxt@v0.14.1) (2026-11-13)
+
+### Bug Fixes
+
+- **versions:** skip the counterpart lookup on the unprefixed source's root ([347f1aa](https://github.com/kirchDev/duxt/commit/347f1aa092746e3bf91d67c6630ba1c24c68e463))
+- **deps:** update dependencies within their minor ranges ([f5ef54e](https://github.com/kirchDev/duxt/commit/f5ef54ed8a2f0d7a42a85b827512f58eb5786291))
+- **content:** read only the pages the last parse still had ([4635ed7](https://github.com/kirchDev/duxt/commit/4635ed738ca120dd4bb2fb8ccaa2ed155f73719b))
+
+### Performance
+
+- **content:** let Content's internal queries reuse the runtime config ([286b277](https://github.com/kirchDev/duxt/commit/286b2776e585c6f646f7d7f424dbe5fc548b9836))
+- **redirects:** keep the redirect tables out of the runtime config ([9ac41e8](https://github.com/kirchDev/duxt/commit/9ac41e8599990b1c89a3f3f19e16968e2ac20fbf))
+- **content:** stop client navigations from opening the version collections ([c4e36c7](https://github.com/kirchDev/duxt/commit/c4e36c79e8aca5aef7a4fdc5128c92a9661346c9))
+- **config:** resolve the config once per position, not per component ([5e1a89b](https://github.com/kirchDev/duxt/commit/5e1a89b2f6dbb9d8aa752af1c9586a2d116976ce))
+- **navigation:** resolve section areas at build time ([7e1bbc3](https://github.com/kirchDev/duxt/commit/7e1bbc3f8e0c44c8b87e21bd82f9e9b92a1f3058))
+
 ## [v0.14.0](https://github.com/kirchDev/duxt/compare/duxt@v0.13.0...duxt@v0.14.0) (2026-11-10)
 
 ### Features
