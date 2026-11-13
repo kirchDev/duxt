@@ -11,15 +11,16 @@ release-pull-request-guide: false
 labels:
   pending: 'autorelease: pending'
   tagged: 'autorelease: tagged'
-  alpha: false
-  beta: false
-  rc: false
+  prerelease:
+    alpha: false
+    beta: false
+    rc: false
 bump-minor-pre-major: true
 components:
   duxt:
     path: packages/duxt
     tag-prefix: duxt@v
-    changelog: CHANGELOG.md
+    changelog-path: CHANGELOG.md
     files:
       - path: packages/duxt/package.json
         updater: json
