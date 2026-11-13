@@ -1,5 +1,16 @@
 # Changelog
 
+## [v0.14.1](https://github.com/kirchDev/duxt/compare/duxt-wiki@v0.13.1...duxt-wiki@v0.14.1) (2026-11-13)
+
+### Bug Fixes
+
+- **wiki:** require @kirchdev/duxt 0.13.0 or newer as a peer ([df000ed](https://github.com/kirchDev/duxt/commit/df000edb368a83b0f928c6f45a4e456de5be3727))
+- **deps:** update dependencies within their minor ranges ([f5ef54e](https://github.com/kirchDev/duxt/commit/f5ef54ed8a2f0d7a42a85b827512f58eb5786291))
+
+### Performance
+
+- **wiki:** look link targets up instead of filtering every page ([3cfbbda](https://github.com/kirchDev/duxt/commit/3cfbbda085f5214205a3444a30aa617ccf6c3599))
+
 ## [v0.13.1](https://github.com/kirchDev/duxt/compare/duxt-wiki@v0.13.0...duxt-wiki@v0.13.1) (2026-11-09)
 
 ### Bug Fixes
