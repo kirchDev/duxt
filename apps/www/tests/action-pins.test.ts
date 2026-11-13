@@ -3,9 +3,10 @@ import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import { expect, it } from 'vitest';
 
-// The one floating ref, by decision: release-me's next channel carries what no
-// release has yet. Anything else, this action on another ref included, is pinned.
-const FLOATING = new Set(['release.yml: TitusKirch/release-me/action@next']);
+// Floating refs allowed by decision. None at present: release-me, the last one,
+// is pinned since v0.5.0 carried what duxt needed. An entry here names the exact
+// `<workflow>: <reference>` line it excuses.
+const FLOATING = new Set<string>();
 
 it('requires immutable Actions and reusable workflows with a readable version', () => {
   const root = fileURLToPath(

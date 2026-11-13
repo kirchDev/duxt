@@ -85,9 +85,10 @@ jobs:
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref || github.sha }}
           fetch-depth: 0
 
-      # A floating ref by decision, the one exception action-pins.test.ts names:
-      # next carries what no release-me release has yet, and builds from source.
-      - uses: TitusKirch/release-me/action@next
+      # Pinned like every other action. v0.5.0 is the first release that creates
+      # the release commit through the GitHub API, so the commit is signed and
+      # the release pull request passes signed-commit protection.
+      - uses: ostendorf-cloud/release-me/action@1ce702d00e64f065f639373321c7fb4f5775636a # v0.5.0
         with:
           token: ${{ steps.app-token.outputs.token }}
 
