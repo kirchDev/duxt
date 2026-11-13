@@ -16,7 +16,7 @@ import { createServer } from 'node:net';
 import { once } from 'node:events';
 import { DatabaseSync } from 'node:sqlite';
 import { Worker } from 'node:worker_threads';
-import { expect, it } from 'vitest';
+import { expect, it, onTestFailed } from 'vitest';
 import {
   canonicalJson,
   contentHash,
@@ -33,6 +33,31 @@ it('refreshes real Content, media, redirects, MCP and caches without restarting'
   const root = mkdtempSync(join(layer, '.content-runtime-test-'));
   let server: ReturnType<typeof spawn> | undefined;
   let output = '';
+  // A request to the built server that never answers used to hang the whole
+  // test until vitest's own limit, which reports neither the request nor the
+  // server's output. Each request now carries its own deadline and is named
+  // while it is open, and a failure of any kind prints both.
+  const open: string[] = [];
+  onTestFailed(() => {
+    console.error(
+      `[content-bundle-server] requests still open: ${open.join(', ') || 'none'}\n` +
+        `--- server output (last 8000 characters) ---\n${output.slice(-8000)}`
+    );
+  });
+  const fetch = async (input: string, init: RequestInit = {}) => {
+    const label = `${init.method ?? 'GET'} ${input.replace(/^http:\/\/127\.0\.0\.1:\d+/, '')}`;
+    open.push(label);
+    try {
+      return await globalThis.fetch(input, {
+        ...init,
+        signal: init.signal ?? AbortSignal.timeout(60000)
+      });
+    } catch (error) {
+      throw new Error(`${label} failed: ${String(error)}`, { cause: error });
+    } finally {
+      open.splice(open.indexOf(label), 1);
+    }
+  };
   try {
     for (const dir of [
       'content/docs',
