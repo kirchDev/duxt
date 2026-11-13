@@ -1,1 +1,42 @@
 # Changelog
+
+## [v0.14.1](https://github.com/kirchDev/duxt/compare/duxt-wiki@v0.13.1...duxt-wiki@v0.14.1) (2026-11-13)
+
+### Bug Fixes
+
+- **wiki:** require @kirchdev/duxt 0.13.0 or newer as a peer ([df000ed](https://github.com/kirchDev/duxt/commit/df000edb368a83b0f928c6f45a4e456de5be3727))
+- **deps:** update dependencies within their minor ranges ([f5ef54e](https://github.com/kirchDev/duxt/commit/f5ef54ed8a2f0d7a42a85b827512f58eb5786291))
+
+### Performance
+
+- **wiki:** look link targets up instead of filtering every page ([3cfbbda](https://github.com/kirchDev/duxt/commit/3cfbbda085f5214205a3444a30aa617ccf6c3599))
+
+## [v0.13.1](https://github.com/kirchDev/duxt/compare/duxt-wiki@v0.13.0...duxt-wiki@v0.13.1) (2026-11-09)
+
+### Bug Fixes
+
+- **wiki:** prerender only the wanted pages a wiki needs ([03f0b00](https://github.com/kirchDev/duxt/commit/03f0b008e2f5e05623a672ae802c99bbf24c1b3c))
+
+## v0.13.0 (2026-11-08)
+
+### Features
+
+- **wiki:** name the forge on the create page action ([ee97420](https://github.com/kirchDev/duxt/commit/ee97420392afcb360cc550ec3513b7864f716929))
+- **wiki:** render wanted pages in the wiki layout ([3761340](https://github.com/kirchDev/duxt/commit/3761340d543f43807b4f463c854d7460969e6d58))
+- **wiki:** widen articles and restyle navboxes and backlinks ([a9ea91a](https://github.com/kirchDev/duxt/commit/a9ea91a5dc5130182ecfc49cf2e4053078b9351b))
+- **wiki:** add structured infoboxes and scoped queries ([58a2e0a](https://github.com/kirchDev/duxt/commit/58a2e0aee4b51ff6f81b7e89065e0bfe91d324e4))
+- **wiki:** resolve links and expose wanted pages ([17df4c9](https://github.com/kirchDev/duxt/commit/17df4c94ae136d5437d40144c50a7ff12e2cb9a3))
+- **wiki:** add wiki layouts and dynamic categories ([76fc487](https://github.com/kirchDev/duxt/commit/76fc487b02bc34ed6f8961d0e7821777c971fbf5))
+- **wiki:** persist and query shared page metadata ([b1aad20](https://github.com/kirchDev/duxt/commit/b1aad20fd645cfaf42afa64c9a2b61ef150f5420))
+
+### Bug Fixes
+
+- **wiki:** keep wanted pages from prerendering the navigation ([467f35e](https://github.com/kirchDev/duxt/commit/467f35e350bd58f1566e8387ac420ea4d4ba3647))
+- **wiki:** size infobox images and keep boxes beside the float ([f6ac7a1](https://github.com/kirchDev/duxt/commit/f6ac7a1bcc6760eb70f74130b4c16c9f28571ef1))
+- **wiki:** keep page types out of core page reads ([44facbe](https://github.com/kirchDev/duxt/commit/44facbe6bc95ca320dcce7ffde5a62efbe782317))
+- **wiki:** parse wikilinks with native occurrence identity ([7770649](https://github.com/kirchDev/duxt/commit/77706499afaeccb9ab7dcdec565857c0e2e9e9ec))
+- **content:** corroborate non-component manifest fragments ([71a79c4](https://github.com/kirchDev/duxt/commit/71a79c4990a76b40314359df61115ed4918ba256))
+- **wiki:** preserve explicit links into generated sources ([111258e](https://github.com/kirchDev/duxt/commit/111258ecd4c30a2415dd69df10ccf706ec48b8da))
+- **wiki:** match category identities symmetrically ([422b1d9](https://github.com/kirchDev/duxt/commit/422b1d9e9106ed3c1ba88d958c49244be39d9b03))
+- **wiki:** resolve links against visible locale pages ([0217d00](https://github.com/kirchDev/duxt/commit/0217d00f719cd602466b00aad6a599398505d3d5))
+- **wiki:** scan authored wikilinks in linear time ([cb85da8](https://github.com/kirchDev/duxt/commit/cb85da8f78a5dfea034ecdb07e4f029100af8d11))
