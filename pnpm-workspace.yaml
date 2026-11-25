@@ -29,7 +29,7 @@ nodeLinker: isolated
 # packageManagerStrictVersion: false. Setting pmOnFail here would only weaken that.
 
 # The published packages live in packages/, the sites that develop them in apps/
-# — see CLAUDE.md. The root is not a package of its own: it carries the
+# — see AGENTS.md. The root is not a package of its own: it carries the
 # workspace and the meta layer. apps/www depends on the layer by name rather
 # than by path, the same way a consumer installs it, exports map included.
 packages:

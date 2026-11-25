@@ -13,7 +13,7 @@ const config: Configuration = {
     // and any package in this workspace may have one.
     const files = filenames.filter(
       (f) =>
-        !/(?:^|\/)(README|CLAUDE|AGENTS|CHANGELOG)\.md$/.test(f) &&
+        !/(?:^|\/)(README|AGENTS|CHANGELOG)\.md$/.test(f) &&
         !/(?:^|\/)docs\//.test(f)
     );
     return files.length > 0 ? `pnpm exec oxfmt ${files.join(' ')}` : [];

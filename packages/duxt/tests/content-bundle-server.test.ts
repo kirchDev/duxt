@@ -432,13 +432,16 @@ it('refreshes real Content, media, redirects, MCP and caches without restarting'
     unguard.close();
     start();
     await expect
-      .poll(async () => {
-        try {
-          return await (await fetch(url + '/api/view')).json();
-        } catch {
-          return null;
-        }
-      })
+      .poll(
+        async () => {
+          try {
+            return await (await fetch(url + '/api/view')).json();
+          } catch {
+            return null;
+          }
+        },
+        { timeout: 30000, interval: 100 }
+      )
       .toEqual({ docs: 'BundleOne', notes: 'BundleOne' });
     const mcpHeaders: Record<string, string> = {
       'content-type': 'application/json',
@@ -547,28 +550,45 @@ it('refreshes real Content, media, redirects, MCP and caches without restarting'
         signal: AbortSignal.timeout(30000)
       });
       await expect
-        .poll(() => existsSync(join(root, 'admin-started')))
+        .poll(() => existsSync(join(root, 'admin-started')), {
+          timeout: 10000,
+          interval: 100
+        })
         .toBe(true);
 
       const late = fetch(url + '/api/late-cache');
       await expect
-        .poll(() => existsSync(join(root, 'cache-started')))
+        .poll(() => existsSync(join(root, 'cache-started')), {
+          timeout: 10000,
+          interval: 100
+        })
         .toBe(true);
       const latePost = fetch(url + '/api/late-read', {
         method: 'POST',
         headers: { accept: 'application/json, text/event-stream' }
       });
       await expect
-        .poll(() => existsSync(join(root, 'post-started')))
+        .poll(() => existsSync(join(root, 'post-started')), {
+          timeout: 10000,
+          interval: 100
+        })
         .toBe(true);
       const lateTool = tool('held_view', {});
       await expect
-        .poll(() => existsSync(join(root, 'tool-started')))
+        .poll(() => existsSync(join(root, 'tool-started')), {
+          timeout: 10000,
+          interval: 100
+        })
         .toBe(true);
       const lateGet = fetch(url + '/api/late-get', {
         headers: { accept: 'application/json, text/event-stream' }
       });
-      await expect.poll(() => existsSync(join(root, 'get-started'))).toBe(true);
+      await expect
+        .poll(() => existsSync(join(root, 'get-started')), {
+          timeout: 10000,
+          interval: 100
+        })
+        .toBe(true);
       const second = await writeContentBundle(
         {
           compat,
@@ -728,13 +748,16 @@ it('refreshes real Content, media, redirects, MCP and caches without restarting'
     writeFileSync(join(directory, 'current'), published.bundleId + '\n');
     start({ NUXT_IPX_FS_DIR: '../public' });
     await expect
-      .poll(async () => {
-        try {
-          return await (await fetch(url + '/__duxt/content-bundle')).json();
-        } catch {
-          return null;
-        }
-      })
+      .poll(
+        async () => {
+          try {
+            return await (await fetch(url + '/__duxt/content-bundle')).json();
+          } catch {
+            return null;
+          }
+        },
+        { timeout: 30000, interval: 100 }
+      )
       .toMatchObject({
         active: { id: published.bundleId },
         warnings: [expect.stringContaining('NUXT_IPX_FS_DIR')]
@@ -747,15 +770,18 @@ it('refreshes real Content, media, redirects, MCP and caches without restarting'
     await stop();
     start({ DUXT_CONTENT_BUNDLE_DIR: '', NUXT_DUXT_CONTENT_BUNDLES_DIR: '' });
     await expect
-      .poll(async () => {
-        try {
-          return (
-            await fetch(url + '/image-old', { redirect: 'manual' })
-          ).headers.get('location');
-        } catch {
-          return null;
-        }
-      })
+      .poll(
+        async () => {
+          try {
+            return (
+              await fetch(url + '/image-old', { redirect: 'manual' })
+            ).headers.get('location');
+          } catch {
+            return null;
+          }
+        },
+        { timeout: 30000, interval: 100 }
+      )
       .toBe('/docs');
     const imageQuery = await fetch(
       url + '/image-old?campaign=docs&q=nuxt%20content&q=ipx',
@@ -792,7 +818,12 @@ it('refreshes real Content, media, redirects, MCP and caches without restarting'
     rmSync(root, { recursive: true, force: true });
   }
   // At least the sum of the budgets inside it: a full `nuxt build` (120 s), the
-  // prepare pass (30 s) and five polls of up to 30 s each. 180 s was less than
-  // that sum, and under CI's parallel package tests the build alone came close
-  // enough that the test timed out while every step was still within its own.
-}, 300000);
+  // prepare pass (30 s), eight polls of up to 30 s and five request markers of
+  // up to 10 s. 180 s was less than that sum, and under CI's parallel package
+  // tests the build alone came close enough that the test timed out while every
+  // step was still within its own.
+  //
+  // No poll may run on vitest's 1 s default. Three after a server restart did,
+  // and under a loaded `pnpm test` a restart takes longer than that, so the test
+  // failed at whichever restart lost the race while it passed run on its own.
+}, 450000);

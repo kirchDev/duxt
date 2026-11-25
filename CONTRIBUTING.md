@@ -1,26 +1,17 @@
 # Contributing to duxt
 
-Thanks for taking the time to contribute! 🛠️ This document covers what you need to get a PR landed.
-
-## Code of Conduct
-
-This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md). By participating, you agree to uphold it.
+Thanks for contributing! 🛠️ This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Reporting issues
 
-- **Questions & ideas, or something that might be a bug**: start in the [Discord forum](https://discord.duxt.app/) — that's where the low-friction, unconfirmed stuff lives.
-- **Confirmed bugs**: open a [Bug report](https://github.com/kirchDev/duxt/issues/new?template=bug_report.yml) with a minimal reproduction if at all possible.
-- **Feature requests**: open a [Feature request](https://github.com/kirchDev/duxt/issues/new?template=feature_request.yml).
-- **Security vulnerabilities**: **do not** open a public issue. Follow [SECURITY.md](SECURITY.md).
+- **Questions, ideas, possible bugs**: the [Discord forum](https://discord.duxt.app/).
+- **Confirmed bugs**: a [Bug report](https://github.com/kirchDev/duxt/issues/new?template=bug_report.yml), with a minimal reproduction.
+- **Feature requests**: a [Feature request](https://github.com/kirchDev/duxt/issues/new?template=feature_request.yml).
+- **Security vulnerabilities**: never a public issue — see [SECURITY.md](SECURITY.md).
 
 ## Development setup
 
-Requirements:
-
-- Node **24+**, **pnpm 12** and **TypeScript 6** (7 is held back — see CLAUDE.md)
-- `git`
-
-Clone and install:
+Node **26** (`.nvmrc`; the published packages support 24.15+), **pnpm 12**, `git`.
 
 ```bash
 git clone https://github.com/kirchDev/duxt.git
@@ -28,70 +19,26 @@ cd duxt
 pnpm install   # wires husky hooks
 ```
 
-Run the site with `pnpm --filter www dev`. Stop it before `pnpm build:app`,
-`pnpm check`, or another command that loads the site's Nuxt configuration
-(including `pnpm typecheck:app`). These commands share Content's parse cache,
-runtime database and Nuxt build artifacts. The site claims ownership before
-loading modules; a conflicting command exits with the owning command and PID.
-Separate worktrees have separate ownership.
+Run the site with `pnpm --filter www dev`, and stop it before `pnpm build:app`, `pnpm check` or `pnpm typecheck:app`: they share Content's cache and Nuxt's build artifacts, and a conflicting command exits naming the owning PID. After a crash, retry once that process has exited. Never delete a live process's lock, `.data`, SQLite or WAL files — a lock's age is no proof its owner stopped.
 
-After a crash, retry once the owning process has exited: the operating system
-releases the ownership transaction automatically. Nuxt also reclaims its own
-`apps/www/node_modules/.cache/nuxt/.nuxt/nuxt.lock` when its recorded PID no
-longer exists. Never remove a live process's lock, `.data`, SQLite database or
-WAL files. If a Nuxt lock cannot be read, confirm the owning process is gone
-before removing that lock manually. A lock's age alone is not proof that its
-owner has stopped.
+Layout and conventions: [AGENTS.md](AGENTS.md). Run everything from the root.
 
-## Where things live
+## Checks
 
-This is a pnpm workspace driven by Turborepo:
-
-- `packages/duxt` — the published layer, `@kirchdev/duxt`.
-- `apps/www` — the site that develops it, and the checks that read its build.
-- The root — workspace and meta configuration, plus `docs/`, which is what
-  `apps/www` publishes.
-
-Run everything from the root. The root scripts delegate package tasks to
-`turbo run`, which caches only what its inputs fully determine.
-
-## Running the suite
-
-| Command              | What it does                                                |
-| :------------------- | :---------------------------------------------------------- |
-| `pnpm lint`          | oxlint across the repo.                                     |
-| `pnpm format`        | oxfmt check across JS / TS / JSON / YAML / MD.              |
-| `pnpm typecheck`     | `tsc --noEmit` over the meta and check scripts.             |
-| `pnpm typecheck:app` | `nuxt typecheck` over the layer, via `apps/www`.            |
-| `pnpm test`          | Every package's vitest suite, through `turbo run test`.     |
-| `pnpm check`         | The CI gate — the full chain is in the root `package.json`. |
-| `pnpm check:fix`     | Auto-fix lint + format issues.                              |
-
-The same commands run in CI — keep them green before you push.
+`pnpm check` is the CI gate; the chain is the `check` script in `package.json`. `pnpm check:fix` auto-fixes lint and format. Keep it green before you push.
 
 ## Branching & PRs
 
-1. **Don't push directly to `main` or `dev`.** Branch off `dev`; PRs target `dev`, which is rolled up into `main` for releases.
-2. **Conventional Commits required.** Commitlint enforces this on every commit. Examples:
-   - `feat: add a version switcher`
-   - `fix(ci): correct pnpm cache key`
-   - `docs(readme): clarify the sources shorthand`
-   - `chore(deps): bump oxlint to 1.67`
-   - Breaking changes: `feat!: ...` or include `BREAKING CHANGE:` in the body.
-3. **One concern per PR.** Smaller PRs land faster.
-4. **Update relevant docs.** README, CONTRIBUTING, or comments if you change a default.
+1. Branch off `dev`; PRs target `dev`, which is rolled up into `main` for releases.
+2. [Conventional Commits](https://www.conventionalcommits.org/), enforced by commitlint (`feat!:` or `BREAKING CHANGE:` for breaking changes).
+3. One concern per PR, docs updated with it.
 
-## Style & quality gates
+Husky runs `lint-staged` (oxlint + oxfmt) and commitlint on commit. If a hook fails, fix it and commit again — never `--no-verify`.
 
-Husky runs the following on `git commit`:
+## Agent instructions
 
-- **JS / JSON / YAML / MD** → `oxlint` + `oxfmt`
-
-If a hook fails, fix the issue and commit again. **Don't `--no-verify`** unless I explicitly ask.
-
-> [!TIP]
-> Run `pnpm check:fix` before opening a PR — saves a CI cycle.
+Agent rules live in [AGENTS.md](AGENTS.md). Claude Code (v2.1.277+) loads it on its own as long as no `CLAUDE.md` or `CLAUDE.local.md` sits in the working directory or above — don't add one to the repo.
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the [MIT License](LICENSE).
+Contributions are licensed under the [MIT License](LICENSE).

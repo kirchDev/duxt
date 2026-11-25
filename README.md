@@ -71,7 +71,7 @@ The local folder and every selected release or branch become collections, the UR
 - **🎨 shadcn-vue theme, owned not vendored** — Tailwind 4 with the components in `app/components/ui/`, MDC components in `app/components/content/`.
 - **🔍 Search, TOC, breadcrumb, prev/next** — ⌘/Ctrl+K fuzzy search across every source, active-heading tracking, section landing pages, feedback and "Edit this page" links.
 - **🧯 A build that fails loudly** — a validator walks the parse cache for URL collisions, empty collections, broken links and missing titles, because every bug this layer actually had was a silent one.
-- **♻️ Cacheable build work** — remote Content downloads and rendered OG images expose stable cache keys and a warm-build report; see [Cache build work](docs/3.guides/12.cache-build-work.md).
+- **♻️ Cacheable build work** — remote Content downloads and rendered OG images expose stable cache keys and a warm-build report; see [Cache build work](docs/3.guides/11.cache-build-work.md).
 
 <details>
 <summary>Full feature list</summary>
@@ -107,7 +107,7 @@ The local folder and every selected release or branch become collections, the UR
 - **📦 Extend, don't scaffold** — a Nuxt layer: theme, pages, components and `app.config` defaults arrive with `extends` and are overridden file by file where you disagree.
 - **🧯 A build that fails loudly** — a validator walks the parse cache for URL collisions, empty collections, broken links and missing titles, because every bug this layer actually had was a silent one.
 - **🔎 DevTools tab** — the resolved sources, collections, prefixes, message catalogues and download cache, in dev, where guessing used to be the only option.
-- **♻️ Cacheable build work** — `duxt-cache-key` identifies remote Content downloads and `duxt-og-cache` identifies reusable rendered cards; the [cache guide](docs/3.guides/12.cache-build-work.md) wires both into CI.
+- **♻️ Cacheable build work** — `duxt-cache-key` identifies remote Content downloads and `duxt-og-cache` identifies reusable rendered cards; the [cache guide](docs/3.guides/11.cache-build-work.md) wires both into CI.
 
 </details>
 
@@ -133,10 +133,10 @@ Every text field takes a literal, an i18n key, or a per-locale record — a sing
 git clone https://github.com/kirchDev/duxt.git
 cd duxt
 pnpm install   # wires the husky hooks
-pnpm check     # lint + format + typecheck + tests + policy parity + build + a11y
+pnpm check     # the CI gate — the full chain is the check script in package.json
 ```
 
-A pnpm workspace driven by Turborepo. The layer is [`packages/duxt`](packages/duxt) — `nuxt.config.ts`, `content.config.ts`, `app/`, `modules/`, `server/` and the build-time modules under `build/`. [`apps/www`](apps/www) is the site that consumes it, and the development target: it deliberately carries the awkward cases — two repositories, four refs, one version of each lifecycle. The root holds only the workspace and meta configuration, plus `docs/`, which `apps/www` publishes. It is not a template; the exemplary starting point lives in [`kirchDev/duxt-starter`](https://github.com/kirchDev/duxt-starter).
+A pnpm workspace driven by Turborepo. The layer is [`packages/duxt`](packages/duxt) — `nuxt.config.ts`, `content.config.ts`, `app/`, `modules/`, `server/` and the build-time modules under `build/` — and its add-on layers sit beside it: [`duxt-typesense`](packages/duxt-typesense), [`duxt-meilisearch`](packages/duxt-meilisearch) and [`duxt-wiki`](packages/duxt-wiki). [`apps/www`](apps/www) is the site that consumes it, and the development target: it deliberately carries the awkward cases — two repositories, four refs, one version of each lifecycle. The root holds only the workspace and meta configuration, plus `docs/`, which `apps/www` publishes. It is not a template; the exemplary starting point lives in [`kirchDev/duxt-starter`](https://github.com/kirchDev/duxt-starter).
 
 ## 🎨 Assets & branding
 
@@ -152,16 +152,11 @@ Every asset, the colour values, why the icon's brackets are redrawn and the font
 
 ## 🤝 Contributing
 
-PRs welcome. Conventional Commits are enforced via commitlint, and husky runs the linters on `git commit`. Branch off `dev`.
-
-> [!TIP]
-> Run `pnpm check:fix` before pushing — CI will catch what husky missed.
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the full workflow.
+PRs welcome. Conventional Commits are enforced via commitlint, and husky runs the linters on `git commit`. Branch off `dev`, run `pnpm check:fix` before pushing — CI catches what husky missed — and see [CONTRIBUTING.md](CONTRIBUTING.md) for the full workflow.
 
 ## 🛣️ Versioning
 
-[Semantic Versioning](https://semver.org/) via [release-please](https://github.com/googleapis/release-please) — see the [releases](https://github.com/kirchDev/duxt/releases).
+[Semantic Versioning](https://semver.org/) via [release-me](https://github.com/ostendorf-cloud/release-me) — see [CHANGELOG.md](CHANGELOG.md).
 
 ## 📄 License
 

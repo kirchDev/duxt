@@ -26,7 +26,7 @@ import config from '../nuxt.config';
  * place answers about the wrong copy.
  *
  * Why `native` in particular, and what replaces it if it ever goes: the
- * "No SQLite driver is installed" bullet in `CLAUDE.md`, and
+ * "No SQLite driver is installed" bullet in `AGENTS.md`, and
  * `docs/2.concepts/11.databases.md` for the consumer-facing version.
  */
 

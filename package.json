@@ -54,15 +54,15 @@
     "@commitlint/types": "^21.2.3",
     "@types/node": "^26.6.6",
     "husky": "^9.1.7",
-    "lint-staged": "^17.6.0",
+    "lint-staged": "^17.6.2",
     "oxfmt": "0.78.0",
     "oxlint": "1.93.0",
     "taze": "^21.3.0",
-    "turbo": "^2.11.10",
+    "turbo": "^2.11.13",
     "typescript": "^6.0.3"
   },
   "engines": {
     "node": ">=24.15.0"
   },
-  "packageManager": "pnpm@12.18.0"
+  "packageManager": "pnpm@12.22.0"
 }

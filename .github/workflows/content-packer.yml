@@ -11,7 +11,7 @@
 # The shared fixture explicitly uses history: false: the Docker context excludes
 # checkout metadata and neither target needs Git. History-enabled packers must
 # instead retain Git and full history in the packer, never in the runtime app.
-# The five workflows carrying jobs are inventoried in CLAUDE.md; each header
+# The five workflows carrying jobs are inventoried in AGENTS.md; each header
 # states why it is an exception to calling a central body.
 name: Content packer
 
