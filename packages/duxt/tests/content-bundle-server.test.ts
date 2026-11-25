@@ -36,11 +36,13 @@ it('refreshes real Content, media, redirects, MCP and caches without restarting'
   // A request to the built server that never answers used to hang the whole
   // test until vitest's own limit, which reports neither the request nor the
   // server's output. Each request now carries its own deadline and is named
-  // while it is open, and a failure of any kind prints both.
+  // while it is open, and a failure of any kind prints both. The waits that are
+  // not requests (the reader worker, the MCP session stream, the server's exit)
+  // get the same treatment through `within`.
   const open: string[] = [];
   onTestFailed(() => {
     console.error(
-      `[content-bundle-server] requests still open: ${open.join(', ') || 'none'}\n` +
+      `[content-bundle-server] requests and waits still open: ${open.join(', ') || 'none'}\n` +
         `--- server output (last 8000 characters) ---\n${output.slice(-8000)}`
     );
   });
@@ -55,6 +57,28 @@ it('refreshes real Content, media, redirects, MCP and caches without restarting'
     } catch (error) {
       throw new Error(`${label} failed: ${String(error)}`, { cause: error });
     } finally {
+      open.splice(open.indexOf(label), 1);
+    }
+  };
+  const within = async <T>(
+    label: string,
+    wait: Promise<T>,
+    ms: number
+  ): Promise<T> => {
+    open.push(label);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        wait,
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(
+            () => reject(new Error(`${label} did not finish within ${ms} ms`)),
+            ms
+          );
+        })
+      ]);
+    } finally {
+      clearTimeout(timer);
       open.splice(open.indexOf(label), 1);
     }
   };
@@ -276,6 +300,9 @@ it('refreshes real Content, media, redirects, MCP and caches without restarting'
             PORT: String(port),
             HOST: '127.0.0.1',
             DUXT_CONTENT_BUNDLE_DIR: directory,
+            // Nitro force-exits after this when a graceful shutdown stalls;
+            // its 30 s default would outlast the deadline on `stop`.
+            NITRO_SHUTDOWN_TIMEOUT: '5000',
             NUXT_IPX_FS_DIR: JSON.stringify([
               join(directory, 'active/media'),
               join(root, '.output/public')
@@ -293,8 +320,11 @@ it('refreshes real Content, media, redirects, MCP and caches without restarting'
       });
     };
     const stop = async () => {
-      server?.kill('SIGTERM');
-      if (server && server.exitCode === null) await once(server, 'exit');
+      if (server && server.exitCode === null && server.signalCode === null) {
+        const exited = once(server, 'exit');
+        server.kill('SIGTERM');
+        await within('server exit after SIGTERM', exited, 15000);
+      }
       server = undefined;
     };
     start();
@@ -542,7 +572,7 @@ it('refreshes real Content, media, redirects, MCP and caches without restarting'
         }
       }
     );
-    await once(reader, 'message');
+    await within('reader worker ready', once(reader, 'message'), 10000);
     try {
       const secondPayload = await parseBundle('BundleTwo');
       const admin = fetch(url + '/api/await-activation', {
@@ -689,20 +719,28 @@ it('refreshes real Content, media, redirects, MCP and caches without restarting'
       expect((await (await fetch(url + '/api/probe')).json()).dumps).toBe(0);
       const summary = once(reader, 'message');
       reader.postMessage('stop');
-      const [result] = await summary;
+      const [result] = await within('reader worker summary', summary, 10000);
       expect(result.views).toBeGreaterThan(0);
       expect(result.mixed).toBe(false);
       expect(result.seen.sort()).toEqual(['BundleOne', 'BundleTwo']);
-      await once(reader, 'exit');
+      await within('reader worker exit', once(reader, 'exit'), 10000);
       expect(
         (await fetch(url + '/mcp', { method: 'DELETE', headers: mcpHeaders }))
           .status
       ).toBe(200);
-      await streamDone;
+      await within('MCP session stream end after DELETE', streamDone, 10000);
       await stop();
     } finally {
       streamController.abort();
-      await streamDone;
+      // Bounded but never thrown: on this path the try block has already
+      // failed, and its error is the one worth reporting.
+      await within(
+        'MCP session stream end after abort',
+        streamDone,
+        10000
+      ).catch((error) => {
+        output += `\n${String(error)}`;
+      });
       await reader.terminate();
     }
     const invalid = await writeContentBundle(
@@ -813,17 +851,23 @@ it('refreshes real Content, media, redirects, MCP and caches without restarting'
   } catch (error) {
     throw new Error(String(error) + '\n' + output, { cause: error });
   } finally {
-    server?.kill('SIGTERM');
-    if (server && server.exitCode === null) await once(server, 'exit');
+    if (server && server.exitCode === null && server.signalCode === null) {
+      const running = server;
+      const exited = once(running, 'exit');
+      running.kill('SIGTERM');
+      await within('server exit in cleanup', exited, 15000).catch(() =>
+        running.kill('SIGKILL')
+      );
+    }
     rmSync(root, { recursive: true, force: true });
   }
   // At least the sum of the budgets inside it: a full `nuxt build` (120 s), the
-  // prepare pass (30 s), eight polls of up to 30 s and five request markers of
-  // up to 10 s. 180 s was less than that sum, and under CI's parallel package
-  // tests the build alone came close enough that the test timed out while every
-  // step was still within its own.
+  // prepare pass (30 s), eight polls of up to 30 s, five request markers of up
+  // to 10 s, six server stops of up to 15 s and four worker and stream waits of
+  // up to 10 s. A limit below that sum lets vitest's own timeout fire first,
+  // which names no step — the failure #183 was filed for.
   //
   // No poll may run on vitest's 1 s default. Three after a server restart did,
   // and under a loaded `pnpm test` a restart takes longer than that, so the test
   // failed at whichever restart lost the race while it passed run on its own.
-}, 450000);
+}, 570000);
