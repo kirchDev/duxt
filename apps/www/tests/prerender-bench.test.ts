@@ -452,7 +452,7 @@ describe('the report', () => {
   });
 
   /**
-   * The timeout question CLAUDE.md leaves open is about the BASELINE, and it is
+   * The timeout question AGENTS.md leaves open is about the BASELINE, and it is
    * answered by a count rather than by silence. A report that only mentions
    * timeouts when a candidate is refused would show nothing at all on the run
    * that finally proves 8 is clean.

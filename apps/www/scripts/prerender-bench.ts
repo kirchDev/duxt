@@ -567,7 +567,7 @@ function percentage(fraction: number | undefined): string {
  * The benchmark's conclusion, in the two shapes anyone asks for it.
  *
  * THE BASELINE'S TIMEOUT COUNT IS STATED WHETHER OR NOT IT IS ZERO. That number
- * is the open question in `CLAUDE.md` — `concurrency: 8` plus a 60-second
+ * is the open question in `AGENTS.md` — `concurrency: 8` plus a 60-second
  * render budget has never been measured on a green full-site build — and a
  * report that mentioned timeouts only when they refused a candidate would show
  * nothing at all on the run that finally settles it.

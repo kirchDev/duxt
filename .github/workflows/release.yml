@@ -3,7 +3,7 @@
 # release-me cuts the releases, configured in `release-me.yaml`: one shared
 # release pull request for every changed package, versioned as one linked
 # family. This file carries its own jobs, and this header is the written
-# argument CLAUDE.md asks of a workflow that does.
+# argument AGENTS.md asks of a workflow that does.
 #
 # WHY RELEASE-ME IS AN OWN JOB. kirchDev/workflows has no body for it yet; the
 # release-please body it replaces lived there. A central `_release-me.yml`

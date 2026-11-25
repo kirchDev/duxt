@@ -17,7 +17,7 @@ This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.
 
 Requirements:
 
-- Node **24+**, **pnpm 12** and **TypeScript 6** (7 is held back — see CLAUDE.md)
+- Node **24+**, **pnpm 12** and **TypeScript 6** (7 is held back — see AGENTS.md)
 - `git`
 
 Clone and install:

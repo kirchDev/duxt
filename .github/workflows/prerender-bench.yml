@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 
-# NOT A STUB. CLAUDE.md inventories the five workflows carrying their own jobs.
+# NOT A STUB. AGENTS.md inventories the five workflows carrying their own jobs.
 # Workflows normally call a body in kirchDev/workflows; there is no body for
 # "build one repository's site eighteen times and compare the prerender phase", and there is unlikely ever to be a second caller for one.
 #
