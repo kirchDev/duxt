@@ -723,7 +723,11 @@ it('refreshes real Content, media, redirects, MCP and caches without restarting'
       expect(result.views).toBeGreaterThan(0);
       expect(result.mixed).toBe(false);
       expect(result.seen.sort()).toEqual(['BundleOne', 'BundleTwo']);
-      await within('reader worker exit', once(reader, 'exit'), 10000);
+      // The summary is everything the test needs from the worker, so it is
+      // ended here rather than awaited. Waiting for it to exit on its own was
+      // the hang behind #183: on CI the thread could stay alive after closing
+      // its port, and `terminate()` settles whether it has exited or not.
+      await within('reader worker terminate', reader.terminate(), 10000);
       expect(
         (await fetch(url + '/mcp', { method: 'DELETE', headers: mcpHeaders }))
           .status
