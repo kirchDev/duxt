@@ -54,11 +54,11 @@
     "@commitlint/types": "^21.2.3",
     "@types/node": "^26.6.6",
     "husky": "^9.1.7",
-    "lint-staged": "^17.6.0",
-    "oxfmt": "0.78.0",
-    "oxlint": "1.93.0",
+    "lint-staged": "^17.6.2",
+    "oxfmt": "0.79.0",
+    "oxlint": "1.94.0",
     "taze": "^21.3.0",
-    "turbo": "^2.11.10",
+    "turbo": "^2.11.13",
     "typescript": "^6.0.3"
   },
   "engines": {

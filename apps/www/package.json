@@ -29,27 +29,27 @@
     "check:infobox": "node scripts/check-infobox.ts"
   },
   "dependencies": {
-    "@iconify-json/vscode-icons": "^1.2.96",
+    "@iconify-json/vscode-icons": "^1.2.100",
     "@kirchdev/duxt": "workspace:*",
     "@kirchdev/duxt-meilisearch": "workspace:*",
     "@kirchdev/duxt-typesense": "workspace:*",
     "@kirchdev/duxt-wiki": "workspace:*",
-    "agents": "^0.33.0",
+    "agents": "^0.34.0",
     "nuxt": "^4.6.4"
   },
   "devDependencies": {
     "@libsql/client": "^0.18.0",
     "@types/jsdom": "^30.0.0",
     "@types/node": "^26.6.6",
-    "axe-core": "^4.14.0",
-    "jsdom": "^31.0.0",
+    "axe-core": "^4.14.1",
+    "jsdom": "^31.0.1",
     "nuxtseo-layer-devtools": "^6.0.2",
     "pg": "^8.23.1",
-    "playwright-core": "^1.65.0",
+    "playwright-core": "^1.65.1",
     "typescript": "^6.0.3",
-    "vitest": "^5.1.0",
+    "vitest": "^5.1.1",
     "vue-tsc": "^3.3.14",
-    "wrangler": "^4.159.0",
+    "wrangler": "^4.166.0",
     "yaml": "^2.9.1"
   }
 }
