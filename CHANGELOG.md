@@ -1,5 +1,11 @@
 # Changelog
 
+## [v0.14.2](https://github.com/kirchDev/duxt/compare/duxt@v0.14.1...duxt@v0.14.2) (2026-11-25)
+
+### Bug Fixes
+
+- **deps:** update dependencies within their minor ranges ([765ac08](https://github.com/kirchDev/duxt/commit/765ac08ec615756f73b3a8ae08aa4d81bae97e3c))
+
 ## [v0.14.1](https://github.com/kirchDev/duxt/compare/duxt@v0.14.0...duxt@v0.14.1) (2026-11-13)
 
 ### Bug Fixes
