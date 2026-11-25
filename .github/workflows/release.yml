@@ -73,7 +73,7 @@ jobs:
 
       - name: Mint Release App token
         id: app-token
-        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
         with:
           client-id: 'Iv23li3hNqtsZ8fDlwqH'
           private-key: ${{ env.KIRCHDEV_RELEASE_APP_PEM }}
@@ -88,7 +88,7 @@ jobs:
       # Pinned like every other action. v0.5.0 is the first release that creates
       # the release commit through the GitHub API, so the commit is signed and
       # the release pull request passes signed-commit protection.
-      - uses: ostendorf-cloud/release-me/action@1ce702d00e64f065f639373321c7fb4f5775636a # v0.5.0
+      - uses: ostendorf-cloud/release-me/action@31ce7e6832baa796d74fba552dac7b66f48915ad # v0.5.3
         with:
           token: ${{ steps.app-token.outputs.token }}
 
